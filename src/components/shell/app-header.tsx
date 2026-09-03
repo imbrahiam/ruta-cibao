@@ -20,7 +20,11 @@ async function AccountArea() {
 
   if (viewer.kind === "anonymous") {
     return (
-      <Button variant="secondary" render={<Link href="/entrar" />}>
+      <Button
+        nativeButton={false}
+        variant="secondary"
+        render={<Link href="/entrar" />}
+      >
         {t("signIn")}
       </Button>
     );

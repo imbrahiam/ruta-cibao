@@ -19,9 +19,56 @@ const revision =
     encoding: "utf-8",
   }).stdout?.trim() || crypto.randomUUID();
 
-export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } =
-  createSerwistRoute({
-    swSrc: "src/app/sw.ts",
-    additionalPrecacheEntries: [{ url: "/offline", revision }],
-    useNativeEsbuild: true,
+const route = createSerwistRoute({
+  swSrc: "src/app/sw.ts",
+  additionalPrecacheEntries: [{ url: "/offline", revision }],
+  useNativeEsbuild: true,
+});
+
+export const generateStaticParams = route.generateStaticParams;
+
+/**
+ * Bundling the worker means running esbuild, which takes about a second.
+ *
+ * Serwist's own example marks the route `force-static`, but Cache Components
+ * rejects segment config outright — so that export was being ignored and the
+ * bundle was being rebuilt on every single request. Caching the produced bytes
+ * is the equivalent under this model: esbuild runs once per path, and what is
+ * cached is a string rather than a Response, which is not serialisable.
+ */
+async function bundle(
+  path: string,
+): Promise<{ body: string; contentType: string }> {
+  "use cache";
+
+  const response = await route.GET(
+    new Request(`http://serwist.local/serwist/${path}`),
+    {
+      params: Promise.resolve({ path }),
+    },
+  );
+
+  return {
+    body: await response.text(),
+    contentType:
+      response.headers.get("content-type") ?? "application/javascript",
+  };
+}
+
+export async function GET(
+  _request: Request,
+  context: { params: Promise<{ path: string }> },
+) {
+  const { path } = await context.params;
+  const { body, contentType } = await bundle(path);
+
+  return new Response(body, {
+    headers: {
+      "content-type": contentType,
+      // The browser must notice a new worker on deploy, so it revalidates every
+      // time rather than trusting a cached copy.
+      "cache-control": "public, max-age=0, must-revalidate",
+      "service-worker-allowed": "/",
+    },
   });
+}

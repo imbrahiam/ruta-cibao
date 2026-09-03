@@ -80,8 +80,13 @@ export function UserMenu({ viewer }: { viewer: ViewerSummary }) {
 
         {/* The one action a visitor most likely wants, surfaced rather than
             buried in a settings page they would have to go looking for. */}
+        {/* `nativeButton={false}` because the render prop produces an <a>:
+            Base UI must be told not to assume button semantics it will not get. */}
         {viewer.kind === "visitor" && (
-          <DropdownMenuItem render={<Link href="/verificar" />}>
+          <DropdownMenuItem
+            nativeButton={false}
+            render={<Link href="/verificar" />}
+          >
             <IdCard className="size-4" aria-hidden />
             {t("becomeResident")}
           </DropdownMenuItem>
