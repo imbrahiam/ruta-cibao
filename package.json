@@ -45,6 +45,7 @@
     "@orpc/server": "2.0.0-beta.32",
     "@orpc/tanstack-query": "2.0.0-beta.32",
     "@orpc/zod": "2.0.0-beta.32",
+    "@protomaps/basemaps": "^5.7.2",
     "@react-email/components": "^1.0.12",
     "@scalar/nextjs-api-reference": "0.11.17",
     "@tanstack/react-query": "5.102.8",

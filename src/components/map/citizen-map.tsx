@@ -98,7 +98,10 @@ export function CitizenMap({
     mapRef.current?.easeTo({ center: flyTo, zoom: 16, duration: 700 });
   }, [flyTo]);
 
-  const style = useMemo(() => buildMapStyle(basemap), [basemap]);
+  const style = useMemo(
+    () => buildMapStyle(basemap, publicEnv.NEXT_PUBLIC_APP_URL),
+    [basemap],
+  );
   const filter = useMemo(() => categoryFilter(categoryIds), [categoryIds]);
 
   const layers = useMemo(() => {

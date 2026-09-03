@@ -22,6 +22,7 @@
         "@orpc/server": "2.0.0-beta.32",
         "@orpc/tanstack-query": "2.0.0-beta.32",
         "@orpc/zod": "2.0.0-beta.32",
+        "@protomaps/basemaps": "^5.7.2",
         "@react-email/components": "^1.0.12",
         "@scalar/nextjs-api-reference": "0.11.17",
         "@tanstack/react-query": "5.102.8",
@@ -542,6 +543,8 @@
     "@probe.gl/log": ["@probe.gl/log@4.1.2", "", { "dependencies": { "@probe.gl/env": "4.1.2" } }, "sha512-2LqSq4CHhc/HJQasHMPOzA6c7rprlGz8CCREGebo19jxcuKdvXQo0DEmlfId076U6UldMp6jGhWvDHEFLX111Q=="],
 
     "@probe.gl/stats": ["@probe.gl/stats@4.1.2", "", {}, "sha512-Hqc0UIHd0IZ2+JbovzTz7lYG7CY9D8yCB81zyP92Zl9UDSPcw2cLbTySW14keAQeAo1sjGjUw0+KHxr0Y2h/hA=="],
+
+    "@protomaps/basemaps": ["@protomaps/basemaps@5.7.2", "", { "bin": { "generate_style": "src/cli.ts" } }, "sha512-K1Yk6bWdULulYg+R2QRVXx4NzJZan5YQhpejEG0c1/sXruJrfPIPZuakpf3jwAgVmjIRVQwAv+yRafDeN0aaUQ=="],
 
     "@react-email/body": ["@react-email/body@0.3.0", "", { "peerDependencies": { "react": "^18.0 || ^19.0 || ^19.0.0-rc" } }, "sha512-uGo0BOOzjbMUo3lu+BIDWayvn5o6Xyfmnlla5VGf05n8gHMvO1ll7U4FtzWe3hxMLwt53pmc4iE0M+B5slG+Ug=="],
 

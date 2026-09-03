@@ -1,3 +1,4 @@
+import { type Flavor, layers, namedFlavor } from "@protomaps/basemaps";
 import type {
   ExpressionSpecification,
   LayerSpecification,
@@ -21,7 +22,9 @@ import { mapPalette } from "./palette";
  * `earth`, `roads`, `landuse`, `places`; OpenMapTiles, which MapTiler serves,
  * names them `transportation`, `landcover`, `building`, `place`. A style
  * written for one renders nothing at all against the other — no error, just a
- * blank ground. So the adapter carries a layer set per schema.
+ * blank ground. So the adapter carries a layer set per schema, and the
+ * Protomaps side uses that project's own generator rather than a hand-written
+ * approximation of it.
  *
  * Whatever the source, the styling is ours. A stock basemap would drag in the
  * colours and label density of a general-purpose map, and this one has a single
@@ -51,118 +54,38 @@ function roadWidth(scale: number): ExpressionSpecification {
   ];
 }
 
-/** Protomaps v4, the schema the self-hosted extract uses. */
-function protomapsLayers(): LayerSpecification[] {
-  return [
-    {
-      id: "earth",
-      type: "fill",
-      source: SOURCE_ID,
-      "source-layer": "earth",
-      paint: { "fill-color": mapPalette.land },
-    },
-    {
-      id: "landuse",
-      type: "fill",
-      source: SOURCE_ID,
-      "source-layer": "landuse",
-      filter: [
-        "in",
-        ["get", "kind"],
-        [
-          "literal",
-          ["park", "forest", "wood", "grass", "pitch", "cemetery", "scrub"],
-        ],
-      ],
-      paint: { "fill-color": mapPalette.green },
-    },
-    {
-      id: "water",
-      type: "fill",
-      source: SOURCE_ID,
-      "source-layer": "water",
-      paint: { "fill-color": mapPalette.water },
-    },
-    {
-      id: "buildings",
-      type: "fill",
-      source: SOURCE_ID,
-      "source-layer": "buildings",
-      minzoom: 14,
-      paint: { "fill-color": mapPalette.building },
-    },
-    {
-      id: "roads-casing",
-      type: "line",
-      source: SOURCE_ID,
-      "source-layer": "roads",
-      minzoom: 8,
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": mapPalette.roadCasing,
-        "line-width": roadWidth(2.2),
-      },
-    },
-    {
-      id: "roads",
-      type: "line",
-      source: SOURCE_ID,
-      "source-layer": "roads",
-      minzoom: 8,
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": mapPalette.road,
-        // Trunk roads a little wider than the streets off them, so the shape of
-        // the town is readable at a glance without adding any colour.
-        "line-width": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          ["match", ["get", "kind"], ["highway", "major_road"], 1.4, 0.6],
-          12,
-          ["match", ["get", "kind"], ["highway", "major_road"], 2.6, 1.4],
-          18,
-          ["match", ["get", "kind"], ["highway", "major_road"], 14, 8],
-        ],
-      },
-    },
-    {
-      id: "boundaries",
-      type: "line",
-      source: SOURCE_ID,
-      "source-layer": "boundaries",
-      paint: {
-        "line-color": mapPalette.line,
-        "line-width": 1,
-        "line-dasharray": [3, 2],
-      },
-    },
-    {
-      // Sparse by design. A basemap crowded with labels competes with the
-      // markers that are the entire point of this screen.
-      id: "places-label",
-      type: "symbol",
-      source: SOURCE_ID,
-      "source-layer": "places",
-      filter: [
-        "in",
-        ["get", "kind"],
-        ["literal", ["locality", "city", "town", "village"]],
-      ],
-      layout: {
-        "text-field": ["get", "name"],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 9, 11, 14, 15],
-        "text-max-width": 8,
-      },
-      paint: {
-        "text-color": mapPalette.lineStrong,
-        "text-halo-color": mapPalette.labelHalo,
-        "text-halo-width": 1.4,
-      },
-    },
-  ];
+/**
+ * Our colours, on the official Protomaps layer set.
+ *
+ * `layers()` from `@protomaps/basemaps` is the maintained style for the v4
+ * schema — 71 layers covering road classes, tunnels, bridges, shields and
+ * label hierarchies. The eight layers hand-written here before were guesses at
+ * that schema, and guessing wrong renders nothing at all.
+ *
+ * Only the colours are ours. Starting from the official `light` flavor and
+ * overriding a handful of entries keeps every layer correct while bringing the
+ * map into the app's greys — most of what changes is the water, which ships as
+ * a saturated cyan that would be the loudest thing on an otherwise neutral
+ * screen.
+ */
+function protomapsFlavor(): Flavor {
+  return {
+    ...namedFlavor("light"),
+    background: mapPalette.land,
+    earth: mapPalette.land,
+    water: mapPalette.water,
+    buildings: mapPalette.building,
+    park_a: mapPalette.green,
+    park_b: mapPalette.green,
+    wood_a: mapPalette.green,
+    wood_b: mapPalette.green,
+    scrub_a: mapPalette.green,
+    scrub_b: mapPalette.green,
+    school: mapPalette.landAlt,
+    hospital: mapPalette.landAlt,
+    industrial: mapPalette.landAlt,
+    pedestrian: mapPalette.landAlt,
+  };
 }
 
 /** OpenMapTiles, the schema MapTiler serves. */
@@ -249,7 +172,17 @@ function openMapTilesLayers(): LayerSpecification[] {
   ];
 }
 
-export function buildMapStyle(basemap: BasemapSource): StyleSpecification {
+/**
+ * @param origin Absolute origin for assets served by this app. MapLibre accepts
+ *   a relative URL for glyphs and tiles but rejects one for the sprite —
+ *   "Invalid sprite URL, must be absolute" — so it has to be built from
+ *   somewhere. Taking it as an argument keeps this module free of `window`,
+ *   which is what lets React Native and the tests use it unchanged.
+ */
+export function buildMapStyle(
+  basemap: BasemapSource,
+  origin: string,
+): StyleSpecification {
   const style: StyleSpecification = {
     version: 8,
     // Needed by any symbol layer. MapTiler serves them; a self-hosted
@@ -259,14 +192,26 @@ export function buildMapStyle(basemap: BasemapSource): StyleSpecification {
       basemap.kind === "maptiler"
         ? `https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key=${basemap.key}`
         : "/fonts/{fontstack}/{range}.pbf",
+    // Route shields, one-way arrows and POI icons are sprite images, and the
+    // layers using them render nothing without one. `bun run basemap:fonts`
+    // puts it in public/sprites.
+    ...(basemap.kind === "maptiler"
+      ? {}
+      : { sprite: `${origin.replace(/\/$/, "")}/sprites/light` }),
     sources: {},
-    layers: [
-      {
-        id: "background",
-        type: "background",
-        paint: { "background-color": mapPalette.land },
-      },
-    ],
+    // The Protomaps generator brings its own background layer, coloured by the
+    // flavor. Adding one here as well is a duplicate id, which MapLibre rejects
+    // — so it is only added for the sources that do not supply one.
+    layers:
+      basemap.kind === "pmtiles"
+        ? []
+        : [
+            {
+              id: "background",
+              type: "background",
+              paint: { "background-color": mapPalette.land },
+            },
+          ],
   };
 
   if (basemap.kind === "maptiler") {
@@ -289,7 +234,8 @@ export function buildMapStyle(basemap: BasemapSource): StyleSpecification {
         '<a href="https://protomaps.com">Protomaps</a> © OpenStreetMap',
       maxzoom: 15,
     };
-    style.layers.push(...protomapsLayers());
+    // Spanish labels where the data carries them.
+    style.layers.push(...layers(SOURCE_ID, protomapsFlavor(), { lang: "es" }));
   }
 
   return style;
