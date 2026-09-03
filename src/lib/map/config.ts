@@ -27,3 +27,7 @@ export const MAX_ZOOM = 18;
 export const PLACES_TILE_URL = "/api/tiles/places/{z}/{x}/{y}";
 export const PLACES_SOURCE_ID = "ruta-places";
 export const PLACES_SOURCE_LAYER = "places";
+export const CLUSTERS_SOURCE_LAYER = "clusters";
+
+/** Must match `CLUSTER_MAX_ZOOM` in `@/lib/tiles`: below it, tiles carry clusters. */
+export const CLUSTER_MAX_ZOOM = 12;

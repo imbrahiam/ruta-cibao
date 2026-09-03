@@ -1,7 +1,8 @@
 "use client";
 
-import { parseAsString, useQueryState } from "nuqs";
+import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 import { useCallback, useState } from "react";
+import { CategoryFilter } from "@/components/map/category-filter";
 import { CitizenMap } from "@/components/map/citizen-map";
 import { PlaceDrawer } from "@/components/map/place-drawer";
 
@@ -23,6 +24,14 @@ export function MapScreen() {
     // `history: push` so back closes the drawer instead of leaving the map.
     parseAsString.withOptions({ history: "push", shallow: true }),
   );
+  // Chosen categories ride in the URL too, so a filtered view is as shareable
+  // as a single place: "mira el mapa con solo balnearios y salud".
+  const [categoryIds, setCategoryIds] = useQueryState(
+    "cat",
+    parseAsArrayOf(parseAsString)
+      .withDefault([])
+      .withOptions({ shallow: true }),
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const handleSelect = useCallback(
@@ -40,7 +49,15 @@ export function MapScreen() {
 
   return (
     <>
-      <CitizenMap selectedId={selectedId} onSelect={handleSelect} />
+      <CitizenMap
+        selectedId={selectedId}
+        categoryIds={categoryIds}
+        onSelect={handleSelect}
+      />
+      <CategoryFilter
+        selected={categoryIds}
+        onChange={(next) => void setCategoryIds(next.length > 0 ? next : null)}
+      />
       <PlaceDrawer slug={slug} onClose={close} />
     </>
   );

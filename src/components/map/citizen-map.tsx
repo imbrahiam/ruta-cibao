@@ -6,10 +6,11 @@ import {
   removeProtocol,
 } from "maplibre-gl";
 import { Protocol } from "pmtiles";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MapGL, {
   GeolocateControl,
   Layer,
+  type MapRef,
   NavigationControl,
   Source,
 } from "react-map-gl/maplibre";
@@ -23,7 +24,13 @@ import {
   PROVINCE_BOUNDS,
   PROVINCE_CENTER,
 } from "@/lib/map/config";
-import { INTERACTIVE_LAYER_IDS, placesLayers } from "@/lib/map/layers";
+import {
+  CLUSTERS_LAYER_ID,
+  categoryFilter,
+  clusterLayers,
+  INTERACTIVE_LAYER_IDS,
+  placesLayers,
+} from "@/lib/map/layers";
 import { buildMapStyle } from "@/lib/map/style";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -53,11 +60,14 @@ function resolveBasemap() {
 
 export function CitizenMap({
   selectedId,
+  categoryIds,
   onSelect,
 }: {
   selectedId: string | null;
+  categoryIds: string[];
   onSelect: (place: { id: string; slug: string } | null) => void;
 }) {
+  const mapRef = useRef<MapRef>(null);
   const [protocolReady, setProtocolReady] = useState(false);
   const basemap = useMemo(resolveBasemap, []);
 
@@ -79,7 +89,19 @@ export function CitizenMap({
   }, [basemap.kind]);
 
   const style = useMemo(() => buildMapStyle(basemap), [basemap]);
-  const layers = useMemo(() => placesLayers(selectedId), [selectedId]);
+  const filter = useMemo(() => categoryFilter(categoryIds), [categoryIds]);
+
+  const layers = useMemo(() => {
+    // The filter applies to the individual markers only. Clusters are counted
+    // in the database before anyone has chosen a category, so filtering them
+    // client-side would leave counts that no longer match what they contain —
+    // a number that lies is worse than a number that is coarse.
+    const places = placesLayers(selectedId).map((layer) =>
+      filter ? { ...layer, filter } : layer,
+    );
+
+    return [...clusterLayers(), ...places];
+  }, [selectedId, filter]);
 
   const handleClick = useCallback(
     (event: MapLayerMouseEvent) => {
@@ -89,6 +111,21 @@ export function CitizenMap({
       // expect from a map and saves them hunting for a close button.
       if (!feature) {
         onSelect(null);
+        return;
+      }
+
+      // A cluster is not a destination, it is a "there are more here". Tapping
+      // one moves in rather than opening anything.
+      if (feature.layer.id === CLUSTERS_LAYER_ID) {
+        const map = mapRef.current;
+        if (map && feature.geometry.type === "Point") {
+          const [longitude, latitude] = feature.geometry.coordinates;
+          map.easeTo({
+            center: { lng: longitude ?? 0, lat: latitude ?? 0 },
+            zoom: Math.min(map.getZoom() + 2.5, MAX_ZOOM),
+            duration: 500,
+          });
+        }
         return;
       }
 
@@ -102,6 +139,7 @@ export function CitizenMap({
 
   return (
     <MapGL
+      ref={mapRef}
       initialViewState={{ ...PROVINCE_CENTER, zoom: DEFAULT_ZOOM }}
       mapStyle={style}
       minZoom={MIN_ZOOM}

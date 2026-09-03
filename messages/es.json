@@ -140,9 +140,11 @@
       "report": "Reportar problema"
     },
     "filters": {
-      "title": "Qué mostrar",
+      "title": "Qué mostrar en el mapa",
+      "hint": "Sin nada marcado se muestra todo.",
       "all": "Todo",
-      "open": "Filtrar"
+      "selected": "{count, plural, one {# categoría} other {# categorías}}",
+      "clear": "Mostrar todo de nuevo"
     },
     "empty": "Todavía no hay nada por aquí. Sé el primero en agregar un lugar.",
     "loading": "Abriendo el mapa…"
