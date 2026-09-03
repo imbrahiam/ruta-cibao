@@ -101,6 +101,61 @@ degrades to "verification pending" instead of locking a citizen out. A
 successful lookup proves the cédula exists — never that the person entering it
 owns it.
 
+## Realtime
+
+`realtime_events` is the source of truth and `LISTEN/NOTIFY` is only a nudge.
+
+Plain `NOTIFY` is fire-and-forget: a client disconnected at that moment loses
+the event permanently, with no way to ask what it missed. This province has
+intermittent connectivity — it is why the app has an offline queue at all — so
+realtime built on the assumption that nobody disconnects would fail exactly
+where it matters. `NOTIFY` also caps its payload at 8000 bytes, so it was
+always going to carry an id rather than data.
+
+A trigger on insert notifies; each open stream then drains the table from its
+own cursor. A dropped notification therefore costs latency, not an event.
+
+`/api/realtime` is Server-Sent Events, not WebSockets: traffic only flows
+server to browser, `EventSource` reconnects on its own, and it passes through
+Caddy with no upgrade handling to get wrong. Every message carries `id:`, so a
+browser that loses signal sends `Last-Event-ID` when it returns — the spec
+makes it do that, there is no client code for it — and the gap is replayed.
+
+Two details worth knowing:
+
+- Row ids are assigned before commit, so a long transaction can commit an id
+  below one a reader already passed. A periodic sweep re-reads the last thirty
+  seconds and readers de-duplicate by id, which closes that window for any
+  transaction shorter than it.
+- A viewer's own `user:<id>` channel is derived from the session, never from
+  the query string. Public channels are an allowlist.
+
+Events expire after an hour. The log is there so a reconnecting browser can
+catch up, not to be a history — `audit_events` answers questions about the past.
+
+## Data fetching
+
+Cache Components and Partial Prefetching are enabled (`next.config.ts`).
+`"use cache"` gives a function's result a lifetime so it can be part of the
+static shell, and `<Suspense>` covers what genuinely varies per person. A
+`<Link>` prefetches that shell, so a click renders immediately and only the
+per-user parts stream in.
+
+This is why there are no skeleton screens. A skeleton says the page has nothing
+real to show yet; here it does. Where waiting is genuinely possible, feedback
+goes inline in the control that was touched — `useLinkStatus` for navigation,
+`useFormStatus` for submits — so nothing on the page moves.
+
+Forms are Server Actions, which work while JavaScript is still loading. They
+call the same module services the oRPC procedures do, so the two cannot drift.
+
+For client-side reads, `@/lib/orpc` exposes the typed router as TanStack Query
+options. `staleTime` is generous on purpose: the live stream pushes changes as
+they happen, so refetching on a timer would spend a rural phone's data plan
+learning what an event already said. `useRealtime` invalidates the queries a
+channel feeds, or hands the payload over for a direct cache patch where that
+avoids a round trip.
+
 ## Planned
 
 - **Map** — MapLibre GL with a custom style, deck.gl for heatmaps and
@@ -109,7 +164,8 @@ owns it.
   notification fan-out, traffic-report expiry, JCE retries, embedding backfill.
 - **Reports** — an internal route rendered to PDF by Playwright, so screen and
   print share one render path.
-- **Realtime** — Postgres `LISTEN/NOTIFY` into an SSE broker.
+- **Offline queue** — a Dexie queue with idempotency keys, replayed on
+  reconnect against the `idempotency_keys` table.
 - **Offline** — Serwist app shell plus a Dexie queue with idempotency keys, for
   a rural province with intermittent connectivity.
 - **AI** — Transformers.js embeddings locally into pgvector; the report

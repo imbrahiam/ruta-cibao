@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { Providers } from "@/components/providers";
 import { formats, TIME_ZONE } from "@/i18n/config";
 import { type Locale, routing } from "@/i18n/routing";
 import "../globals.css";
@@ -68,7 +69,7 @@ export default async function LocaleLayout({
           now={now}
           formats={formats}
         >
-          {children}
+          <Providers>{children}</Providers>
         </NextIntlClientProvider>
       </body>
     </html>

@@ -8,3 +8,4 @@ export * from "./auth";
 export * from "./geography";
 export * from "./members";
 export * from "./platform";
+export * from "./realtime";
