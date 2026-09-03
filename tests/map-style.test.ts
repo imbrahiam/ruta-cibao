@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { mapPalette } from "@/lib/map/palette";
 import { buildMapStyle } from "@/lib/map/style";
 
 /**
@@ -81,3 +82,37 @@ describe("buildMapStyle", () => {
     );
   });
 });
+
+/**
+ * The first version of this palette made the map invisible: white land with
+ * white roads on it, separated by a hairline under a pixel wide at province
+ * zoom. Nothing failed, nothing logged, the map was simply blank. These hold
+ * the contrast that stops it happening again.
+ */
+describe("mapPalette", () => {
+  test("roads are brighter than the ground they sit on", () => {
+    expect(mapPalette.road).not.toBe(mapPalette.land);
+    expect(luminance(mapPalette.road)).toBeGreaterThan(
+      luminance(mapPalette.land),
+    );
+  });
+
+  test("water is distinguishable from land", () => {
+    expect(
+      Math.abs(luminance(mapPalette.water) - luminance(mapPalette.land)),
+    ).toBeGreaterThan(8);
+  });
+
+  test("a marker's white ring reads against the ground", () => {
+    expect(luminance(mapPalette.land)).toBeLessThan(luminance("#ffffff"));
+  });
+});
+
+/** Rough perceived brightness, 0–255. Enough to compare two near-greys. */
+function luminance(hex: string): number {
+  const value = Number.parseInt(hex.slice(1), 16);
+  const r = (value >> 16) & 255;
+  const g = (value >> 8) & 255;
+  const b = value & 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}

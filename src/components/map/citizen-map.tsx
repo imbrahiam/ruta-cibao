@@ -171,9 +171,12 @@ export function CitizenMap({
       <Source
         id={PLACES_SOURCE_ID}
         type="vector"
-        tiles={[
-          new URL(PLACES_TILE_URL, publicEnv.NEXT_PUBLIC_APP_URL).toString(),
-        ]}
+        // The template must reach MapLibre with its braces intact. Passing it
+        // through `new URL()` percent-encodes them into %7Bz%7D, so the
+        // placeholders are never substituted and every tile request 400s — an
+        // empty map with no error, because MapLibre does not surface a failed
+        // tile. A relative template is resolved against the document.
+        tiles={[PLACES_TILE_URL]}
         minzoom={0}
         maxzoom={14}
       >

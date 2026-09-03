@@ -16,12 +16,21 @@
  * MapLibre Native unchanged.
  */
 export const mapPalette = {
-  /** --background */
-  land: "#ffffff",
+  /**
+   * The ground is a light grey and the roads on it are white — not the other
+   * way round.
+   *
+   * The first attempt used --background for both, which is how the interface
+   * treats a surface, and the map came out invisible: white roads on white
+   * land, separated by a hairline that is under a pixel wide at province zoom.
+   * Ride-hailing maps read the way they do because the ground recedes and the
+   * road network is the bright thing drawn on top of it.
+   */
   /** --secondary / --muted */
-  landAlt: "#f5f5f5",
-  /** --border */
-  line: "#e5e5e5",
+  land: "#f4f4f4",
+  landAlt: "#ededed",
+  /** --border, for hairlines and boundaries */
+  line: "#dcdcdc",
   /** --muted-foreground */
   lineStrong: "#737373",
   /** --foreground */
@@ -29,13 +38,13 @@ export const mapPalette = {
   /** --primary */
   ink: "#171717",
   /** A cool neutral rather than a saturated blue, to stay in the same family. */
-  water: "#e8ecef",
+  water: "#dbe3e8",
   waterLabel: "#8a9299",
-  /** Roads are white with a hairline casing: visible, never loud. */
+  /** --background: the network, bright against the ground. */
   road: "#ffffff",
-  roadCasing: "#e5e5e5",
-  building: "#f2f2f2",
-  green: "#f0f3f0",
+  roadCasing: "#e2e2e2",
+  building: "#e8e8e8",
+  green: "#e9eee9",
   labelHalo: "#ffffff",
 } as const;
 
