@@ -1,0 +1,60 @@
+{
+  "app": {
+    "name": "Ruta Cibao",
+    "tagline": "El mapa cívico de la provincia Santiago Rodríguez"
+  },
+  "home": {
+    "intro": "Pon en el mapa los lugares, negocios, rutas y problemas de Sabaneta, Monción y Villa Los Almácigos.",
+    "apiDocs": "Documentación de la API",
+    "underConstruction": "En construcción"
+  },
+  "onboarding": {
+    "title": "Bienvenido a Ruta Cibao",
+    "chooseTier": "¿Cómo quieres entrar?",
+    "visitor": {
+      "title": "Soy visitante",
+      "description": "Descubre lugares, deja reseñas, sube fotos y reporta el tránsito. No necesitas cédula.",
+      "action": "Entrar como visitante"
+    },
+    "citizen": {
+      "title": "Soy residente",
+      "description": "Además de todo lo anterior, puedes votar en consultas, abrir casos y registrar tu negocio. Verificamos tu cédula.",
+      "action": "Verificar mi cédula"
+    },
+    "cedula": {
+      "label": "Cédula",
+      "placeholder": "001-1234567-8",
+      "help": "Solo consultamos tu nombre en la JCE. Tu cédula se guarda cifrada y nunca se muestra.",
+      "municipality": "Municipio",
+      "submit": "Verificar",
+      "verified": "Listo, {name}. Ya eres residente verificado.",
+      "pending": "La JCE no responde en este momento. Guardamos tu solicitud y la reintentamos automáticamente; mientras tanto puedes usar la plataforma como visitante.",
+      "rejected": "No encontramos esa cédula en la JCE. Revisa los números e intenta de nuevo.",
+      "taken": "Esa cédula ya está registrada en otra cuenta."
+    }
+  },
+  "auth": {
+    "signIn": "Entrar",
+    "signOut": "Salir",
+    "email": "Correo electrónico",
+    "magicLink": "Enviarme un enlace",
+    "magicLinkSent": "Te enviamos un enlace a {email}. Ábrelo desde este mismo teléfono.",
+    "passkey": "Entrar con mi huella o cara"
+  },
+  "errors": {
+    "unauthorized": "Necesitas iniciar sesión para hacer eso.",
+    "cedulaRequired": "Esta acción es solo para residentes verificados.",
+    "municipalityScope": "Ese contenido pertenece a otro municipio.",
+    "unexpected": "Algo salió mal. Intenta de nuevo."
+  },
+  "validation": {
+    "cedula": {
+      "format": "La cédula debe tener 11 dígitos."
+    },
+    "required": "Este campo es obligatorio."
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "empty": "No tienes notificaciones."
+  }
+}

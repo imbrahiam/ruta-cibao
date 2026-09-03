@@ -14,6 +14,22 @@
  */
 import { z } from "zod";
 
+/**
+ * An optional setting.
+ *
+ * A variable present but empty (`RESEND_API_KEY=`) means the same thing as one
+ * that was never set: not configured. Zod's `.optional()` only covers
+ * `undefined`, so without this a blank line in .env fails the boot — which is
+ * exactly what .env.example tells people to write.
+ */
+function optionalString() {
+  return z
+    .string()
+    .transform((value) => value.trim())
+    .transform((value) => (value === "" ? undefined : value))
+    .optional();
+}
+
 const serverSchema = z.object({
   NODE_ENV: z
     .enum(["development", "test", "production"])
@@ -28,6 +44,32 @@ const serverSchema = z.object({
   JCE_API_URL: z.url(),
   JCE_API_KEY: z.string().min(1),
   JCE_USE_MOCK: z
+    .enum(["0", "1"])
+    .default("0")
+    .transform((value) => value === "1"),
+
+  // 32 bytes, hex-encoded. Encrypts cedulas and every other piece of personal
+  // data at rest, and keys the blind index that makes them searchable.
+  // Rotating it makes existing ciphertext unreadable — see OPERATIONS.md.
+  APP_ENCRYPTION_KEY: z
+    .string()
+    .regex(/^[0-9a-f]{64}$/, "must be 64 hex characters"),
+
+  // Email. Without a key, magic links are written to the server log instead of
+  // being sent, which is what local development wants.
+  RESEND_API_KEY: optionalString(),
+  EMAIL_FROM: z.string().min(1).default("Ruta Cibao <onboarding@resend.dev>"),
+
+  // Web Push. Without a keypair, push notifications are disabled and the
+  // in-app notification centre still works. Generate with: bunx web-push generate-vapid-keys
+  VAPID_PUBLIC_KEY: optionalString(),
+  VAPID_PRIVATE_KEY: optionalString(),
+  VAPID_SUBJECT: z.string().min(1).default("mailto:soporte@rutacibao.do"),
+
+  // Set to 1 only when a reverse proxy you control sets X-Forwarded-For.
+  // Trusting that header without one lets any client forge its own IP and
+  // walk straight through the rate limiter.
+  TRUSTED_PROXY: z
     .enum(["0", "1"])
     .default("0")
     .transform((value) => value === "1"),

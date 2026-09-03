@@ -20,10 +20,18 @@
 import { z } from "zod";
 import { env } from "@/lib/env";
 
-const cedulaSchema = z
+/**
+ * The single definition of what a cédula is.
+ *
+ * Normalises the hyphenated form people actually type, then brands the result
+ * so a raw string cannot be passed where a validated cédula is expected. The
+ * message is a catalogue key, not a sentence — user-facing text lives in
+ * `messages/`.
+ */
+export const cedulaSchema = z
   .string()
   .transform((value) => value.replace(/[\s-]/g, ""))
-  .pipe(z.string().regex(/^\d{11}$/, "cedula must be 11 digits"))
+  .pipe(z.string().regex(/^\d{11}$/, "validation.cedula.format"))
   .brand<"Cedula">();
 
 export type Cedula = z.infer<typeof cedulaSchema>;

@@ -21,6 +21,8 @@ if (env.NODE_ENV !== "production") {
   globalForDb.pool = pool;
 }
 
-export const db = drizzle(pool, { schema });
+// `snake_case` matches drizzle.config.ts, so table definitions can use
+// camelCase property names without repeating the column name in every call.
+export const db = drizzle(pool, { schema, casing: "snake_case" });
 export { pool, schema };
 export type Db = typeof db;

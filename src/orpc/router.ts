@@ -1,14 +1,17 @@
 import { openapi } from "@orpc/openapi";
 import { z } from "zod";
 import { pub } from "./base";
+import { citizenRouter } from "./routers/citizen";
+import { meRouter } from "./routers/me";
+import { municipalitiesRouter } from "./routers/municipalities";
 
 /**
- * Root router. Feature routers (places, routes, traffic, consultations,
- * reports) get mounted here as they land; the shape of this object is what the
- * typed client and the OpenAPI document are both generated from.
+ * Root router. The shape of this object is what the typed client and the
+ * OpenAPI document are both generated from, so a procedure cannot exist in one
+ * and be missing from the other.
  *
- * HTTP routing lives in `openapi()` metadata — in oRPC v2 the builder no longer
- * has a `.route()` method.
+ * HTTP routing lives in `openapi()` metadata — in oRPC v2 the builder has no
+ * `.route()` method.
  */
 export const router = {
   health: pub
@@ -17,6 +20,10 @@ export const router = {
     )
     .output(z.object({ status: z.literal("ok"), time: z.iso.datetime() }))
     .handler(() => ({ status: "ok" as const, time: new Date().toISOString() })),
+
+  me: meRouter,
+  municipalities: municipalitiesRouter,
+  citizen: citizenRouter,
 };
 
 export type AppRouter = typeof router;
