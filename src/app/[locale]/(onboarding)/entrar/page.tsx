@@ -1,15 +1,10 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { SignInForm } from "@/components/onboarding/sign-in-form";
 import { BlurFade } from "@/components/ui/blur-fade";
 
 /** Static: nothing on this page depends on who is asking. */
-export default async function SignInPage({
-  params,
-}: PageProps<"/[locale]/entrar">) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  const t = await getTranslations({ locale, namespace: "auth" });
+export default async function SignInPage() {
+  const t = await getTranslations("auth");
 
   return (
     <>

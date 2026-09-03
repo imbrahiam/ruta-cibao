@@ -115,7 +115,17 @@ export function MunicipalityPicker({
           }
         >
           <SelectTrigger className="h-12 w-full text-base">
-            <SelectValue placeholder={t("municipalityPlaceholder")} />
+            {/*
+              Without a formatter this renders the stored id — the reader would
+              see "villa-los-almacigos" where the option said "Villa Los
+              Almácigos". The id is a database key; it is never user-facing.
+            */}
+            <SelectValue placeholder={t("municipalityPlaceholder")}>
+              {(value: string | null) =>
+                municipalities.find((m) => m.id === value)?.name ??
+                t("municipalityPlaceholder")
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {municipalities.map((municipality) => (

@@ -1,11 +1,8 @@
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 
-export default async function Home({ params }: PageProps<"/[locale]">) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  const t = await getTranslations({ locale, namespace: "home" });
-  const app = await getTranslations({ locale, namespace: "app" });
+export default async function Home() {
+  const t = await getTranslations("home");
+  const app = await getTranslations("app");
 
   return (
     <div className="flex flex-col gap-4">

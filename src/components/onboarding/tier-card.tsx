@@ -47,9 +47,18 @@ export function TierCard({
       // tapped one-handed, outdoors, by people who have never seen the app.
       className="group relative block min-h-[88px] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
+      {/*
+        No hover gradient. The cursor-following wash read as a smudge across the
+        text, and on a phone — where this card is actually used — there is no
+        cursor for it to follow, so it was cost without benefit. The border
+        trace stays, retinted from the registry's purple and pink to the
+        project's green.
+      */}
       <MagicCard
-        className="rounded-xl p-5"
-        gradientOpacity={highlighted ? 0.5 : 0.25}
+        className="rounded-xl p-5 transition-colors group-hover:bg-accent/40"
+        gradientOpacity={0}
+        gradientFrom="#166534"
+        gradientTo="#4ade80"
       >
         <div className="flex items-start gap-4">
           <span className="mt-0.5 shrink-0 text-foreground/70">{icon}</span>

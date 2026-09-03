@@ -20,7 +20,7 @@ async function AccountArea() {
 
   if (viewer.kind === "anonymous") {
     return (
-      <Button variant="ghost" className="h-11" render={<Link href="/entrar" />}>
+      <Button variant="secondary" render={<Link href="/entrar" />}>
         {t("signIn")}
       </Button>
     );
@@ -45,11 +45,8 @@ function AccountAreaFallback() {
   return <div className="size-11" aria-hidden />;
 }
 
-export async function AppHeader({ locale }: { locale: string }) {
-  // Explicit locale: `getTranslations()` without one reads the request config,
-  // which is a runtime access and would pull every page below out of the
-  // static shell.
-  const t = await getTranslations({ locale, namespace: "app" });
+export async function AppHeader() {
+  const t = await getTranslations("app");
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-sm">

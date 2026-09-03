@@ -34,7 +34,7 @@
       "taken": "Esa cédula ya está registrada en otra cuenta.",
       "checking": "Consultando la JCE…",
       "title": "Verifica tu cédula",
-      "intro": "Consultamos tu nombre en la JCE para confirmar que resides en la provincia. Toma unos segundos.",
+      "intro": "Consultamos tu identidad para confirmar que resides en la provincia.",
       "loadingStatus": "Revisando tu estado…",
       "municipalityPlaceholder": "Elige tu municipio",
       "municipalityHelp": "El municipio donde vives. Define en qué consultas puedes votar.",

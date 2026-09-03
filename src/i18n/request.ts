@@ -1,17 +1,28 @@
+import { notFound } from "next/navigation";
+import * as rootParams from "next/root-params";
 import { hasLocale } from "next-intl";
 import { getRequestConfig } from "next-intl/server";
 import { formats, TIME_ZONE } from "./config";
 import { routing } from "./routing";
 
-export default getRequestConfig(async ({ requestLocale }) => {
-  const requested = await requestLocale;
-  const locale = hasLocale(routing.locales, requested)
-    ? requested
-    : routing.defaultLocale;
+/**
+ * Resolves the locale from the `[locale]` route segment.
+ *
+ * `next/root-params` reads it directly rather than through the request, which
+ * is what replaced `setRequestLocale`: the old call had to be repeated at the
+ * top of every layout and page, and forgetting one silently produced the
+ * default language.
+ */
+export default getRequestConfig(async () => {
+  const requested = await rootParams.locale();
+
+  if (!hasLocale(routing.locales, requested)) {
+    notFound();
+  }
 
   return {
-    locale,
-    messages: (await import(`../../messages/${locale}.json`)).default,
+    locale: requested,
+    messages: (await import(`../../messages/${requested}.json`)).default,
     // The province runs on Santo Domingo time; formatting must not follow
     // whatever the reader's browser happens to be set to.
     timeZone: TIME_ZONE,

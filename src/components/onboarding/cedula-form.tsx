@@ -16,8 +16,8 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { CedulaInput } from "./cedula-input";
 import { CedulaPrivacyDrawer } from "./cedula-privacy-drawer";
 import { MunicipalityPicker } from "./municipality-picker";
 
@@ -97,20 +97,10 @@ export function CedulaForm({
     <form action={formAction} className="flex flex-col gap-6">
       <Field>
         <FieldLabel htmlFor="cedula">{t("label")}</FieldLabel>
-        <Input
-          id="cedula"
-          name="cedula"
-          // A numeric keypad on a phone, and the browser's own autofill.
-          inputMode="numeric"
-          autoComplete="off"
+        <CedulaInput
           placeholder={t("placeholder")}
-          required
-          maxLength={13}
-          className="h-12 text-base tracking-wider"
-          aria-describedby="cedula-help"
-          aria-invalid={
-            state.status === "invalid" || state.status === "rejected"
-          }
+          describedBy="cedula-help"
+          invalid={state.status === "invalid" || state.status === "rejected"}
         />
         <FieldDescription
           id="cedula-help"

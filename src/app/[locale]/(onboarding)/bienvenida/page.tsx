@@ -1,5 +1,5 @@
 import { Compass, IdCard } from "lucide-react";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { TierCard } from "@/components/onboarding/tier-card";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Link } from "@/i18n/navigation";
@@ -10,13 +10,8 @@ import { Link } from "@/i18n/navigation";
  * Fully static — there is nothing here that depends on who is asking, so it
  * lands in the static shell and appears the instant a link to it is clicked.
  */
-export default async function WelcomePage({
-  params,
-}: PageProps<"/[locale]/bienvenida">) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  const t = await getTranslations({ locale, namespace: "onboarding" });
+export default async function WelcomePage() {
+  const t = await getTranslations("onboarding");
 
   return (
     <>

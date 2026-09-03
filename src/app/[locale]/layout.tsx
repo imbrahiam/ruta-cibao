@@ -1,14 +1,41 @@
 import { SerwistProvider } from "@serwist/turbopack/react";
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { hasLocale, NextIntlClientProvider } from "next-intl";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import type { Metadata, Viewport } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getTranslations } from "next-intl/server";
 import { OfflineIndicator } from "@/components/offline/offline-indicator";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { formats, TIME_ZONE } from "@/i18n/config";
 import { type Locale, routing } from "@/i18n/routing";
 import "../globals.css";
+
+/**
+ * Self-hosted, not fetched at runtime.
+ *
+ * `next/font` downloads the files at build time and serves them from this
+ * origin, so a phone on a weak connection makes no request to a font CDN and
+ * the app still renders correctly with no network at all. `display: swap`
+ * means text is readable immediately in the fallback rather than invisible
+ * while a webfont loads.
+ */
+const sans = Geist({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const mono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
+export const viewport: Viewport = {
+  themeColor: "#166534",
+  // The map needs pinch-to-zoom, and capping it would fail WCAG 1.4.4 anyway.
+  maximumScale: 5,
+};
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
@@ -42,28 +69,22 @@ async function shellNow() {
   return new Date();
 }
 
-export async function generateMetadata({
-  params,
-}: LayoutProps<"/[locale]">): Promise<Metadata> {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "app" });
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("app");
 
   return { title: t("name"), description: t("tagline") };
 }
 
 export default async function LocaleLayout({
   children,
-  params,
 }: LayoutProps<"/[locale]">) {
-  const { locale } = await params;
-  if (!hasLocale(routing.locales, locale)) notFound();
-
-  // Lets the whole subtree render statically where it can.
-  setRequestLocale(locale);
+  // Resolved by next-intl from the route segment via next/root-params, and
+  // already validated there — an unknown locale never reaches this layout.
+  const locale = (await getLocale()) as Locale;
   const [messages, now] = await Promise.all([loadMessages(locale), shellNow()]);
 
   return (
-    <html lang={locale}>
+    <html lang={locale} className={`${sans.variable} ${mono.variable}`}>
       <body>
         <NextIntlClientProvider
           locale={locale}

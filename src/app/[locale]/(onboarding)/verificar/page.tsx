@@ -1,5 +1,5 @@
 import { asc } from "drizzle-orm";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { CedulaForm } from "@/components/onboarding/cedula-form";
 import {
@@ -23,13 +23,8 @@ async function loadMunicipalities() {
     .orderBy(asc(municipalities.name));
 }
 
-export default async function VerifyPage({
-  params,
-}: PageProps<"/[locale]/verificar">) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  const t = await getTranslations({ locale, namespace: "onboarding.cedula" });
+export default async function VerifyPage() {
+  const t = await getTranslations("onboarding.cedula");
   const list = await loadMunicipalities();
 
   return (

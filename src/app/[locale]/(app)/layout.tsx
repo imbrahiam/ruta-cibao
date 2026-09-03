@@ -1,4 +1,3 @@
-import { setRequestLocale } from "next-intl/server";
 import { AppHeader } from "@/components/shell/app-header";
 
 /**
@@ -8,16 +7,10 @@ import { AppHeader } from "@/components/shell/app-header";
  * and a header offering ways to wander off mid-verification would work against
  * them.
  */
-export default async function AppLayout({
-  children,
-  params,
-}: LayoutProps<"/[locale]">) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
+export default function AppLayout({ children }: LayoutProps<"/[locale]">) {
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      <AppHeader locale={locale} />
+      <AppHeader />
       <main
         id="contenido"
         className="mx-auto w-full max-w-5xl flex-1 px-4 py-8"

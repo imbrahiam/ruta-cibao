@@ -1,5 +1,5 @@
 import { CloudOff } from "lucide-react";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
 import {
   Empty,
   EmptyDescription,
@@ -13,13 +13,8 @@ import {
  *
  * Fully static, so it is available precisely when nothing else is.
  */
-export default async function OfflinePage({
-  params,
-}: PageProps<"/[locale]/offline">) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-
-  const t = await getTranslations({ locale, namespace: "offline" });
+export default async function OfflinePage() {
+  const t = await getTranslations("offline");
 
   return (
     <Empty className="py-16">
