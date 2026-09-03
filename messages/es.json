@@ -115,5 +115,14 @@
     "signOut": "Salir",
     "signIn": "Entrar",
     "skipToContent": "Saltar al contenido"
+  },
+  "offline": {
+    "offline": "Sin conexión. Puedes seguir usando la app; lo que hagas se guarda aquí.",
+    "offlineWithPending": "Sin conexión. Tienes {count, plural, one {# cosa guardada} other {# cosas guardadas}} que se enviarán solas cuando vuelva la señal.",
+    "pending": "{count, plural, one {Queda # cosa por enviar} other {Quedan # cosas por enviar}}.",
+    "sending": "Enviando lo que quedó guardado…",
+    "retry": "Enviar ahora",
+    "pageTitle": "Esta parte necesita conexión",
+    "pageBody": "Lo que ya cargaste sigue disponible, y lo que escribas se guarda hasta que vuelva la señal."
   }
 }

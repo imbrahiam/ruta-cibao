@@ -66,6 +66,25 @@ const serverSchema = z.object({
   VAPID_PRIVATE_KEY: optionalString(),
   VAPID_SUBJECT: z.string().min(1).default("mailto:soporte@rutacibao.do"),
 
+  // Object storage. MinIO locally and on the VPS; any S3-compatible service
+  // works, which is what lets the same image run on Railway with R2.
+  S3_ENDPOINT: z.url().default("http://localhost:9000"),
+  S3_REGION: z.string().default("us-east-1"),
+  S3_BUCKET: z.string().default("ruta-cibao"),
+  S3_ACCESS_KEY_ID: z.string().default("minioadmin"),
+  S3_SECRET_ACCESS_KEY: z.string().default("minioadmin"),
+  /** MinIO needs path-style addressing; AWS and R2 do not. */
+  S3_FORCE_PATH_STYLE: z
+    .enum(["0", "1"])
+    .default("1")
+    .transform((value) => value === "1"),
+
+  // imgproxy signs and resizes on the fly, so the app never stores thumbnails.
+  // Without a key, images are served straight from storage at full size.
+  IMGPROXY_URL: optionalString(),
+  IMGPROXY_KEY: optionalString(),
+  IMGPROXY_SALT: optionalString(),
+
   // Set to 1 only when a reverse proxy you control sets X-Forwarded-For.
   // Trusting that header without one lets any client forge its own IP and
   // walk straight through the rate limiter.

@@ -61,3 +61,8 @@ CLAUDE.md
 /.agents/
 /.claude/
 skills-lock.json
+
+# service worker build output
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js
