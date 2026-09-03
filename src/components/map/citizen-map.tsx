@@ -2,18 +2,14 @@
 
 import {
   addProtocol,
-  type MapLayerMouseEvent,
+  GeolocateControl,
+  Map as MapLibreMap,
+  type MapMouseEvent,
+  NavigationControl,
   removeProtocol,
 } from "maplibre-gl";
 import { Protocol } from "pmtiles";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import MapGL, {
-  GeolocateControl,
-  Layer,
-  type MapRef,
-  NavigationControl,
-  Source,
-} from "react-map-gl/maplibre";
+import { useEffect, useRef } from "react";
 import { publicEnv } from "@/lib/env.public";
 import {
   DEFAULT_ZOOM,
@@ -21,7 +17,6 @@ import {
   MIN_ZOOM,
   PLACES_SOURCE_ID,
   PLACES_TILE_URL,
-  PROVINCE_BOUNDS,
   PROVINCE_CENTER,
 } from "@/lib/map/config";
 import {
@@ -35,12 +30,19 @@ import { buildMapStyle } from "@/lib/map/style";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 /**
- * The map itself.
+ * The map.
  *
- * Everything decided here — the style, the layers, the bounds — comes from
- * `@/lib/map`, which is plain data with no React in it. That is the seam a
- * React Native build would come in at: MapLibre Native reads the same style
- * JSON and the same tile URLs, and only this file would be replaced.
+ * Driven imperatively against a container ref rather than through a React
+ * wrapper. MapLibre owns a canvas and a WebGL context and wants to be told what
+ * changed; wrapping that in a component tree adds a mount dance that has to
+ * survive server rendering, streaming and StrictMode's double effects, and
+ * gains nothing here because every update below is a one-line imperative call
+ * anyway.
+ *
+ * Everything the map decides — the style, the layers, the bounds — comes from
+ * `@/lib/map`, which is plain data with no React and no DOM in it. That is the
+ * seam a React Native build comes in at: MapLibre Native reads the same style
+ * JSON and the same tile URLs, and only this file is replaced.
  */
 function resolveBasemap() {
   if (publicEnv.NEXT_PUBLIC_BASEMAP_PMTILES_URL) {
@@ -58,6 +60,8 @@ function resolveBasemap() {
   return { kind: "none" } as const;
 }
 
+export type PlaceSelection = { id: string; slug: string } | null;
+
 export function CitizenMap({
   selectedId,
   categoryIds,
@@ -68,74 +72,93 @@ export function CitizenMap({
   categoryIds: string[];
   /** Where a search result asked the map to go. */
   flyTo: { lng: number; lat: number } | null;
-  onSelect: (place: { id: string; slug: string } | null) => void;
+  onSelect: (place: PlaceSelection) => void;
 }) {
-  const mapRef = useRef<MapRef>(null);
-  const [protocolReady, setProtocolReady] = useState(false);
-  const basemap = useMemo(resolveBasemap, []);
+  const container = useRef<HTMLDivElement>(null);
+  const map = useRef<MapLibreMap | null>(null);
+  // Held in a ref so changing the handler never tears the map down and
+  // rebuilds it, which would lose the viewport the person had panned to.
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
 
   useEffect(() => {
-    // A PMTiles archive is one file read by range request, which MapLibre only
-    // understands once this protocol is registered. Registering it always would
-    // be harmless, but doing it lazily keeps the library out of the bundle for
-    // deployments that never use it.
-    if (basemap.kind !== "pmtiles") {
-      setProtocolReady(true);
-      return;
-    }
+    if (!container.current || map.current) return;
 
+    const basemap = resolveBasemap();
+
+    // A PMTiles archive is one file read by range request, which MapLibre only
+    // understands once this protocol is registered — before the map is built,
+    // because the style references it immediately.
     const protocol = new Protocol();
     addProtocol("pmtiles", protocol.tile);
-    setProtocolReady(true);
 
-    return () => removeProtocol("pmtiles");
-  }, [basemap.kind]);
+    const instance = new MapLibreMap({
+      container: container.current,
+      style: buildMapStyle(basemap, window.location.origin),
+      center: [PROVINCE_CENTER.longitude, PROVINCE_CENTER.latitude],
+      zoom: DEFAULT_ZOOM,
+      minZoom: MIN_ZOOM,
+      maxZoom: MAX_ZOOM,
+      attributionControl: { compact: true },
+      // The province is flat enough that tilting adds nothing and costs a
+      // gesture people trigger by accident with two thumbs.
+      pitchWithRotate: false,
+      dragRotate: false,
+    });
 
-  useEffect(() => {
-    if (!flyTo) return;
-    // `easeTo`, not `flyTo`: the zoom-out-and-back arc is disorienting on a
-    // small screen and slower to read than a straight move.
-    mapRef.current?.easeTo({ center: flyTo, zoom: 16, duration: 700 });
-  }, [flyTo]);
-
-  const style = useMemo(
-    () => buildMapStyle(basemap, publicEnv.NEXT_PUBLIC_APP_URL),
-    [basemap],
-  );
-  const filter = useMemo(() => categoryFilter(categoryIds), [categoryIds]);
-
-  const layers = useMemo(() => {
-    // The filter applies to the individual markers only. Clusters are counted
-    // in the database before anyone has chosen a category, so filtering them
-    // client-side would leave counts that no longer match what they contain —
-    // a number that lies is worse than a number that is coarse.
-    const places = placesLayers(selectedId).map((layer) =>
-      filter ? { ...layer, filter } : layer,
+    instance.addControl(
+      new NavigationControl({ showCompass: false }),
+      "bottom-right",
+    );
+    instance.addControl(
+      new GeolocateControl({
+        trackUserLocation: true,
+        positionOptions: { enableHighAccuracy: true },
+      }),
+      "bottom-right",
     );
 
-    return [...clusterLayers(), ...places];
-  }, [selectedId, filter]);
+    instance.on("load", () => {
+      instance.addSource(PLACES_SOURCE_ID, {
+        type: "vector",
+        // The braces must survive: MapLibre substitutes them textually, and a
+        // percent-encoded template is requested literally and refused.
+        tiles: [
+          new URL(PLACES_TILE_URL, window.location.origin).href
+            .replace(/%7B/g, "{")
+            .replace(/%7D/g, "}"),
+        ],
+        minzoom: 0,
+        maxzoom: 14,
+      });
 
-  const handleClick = useCallback(
-    (event: MapLayerMouseEvent) => {
-      const feature = event.features?.[0];
+      for (const layer of [...clusterLayers(), ...placesLayers(null)]) {
+        instance.addLayer(layer);
+      }
+    });
+
+    instance.on("click", (event: MapMouseEvent) => {
+      const features = instance.queryRenderedFeatures(event.point, {
+        layers: INTERACTIVE_LAYER_IDS.filter((id) => instance.getLayer(id)),
+      });
+
+      const feature = features[0];
 
       // A tap on empty ground closes whatever was open, which is what people
       // expect from a map and saves them hunting for a close button.
       if (!feature) {
-        onSelect(null);
+        onSelectRef.current(null);
         return;
       }
 
       // A cluster is not a destination, it is a "there are more here". Tapping
       // one moves in rather than opening anything.
       if (feature.layer.id === CLUSTERS_LAYER_ID) {
-        const map = mapRef.current;
-        if (map && feature.geometry.type === "Point") {
-          const [longitude, latitude] = feature.geometry.coordinates;
-          map.easeTo({
-            center: { lng: longitude ?? 0, lat: latitude ?? 0 },
-            zoom: Math.min(map.getZoom() + 2.5, MAX_ZOOM),
+        if (feature.geometry.type === "Point") {
+          const [lng, lat] = feature.geometry.coordinates as [number, number];
+          instance.easeTo({
+            center: { lng, lat },
+            zoom: Math.min(instance.getZoom() + 2.5, MAX_ZOOM),
             duration: 500,
           });
         }
@@ -143,57 +166,67 @@ export function CitizenMap({
       }
 
       const { id, slug } = feature.properties as { id?: string; slug?: string };
-      onSelect(id && slug ? { id, slug } : null);
-    },
-    [onSelect],
-  );
+      onSelectRef.current(id && slug ? { id, slug } : null);
+    });
 
-  if (!protocolReady) return null;
+    // A pointer over something tappable, so a desktop user knows it is one.
+    for (const layerId of INTERACTIVE_LAYER_IDS) {
+      instance.on("mouseenter", layerId, () => {
+        instance.getCanvas().style.cursor = "pointer";
+      });
+      instance.on("mouseleave", layerId, () => {
+        instance.getCanvas().style.cursor = "";
+      });
+    }
 
-  return (
-    <MapGL
-      ref={mapRef}
-      initialViewState={{ ...PROVINCE_CENTER, zoom: DEFAULT_ZOOM }}
-      mapStyle={style}
-      minZoom={MIN_ZOOM}
-      maxZoom={MAX_ZOOM}
-      // This is a provincial platform. Letting someone pan to Santo Domingo and
-      // find an empty map is worse than gently declining to go there.
-      maxBounds={PROVINCE_BOUNDS}
-      interactiveLayerIds={INTERACTIVE_LAYER_IDS}
-      onClick={handleClick}
-      cursor="default"
-      attributionControl={{ compact: true }}
-      style={{ position: "absolute", inset: 0 }}
-      // The province is flat enough that tilting adds nothing and costs a
-      // gesture people trigger by accident with two thumbs.
-      pitchWithRotate={false}
-      dragRotate={false}
-      touchZoomRotate={{ around: "center" }}
-    >
-      <Source
-        id={PLACES_SOURCE_ID}
-        type="vector"
-        // The template must reach MapLibre with its braces intact. Passing it
-        // through `new URL()` percent-encodes them into %7Bz%7D, so the
-        // placeholders are never substituted and every tile request 400s — an
-        // empty map with no error, because MapLibre does not surface a failed
-        // tile. A relative template is resolved against the document.
-        tiles={[PLACES_TILE_URL]}
-        minzoom={0}
-        maxzoom={14}
-      >
-        {layers.map((layer) => (
-          <Layer key={layer.id} {...layer} />
-        ))}
-      </Source>
+    // MapLibre reports tile, source and style failures here and nowhere else,
+    // which is how a map ends up blank with a clean console.
+    instance.on("error", (event) => {
+      console.error("maplibre:", event.error?.message ?? event);
+    });
 
-      <NavigationControl position="bottom-right" showCompass={false} />
-      <GeolocateControl
-        position="bottom-right"
-        trackUserLocation
-        positionOptions={{ enableHighAccuracy: true }}
-      />
-    </MapGL>
-  );
+    map.current = instance;
+
+    return () => {
+      instance.remove();
+      map.current = null;
+      removeProtocol("pmtiles");
+    };
+  }, []);
+
+  // Redraw the markers when the selection changes, rather than rebuilding the
+  // map: only the paint properties depend on it.
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance?.isStyleLoaded()) return;
+
+    for (const layer of placesLayers(selectedId)) {
+      if (!instance.getLayer(layer.id) || layer.type !== "circle") continue;
+      const paint = layer.paint ?? {};
+      for (const [property, value] of Object.entries(paint)) {
+        instance.setPaintProperty(layer.id, property as never, value as never);
+      }
+    }
+  }, [selectedId]);
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance?.isStyleLoaded()) return;
+
+    const filter = categoryFilter(categoryIds);
+    for (const layer of placesLayers(null)) {
+      if (instance.getLayer(layer.id)) {
+        instance.setFilter(layer.id, filter ?? null);
+      }
+    }
+  }, [categoryIds]);
+
+  useEffect(() => {
+    if (!flyTo) return;
+    // `easeTo`, not `flyTo`: the zoom-out-and-back arc is disorienting on a
+    // small screen and slower to read than a straight move.
+    map.current?.easeTo({ center: flyTo, zoom: 16, duration: 700 });
+  }, [flyTo]);
+
+  return <div ref={container} className="absolute inset-0" />;
 }
