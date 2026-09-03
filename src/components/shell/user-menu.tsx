@@ -1,8 +1,10 @@
 "use client";
 
-import { BadgeCheck, IdCard, LogOut, User } from "lucide-react";
+import { BadgeCheck, Fingerprint, IdCard, LogOut, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,8 +15,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { usePasskeySupport } from "@/hooks/use-passkey-support";
 import { Link } from "@/i18n/navigation";
-import { signOut } from "@/lib/auth-client";
+import { authClient, signOut } from "@/lib/auth-client";
 
 export type ViewerSummary = {
   kind: "visitor" | "citizen";
@@ -35,6 +38,32 @@ function initials(name: string): string {
 export function UserMenu({ viewer }: { viewer: ViewerSummary }) {
   const t = useTranslations("shell");
   const router = useRouter();
+  const passkeySupport = usePasskeySupport();
+  const [isRegistering, startRegistering] = useTransition();
+  const [hasRegistered, setHasRegistered] = useState(false);
+
+  /**
+   * Makes good on what the sign-in screen promises.
+   *
+   * Someone who tried the fingerprint button before having an account is told
+   * to sign in by email and enable it here afterwards — so "here" has to exist.
+   * Offered only where the device can complete the ceremony.
+   */
+  function addPasskey() {
+    startRegistering(async () => {
+      const { error } = await authClient.passkey.addPasskey({
+        authenticatorAttachment: "platform",
+      });
+
+      if (error) {
+        toast.error(t("passkeyFailed"));
+        return;
+      }
+
+      setHasRegistered(true);
+      toast.success(t("passkeyAdded"));
+    });
+  }
 
   return (
     <DropdownMenu>
@@ -91,6 +120,19 @@ export function UserMenu({ viewer }: { viewer: ViewerSummary }) {
             {t("becomeResident")}
           </DropdownMenuItem>
         )}
+
+        {passkeySupport === "available" && !hasRegistered && (
+          <DropdownMenuItem
+            closeOnClick={false}
+            disabled={isRegistering}
+            onClick={addPasskey}
+          >
+            <Fingerprint className="size-4" aria-hidden />
+            {isRegistering ? t("passkeyAdding") : t("addPasskey")}
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuSeparator />
 
         <DropdownMenuItem
           onClick={async () => {

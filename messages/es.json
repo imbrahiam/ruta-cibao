@@ -74,7 +74,8 @@
     "sending": "Enviando…",
     "magicLinkHelp": "Te llega un enlace que expira en poco tiempo. Ábrelo desde este mismo teléfono.",
     "error": "No pudimos enviar el enlace. Revisa el correo e intenta de nuevo.",
-    "passkeyError": "No pudimos entrar con tu huella. Prueba con el enlace por correo."
+    "passkeyNotFound": "No encontramos una llave de acceso en este dispositivo.",
+    "passkeyNotFoundHint": "Si es tu primera vez, entra con tu correo aquí abajo. Después puedes activar la llave desde tu cuenta y entrar con la huella la próxima vez."
   },
   "errors": {
     "unauthorized": "Necesitas iniciar sesión para hacer eso.",
@@ -114,7 +115,11 @@
     "becomeResident": "Verificar mi cédula",
     "signOut": "Salir",
     "signIn": "Entrar",
-    "skipToContent": "Saltar al contenido"
+    "skipToContent": "Saltar al contenido",
+    "addPasskey": "Entrar con huella la próxima vez",
+    "passkeyAdding": "Activando…",
+    "passkeyAdded": "Listo. La próxima vez entras con tu huella o tu cara.",
+    "passkeyFailed": "No se pudo activar. Puedes intentarlo de nuevo cuando quieras."
   },
   "offline": {
     "offline": "Sin conexión. Puedes seguir usando la app; lo que hagas se guarda aquí.",
