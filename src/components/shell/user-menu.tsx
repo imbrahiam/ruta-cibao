@@ -1,0 +1,102 @@
+"use client";
+
+import { BadgeCheck, IdCard, LogOut, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Link } from "@/i18n/navigation";
+import { signOut } from "@/lib/auth-client";
+
+export type ViewerSummary = {
+  kind: "visitor" | "citizen";
+  displayName: string;
+  cedulaStatus: string | null;
+};
+
+/** First letters of the name, for people with no photo — which is everyone. */
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0] ?? "")
+    .join("")
+    .toUpperCase();
+}
+
+export function UserMenu({ viewer }: { viewer: ViewerSummary }) {
+  const t = useTranslations("shell");
+  const router = useRouter();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-11 rounded-full"
+            aria-label={t("account")}
+          >
+            <Avatar className="size-9">
+              <AvatarFallback className="text-xs">
+                {initials(viewer.displayName)}
+              </AvatarFallback>
+            </Avatar>
+          </Button>
+        }
+      />
+
+      <DropdownMenuContent align="end" className="w-64">
+        <DropdownMenuLabel className="flex flex-col gap-1">
+          <span className="font-medium text-sm">{viewer.displayName}</span>
+          <span className="flex items-center gap-1.5 font-normal text-muted-foreground text-xs">
+            {viewer.kind === "citizen" ? (
+              <>
+                <BadgeCheck
+                  className="size-3.5 text-emerald-600 dark:text-emerald-400"
+                  aria-hidden
+                />
+                {t("resident")}
+              </>
+            ) : (
+              <>
+                <User className="size-3.5" aria-hidden />
+                {t("visitor")}
+              </>
+            )}
+          </span>
+        </DropdownMenuLabel>
+
+        <DropdownMenuSeparator />
+
+        {/* The one action a visitor most likely wants, surfaced rather than
+            buried in a settings page they would have to go looking for. */}
+        {viewer.kind === "visitor" && (
+          <DropdownMenuItem render={<Link href="/verificar" />}>
+            <IdCard className="size-4" aria-hidden />
+            {t("becomeResident")}
+          </DropdownMenuItem>
+        )}
+
+        <DropdownMenuItem
+          onClick={async () => {
+            await signOut();
+            router.refresh();
+          }}
+        >
+          <LogOut className="size-4" aria-hidden />
+          {t("signOut")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

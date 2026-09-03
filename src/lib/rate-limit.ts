@@ -1,7 +1,7 @@
 /**
  * Rate limiting backed by Postgres.
  *
- * Ported from the `jevi` project. Windows are fixed rather than sliding: the
+ * Ported. Windows are fixed rather than sliding: the
  * key includes the window start, so each window is a fresh row and counting is
  * a single upsert with no read-modify-write race.
  */

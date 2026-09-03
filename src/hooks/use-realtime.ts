@@ -40,11 +40,16 @@ export function useRealtime(options: {
   const enabled = options.enabled ?? true;
 
   useEffect(() => {
-    if (!enabled || channelKey.length === 0) return;
+    if (!enabled) return;
 
-    const source = new EventSource(
-      `/api/realtime?channels=${encodeURIComponent(channelKey)}`,
-    );
+    // An empty channel list is meaningful, not a mistake: it means "just my own
+    // notifications", which the server grants from the session rather than from
+    // anything the client asks for.
+    const query =
+      channelKey.length > 0
+        ? `?channels=${encodeURIComponent(channelKey)}`
+        : "";
+    const source = new EventSource(`/api/realtime${query}`);
 
     const handle = (message: MessageEvent<string>) => {
       let event: RealtimeEventMessage;

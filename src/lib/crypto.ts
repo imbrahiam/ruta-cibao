@@ -1,7 +1,7 @@
 /**
  * Encryption and one-way lookups for data at rest.
  *
- * Ported from the `jevi` project, with the key read lazily so importing this
+ * Ported, with the key read lazily so importing this
  * module costs nothing at build time (see the note in `@/lib/env`).
  *
  * Two shapes, used for different jobs:

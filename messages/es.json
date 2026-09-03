@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "Ruta Cibao",
-    "tagline": "El mapa cívico de la provincia Santiago Rodríguez"
+    "tagline": "El mapa cívico de la provincia Santiago Rodríguez",
+    "skipToContent": "Saltar al contenido"
   },
   "home": {
     "intro": "Pon en el mapa los lugares, negocios, rutas y problemas de Sabaneta, Monción y Villa Los Almácigos.",
@@ -89,6 +90,30 @@
   },
   "notifications": {
     "title": "Notificaciones",
-    "empty": "No tienes notificaciones."
+    "empty": "Sin avisos por ahora",
+    "loading": "Buscando tus avisos…",
+    "emptyHint": "Aquí te avisamos cuando respondan tu caso, aprueben un lugar que subiste o haya tránsito cerca.",
+    "markAllRead": "Marcar todo como leído",
+    "unread": "Sin leer",
+    "open": "Ver avisos",
+    "openWithCount": "Ver avisos, {count} sin leer",
+    "placeApproved": "Aprobaron el lugar que subiste: {name}",
+    "placeRejected": "No aprobaron {name}. Toca para ver por qué.",
+    "consultationAnswered": "El ayuntamiento respondió tu caso: {title}",
+    "consultationStatusChanged": "Tu caso «{title}» pasó a {status}",
+    "trafficNearby": "Reporte de tránsito cerca de ti: {description}",
+    "cedulaVerified": "Ya eres residente verificado, {name}",
+    "cedulaPending": "Seguimos intentando verificar tu cédula. Te avisamos al terminar.",
+    "businessClaimApproved": "Aprobaron tu solicitud sobre {name}",
+    "reportReady": "Ya está el informe semanal de {scope}"
+  },
+  "shell": {
+    "account": "Mi cuenta",
+    "resident": "Residente verificado",
+    "visitor": "Visitante",
+    "becomeResident": "Verificar mi cédula",
+    "signOut": "Salir",
+    "signIn": "Entrar",
+    "skipToContent": "Saltar al contenido"
   }
 }

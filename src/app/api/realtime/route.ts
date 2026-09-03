@@ -29,7 +29,9 @@ const MAX_SEEN = 500;
 export async function GET(request: Request) {
   const url = new URL(request.url);
 
-  const requested = (url.searchParams.get("channels") ?? "traffic")
+  // No default: subscribing someone to a topic they did not ask for would
+  // spend their data on updates they never see.
+  const requested = (url.searchParams.get("channels") ?? "")
     .split(",")
     .map((channel) => channel.trim())
     .filter((channel) => PUBLIC_CHANNELS.has(channel));
