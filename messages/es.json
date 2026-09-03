@@ -147,6 +147,14 @@
       "clear": "Mostrar todo de nuevo"
     },
     "empty": "Todavía no hay nada por aquí. Sé el primero en agregar un lugar.",
-    "loading": "Abriendo el mapa…"
+    "loading": "Abriendo el mapa…",
+    "search": {
+      "title": "Buscar en el mapa",
+      "placeholder": "Buscar un lugar o dirección",
+      "searching": "Buscando…",
+      "addresses": "Direcciones",
+      "noResults": "Nada encontrado para «{term}»",
+      "noResultsHint": "Prueba con menos palabras. Si el lugar no está en el mapa, puedes agregarlo tú."
+    }
   }
 }

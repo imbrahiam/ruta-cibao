@@ -85,6 +85,11 @@ const serverSchema = z.object({
   IMGPROXY_KEY: optionalString(),
   IMGPROXY_SALT: optionalString(),
 
+  // Address search. `none` keeps search working against the province's own
+  // places and drops only street addresses.
+  GEOCODER: z.enum(["nominatim", "none"]).default("nominatim"),
+  NOMINATIM_URL: z.url().default("https://nominatim.openstreetmap.org"),
+
   // Set to 1 only when a reverse proxy you control sets X-Forwarded-For.
   // Trusting that header without one lets any client forge its own IP and
   // walk straight through the rate limiter.

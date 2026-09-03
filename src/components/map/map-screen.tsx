@@ -4,6 +4,7 @@ import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 import { useCallback, useState } from "react";
 import { CategoryFilter } from "@/components/map/category-filter";
 import { CitizenMap } from "@/components/map/citizen-map";
+import { MapSearch, type SearchTarget } from "@/components/map/map-search";
 import { PlaceDrawer } from "@/components/map/place-drawer";
 
 /**
@@ -33,6 +34,7 @@ export function MapScreen() {
       .withOptions({ shallow: true }),
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [flyTo, setFlyTo] = useState<{ lng: number; lat: number } | null>(null);
 
   const handleSelect = useCallback(
     (place: { id: string; slug: string } | null) => {
@@ -52,7 +54,17 @@ export function MapScreen() {
       <CitizenMap
         selectedId={selectedId}
         categoryIds={categoryIds}
+        flyTo={flyTo}
         onSelect={handleSelect}
+      />
+
+      <MapSearch
+        onSelect={(target: SearchTarget) => {
+          // A new object every time, so choosing the same result twice still
+          // moves the map instead of being skipped as unchanged.
+          setFlyTo({ lng: target.lng, lat: target.lat });
+          void setSlug(target.slug ?? null);
+        }}
       />
       <CategoryFilter
         selected={categoryIds}

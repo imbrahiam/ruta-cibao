@@ -11,7 +11,16 @@ import { sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { db, pool } from "./index";
 
-const REQUIRED_EXTENSIONS = ["postgis", "vector"] as const;
+const REQUIRED_EXTENSIONS = [
+  "postgis",
+  "vector",
+  // Trigram matching, so search survives the way people actually type: without
+  // accents, with a letter missing, or with the name half-remembered.
+  "pg_trgm",
+  // Accent-insensitive comparison. "Monción" and "moncion" are the same word to
+  // everyone except a database that has not been told so.
+  "unaccent",
+] as const;
 
 async function main() {
   for (const extension of REQUIRED_EXTENSIONS) {

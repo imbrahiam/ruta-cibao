@@ -3,6 +3,7 @@ import { ORPCError } from "@orpc/server";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { categories, municipalities, places } from "@/db/schema";
+import { geocode } from "@/lib/geocode";
 import { pub } from "../base";
 
 const placeDetail = z.object({
@@ -145,6 +146,109 @@ export const placesRouter = {
         )
         .orderBy(sql`ST_Distance(${places.location}::geography, ${origin})`)
         .limit(input.limit);
+    }),
+
+  /**
+   * Search, over two sources at once.
+   *
+   * The province's own places come first and always: they are what citizens
+   * look for, and they are the half that works with no external service and no
+   * network beyond this server. Addresses from the geocoder are appended, and
+   * their absence is not an error.
+   *
+   * Matching is trigram-based over an unaccented copy of the name, because
+   * people type "moncion" and "hospitl" and mean the obvious thing.
+   *
+   * `word_similarity` rather than `similarity`: the latter compares whole
+   * strings, so "hospitl" against "Hospital Municipal de Sabaneta" scores 0.188
+   * — below any useful threshold — purely because one is much longer than the
+   * other. `word_similarity` scores the query against the best-matching run of
+   * words inside the name, and the same pair scores 0.750.
+   *
+   * A prefix match still wins: someone who typed the whole word should see it
+   * first, however close a fuzzy match on something else happens to be.
+   */
+  search: pub
+    .meta(
+      openapi({
+        method: "GET",
+        path: "/places/search",
+        summary: "Search places and addresses",
+      }),
+    )
+    .input(z.object({ query: z.string().min(2).max(120) }))
+    .output(
+      z.object({
+        places: z.array(
+          z.object({
+            slug: z.string(),
+            name: z.string(),
+            categoryName: z.string(),
+            color: z.string(),
+            municipalityName: z.string(),
+            lng: z.number(),
+            lat: z.number(),
+          }),
+        ),
+        addresses: z.array(
+          z.object({
+            name: z.string(),
+            context: z.string().nullable(),
+            lng: z.number(),
+            lat: z.number(),
+          }),
+        ),
+      }),
+    )
+    .handler(async ({ context, input }) => {
+      const term = input.query.trim();
+      const normalised = sql`unaccent(lower(${term}))`;
+      const target = sql`unaccent(lower(${places.name}))`;
+
+      const [matched, addresses] = await Promise.all([
+        context.db
+          .select({
+            slug: places.slug,
+            name: places.name,
+            categoryName: categories.name,
+            color: categories.color,
+            municipalityName: municipalities.name,
+            location: places.location,
+          })
+          .from(places)
+          .innerJoin(categories, eq(categories.id, places.categoryId))
+          .innerJoin(
+            municipalities,
+            eq(municipalities.id, places.municipalityId),
+          )
+          .where(
+            and(
+              eq(places.status, "published"),
+              sql`(${target} like ${normalised} || '%' or word_similarity(${normalised}, ${target}) > 0.45)`,
+            ),
+          )
+          // Prefix matches ahead of fuzzy ones, then by how close the fuzzy is.
+          .orderBy(
+            sql`(${target} like ${normalised} || '%') desc`,
+            sql`word_similarity(${normalised}, ${target}) desc`,
+          )
+          .limit(8),
+
+        geocode(term, 5),
+      ]);
+
+      return {
+        places: matched.map((row) => ({
+          slug: row.slug,
+          name: row.name,
+          categoryName: row.categoryName,
+          color: row.color,
+          municipalityName: row.municipalityName,
+          lng: row.location.x,
+          lat: row.location.y,
+        })),
+        addresses,
+      };
     }),
 
   /** The active taxonomy, for the layer filter chips. */

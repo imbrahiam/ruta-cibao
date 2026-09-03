@@ -61,10 +61,13 @@ function resolveBasemap() {
 export function CitizenMap({
   selectedId,
   categoryIds,
+  flyTo,
   onSelect,
 }: {
   selectedId: string | null;
   categoryIds: string[];
+  /** Where a search result asked the map to go. */
+  flyTo: { lng: number; lat: number } | null;
   onSelect: (place: { id: string; slug: string } | null) => void;
 }) {
   const mapRef = useRef<MapRef>(null);
@@ -87,6 +90,13 @@ export function CitizenMap({
 
     return () => removeProtocol("pmtiles");
   }, [basemap.kind]);
+
+  useEffect(() => {
+    if (!flyTo) return;
+    // `easeTo`, not `flyTo`: the zoom-out-and-back arc is disorienting on a
+    // small screen and slower to read than a straight move.
+    mapRef.current?.easeTo({ center: flyTo, zoom: 16, duration: 700 });
+  }, [flyTo]);
 
   const style = useMemo(() => buildMapStyle(basemap), [basemap]);
   const filter = useMemo(() => categoryFilter(categoryIds), [categoryIds]);
