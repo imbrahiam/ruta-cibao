@@ -1,0 +1,16 @@
+# Caddy terminates TLS and proxies to the app container.
+# On the VPS, SITE_ADDRESS is the real domain and Caddy provisions a
+# certificate automatically. Locally it stays "localhost" and serves plain HTTP.
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	reverse_proxy app:3000
+}
