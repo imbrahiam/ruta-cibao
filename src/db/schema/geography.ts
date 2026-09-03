@@ -1,4 +1,5 @@
-import { geometry, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { multiPolygon, point } from "../types";
 
 /**
  * The municipalities of Santiago Rodríguez province.
@@ -18,8 +19,8 @@ export const municipalities = pgTable(
     name: text().notNull(),
     provinceCode: text().notNull().default("SR"),
     /** Filled in from official shapefiles; null until then. */
-    boundary: geometry({ type: "multipolygon", srid: 4326 }),
-    center: geometry({ type: "point", mode: "xy", srid: 4326 }),
+    boundary: multiPolygon(),
+    center: point(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [

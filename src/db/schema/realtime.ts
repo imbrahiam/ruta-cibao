@@ -1,12 +1,12 @@
 import {
   bigserial,
-  geometry,
   index,
   jsonb,
   pgTable,
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { point } from "../types";
 import { municipalities } from "./geography";
 
 /**
@@ -50,7 +50,7 @@ export const realtimeEvents = pgTable(
     /** Small and never personal: enough for the client to patch its cache. */
     payload: jsonb().$type<Record<string, unknown>>().notNull().default({}),
     /** Lets a client ask only for what happened inside the map viewport. */
-    location: geometry({ type: "point", mode: "xy", srid: 4326 }),
+    location: point(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     /** Replay is for reconnects, not history; a job drops rows past this. */
     expiresAt: timestamp({ withTimezone: true }).notNull(),
