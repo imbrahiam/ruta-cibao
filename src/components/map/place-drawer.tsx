@@ -13,6 +13,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
+import { detectPlatform, directionsUrl } from "@/lib/map/directions";
 import { orpc } from "@/lib/orpc";
 
 /**
@@ -109,10 +110,18 @@ export function PlaceDrawer({
                 className="h-12 w-full text-base"
                 nativeButton={false}
                 render={
-                  // Hands off to whatever navigation app the phone already has,
+                  // Hands off to whatever navigation app the phone already
+                  // has — with its offline maps and its voice guidance —
                   // rather than pretending to be one.
                   <a
-                    href={`https://www.google.com/maps/dir/?api=1&destination=${place.location.lat},${place.location.lng}`}
+                    href={directionsUrl(
+                      {
+                        lat: place.location.lat,
+                        lng: place.location.lng,
+                        label: place.name,
+                      },
+                      detectPlatform(navigator.userAgent),
+                    )}
                     target="_blank"
                     rel="noreferrer"
                   />

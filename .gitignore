@@ -66,3 +66,12 @@ skills-lock.json
 /public/sw.js
 /public/sw.js.map
 /public/swe-worker-*.js
+
+# extracted basemap (built with `bun run basemap`, not committed)
+/public/basemap/
+
+# locally downloaded dev binaries, not committed
+/.tooling/
+
+# glyph packs fetched by `bun run basemap:fonts`
+/public/fonts/
