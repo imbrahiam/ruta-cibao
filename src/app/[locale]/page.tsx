@@ -1,8 +1,11 @@
-import { useTranslations } from "next-intl";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 
-export default function Home() {
-  const t = useTranslations("home");
-  const app = useTranslations("app");
+export default async function Home({ params }: PageProps<"/[locale]">) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
+  const t = await getTranslations({ locale, namespace: "home" });
+  const app = await getTranslations({ locale, namespace: "app" });
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-4 p-8">

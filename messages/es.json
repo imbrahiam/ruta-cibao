@@ -30,8 +30,13 @@
       "verified": "Listo, {name}. Ya eres residente verificado.",
       "pending": "La JCE no responde en este momento. Guardamos tu solicitud y la reintentamos automáticamente; mientras tanto puedes usar la plataforma como visitante.",
       "rejected": "No encontramos esa cédula en la JCE. Revisa los números e intenta de nuevo.",
-      "taken": "Esa cédula ya está registrada en otra cuenta."
-    }
+      "taken": "Esa cédula ya está registrada en otra cuenta.",
+      "checking": "Consultando la JCE…",
+      "title": "Verifica tu cédula",
+      "intro": "Consultamos tu nombre en la JCE para confirmar que resides en la provincia. Toma unos segundos.",
+      "loadingStatus": "Revisando tu estado…"
+    },
+    "alreadyHaveAccount": "Ya tengo cuenta"
   },
   "auth": {
     "signIn": "Entrar",
@@ -39,7 +44,13 @@
     "email": "Correo electrónico",
     "magicLink": "Enviarme un enlace",
     "magicLinkSent": "Te enviamos un enlace a {email}. Ábrelo desde este mismo teléfono.",
-    "passkey": "Entrar con mi huella o cara"
+    "passkey": "Entrar con mi huella o cara",
+    "intro": "Sin contraseñas. Entra con tu huella o con un enlace que te enviamos por correo.",
+    "or": "o",
+    "sending": "Enviando…",
+    "magicLinkHelp": "Te llega un enlace que expira en poco tiempo. Ábrelo desde este mismo teléfono.",
+    "error": "No pudimos enviar el enlace. Revisa el correo e intenta de nuevo.",
+    "passkeyError": "No pudimos entrar con tu huella. Prueba con el enlace por correo."
   },
   "errors": {
     "unauthorized": "Necesitas iniciar sesión para hacer eso.",
