@@ -5,6 +5,7 @@ import { citizenRouter } from "./routers/citizen";
 import { meRouter } from "./routers/me";
 import { municipalitiesRouter } from "./routers/municipalities";
 import { notificationsRouter } from "./routers/notifications";
+import { placesRouter } from "./routers/places";
 
 /**
  * Root router. The shape of this object is what the typed client and the
@@ -26,6 +27,7 @@ export const router = {
   municipalities: municipalitiesRouter,
   citizen: citizenRouter,
   notifications: notificationsRouter,
+  places: placesRouter,
 };
 
 export type AppRouter = typeof router;

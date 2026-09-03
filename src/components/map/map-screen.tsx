@@ -1,0 +1,47 @@
+"use client";
+
+import { parseAsString, useQueryState } from "nuqs";
+import { useCallback, useState } from "react";
+import { CitizenMap } from "@/components/map/citizen-map";
+import { PlaceDrawer } from "@/components/map/place-drawer";
+
+/**
+ * The map screen.
+ *
+ * Which place is open lives in the URL rather than in component state. That
+ * makes a view shareable by pasting the address, survivable across the reload a
+ * phone does when it drops signal, and closable with the back button — which is
+ * the gesture people reach for before they look for a close affordance.
+ *
+ * The tile carries the feature id, and the drawer needs the slug, so both are
+ * kept: the slug in the URL because it is what a person would read, the id in
+ * memory because it is what the map matches when highlighting the selection.
+ */
+export function MapScreen() {
+  const [slug, setSlug] = useQueryState(
+    "lugar",
+    // `history: push` so back closes the drawer instead of leaving the map.
+    parseAsString.withOptions({ history: "push", shallow: true }),
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const handleSelect = useCallback(
+    (place: { id: string; slug: string } | null) => {
+      setSelectedId(place?.id ?? null);
+      void setSlug(place?.slug ?? null);
+    },
+    [setSlug],
+  );
+
+  const close = useCallback(() => {
+    setSelectedId(null);
+    void setSlug(null);
+  }, [setSlug]);
+
+  return (
+    <>
+      <CitizenMap selectedId={selectedId} onSelect={handleSelect} />
+      <PlaceDrawer slug={slug} onClose={close} />
+    </>
+  );
+}

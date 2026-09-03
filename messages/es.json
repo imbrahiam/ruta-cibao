@@ -7,7 +7,8 @@
   "home": {
     "intro": "Pon en el mapa los lugares, negocios, rutas y problemas de Sabaneta, Monción y Villa Los Almácigos.",
     "apiDocs": "Documentación de la API",
-    "underConstruction": "En construcción"
+    "underConstruction": "En construcción",
+    "openMap": "Abrir el mapa"
   },
   "onboarding": {
     "title": "Bienvenido a Ruta Cibao",
@@ -129,5 +130,21 @@
     "retry": "Enviar ahora",
     "pageTitle": "Esta parte necesita conexión",
     "pageBody": "Lo que ya cargaste sigue disponible, y lo que escribas se guarda hasta que vuelva la señal."
+  },
+  "map": {
+    "title": "Mapa",
+    "place": {
+      "loading": "Cargando…",
+      "directions": "Cómo llegar",
+      "share": "Compartir",
+      "report": "Reportar problema"
+    },
+    "filters": {
+      "title": "Qué mostrar",
+      "all": "Todo",
+      "open": "Filtrar"
+    },
+    "empty": "Todavía no hay nada por aquí. Sé el primero en agregar un lugar.",
+    "loading": "Abriendo el mapa…"
   }
 }
