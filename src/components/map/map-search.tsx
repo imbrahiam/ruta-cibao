@@ -67,10 +67,10 @@ export function MapSearch({
         render={
           <button
             type="button"
-            className="absolute top-20 right-4 left-4 z-20 flex h-12 items-center gap-3 rounded-full border bg-background px-4 text-left text-muted-foreground shadow-sm md:max-w-sm"
+            className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-full border bg-background px-4 text-left text-muted-foreground shadow-sm"
           >
             <Search className="size-4 shrink-0" aria-hidden />
-            {t("placeholder")}
+            <span className="truncate">{t("placeholder")}</span>
           </button>
         }
       />

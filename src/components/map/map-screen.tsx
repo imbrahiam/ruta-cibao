@@ -58,18 +58,27 @@ export function MapScreen() {
         onSelect={handleSelect}
       />
 
-      <MapSearch
-        onSelect={(target: SearchTarget) => {
-          // A new object every time, so choosing the same result twice still
-          // moves the map instead of being skipped as unchanged.
-          setFlyTo({ lng: target.lng, lat: target.lat });
-          void setSlug(target.slug ?? null);
-        }}
-      />
-      <CategoryFilter
-        selected={categoryIds}
-        onChange={(next) => void setCategoryIds(next.length > 0 ? next : null)}
-      />
+      {/* One row, laid out here rather than by each control positioning itself
+          absolutely — which is how they ended up stacked on top of each other.
+          Below the header, inset from both edges, and capped on wide screens so
+          the search field does not stretch across a desktop. */}
+      <div className="absolute inset-x-3 top-[4.5rem] z-20 flex items-center gap-2 md:max-w-md">
+        <MapSearch
+          onSelect={(target: SearchTarget) => {
+            // A new object every time, so choosing the same result twice still
+            // moves the map instead of being skipped as unchanged.
+            setFlyTo({ lng: target.lng, lat: target.lat });
+            void setSlug(target.slug ?? null);
+          }}
+        />
+        <CategoryFilter
+          selected={categoryIds}
+          onChange={(next) =>
+            void setCategoryIds(next.length > 0 ? next : null)
+          }
+        />
+      </div>
+
       <PlaceDrawer slug={slug} onClose={close} />
     </>
   );

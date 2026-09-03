@@ -52,9 +52,7 @@ export function CategoryFilter({
         render={
           <Button
             variant="secondary"
-            // Floats over the map, thumb-height from the bottom edge, clear of
-            // the drawer that opens when a place is tapped.
-            className="absolute top-20 left-4 z-20 h-11 gap-2 rounded-full shadow-sm"
+            className="h-12 shrink-0 gap-2 rounded-full shadow-sm"
           >
             <SlidersHorizontal className="size-4" aria-hidden />
             {active === 0 ? t("all") : t("selected", { count: active })}

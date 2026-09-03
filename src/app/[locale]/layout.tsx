@@ -1,9 +1,9 @@
-import { SerwistProvider } from "@serwist/turbopack/react";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { OfflineIndicator } from "@/components/offline/offline-indicator";
+import { ServiceWorker } from "@/components/offline/service-worker";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
 import { formats, TIME_ZONE } from "@/i18n/config";
@@ -93,13 +93,13 @@ export default async function LocaleLayout({
           now={now}
           formats={formats}
         >
-          <SerwistProvider swUrl="/serwist/sw.js">
+          <ServiceWorker>
             <Providers>
               {children}
               <OfflineIndicator />
               <Toaster position="top-center" />
             </Providers>
-          </SerwistProvider>
+          </ServiceWorker>
         </NextIntlClientProvider>
       </body>
     </html>
