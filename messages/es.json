@@ -34,7 +34,30 @@
       "checking": "Consultando la JCE…",
       "title": "Verifica tu cédula",
       "intro": "Consultamos tu nombre en la JCE para confirmar que resides en la provincia. Toma unos segundos.",
-      "loadingStatus": "Revisando tu estado…"
+      "loadingStatus": "Revisando tu estado…",
+      "municipalityPlaceholder": "Elige tu municipio",
+      "municipalityHelp": "El municipio donde vives. Define en qué consultas puedes votar.",
+      "privacy": {
+        "trigger": "¿Qué hacen con mi cédula?",
+        "title": "Qué hacemos con tu cédula",
+        "subtitle": "Sin letra chica. Esto es exactamente lo que pasa con el número que escribes.",
+        "lookup": {
+          "title": "Solo consultamos tu nombre",
+          "body": "Le preguntamos a la JCE una sola cosa: a quién pertenece esa cédula. No recibimos ni guardamos nada más."
+        },
+        "encrypted": {
+          "title": "Se guarda cifrada",
+          "body": "El número se cifra antes de tocar la base de datos. Ni con una copia de la base se puede leer sin la llave."
+        },
+        "never_shown": {
+          "title": "Nadie la ve",
+          "body": "Tu cédula no aparece en ninguna pantalla, ni en los registros del sistema, ni en la API pública. Ni el personal del ayuntamiento la ve."
+        },
+        "one_vote": {
+          "title": "Para qué sirve",
+          "body": "Para que una cédula sea una sola cuenta y un solo voto en las consultas. Sin eso, cualquiera podría inflar una votación con cuentas falsas."
+        }
+      }
     },
     "alreadyHaveAccount": "Ya tengo cuenta"
   },

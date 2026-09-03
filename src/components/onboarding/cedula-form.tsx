@@ -17,14 +17,9 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { CedulaPrivacyDrawer } from "./cedula-privacy-drawer";
+import { MunicipalityPicker } from "./municipality-picker";
 
 type Municipality = { id: string; name: string };
 
@@ -117,34 +112,25 @@ export function CedulaForm({
             state.status === "invalid" || state.status === "rejected"
           }
         />
-        <FieldDescription id="cedula-help">
-          <ShieldCheck
-            className="mr-1 inline size-3.5 align-[-2px]"
-            aria-hidden
-          />
-          {t("help")}
+        <FieldDescription
+          id="cedula-help"
+          className="flex flex-col items-start gap-1.5"
+        >
+          <span>
+            <ShieldCheck
+              className="mr-1 inline size-3.5 align-[-2px]"
+              aria-hidden
+            />
+            {t("help")}
+          </span>
+          <CedulaPrivacyDrawer />
         </FieldDescription>
         {state.status === "invalid" && <FieldError>{state.message}</FieldError>}
       </Field>
 
       <Field>
         <FieldLabel htmlFor="municipalityId">{t("municipality")}</FieldLabel>
-        <Select name="municipalityId" required>
-          <SelectTrigger id="municipalityId" className="h-12 w-full text-base">
-            <SelectValue placeholder={t("municipality")} />
-          </SelectTrigger>
-          <SelectContent>
-            {municipalities.map((municipality) => (
-              <SelectItem
-                key={municipality.id}
-                value={municipality.id}
-                className="h-11 text-base"
-              >
-                {municipality.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <MunicipalityPicker municipalities={municipalities} />
       </Field>
 
       <SubmitButton />
