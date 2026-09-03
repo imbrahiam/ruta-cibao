@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -85,25 +86,30 @@ export function UserMenu({ viewer }: { viewer: ViewerSummary }) {
       />
 
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel className="flex flex-col gap-1">
-          <span className="font-medium text-sm">{viewer.displayName}</span>
-          <span className="flex items-center gap-1.5 font-normal text-muted-foreground text-xs">
-            {viewer.kind === "citizen" ? (
-              <>
-                <BadgeCheck
-                  className="size-3.5 text-emerald-600 dark:text-emerald-400"
-                  aria-hidden
-                />
-                {t("resident")}
-              </>
-            ) : (
-              <>
-                <User className="size-3.5" aria-hidden />
-                {t("visitor")}
-              </>
-            )}
-          </span>
-        </DropdownMenuLabel>
+        {/* Base UI requires a group around a group label — unlike Radix,
+            where the label stands alone. Without it the menu throws
+            "MenuGroupContext is missing" at render. */}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel className="flex flex-col gap-1">
+            <span className="font-medium text-sm">{viewer.displayName}</span>
+            <span className="flex items-center gap-1.5 font-normal text-muted-foreground text-xs">
+              {viewer.kind === "citizen" ? (
+                <>
+                  <BadgeCheck
+                    className="size-3.5 text-emerald-600 dark:text-emerald-400"
+                    aria-hidden
+                  />
+                  {t("resident")}
+                </>
+              ) : (
+                <>
+                  <User className="size-3.5" aria-hidden />
+                  {t("visitor")}
+                </>
+              )}
+            </span>
+          </DropdownMenuLabel>
+        </DropdownMenuGroup>
 
         <DropdownMenuSeparator />
 
