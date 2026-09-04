@@ -7,16 +7,17 @@ import {
   Marker,
   useMap,
 } from "@vis.gl/react-google-maps";
+import { useTranslations } from "next-intl";
 import { useEffect } from "react";
 import { publicEnv } from "@/lib/env.public";
 import {
   DEFAULT_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
-  PROVINCE_CENTER,
+  REGION_CENTER,
 } from "@/lib/map/config";
 import { googleMapStyle } from "@/lib/map/google-style";
-import { markerPin, markerSize } from "@/lib/map/marker-pin";
+import { locationDot, markerPin, markerSize } from "@/lib/map/marker-pin";
 import {
   DEFAULT_VIEW_MODE,
   googleMapTypeFor,
@@ -101,6 +102,7 @@ export function CitizenMapGoogle({
   traffic = true,
   viewMode = DEFAULT_VIEW_MODE,
   googlePlaces = false,
+  myLocation = null,
   onSelect,
 }: {
   selectedId: string | null;
@@ -110,6 +112,7 @@ export function CitizenMapGoogle({
   viewMode?: ViewMode;
   /** Google's own restaurants, shops and offices. Off by default. */
   googlePlaces?: boolean;
+  myLocation?: { lng: number; lat: number } | null;
   onSelect: (place: PlaceSelection) => void;
 }) {
   const { data } = useQuery({
@@ -121,6 +124,7 @@ export function CitizenMapGoogle({
     },
   });
 
+  const locationLabel = useTranslations("map.actions")("here");
   const key = publicEnv.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
   if (!key) {
@@ -144,8 +148,8 @@ export function CitizenMapGoogle({
         id={MAP_ID}
         className="size-full"
         defaultCenter={{
-          lat: PROVINCE_CENTER.latitude,
-          lng: PROVINCE_CENTER.longitude,
+          lat: REGION_CENTER.latitude,
+          lng: REGION_CENTER.longitude,
         }}
         defaultZoom={DEFAULT_ZOOM}
         minZoom={MIN_ZOOM}
@@ -187,6 +191,22 @@ export function CitizenMapGoogle({
             />
           );
         })}
+
+        {myLocation && (
+          // Not shaped like a place pin: the person is not a place, and giving
+          // them the same shape as a hospital would put them in its class.
+          <Marker
+            position={{ lat: myLocation.lat, lng: myLocation.lng }}
+            title={locationLabel}
+            zIndex={3}
+            clickable={false}
+            icon={{
+              url: locationDot(),
+              scaledSize: new google.maps.Size(28, 28),
+              anchor: new google.maps.Point(14, 14),
+            }}
+          />
+        )}
 
         <TrafficLayer enabled={traffic} />
         <MapController flyTo={flyTo} />

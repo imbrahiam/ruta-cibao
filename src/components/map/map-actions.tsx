@@ -80,7 +80,9 @@ export function MapActions({
   }
 
   return (
-    <div className="absolute right-4 bottom-28 z-20 flex flex-col gap-2">
+    // `right-2.5` matches the 10px inset Google gives its own zoom control, so
+    // these line up with it instead of sitting a few pixels inside.
+    <div className="absolute right-2.5 bottom-28 z-20 flex flex-col gap-2">
       <ActionButton label={t("share")} onClick={() => void share()}>
         {shared ? (
           <Check className="size-5" aria-hidden />

@@ -30,25 +30,28 @@ export function markerPin(
 
   const Icon = categoryIcon(icon);
 
-  // Rendered at 24 and scaled down, which is the size lucide's stroke widths
-  // are designed for; drawing it small directly makes the strokes muddy.
   // Only the contents are wanted; the wrapper <svg> is replaced by the pin's
   // own, which sets the size, colour and stroke for everything inside it.
   const glyph = renderToStaticMarkup(<Icon />)
     .replace(/^<svg[^>]*>/, "")
     .replace(/<\/svg>$/, "");
 
-  const scale = selected ? 1.25 : 1;
-  const width = 32 * scale;
-  const height = 42 * scale;
+  const scale = selected ? 1.3 : 1;
+  const width = 30 * scale;
+  const height = 40 * scale;
 
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 32 42">
+  // Google's own pin geometry: a near-circle that tapers to a point rather
+  // than a teardrop with straight shoulders, and a soft ellipse on the ground
+  // beneath it. The shadow is what makes a pin look like it is standing on the
+  // map instead of printed onto it, and its absence was most of the difference.
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 30 40">
+    <ellipse cx="15" cy="37.5" rx="4.5" ry="1.8" fill="rgba(0,0,0,0.22)"/>
     <path
-      d="M16 41C16 41 30 25.5 30 16A14 14 0 1 0 2 16C2 25.5 16 41 16 41Z"
-      fill="${color}" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/>
-    <g transform="translate(8 8) scale(0.667)" fill="none" stroke="#ffffff"
-       stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-      ${glyph}
+      d="M15 38.5C15 38.5 27 23.4 27 14.4A12 12 0 1 0 3 14.4C3 23.4 15 38.5 15 38.5Z"
+      fill="${color}" stroke="#ffffff" stroke-width="2" stroke-linejoin="round"/>
+    <g transform="translate(7.5 7)" fill="none" stroke="#ffffff"
+       stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <g transform="scale(0.625)">${glyph}</g>
     </g>
   </svg>`;
 
@@ -59,6 +62,24 @@ export function markerPin(
 
 /** Anchor and size, so the pin's point sits on the coordinate. */
 export function markerSize(selected: boolean) {
-  const scale = selected ? 1.25 : 1;
-  return { width: 32 * scale, height: 42 * scale };
+  const scale = selected ? 1.3 : 1;
+  return { width: 30 * scale, height: 40 * scale };
+}
+
+/**
+ * The blue dot for where the person is.
+ *
+ * The same shape every map uses, because it is the one marker people already
+ * know how to read: a filled circle in a white ring, with a soft halo standing
+ * for accuracy. Deliberately not shaped like a place pin — it is not a place,
+ * and confusing the two would put "you" in the same visual class as a hospital.
+ */
+export function locationDot(): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+    <circle cx="14" cy="14" r="13" fill="#1a73e8" opacity="0.18"/>
+    <circle cx="14" cy="14" r="8" fill="#ffffff"/>
+    <circle cx="14" cy="14" r="6" fill="#1a73e8"/>
+  </svg>`;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }

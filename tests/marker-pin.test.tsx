@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { markerPin, markerSize } from "@/lib/map/marker-pin";
+import { locationDot, markerPin, markerSize } from "@/lib/map/marker-pin";
 
 /**
  * The pin is an SVG data URI, so nothing about it fails loudly — a broken one
@@ -36,5 +36,20 @@ describe("markerPin", () => {
     expect(markerPin("#dc2626", "cross", false)).not.toBe(
       markerPin("#16a34a", "trees", false),
     );
+  });
+});
+
+describe("locationDot", () => {
+  test("is a dot, not a pin", () => {
+    const dot = decodeURIComponent(locationDot());
+
+    // The person is not a place; giving them a pin shape would put them in the
+    // same visual class as a hospital.
+    expect(dot).toContain("<circle");
+    expect(dot).not.toContain("<path");
+  });
+
+  test("uses the colour people already read as their own position", () => {
+    expect(decodeURIComponent(locationDot())).toContain("#1a73e8");
   });
 });

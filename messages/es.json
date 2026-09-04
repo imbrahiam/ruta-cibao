@@ -186,7 +186,8 @@
     },
     "actions": {
       "locate": "Centrar en mi ubicación",
-      "share": "Compartir esta vista"
+      "share": "Compartir esta vista",
+      "here": "Estás aquí"
     }
   }
 }

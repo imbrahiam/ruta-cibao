@@ -70,6 +70,10 @@ export function MapScreen() {
   // memory because it is what the map matches when highlighting the selection.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ lng: number; lat: number } | null>(null);
+  const [myLocation, setMyLocation] = useState<{
+    lng: number;
+    lat: number;
+  } | null>(null);
 
   const handleSelect = useCallback(
     (place: { id: string; slug: string } | null) => {
@@ -92,6 +96,7 @@ export function MapScreen() {
         flyTo={flyTo}
         traffic={traffic}
         googlePlaces={googlePlaces}
+        myLocation={myLocation}
         viewMode={asViewMode(viewMode)}
         onSelect={handleSelect}
       />
@@ -122,7 +127,12 @@ export function MapScreen() {
         </div>
       </div>
 
-      <MapActions onLocate={(position) => setFlyTo(position)} />
+      <MapActions
+        onLocate={(position) => {
+          setMyLocation(position);
+          setFlyTo(position);
+        }}
+      />
 
       <MapLayers
         mode={asViewMode(viewMode)}

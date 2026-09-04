@@ -21,5 +21,7 @@ export type CitizenMapProps = {
   viewMode?: ViewMode;
   /** Google's own listings. Renderers without them ignore this. */
   googlePlaces?: boolean;
+  /** Where the person is, once they have asked to be found. */
+  myLocation?: { lng: number; lat: number } | null;
   onSelect: (place: PlaceSelection) => void;
 };
