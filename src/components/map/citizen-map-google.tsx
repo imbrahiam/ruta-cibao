@@ -2,21 +2,21 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
-  AdvancedMarker,
   APIProvider,
   Map as GoogleMap,
-  Pin,
+  Marker,
   useMap,
 } from "@vis.gl/react-google-maps";
 import { useEffect } from "react";
 import { publicEnv } from "@/lib/env.public";
-import { categoryIcon } from "@/lib/map/category-icons";
 import {
   DEFAULT_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
   PROVINCE_CENTER,
 } from "@/lib/map/config";
+import { googleMapStyle } from "@/lib/map/google-style";
+import { markerPin, markerSize } from "@/lib/map/marker-pin";
 import {
   DEFAULT_VIEW_MODE,
   googleMapTypeFor,
@@ -100,6 +100,7 @@ export function CitizenMapGoogle({
   flyTo,
   traffic = true,
   viewMode = DEFAULT_VIEW_MODE,
+  googlePlaces = false,
   onSelect,
 }: {
   selectedId: string | null;
@@ -107,6 +108,8 @@ export function CitizenMapGoogle({
   flyTo: { lng: number; lat: number } | null;
   traffic?: boolean;
   viewMode?: ViewMode;
+  /** Google's own restaurants, shops and offices. Off by default. */
+  googlePlaces?: boolean;
   onSelect: (place: PlaceSelection) => void;
 }) {
   const { data } = useQuery({
@@ -119,12 +122,6 @@ export function CitizenMapGoogle({
   });
 
   const key = publicEnv.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  /**
-   * Advanced markers need a Map ID. Google's documented development id works
-   * without a console setup; a deployment sets its own so the styling and the
-   * quota are its own.
-   */
-  const mapId = publicEnv.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
 
   if (!key) {
     return (
@@ -154,12 +151,10 @@ export function CitizenMapGoogle({
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         mapTypeId={googleMapTypeFor(viewMode)}
-        // A Map ID, which is what enables the pin-shaped markers below. It also
-        // means Google renders its own cartography: the greens and tans of the
-        // default map rather than a desaturated wash, which reads better here
-        // — this is farmland and hills, and a map that shows that is telling
-        // someone something true about where they are.
-        mapId={mapId}
+        // No Map ID on purpose: one would enable Advanced Markers but make
+        // Google ignore this style, and the style is the only way to clear its
+        // own listings off the map.
+        styles={googleMapStyle(googlePlaces)}
         disableDefaultUI
         zoomControl
         gestureHandling="greedy"
@@ -170,11 +165,11 @@ export function CitizenMapGoogle({
       >
         {visible.map((feature) => {
           const { id, slug, name, color, icon } = feature.properties;
-          const Icon = categoryIcon(icon);
           const isSelected = id === selectedId;
+          const size = markerSize(isSelected);
 
           return (
-            <AdvancedMarker
+            <Marker
               key={id}
               position={{
                 lat: feature.geometry.coordinates[1],
@@ -182,23 +177,14 @@ export function CitizenMapGoogle({
               }}
               title={name}
               zIndex={isSelected ? 2 : 1}
+              icon={{
+                url: markerPin(color, icon, isSelected),
+                scaledSize: new google.maps.Size(size.width, size.height),
+                // The point of the pin sits on the coordinate, not its middle.
+                anchor: new google.maps.Point(size.width / 2, size.height),
+              }}
               onClick={() => onSelect({ id, slug })}
-            >
-              {/* Google's own pin shape, in the category's colour with its icon
-                  inside. The shape is what makes a marker read as a place at a
-                  glance; the icon is what says which kind without a legend. */}
-              <Pin
-                background={color}
-                borderColor="#ffffff"
-                glyphColor="#ffffff"
-                scale={isSelected ? 1.4 : 1.1}
-              >
-                {/* The glyph goes in as children rather than through the
-                    `glyph` prop, which takes a DOM element and not a React
-                    one. */}
-                <Icon className="size-4 text-white" />
-              </Pin>
-            </AdvancedMarker>
+            />
           );
         })}
 

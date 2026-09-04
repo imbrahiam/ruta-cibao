@@ -19,5 +19,7 @@ export type CitizenMapProps = {
    * own basemap rather than pretending to offer a choice they cannot honour.
    */
   viewMode?: ViewMode;
+  /** Google's own listings. Renderers without them ignore this. */
+  googlePlaces?: boolean;
   onSelect: (place: PlaceSelection) => void;
 };

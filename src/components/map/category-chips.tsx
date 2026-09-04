@@ -1,22 +1,57 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { LayoutGrid } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
+import { categoryIcon } from "@/lib/map/category-icons";
 import { orpc } from "@/lib/orpc";
+import { cn } from "@/lib/utils";
 
 /**
  * Category filters, as a row of chips.
  *
- * Scrolls sideways rather than wrapping, so the row never pushes the map down
- * a line as the municipality adds categories. The scrollbar is hidden and the
- * edges fade, which is what tells someone there is more without adding a
- * control to press.
+ * Icon and label, not a colour dot. A dot only means something to someone who
+ * has already learned the legend, and there is no legend — whereas a fork says
+ * "comedor" to a person who has never opened the app before. The colour is
+ * still there, but on the map, where it ties a chip to the pins it controls.
+ *
+ * The row scrolls sideways rather than wrapping, so it never pushes the map
+ * down a line as the municipality adds categories, and the right edge fades to
+ * say there is more without spending a tap target on saying so.
  *
  * An empty selection means everything: a filter that empties the map when you
- * deselect the last chip is a trap, so "Todo" is always one tap away and is
- * shown as selected when nothing else is.
+ * deselect the last chip is a trap, so "Todo" is always one tap away and reads
+ * as selected when nothing else is.
  */
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        // A white pill with a hairline and a soft shadow, the shape every map
+        // application uses for this, sized for a thumb.
+        "flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 font-medium text-sm shadow-sm transition-colors",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+        active
+          ? "border-transparent bg-foreground text-background"
+          : "border-border bg-background text-foreground hover:bg-accent",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function CategoryChips({
   selected,
   onChange,
@@ -38,43 +73,37 @@ export function CategoryChips({
   return (
     <div className="relative min-w-0 flex-1">
       <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <Button
-          type="button"
-          size="sm"
-          variant={selected.length === 0 ? "default" : "secondary"}
-          aria-pressed={selected.length === 0}
-          className="h-10 shrink-0 rounded-full px-4 shadow-sm"
-          onClick={() => onChange([])}
-        >
+        <Chip active={selected.length === 0} onClick={() => onChange([])}>
+          <LayoutGrid className="size-4" aria-hidden />
           {t("all")}
-        </Button>
+        </Chip>
 
         {(categories ?? []).map((category) => {
-          const isOn = selected.includes(category.id);
+          const Icon = categoryIcon(category.icon);
+          const active = selected.includes(category.id);
 
           return (
-            <Button
+            <Chip
               key={category.id}
-              type="button"
-              size="sm"
-              variant={isOn ? "default" : "secondary"}
-              aria-pressed={isOn}
-              className="h-10 shrink-0 gap-2 rounded-full px-4 shadow-sm"
+              active={active}
               onClick={() => toggle(category.id)}
             >
-              <span
+              <Icon
+                className="size-4"
+                // The category's colour, but only when the chip is off: on a
+                // dark selected chip it would be unreadable, and the selection
+                // is already unmistakable from the fill.
+                style={active ? undefined : { color: category.color }}
                 aria-hidden
-                className="size-2.5 rounded-full"
-                style={{ backgroundColor: category.color }}
               />
               {category.name}
-            </Button>
+            </Chip>
           );
         })}
       </div>
 
       {/* Tells the eye the row continues, without occupying a tap target. */}
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background/90 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background/80 to-transparent" />
     </div>
   );
 }

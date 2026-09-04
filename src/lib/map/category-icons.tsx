@@ -20,7 +20,7 @@ import {
   Waves,
   Wheat,
 } from "lucide-react";
-import type { ComponentType } from "react";
+import type { ComponentType, CSSProperties } from "react";
 
 /**
  * The icon each category asks for, by name.
@@ -34,7 +34,12 @@ import type { ComponentType } from "react";
  * Adding a category with a new icon means adding a line here. That is the
  * trade for not shipping the whole icon library to a phone.
  */
-const ICONS: Record<string, ComponentType<{ className?: string }>> = {
+type IconComponent = ComponentType<{
+  className?: string;
+  style?: CSSProperties;
+}>;
+
+const ICONS: Record<string, IconComponent> = {
   "bed-double": BedDouble,
   bike: Bike,
   bus: Bus,
@@ -57,8 +62,6 @@ const ICONS: Record<string, ComponentType<{ className?: string }>> = {
   wheat: Wheat,
 };
 
-export function categoryIcon(
-  name: string | undefined,
-): ComponentType<{ className?: string }> {
+export function categoryIcon(name: string | undefined): IconComponent {
   return (name && ICONS[name]) || MapPin;
 }

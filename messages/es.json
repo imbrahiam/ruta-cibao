@@ -179,6 +179,14 @@
       "map": "Mapa",
       "saved": "Guardados",
       "report": "Reportar"
+    },
+    "googlePlaces": {
+      "label": "Negocios de Google",
+      "hint": "Restaurantes, tiendas y oficinas que trae el mapa. Apágalos para ver solo lo que puso la provincia."
+    },
+    "actions": {
+      "locate": "Centrar en mi ubicación",
+      "share": "Compartir esta vista"
     }
   }
 }

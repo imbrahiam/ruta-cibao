@@ -5,6 +5,7 @@ import {
   Map as MapIcon,
   Mountain,
   Satellite,
+  Store,
   TrafficCone,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -38,16 +39,21 @@ const ICONS: Record<ViewMode, typeof MapIcon> = {
 export function MapLayers({
   mode,
   traffic,
+  googlePlaces,
   onModeChange,
   onTrafficChange,
+  onGooglePlacesChange,
 }: {
   mode: ViewMode;
   traffic: boolean;
+  googlePlaces: boolean;
   onModeChange: (mode: ViewMode) => void;
   onTrafficChange: (enabled: boolean) => void;
+  onGooglePlacesChange: (enabled: boolean) => void;
 }) {
   const t = useTranslations("map.view");
   const trafficCopy = useTranslations("map.traffic");
+  const placesCopy = useTranslations("map.googlePlaces");
   const [open, setOpen] = useState(false);
 
   const ActiveIcon = ICONS[mode];
@@ -111,7 +117,7 @@ export function MapLayers({
 
         <Separator className="my-3" />
 
-        <div className="px-4 pb-8">
+        <div className="flex flex-col px-4 pb-8">
           <button
             type="button"
             aria-pressed={traffic}
@@ -129,6 +135,25 @@ export function MapLayers({
               </span>
             </span>
             {traffic && <Check className="size-5 shrink-0" aria-hidden />}
+          </button>
+
+          <button
+            type="button"
+            aria-pressed={googlePlaces}
+            onClick={() => onGooglePlacesChange(!googlePlaces)}
+            className="flex min-h-16 w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Store
+              className="size-5 shrink-0 text-muted-foreground"
+              aria-hidden
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block text-base">{placesCopy("label")}</span>
+              <span className="block text-muted-foreground text-xs leading-snug">
+                {placesCopy("hint")}
+              </span>
+            </span>
+            {googlePlaces && <Check className="size-5 shrink-0" aria-hidden />}
           </button>
         </div>
       </DrawerContent>

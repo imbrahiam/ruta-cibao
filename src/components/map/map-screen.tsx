@@ -9,6 +9,7 @@ import {
 import { useCallback, useState } from "react";
 import { CategoryChips } from "@/components/map/category-chips";
 import { CitizenMap } from "@/components/map/citizen-map";
+import { MapActions } from "@/components/map/map-actions";
 import { MapLayers } from "@/components/map/map-layers";
 import { MapSearch, type SearchTarget } from "@/components/map/map-search";
 import { PlaceDrawer } from "@/components/map/place-drawer";
@@ -57,6 +58,12 @@ export function MapScreen() {
     "transito",
     parseAsBoolean.withDefault(true).withOptions({ shallow: true }),
   );
+  // Off by default: Google's restaurants and shops compete with the places the
+  // province put there, which are the whole reason this map exists.
+  const [googlePlaces, setGooglePlaces] = useQueryState(
+    "negocios",
+    parseAsBoolean.withDefault(false).withOptions({ shallow: true }),
+  );
 
   // The tile carries the feature id and the drawer needs the slug, so both are
   // kept: the slug in the URL because it is what a person would read, the id in
@@ -84,6 +91,7 @@ export function MapScreen() {
         categoryIds={categoryIds}
         flyTo={flyTo}
         traffic={traffic}
+        googlePlaces={googlePlaces}
         viewMode={asViewMode(viewMode)}
         onSelect={handleSelect}
       />
@@ -114,13 +122,19 @@ export function MapScreen() {
         </div>
       </div>
 
+      <MapActions onLocate={(position) => setFlyTo(position)} />
+
       <MapLayers
         mode={asViewMode(viewMode)}
         traffic={traffic}
+        googlePlaces={googlePlaces}
         onModeChange={(next) =>
           void setViewMode(next === DEFAULT_VIEW_MODE ? null : next)
         }
         onTrafficChange={(next) => void setTraffic(next ? null : false)}
+        onGooglePlacesChange={(next) =>
+          void setGooglePlaces(next ? true : null)
+        }
       />
 
       <PlaceDrawer slug={slug} onClose={close} />
