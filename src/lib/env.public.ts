@@ -47,6 +47,8 @@ const publicSchema = z.object({
     .enum(["google", "leaflet", "maplibre"])
     .default("google"),
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: optional,
+  /** Enables Advanced Markers. Falls back to Google's documented dev id. */
+  NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: optional,
 });
 
 export const publicEnv = publicSchema.parse({
@@ -55,4 +57,5 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_MAPTILER_KEY: process.env.NEXT_PUBLIC_MAPTILER_KEY,
   NEXT_PUBLIC_MAP_RENDERER: process.env.NEXT_PUBLIC_MAP_RENDERER,
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
+  NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID,
 });

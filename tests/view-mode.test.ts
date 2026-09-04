@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
 import {
-  acceptsCustomStyle,
   DEFAULT_VIEW_MODE,
   googleMapTypeFor,
   VIEW_MODES,
@@ -13,14 +12,6 @@ describe("view modes", () => {
     // `hybrid`, not `satellite`: imagery with no labels leaves someone unable
     // to tell one green square from another, and the names are the point.
     expect(googleMapTypeFor("satelite")).toBe("hybrid");
-  });
-
-  test("custom styling only applies to the street map", () => {
-    // Terrain and imagery are photographs; Google drops a style there silently,
-    // so passing one would look like a bug in our palette rather than a no-op.
-    expect(acceptsCustomStyle("mapa")).toBe(true);
-    expect(acceptsCustomStyle("relieve")).toBe(false);
-    expect(acceptsCustomStyle("satelite")).toBe(false);
   });
 
   test("the default is one of the modes offered", () => {

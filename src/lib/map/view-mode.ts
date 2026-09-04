@@ -38,14 +38,3 @@ export function googleMapTypeFor(
       return "roadmap";
   }
 }
-
-/**
- * Whether a custom style applies.
- *
- * Google ignores styling on terrain and imagery — the pixels are photographs,
- * not vectors — so passing one there is silently dropped rather than an error.
- * Saying so here keeps the caller from wondering why it had no effect.
- */
-export function acceptsCustomStyle(mode: ViewMode): boolean {
-  return mode === "mapa";
-}

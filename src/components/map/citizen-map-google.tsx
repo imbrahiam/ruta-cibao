@@ -2,22 +2,22 @@
 
 import { useQuery } from "@tanstack/react-query";
 import {
+  AdvancedMarker,
   APIProvider,
   Map as GoogleMap,
-  Marker,
+  Pin,
   useMap,
 } from "@vis.gl/react-google-maps";
 import { useEffect } from "react";
 import { publicEnv } from "@/lib/env.public";
+import { categoryIcon } from "@/lib/map/category-icons";
 import {
   DEFAULT_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
   PROVINCE_CENTER,
 } from "@/lib/map/config";
-import { googleMapStyle, markerIcon } from "@/lib/map/google-style";
 import {
-  acceptsCustomStyle,
   DEFAULT_VIEW_MODE,
   googleMapTypeFor,
   type ViewMode,
@@ -33,6 +33,7 @@ type PlaceFeature = {
     name: string;
     category: string;
     color: string;
+    icon: string;
   };
   geometry: { coordinates: [number, number] };
 };
@@ -118,6 +119,12 @@ export function CitizenMapGoogle({
   });
 
   const key = publicEnv.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+  /**
+   * Advanced markers need a Map ID. Google's documented development id works
+   * without a console setup; a deployment sets its own so the styling and the
+   * quota are its own.
+   */
+  const mapId = publicEnv.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
 
   if (!key) {
     return (
@@ -147,9 +154,12 @@ export function CitizenMapGoogle({
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         mapTypeId={googleMapTypeFor(viewMode)}
-        // Google ignores styling on terrain and imagery — those are
-        // photographs, not vectors — so it is only passed where it applies.
-        styles={acceptsCustomStyle(viewMode) ? googleMapStyle : undefined}
+        // A Map ID, which is what enables the pin-shaped markers below. It also
+        // means Google renders its own cartography: the greens and tans of the
+        // default map rather than a desaturated wash, which reads better here
+        // — this is farmland and hills, and a map that shows that is telling
+        // someone something true about where they are.
+        mapId={mapId}
         disableDefaultUI
         zoomControl
         gestureHandling="greedy"
@@ -158,28 +168,39 @@ export function CitizenMapGoogle({
         // expect from a map and saves them hunting for a close button.
         onClick={() => onSelect(null)}
       >
-        {visible.map((feature) => (
-          <Marker
-            key={feature.properties.id}
-            position={{
-              lat: feature.geometry.coordinates[1],
-              lng: feature.geometry.coordinates[0],
-            }}
-            title={feature.properties.name}
-            icon={{
-              url: markerIcon(
-                feature.properties.color,
-                feature.properties.id === selectedId,
-              ),
-            }}
-            onClick={() =>
-              onSelect({
-                id: feature.properties.id,
-                slug: feature.properties.slug,
-              })
-            }
-          />
-        ))}
+        {visible.map((feature) => {
+          const { id, slug, name, color, icon } = feature.properties;
+          const Icon = categoryIcon(icon);
+          const isSelected = id === selectedId;
+
+          return (
+            <AdvancedMarker
+              key={id}
+              position={{
+                lat: feature.geometry.coordinates[1],
+                lng: feature.geometry.coordinates[0],
+              }}
+              title={name}
+              zIndex={isSelected ? 2 : 1}
+              onClick={() => onSelect({ id, slug })}
+            >
+              {/* Google's own pin shape, in the category's colour with its icon
+                  inside. The shape is what makes a marker read as a place at a
+                  glance; the icon is what says which kind without a legend. */}
+              <Pin
+                background={color}
+                borderColor="#ffffff"
+                glyphColor="#ffffff"
+                scale={isSelected ? 1.4 : 1.1}
+              >
+                {/* The glyph goes in as children rather than through the
+                    `glyph` prop, which takes a DOM element and not a React
+                    one. */}
+                <Icon className="size-4 text-white" />
+              </Pin>
+            </AdvancedMarker>
+          );
+        })}
 
         <TrafficLayer enabled={traffic} />
         <MapController flyTo={flyTo} />
