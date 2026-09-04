@@ -1,3 +1,5 @@
+import type { ViewMode } from "@/lib/map/view-mode";
+
 /** What a renderer reports when someone taps a place, or taps away from one. */
 export type PlaceSelection = { id: string; slug: string } | null;
 
@@ -12,5 +14,10 @@ export type CitizenMapProps = {
    * basemaps do not, and ignore this rather than pretending otherwise.
    */
   traffic?: boolean;
+  /**
+   * Street, terrain or satellite. Renderers without imagery fall back to their
+   * own basemap rather than pretending to offer a choice they cannot honour.
+   */
+  viewMode?: ViewMode;
   onSelect: (place: PlaceSelection) => void;
 };

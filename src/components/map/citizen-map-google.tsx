@@ -16,6 +16,12 @@ import {
   PROVINCE_CENTER,
 } from "@/lib/map/config";
 import { googleMapStyle, markerIcon } from "@/lib/map/google-style";
+import {
+  acceptsCustomStyle,
+  DEFAULT_VIEW_MODE,
+  googleMapTypeFor,
+  type ViewMode,
+} from "@/lib/map/view-mode";
 import type { PlaceSelection } from "./types";
 
 const MAP_ID = "ruta-cibao";
@@ -92,12 +98,14 @@ export function CitizenMapGoogle({
   categoryIds,
   flyTo,
   traffic = true,
+  viewMode = DEFAULT_VIEW_MODE,
   onSelect,
 }: {
   selectedId: string | null;
   categoryIds: string[];
   flyTo: { lng: number; lat: number } | null;
   traffic?: boolean;
+  viewMode?: ViewMode;
   onSelect: (place: PlaceSelection) => void;
 }) {
   const { data } = useQuery({
@@ -138,7 +146,10 @@ export function CitizenMapGoogle({
         defaultZoom={DEFAULT_ZOOM}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
-        styles={googleMapStyle}
+        mapTypeId={googleMapTypeFor(viewMode)}
+        // Google ignores styling on terrain and imagery — those are
+        // photographs, not vectors — so it is only passed where it applies.
+        styles={acceptsCustomStyle(viewMode) ? googleMapStyle : undefined}
         disableDefaultUI
         zoomControl
         gestureHandling="greedy"

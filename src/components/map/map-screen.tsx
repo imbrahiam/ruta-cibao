@@ -12,6 +12,12 @@ import { CitizenMap } from "@/components/map/citizen-map";
 import { MapSearch, type SearchTarget } from "@/components/map/map-search";
 import { PlaceDrawer } from "@/components/map/place-drawer";
 import { TrafficToggle } from "@/components/map/traffic-toggle";
+import { ViewModeSwitch } from "@/components/map/view-mode-switch";
+import {
+  DEFAULT_VIEW_MODE,
+  VIEW_MODES,
+  type ViewMode,
+} from "@/lib/map/view-mode";
 
 /**
  * The map screen.
@@ -45,6 +51,10 @@ export function MapScreen() {
     "transito",
     parseAsBoolean.withDefault(true).withOptions({ shallow: true }),
   );
+  const [viewMode, setViewMode] = useQueryState(
+    "vista",
+    parseAsString.withDefault(DEFAULT_VIEW_MODE).withOptions({ shallow: true }),
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ lng: number; lat: number } | null>(null);
 
@@ -68,6 +78,13 @@ export function MapScreen() {
         categoryIds={categoryIds}
         flyTo={flyTo}
         traffic={traffic}
+        // A value typed into the URL by hand can be anything; anything that is
+        // not one of the three falls back rather than reaching the renderer.
+        viewMode={
+          VIEW_MODES.includes(viewMode as ViewMode)
+            ? (viewMode as ViewMode)
+            : DEFAULT_VIEW_MODE
+        }
         onSelect={handleSelect}
       />
 
@@ -83,6 +100,17 @@ export function MapScreen() {
             setFlyTo({ lng: target.lng, lat: target.lat });
             void setSlug(target.slug ?? null);
           }}
+        />
+        <ViewModeSwitch
+          mode={
+            VIEW_MODES.includes(viewMode as ViewMode)
+              ? (viewMode as ViewMode)
+              : DEFAULT_VIEW_MODE
+          }
+          // `null` for the default keeps a plain link free of parameters.
+          onChange={(next) =>
+            void setViewMode(next === DEFAULT_VIEW_MODE ? null : next)
+          }
         />
         <TrafficToggle
           enabled={traffic}

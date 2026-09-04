@@ -159,6 +159,16 @@
     "traffic": {
       "show": "Ver el tránsito en vivo",
       "hide": "Ocultar el tránsito"
+    },
+    "view": {
+      "title": "Cómo ver el mapa",
+      "label": "Cambiar la vista",
+      "mapa": "Mapa",
+      "mapaHint": "Calles y nombres. Para buscar un lugar o ver el tránsito.",
+      "relieve": "Relieve",
+      "relieveHint": "Muestra las lomas y las cuestas. Útil para rutas y senderos.",
+      "satelite": "Satélite",
+      "sateliteHint": "Fotos reales del terreno, con los nombres encima."
     }
   }
 }
