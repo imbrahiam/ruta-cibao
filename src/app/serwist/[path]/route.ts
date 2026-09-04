@@ -55,11 +55,48 @@ async function bundle(
   };
 }
 
+/**
+ * A worker whose only job is to remove itself.
+ *
+ * Served in development instead of the real one. A service worker installed by
+ * an earlier production build keeps controlling localhost afterwards, and no
+ * amount of not-registering-a-new-one dislodges it — the page's own cleanup
+ * code cannot help either, because the stale worker is what stops that code
+ * loading in the first place.
+ *
+ * Browsers re-fetch the worker script on navigation and install what they get,
+ * so serving this is the one lever that reliably works from the server side.
+ */
+const KILL_SWITCH = `
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+      await self.registration.unregister();
+      const clients = await self.clients.matchAll({ type: "window" });
+      for (const client of clients) client.navigate(client.url);
+    })(),
+  );
+});
+`;
+
 export async function GET(
   _request: Request,
   context: { params: Promise<{ path: string }> },
 ) {
   const { path } = await context.params;
+
+  if (process.env.NODE_ENV !== "production") {
+    return new Response(KILL_SWITCH, {
+      headers: {
+        "content-type": "application/javascript; charset=utf-8",
+        "cache-control": "no-store",
+      },
+    });
+  }
+
   const { body, contentType } = await bundle(path);
 
   return new Response(body, {
