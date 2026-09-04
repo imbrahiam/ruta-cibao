@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { RASTER_BASEMAP } from "@/lib/map/basemap";
 import { mapPalette } from "@/lib/map/palette";
 import { buildMapStyle } from "@/lib/map/style";
 
@@ -154,4 +155,22 @@ describe("layer ids", () => {
       expect(ids.filter((id) => id === "background")).toHaveLength(1);
     });
   }
+});
+
+/**
+ * The rendered map uses a raster basemap, so its URL template has to survive
+ * intact — the same percent-encoding trap that silently emptied the vector map
+ * applies to any tile layer.
+ */
+describe("RASTER_BASEMAP", () => {
+  test("keeps its placeholders", () => {
+    for (const token of ["{z}", "{x}", "{y}", "{s}"]) {
+      expect(RASTER_BASEMAP.url).toContain(token);
+    }
+  });
+
+  test("carries the attribution its licence requires", () => {
+    expect(RASTER_BASEMAP.attribution).toContain("OpenStreetMap");
+    expect(RASTER_BASEMAP.attribution).toContain("CARTO");
+  });
 });

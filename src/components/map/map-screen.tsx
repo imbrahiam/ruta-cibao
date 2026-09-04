@@ -1,9 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
 import { useCallback, useState } from "react";
 import { CategoryFilter } from "@/components/map/category-filter";
+import { CitizenMap } from "@/components/map/citizen-map";
 import { MapSearch, type SearchTarget } from "@/components/map/map-search";
 import { PlaceDrawer } from "@/components/map/place-drawer";
 
@@ -19,20 +19,6 @@ import { PlaceDrawer } from "@/components/map/place-drawer";
  * kept: the slug in the URL because it is what a person would read, the id in
  * memory because it is what the map matches when highlighting the selection.
  */
-/**
- * Loaded in the browser only.
- *
- * MapLibre builds a WebGL canvas the moment it is constructed and has no
- * server-side form. Rendering it on the server produced markup the client then
- * had to reconcile against a canvas that did not exist yet — which is the kind
- * of mismatch that leaves a mounted map with nothing drawn in it.
- */
-const CitizenMap = dynamic(
-  () =>
-    import("@/components/map/citizen-map").then((module) => module.CitizenMap),
-  { ssr: false },
-);
-
 export function MapScreen() {
   const [slug, setSlug] = useQueryState(
     "lugar",
