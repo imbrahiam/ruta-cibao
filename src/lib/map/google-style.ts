@@ -1,90 +1,103 @@
 import { mapPalette } from "./palette";
 
 /**
- * The Google basemap, in the app's greys.
+ * A clean street map that traffic reads well on.
  *
- * Classic styled-map JSON rather than a cloud-hosted Map ID: it lives in the
- * repository, so the styling ships with the code instead of being a setting in
- * someone's Google Cloud console that the municipality would have to be handed
- * separately.
+ * Deliberately lighter-handed than the fully desaturated version this
+ * replaced. The traffic layer paints roads green through red, and that only
+ * reads if the roads underneath are pale and uniform — a grey wash over
+ * everything flattened the difference and made the colours look muddy.
  *
- * Same intent as the other renderers — the ground recedes and the roads are the
- * bright thing on it — and points of interest are turned off entirely, because
- * Google's own pins compete with the ones the province put there, which are the
- * whole reason for the map.
+ * So: roads white with a soft casing, water and parks keep enough colour to
+ * orient someone, and everything else recedes. Google's own points of interest
+ * stay off — its pins compete with the ones the province put there, which are
+ * the whole reason for the map.
+ *
+ * Kept as JSON in the repository rather than a cloud-hosted Map ID, so the
+ * styling ships with the code instead of living in a console setting the
+ * municipality would have to be handed separately.
  */
 export const googleMapStyle: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: mapPalette.land }] },
-  {
-    elementType: "labels.text.fill",
-    stylers: [{ color: mapPalette.lineStrong }],
-  },
+  { elementType: "geometry", stylers: [{ color: "#f3f4f6" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#4b5563" }] },
   {
     elementType: "labels.text.stroke",
-    stylers: [{ color: mapPalette.labelHalo }],
+    stylers: [{ color: "#ffffff" }, { weight: 2 }],
   },
-  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
 
   // Google's own places, hidden. The map is for what citizens add to it.
   { featureType: "poi", stylers: [{ visibility: "off" }] },
   { featureType: "transit", stylers: [{ visibility: "off" }] },
 
+  // Enough green and blue to read the land at a glance, no more.
   {
     featureType: "landscape.natural",
     elementType: "geometry",
-    stylers: [{ color: mapPalette.land }],
+    stylers: [{ color: "#eef1ee" }],
   },
   {
     featureType: "poi.park",
     elementType: "geometry",
-    stylers: [{ color: mapPalette.green }],
+    stylers: [{ color: "#dbeadb" }],
   },
   {
     featureType: "water",
     elementType: "geometry",
-    stylers: [{ color: mapPalette.water }],
+    stylers: [{ color: "#c5dcea" }],
   },
   {
     featureType: "water",
     elementType: "labels.text.fill",
-    stylers: [{ color: mapPalette.waterLabel }],
+    stylers: [{ color: "#7d9bad" }],
   },
 
+  // The network. Pale and uniform, so the traffic overlay is the only thing
+  // on a road carrying colour.
   {
     featureType: "road",
-    elementType: "geometry",
-    stylers: [{ color: mapPalette.road }],
+    elementType: "geometry.fill",
+    stylers: [{ color: "#ffffff" }],
   },
   {
     featureType: "road",
     elementType: "geometry.stroke",
-    stylers: [{ color: mapPalette.roadCasing }],
+    stylers: [{ color: "#e3e5e8" }],
+  },
+  {
+    featureType: "road.arterial",
+    elementType: "geometry.fill",
+    stylers: [{ color: "#ffffff" }],
   },
   {
     featureType: "road.highway",
-    elementType: "geometry",
-    stylers: [{ color: mapPalette.road }],
+    elementType: "geometry.fill",
+    stylers: [{ color: "#ffffff" }],
   },
   {
     featureType: "road.highway",
     elementType: "geometry.stroke",
-    stylers: [{ color: mapPalette.line }],
+    stylers: [{ color: "#d8dbe0" }],
   },
   {
-    featureType: "road.local",
-    elementType: "labels",
-    stylers: [{ visibility: "off" }],
+    featureType: "road.highway.controlled_access",
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#cfd3d9" }],
+  },
+  {
+    featureType: "road",
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#6b7280" }],
   },
 
   {
     featureType: "administrative",
-    elementType: "geometry",
-    stylers: [{ color: mapPalette.line }],
+    elementType: "geometry.stroke",
+    stylers: [{ color: "#d6d8dc" }],
   },
   {
     featureType: "administrative.locality",
     elementType: "labels.text.fill",
-    stylers: [{ color: mapPalette.lineStrong }],
+    stylers: [{ color: "#374151" }],
   },
 ];
 
@@ -95,14 +108,20 @@ export const googleMapStyle: google.maps.MapTypeStyle[] = [
  * taxonomy is edited by the municipality at runtime, so the colour is only
  * known then, and generating the pin is cheaper than keeping a sprite sheet in
  * step with a table someone else edits.
+ *
+ * A drop shadow, because the traffic overlay puts saturated colour on the roads
+ * these sit over and a flat circle stops reading against it.
  */
 export function markerIcon(color: string, selected: boolean): string {
   const radius = selected ? 11 : 8;
-  const ring = selected ? 4 : 2;
-  const size = (radius + ring) * 2;
+  const ring = selected ? 4 : 2.5;
+  const pad = 4;
+  const size = (radius + ring + pad) * 2;
+  const center = size / 2;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <circle cx="${size / 2}" cy="${size / 2}" r="${radius}" fill="${color}" stroke="${mapPalette.road}" stroke-width="${ring}"/>
+    <circle cx="${center}" cy="${center}" r="${radius + ring / 2}" fill="${mapPalette.ink}" opacity="0.18"/>
+    <circle cx="${center}" cy="${center}" r="${radius}" fill="${color}" stroke="#ffffff" stroke-width="${ring}"/>
   </svg>`;
 
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;

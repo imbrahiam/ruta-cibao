@@ -31,6 +31,33 @@ type PlaceFeature = {
   geometry: { coordinates: [number, number] };
 };
 
+/**
+ * Live traffic on the roads.
+ *
+ * Google renders it as green through red along each road, which is the fastest
+ * way for someone to see whether a route is moving — and it sits directly
+ * alongside the traffic citizens report themselves, which is what this platform
+ * adds on top: an official layer says a road is slow, a citizen says why.
+ *
+ * The library exposes no component for it, so it is attached to the map
+ * imperatively and detached on unmount, which is what stops a second layer
+ * being added every time the toggle flips.
+ */
+function TrafficLayer({ enabled }: { enabled: boolean }) {
+  const map = useMap(MAP_ID);
+
+  useEffect(() => {
+    if (!map || !enabled) return;
+
+    const layer = new google.maps.TrafficLayer();
+    layer.setMap(map);
+
+    return () => layer.setMap(null);
+  }, [map, enabled]);
+
+  return null;
+}
+
 /** Moves the map when a search result asks it to, without remounting it. */
 function MapController({
   flyTo,
@@ -64,11 +91,13 @@ export function CitizenMapGoogle({
   selectedId,
   categoryIds,
   flyTo,
+  traffic = true,
   onSelect,
 }: {
   selectedId: string | null;
   categoryIds: string[];
   flyTo: { lng: number; lat: number } | null;
+  traffic?: boolean;
   onSelect: (place: PlaceSelection) => void;
 }) {
   const { data } = useQuery({
@@ -141,6 +170,7 @@ export function CitizenMapGoogle({
           />
         ))}
 
+        <TrafficLayer enabled={traffic} />
         <MapController flyTo={flyTo} />
       </GoogleMap>
     </APIProvider>

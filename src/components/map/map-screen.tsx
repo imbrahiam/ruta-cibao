@@ -1,11 +1,17 @@
 "use client";
 
-import { parseAsArrayOf, parseAsString, useQueryState } from "nuqs";
+import {
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsString,
+  useQueryState,
+} from "nuqs";
 import { useCallback, useState } from "react";
 import { CategoryFilter } from "@/components/map/category-filter";
 import { CitizenMap } from "@/components/map/citizen-map";
 import { MapSearch, type SearchTarget } from "@/components/map/map-search";
 import { PlaceDrawer } from "@/components/map/place-drawer";
+import { TrafficToggle } from "@/components/map/traffic-toggle";
 
 /**
  * The map screen.
@@ -33,6 +39,12 @@ export function MapScreen() {
       .withDefault([])
       .withOptions({ shallow: true }),
   );
+  // On by default: which roads are moving is the first thing anyone opening a
+  // map of their own town looks for.
+  const [traffic, setTraffic] = useQueryState(
+    "transito",
+    parseAsBoolean.withDefault(true).withOptions({ shallow: true }),
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ lng: number; lat: number } | null>(null);
 
@@ -55,6 +67,7 @@ export function MapScreen() {
         selectedId={selectedId}
         categoryIds={categoryIds}
         flyTo={flyTo}
+        traffic={traffic}
         onSelect={handleSelect}
       />
 
@@ -70,6 +83,12 @@ export function MapScreen() {
             setFlyTo({ lng: target.lng, lat: target.lat });
             void setSlug(target.slug ?? null);
           }}
+        />
+        <TrafficToggle
+          enabled={traffic}
+          // `null` clears the parameter rather than writing ?transito=true,
+          // so the default state leaves a clean URL.
+          onChange={(next) => void setTraffic(next ? null : false)}
         />
         <CategoryFilter
           selected={categoryIds}

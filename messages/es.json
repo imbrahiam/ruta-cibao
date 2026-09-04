@@ -155,6 +155,10 @@
       "addresses": "Direcciones",
       "noResults": "Nada encontrado para «{term}»",
       "noResultsHint": "Prueba con menos palabras. Si el lugar no está en el mapa, puedes agregarlo tú."
+    },
+    "traffic": {
+      "show": "Ver el tránsito en vivo",
+      "hide": "Ocultar el tránsito"
     }
   }
 }

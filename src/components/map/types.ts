@@ -7,5 +7,10 @@ export type CitizenMapProps = {
   categoryIds: string[];
   /** Where a search result asked the map to go. */
   flyTo: { lng: number; lat: number } | null;
+  /**
+   * Live traffic, where the renderer has it. Google does; the self-hosted
+   * basemaps do not, and ignore this rather than pretending otherwise.
+   */
+  traffic?: boolean;
   onSelect: (place: PlaceSelection) => void;
 };
