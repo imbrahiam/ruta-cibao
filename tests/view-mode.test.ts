@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
-  DEFAULT_VIEW_MODE,
-  VIEW_MODES,
   acceptsCustomStyle,
+  DEFAULT_VIEW_MODE,
   googleMapTypeFor,
+  VIEW_MODES,
 } from "@/lib/map/view-mode";
 
 describe("view modes", () => {

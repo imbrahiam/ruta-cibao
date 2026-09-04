@@ -157,6 +157,8 @@
       "noResultsHint": "Prueba con menos palabras. Si el lugar no está en el mapa, puedes agregarlo tú."
     },
     "traffic": {
+      "label": "Tránsito en vivo",
+      "hint": "Colorea las vías según cómo esté el tráfico ahora mismo.",
       "show": "Ver el tránsito en vivo",
       "hide": "Ocultar el tránsito"
     },
@@ -168,7 +170,15 @@
       "relieve": "Relieve",
       "relieveHint": "Muestra las lomas y las cuestas. Útil para rutas y senderos.",
       "satelite": "Satélite",
-      "sateliteHint": "Fotos reales del terreno, con los nombres encima."
+      "sateliteHint": "Fotos reales del terreno, con los nombres encima.",
+      "short": "Capas"
+    },
+    "rail": {
+      "label": "Navegación del mapa",
+      "home": "Inicio",
+      "map": "Mapa",
+      "saved": "Guardados",
+      "report": "Reportar"
     }
   }
 }

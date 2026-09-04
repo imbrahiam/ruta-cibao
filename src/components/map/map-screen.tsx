@@ -7,12 +7,11 @@ import {
   useQueryState,
 } from "nuqs";
 import { useCallback, useState } from "react";
-import { CategoryFilter } from "@/components/map/category-filter";
+import { CategoryChips } from "@/components/map/category-chips";
 import { CitizenMap } from "@/components/map/citizen-map";
+import { MapLayers } from "@/components/map/map-layers";
 import { MapSearch, type SearchTarget } from "@/components/map/map-search";
 import { PlaceDrawer } from "@/components/map/place-drawer";
-import { TrafficToggle } from "@/components/map/traffic-toggle";
-import { ViewModeSwitch } from "@/components/map/view-mode-switch";
 import {
   DEFAULT_VIEW_MODE,
   VIEW_MODES,
@@ -22,39 +21,46 @@ import {
 /**
  * The map screen.
  *
- * Which place is open lives in the URL rather than in component state. That
- * makes a view shareable by pasting the address, survivable across the reload a
- * phone does when it drops signal, and closable with the back button — which is
- * the gesture people reach for before they look for a close affordance.
+ * Every piece of state lives in the URL rather than in component state: which
+ * place is open, which categories are on, how the ground is drawn, whether
+ * traffic is shown. That makes any view shareable by pasting the address,
+ * survivable across the reload a phone does when it drops signal, and closable
+ * with the back button — the gesture people reach for before they look for a
+ * close affordance.
  *
- * The tile carries the feature id, and the drawer needs the slug, so both are
- * kept: the slug in the URL because it is what a person would read, the id in
- * memory because it is what the map matches when highlighting the selection.
+ * Defaults write no parameter, so a plain link stays clean.
  */
+function asViewMode(value: string): ViewMode {
+  // A value typed into the URL by hand can be anything.
+  return VIEW_MODES.includes(value as ViewMode)
+    ? (value as ViewMode)
+    : DEFAULT_VIEW_MODE;
+}
+
 export function MapScreen() {
   const [slug, setSlug] = useQueryState(
     "lugar",
     // `history: push` so back closes the drawer instead of leaving the map.
     parseAsString.withOptions({ history: "push", shallow: true }),
   );
-  // Chosen categories ride in the URL too, so a filtered view is as shareable
-  // as a single place: "mira el mapa con solo balnearios y salud".
   const [categoryIds, setCategoryIds] = useQueryState(
     "cat",
     parseAsArrayOf(parseAsString)
       .withDefault([])
       .withOptions({ shallow: true }),
   );
-  // On by default: which roads are moving is the first thing anyone opening a
-  // map of their own town looks for.
-  const [traffic, setTraffic] = useQueryState(
-    "transito",
-    parseAsBoolean.withDefault(true).withOptions({ shallow: true }),
-  );
   const [viewMode, setViewMode] = useQueryState(
     "vista",
     parseAsString.withDefault(DEFAULT_VIEW_MODE).withOptions({ shallow: true }),
   );
+  const [traffic, setTraffic] = useQueryState(
+    "transito",
+    parseAsBoolean.withDefault(true).withOptions({ shallow: true }),
+  );
+
+  // The tile carries the feature id and the drawer needs the slug, so both are
+  // kept: the slug in the URL because it is what a person would read, the id in
+  // memory because it is what the map matches when highlighting the selection.
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [flyTo, setFlyTo] = useState<{ lng: number; lat: number } | null>(null);
 
@@ -78,53 +84,44 @@ export function MapScreen() {
         categoryIds={categoryIds}
         flyTo={flyTo}
         traffic={traffic}
-        // A value typed into the URL by hand can be anything; anything that is
-        // not one of the three falls back rather than reaching the renderer.
-        viewMode={
-          VIEW_MODES.includes(viewMode as ViewMode)
-            ? (viewMode as ViewMode)
-            : DEFAULT_VIEW_MODE
-        }
+        viewMode={asViewMode(viewMode)}
         onSelect={handleSelect}
       />
 
-      {/* One row, laid out here rather than by each control positioning itself
-          absolutely — which is how they ended up stacked on top of each other.
-          Below the header, inset from both edges, and capped on wide screens so
-          the search field does not stretch across a desktop. */}
-      <div className="absolute inset-x-3 top-[4.5rem] z-20 flex items-center gap-2 md:max-w-md">
-        <MapSearch
-          onSelect={(target: SearchTarget) => {
-            // A new object every time, so choosing the same result twice still
-            // moves the map instead of being skipped as unchanged.
-            setFlyTo({ lng: target.lng, lat: target.lat });
-            void setSlug(target.slug ?? null);
-          }}
-        />
-        <ViewModeSwitch
-          mode={
-            VIEW_MODES.includes(viewMode as ViewMode)
-              ? (viewMode as ViewMode)
-              : DEFAULT_VIEW_MODE
-          }
-          // `null` for the default keeps a plain link free of parameters.
-          onChange={(next) =>
-            void setViewMode(next === DEFAULT_VIEW_MODE ? null : next)
-          }
-        />
-        <TrafficToggle
-          enabled={traffic}
-          // `null` clears the parameter rather than writing ?transito=true,
-          // so the default state leaves a clean URL.
-          onChange={(next) => void setTraffic(next ? null : false)}
-        />
-        <CategoryFilter
-          selected={categoryIds}
-          onChange={(next) =>
-            void setCategoryIds(next.length > 0 ? next : null)
-          }
-        />
+      {/* Search and filters ride over the top of the map rather than above it,
+          so the map keeps the full height of the screen. */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-2 p-3">
+        {/* Room on the right for the account cluster, which only exists
+            on small screens where there is no rail. */}
+        <div className="pointer-events-auto flex items-start gap-2 pr-28 md:pr-0">
+          <MapSearch
+            onSelect={(target: SearchTarget) => {
+              // A new object every time, so choosing the same result twice
+              // still moves the map instead of being skipped as unchanged.
+              setFlyTo({ lng: target.lng, lat: target.lat });
+              void setSlug(target.slug ?? null);
+            }}
+          />
+        </div>
+
+        <div className="pointer-events-auto flex items-center gap-2">
+          <CategoryChips
+            selected={categoryIds}
+            onChange={(next) =>
+              void setCategoryIds(next.length > 0 ? next : null)
+            }
+          />
+        </div>
       </div>
+
+      <MapLayers
+        mode={asViewMode(viewMode)}
+        traffic={traffic}
+        onModeChange={(next) =>
+          void setViewMode(next === DEFAULT_VIEW_MODE ? null : next)
+        }
+        onTrafficChange={(next) => void setTraffic(next ? null : false)}
+      />
 
       <PlaceDrawer slug={slug} onClose={close} />
     </>

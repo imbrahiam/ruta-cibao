@@ -1,21 +1,23 @@
-import { AppHeader } from "@/components/shell/app-header";
+import { MapAccountCluster, MapRail } from "@/components/map/map-rail";
 
 /**
  * Full-bleed shell for the map.
  *
- * The map takes the whole viewport and the header floats over it, because a map
- * boxed inside a content column is a picture of a map. `h-dvh` rather than
- * `h-screen`: on a phone the address bar collapses as you scroll, and
- * `100vh` would leave a strip of the page hidden underneath it.
+ * No header. A map wants every pixel of height it has, and a band across the
+ * top takes it from the one thing the page exists to show — so the navigation
+ * moved into a rail down the side, where the cost is width the map has more of
+ * to spare.
+ *
+ * `h-dvh` rather than `h-screen`: on a phone the address bar collapses as you
+ * scroll, and `100vh` would leave a strip hidden underneath it.
  */
 export default function MapLayout({ children }: LayoutProps<"/[locale]">) {
   return (
-    <div className="relative h-dvh w-full overflow-hidden">
-      <div className="absolute inset-x-0 top-0 z-30">
-        <AppHeader />
-      </div>
-      <main id="contenido" className="absolute inset-0">
+    <div className="flex h-dvh w-full overflow-hidden">
+      <MapRail />
+      <main id="contenido" className="relative flex-1">
         {children}
+        <MapAccountCluster />
       </main>
     </div>
   );
