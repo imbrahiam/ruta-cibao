@@ -109,6 +109,16 @@ opened.
 - The service worker is only registered in production builds. Run
   `bun run build && bun run start`, or point a phone on the same Wi-Fi at the
   machine's LAN address (allowed by `allowedDevOrigins` in `next.config.ts`).
+- **The location prompt needs https.** Geolocation is a secure-context API:
+  over `http://<LAN address>:3000` Safari and Chrome refuse it without ever
+  showing the permission sheet, which reads in the app as "I tapped *Estoy aquí
+  ahora* and nothing happened". The app now names that case instead of blaming
+  the permissions, but to actually see the prompt on a phone, reach the dev
+  server over https — `bun run dev:https` (a self-signed certificate through
+  `mkcert`, whose root CA the phone has to trust) or a tunnel such as
+  `cloudflared tunnel --url http://localhost:3000`, adding the tunnel host to
+  `DEV_ORIGINS`. In production the origin is https and the prompt appears
+  normally.
 - Chrome DevTools → *Application* → *Service workers* has a **Sync** button that
   fires the `sync` event by hand; queue a traffic report offline, go back online,
   press it, and watch `/pendientes` empty.

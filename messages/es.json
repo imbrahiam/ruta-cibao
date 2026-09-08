@@ -383,6 +383,15 @@
     "reportDraft": "Corrección por enviar",
     "trafficDraft": "Reporte de tránsito por enviar"
   },
+  "location": {
+    "use": "Estoy aquí ahora",
+    "locating": "Buscando tu ubicación…",
+    "insecure": "Tu navegador solo comparte la ubicación en sitios seguros (https). Abre la app en https o mueve el mapa hasta el punto.",
+    "unsupported": "Este navegador no puede compartir tu ubicación. Mueve el mapa hasta el punto.",
+    "denied": "La ubicación está bloqueada para este sitio. Actívala en los ajustes del navegador y vuelve a intentarlo.",
+    "unavailable": "No pudimos obtener tu ubicación. Sal a un lugar despejado e inténtalo de nuevo.",
+    "timeout": "Tu ubicación tardó demasiado. Inténtalo de nuevo o mueve el mapa hasta el punto."
+  },
   "map": {
     "title": "Mapa",
     "place": {
@@ -462,9 +471,6 @@
         "verificationRequired": "Fijar un punto con el GPS requiere una cédula verificada."
       },
       "outsideProvince": "Ese punto queda fuera de Santiago Rodríguez. Por ahora solo se pueden agregar lugares dentro de la provincia.",
-      "useCurrentLocation": "Estoy aquí ahora",
-      "locating": "Buscando tu ubicación…",
-      "locationDenied": "No pudimos obtener tu ubicación. Revisa los permisos del navegador o mueve el mapa hasta el punto.",
       "gpsOnlyForCitizens": "¿Estás parado en el lugar? Los ciudadanos con cédula verificada pueden fijar el punto con el GPS del teléfono.",
       "verifyNow": "Verificar mi cédula",
       "pointFromGps": "Punto tomado con tu GPS",

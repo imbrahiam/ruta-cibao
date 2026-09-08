@@ -18,6 +18,11 @@ import { Spinner } from "@/components/ui/spinner";
 import { useBoundaries } from "@/hooks/use-boundaries";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link } from "@/i18n/navigation";
+import {
+  type LocationProblem,
+  primePosition,
+  requestPosition,
+} from "@/lib/geolocation";
 import { municipalityAt } from "@/lib/map/boundaries";
 import { STREET_ZOOM } from "@/lib/map/config";
 import { PIN_GEOMETRY } from "@/lib/map/marker-pin";
@@ -168,11 +173,17 @@ export function PickLocation({
 }) {
   const t = useTranslations("map.addPlace");
   const trafficCopy = useTranslations("map.traffic");
+  const locationCopy = useTranslations("location");
   const { viewer } = useAuth();
   const { data: boundaries } = useBoundaries();
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [locating, setLocating] = useState<"center" | "here" | null>(null);
   const [gpsError, setGpsError] = useState<string | null>(null);
+
+  // The first fix of a session is the slow one, and by the time somebody has
+  // dragged the map onto the spot it has long been paid for. Only warms a
+  // permission already granted — it never asks on its own.
+  useEffect(primePosition, []);
 
   const markingStreet = purpose === "traffic" && shape === "street";
   /**
@@ -237,10 +248,30 @@ export function PickLocation({
     staleTime: 60000,
   });
 
-  const street =
-    markingStreet && streetsTappable
-      ? (streetQuery.data?.street ?? null)
-      : null;
+  /**
+   * The road the lookup last resolved, kept until another answer replaces it.
+   *
+   * Reading the choice straight off the query threw it away twice: the lookup
+   * is disabled below `STREET_ZOOM` — on purpose, so panning the province-wide
+   * map cannot select a road nobody aimed at — so pinching out to see where
+   * the jam sits cleared the shading and greyed out the button, and every pan
+   * blinked the shading off while the next answer was in flight. A choice
+   * already made outlives both; only a new answer, including a definite "no
+   * road here", takes it back.
+   */
+  const [chosenStreet, setChosenStreet] = useState<Street | null>(null);
+
+  useEffect(() => {
+    if (!markingStreet) {
+      setChosenStreet(null);
+      return;
+    }
+    if (streetQuery.isSuccess) {
+      setChosenStreet(streetQuery.data?.street ?? null);
+    }
+  }, [markingStreet, streetQuery.isSuccess, streetQuery.data]);
+
+  const street = markingStreet ? chosenStreet : null;
   /**
    * Only once the lookup has actually answered with nothing.
    *
@@ -309,39 +340,32 @@ export function PickLocation({
    * citizen may make it. The server checks that too.
    */
   function findMe(mode: "center" | "here") {
-    if (!navigator.geolocation) {
-      setGpsError(t("locationDenied"));
-      return;
-    }
-
     setLocating(mode);
     setGpsError(null);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocating(null);
-        const here = {
-          lng: position.coords.longitude,
-          lat: position.coords.latitude,
-        };
 
-        if (mode === "center") {
-          onCenter(here);
-          return;
-        }
+    // Not awaited before the request: Safari shows no prompt if anything is
+    // awaited between the tap and the call, so `requestPosition` asks first
+    // and this handles the answer.
+    void requestPosition().then((result) => {
+      setLocating(null);
 
-        // Same rule as the button: refuse only what is known to be outside.
-        if (municipalityAt(here, boundaries).state === "outside") {
-          setGpsError(t("outsideProvince"));
-          return;
-        }
-        onConfirm(here, "gps");
-      },
-      () => {
-        setLocating(null);
-        setGpsError(t("locationDenied"));
-      },
-      { enableHighAccuracy: true, timeout: 15_000 },
-    );
+      if (!result.ok) {
+        setGpsError(locationCopy(result.problem satisfies LocationProblem));
+        return;
+      }
+
+      if (mode === "center") {
+        onCenter(result.position);
+        return;
+      }
+
+      // Same rule as the button: refuse only what is known to be outside.
+      if (municipalityAt(result.position, boundaries).state === "outside") {
+        setGpsError(t("outsideProvince"));
+        return;
+      }
+      onConfirm(result.position, "gps");
+    });
   }
 
   return (
@@ -452,7 +476,7 @@ export function PickLocation({
           {/* The hint says "get closer"; this is how. Pinching to the right
               zoom is the slow part on a phone, and pressing the same button a
               route would offer gets there in one gesture. */}
-          {markingStreet && !streetsTappable && (
+          {markingStreet && !streetsTappable && !street && (
             <Button
               type="button"
               variant="secondary"
@@ -464,7 +488,7 @@ export function PickLocation({
             </Button>
           )}
 
-          {markingStreet && street && (
+          {markingStreet && street && streetsTappable && (
             <fieldset className="flex items-center gap-2">
               <legend className="sr-only">{trafficCopy("extent")}</legend>
               <span
@@ -530,7 +554,7 @@ export function PickLocation({
               {trafficCopy("chooseAtCenter")}
             </Button>
           )}
-          {markingStreet && streetQuery.isError && (
+          {markingStreet && streetsTappable && streetQuery.isError && (
             <div role="alert" className="space-y-2 text-sm">
               <p>{trafficCopy("streetLookupFailed")}</p>
               <Button
@@ -611,7 +635,12 @@ export function PickLocation({
                 outside ||
                 moving ||
                 (markingStreet &&
-                  (!street || streetQuery.isFetching || streetQuery.isError))
+                  (!street ||
+                    // Only while the lookup is the thing being waited on:
+                    // zoomed out it is disabled, and a road chosen before the
+                    // zoom is a decision, not a pending question.
+                    (streetsTappable &&
+                      (streetQuery.isFetching || streetQuery.isError))))
               }
               onClick={() =>
                 onConfirm(
@@ -641,7 +670,9 @@ export function PickLocation({
               ) : (
                 <LocateFixed className="size-4" aria-hidden />
               )}
-              {locating === "here" ? t("locating") : t("useCurrentLocation")}
+              {locating === "here"
+                ? locationCopy("locating")
+                : locationCopy("use")}
             </Button>
           ) : showVerifyHint ? (
             // Not a locked button with a padlock: a sentence that says what

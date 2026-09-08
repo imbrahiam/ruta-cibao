@@ -13,6 +13,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
+import { type LocationProblem, requestPosition } from "@/lib/geolocation";
 import { shareUrl } from "@/lib/share";
 
 /**
@@ -87,6 +88,7 @@ export function MapActions({
   onReportTraffic: () => void;
 }) {
   const t = useTranslations("map.actions");
+  const locationCopy = useTranslations("location");
   const moreT = useTranslations("map.place");
   const closeT = useTranslations("shell");
   const [locating, setLocating] = useState(false);
@@ -104,25 +106,24 @@ export function MapActions({
   }, [open]);
 
   function locate() {
-    if (!navigator.geolocation) return;
     setLocating(true);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocating(false);
-        onLocate({
-          lng: position.coords.longitude,
-          lat: position.coords.latitude,
-        });
-      },
-      () => {
-        // A refused or unavailable location is not an error worth a dialog:
-        // the person either declined on purpose or is somewhere with no fix,
-        // and both are ordinary here.
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 10_000 },
-    );
+    // Called with nothing awaited in front of it: Safari drops the permission
+    // prompt when the gesture is a tick old.
+    void requestPosition().then((result) => {
+      setLocating(false);
+
+      if (result.ok) {
+        onLocate(result.position);
+        return;
+      }
+
+      // It used to fail in silence, on the grounds that declining is
+      // ordinary. So is tapping a button and having nothing at all happen,
+      // which is what somebody on plain http got — no prompt, no map move, no
+      // reason. The toast says which of the five it was.
+      toast.error(locationCopy(result.problem satisfies LocationProblem));
+    });
   }
 
   async function share() {
