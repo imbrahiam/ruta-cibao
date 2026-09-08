@@ -10,11 +10,11 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { BusinessPanel } from "@/components/map/business-panel";
+import { PlaceGallery } from "@/components/map/place-gallery";
 import { PlacePhotos } from "@/components/map/place-photos";
 import { PlaceReportForm } from "@/components/map/place-report-form";
 import { PlaceTrust } from "@/components/map/place-trust";
@@ -493,20 +493,16 @@ export function PlaceDrawer({
                 bodyScrolls ? "overflow-y-auto" : "overflow-hidden",
               )}
             >
-              {place?.imageUrl && (
-                <div className="relative aspect-[16/8] w-full overflow-hidden bg-muted">
-                  <Image
-                    src={place.imageUrl}
-                    alt={t("imageAlt", { name: place.name })}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 26rem"
-                    className="object-cover"
-                    priority
-                  />
-                  <Badge className="absolute bottom-2 left-2 bg-background/90 text-muted-foreground shadow-sm backdrop-blur-sm">
-                    {t("illustrativeImage")}
-                  </Badge>
-                </div>
+              {place && (
+                // Keyed by the place: the drawer swaps its contents rather
+                // than remounting, and a carousel left mid-swipe would open
+                // the next place on its second photo.
+                <PlaceGallery
+                  key={place.id}
+                  name={place.name}
+                  imageUrl={place.imageUrl}
+                  photos={place.photos}
+                />
               )}
 
               {/* Blocks separated by a hairline rather than each sitting in its
@@ -551,8 +547,7 @@ export function PlaceDrawer({
                   <PlacePhotos
                     placeId={place.id}
                     slug={place.slug}
-                    name={place.name}
-                    photos={place.photos}
+                    photoCount={place.photos.length}
                   />
                 )}
               </div>

@@ -394,7 +394,6 @@
       "copied": "Enlace copiado",
       "copyFailed": "No pudimos copiar el enlace. Cópialo desde la barra de direcciones.",
       "report": "Corregir información",
-      "imageAlt": "Imagen ilustrativa de {name}",
       "illustrativeImage": "Imagen ilustrativa",
       "reportForm": {
         "back": "Volver al lugar",

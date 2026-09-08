@@ -379,7 +379,7 @@ export function PickLocation({
       <div className="absolute inset-x-0 bottom-0 z-30 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {/* Kept short on purpose: everything below the crosshair is map the
             person cannot see, and the shaded street is drawn there. */}
-        <div className="mx-auto flex max-h-[42dvh] max-w-md flex-col gap-2.5 overflow-y-auto rounded-3xl border bg-background/97 p-3 shadow-2xl backdrop-blur-sm md:max-h-[65dvh]">
+        <div className="mx-auto flex max-h-[42dvh] max-w-md flex-col gap-2.5 overflow-y-auto rounded-3xl border bg-background/97 p-3 shadow-2xl backdrop-blur-sm md:max-h-[65dvh] md:gap-3.5 md:p-4">
           {/* Two words, one row, both full-height: the choice between a point
               and a stretch is the first thing to make and the easiest to
               change, so it sits above everything and never moves. */}
@@ -583,7 +583,7 @@ export function PickLocation({
               type="button"
               variant="outline"
               size="icon"
-              className="size-12 shrink-0"
+              className="size-12 shrink-0 md:size-13"
               aria-label={t("centerOnMe")}
               title={t("centerOnMe")}
               disabled={locating !== null}
@@ -599,14 +599,14 @@ export function PickLocation({
             <Button
               type="button"
               variant="outline"
-              className="h-12 flex-1 text-base"
+              className="h-12 flex-1 text-base md:h-13"
               onClick={onCancel}
             >
               {t("cancel")}
             </Button>
             <Button
               type="button"
-              className="h-12 flex-[2] text-base"
+              className="h-12 flex-[2] text-base md:h-13"
               disabled={
                 outside ||
                 moving ||
@@ -632,7 +632,7 @@ export function PickLocation({
             <Button
               type="button"
               variant="ghost"
-              className="h-10 w-full text-[15px]"
+              className="h-10 w-full text-[15px] md:h-11"
               disabled={locating !== null}
               onClick={() => findMe("here")}
             >

@@ -2,7 +2,6 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, RotateCcw, X } from "lucide-react";
-import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -17,12 +16,14 @@ import {
   AttachmentTitle,
 } from "@/components/ui/attachment";
 import { Button } from "@/components/ui/button";
-import { ImageViewer } from "@/components/ui/image-viewer";
 import { Progress } from "@/components/ui/progress";
 import { client, orpc } from "@/lib/orpc";
 
 /**
- * What the place actually looks like.
+ * Adding a photograph of a place.
+ *
+ * The pictures themselves are the gallery at the top of the drawer; this is
+ * the way to put one there.
  *
  * The file never touches this server: the app hands the browser a URL it may
  * PUT one object to, the phone uploads straight to storage, and only then does
@@ -88,20 +89,17 @@ function putFile(
 export function PlacePhotos({
   placeId,
   slug,
-  photos,
-  name,
+  photoCount,
 }: {
   placeId: string;
   slug: string;
-  photos: string[];
-  name: string;
+  /** Only to word the button: the photos themselves are the gallery on top. */
+  photoCount: number;
 }) {
   const t = useTranslations("map.photos");
-  const tv = useTranslations("viewer");
   const { viewer } = useAuth();
   const queryClient = useQueryClient();
   const input = useRef<HTMLInputElement>(null);
-  const [viewIndex, setViewIndex] = useState<number | null>(null);
   const [pending, setPending] = useState<PendingPhoto | null>(null);
   const activeRequest = useRef<XMLHttpRequest | null>(null);
   // Whose failure this is: aborting a superseded run must not touch the state
@@ -185,153 +183,100 @@ export function PlacePhotos({
 
   const signedIn = viewer !== undefined && viewer.kind !== "anonymous";
 
-  if (photos.length === 0 && !signedIn) return null;
+  // Nothing to say to somebody who cannot contribute: the photos are already
+  // at the top of the drawer.
+  if (!signedIn) return null;
 
   return (
     <div className="flex flex-col gap-2">
-      {photos.length > 0 && (
-        // A horizontal strip rather than a grid: on a phone it is one swipe,
-        // and `scroll-fade-x` says there is more without a scrollbar saying it.
-        // Tapping opens the viewer on that photo.
-        <div className="-mx-5 flex scroll-fade-x snap-x snap-mandatory gap-2 overflow-x-auto px-5 pb-1">
-          {photos.map((photo, index) => (
-            <button
-              key={photo}
-              type="button"
-              onClick={() => setViewIndex(index)}
-              className="relative aspect-[4/3] w-56 shrink-0 snap-start overflow-hidden rounded-xl bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              aria-label={t("alt", { name, number: index + 1 })}
-            >
-              <Image
-                src={photo}
-                alt=""
-                fill
-                sizes="14rem"
-                className="object-cover"
-                unoptimized
-              />
-            </button>
-          ))}
-        </div>
-      )}
-      <ImageViewer
-        photos={photos.map((photo, index) => ({
-          src: photo,
-          alt: t("alt", { name, number: index + 1 }),
-        }))}
-        index={viewIndex ?? 0}
-        onIndexChange={setViewIndex}
-        open={viewIndex !== null}
-        onOpenChange={(open) => {
-          if (!open) setViewIndex(null);
-        }}
-        title={name}
-        counter={
-          viewIndex !== null
-            ? tv("counter", { current: viewIndex + 1, total: photos.length })
-            : ""
-        }
-        labels={{
-          close: tv("close"),
-          previous: tv("previous"),
-          next: tv("next"),
+      <input
+        ref={input}
+        type="file"
+        accept={ACCEPTED}
+        // No `capture`: the OS then offers both the camera and the photo
+        // library, instead of jumping straight into the camera.
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0];
+          event.target.value = "";
+          if (!file) return;
+          void startUpload(file);
         }}
       />
+      {pending ? (
+        <Attachment state={pending.phase === "error" ? "error" : "uploading"}>
+          <AttachmentMedia variant="image">
+            {/* An object URL, not a remote image: plain img, no optimizer. */}
+            {/* biome-ignore lint/performance/noImgElement: blob URL */}
+            <img src={pending.preview} alt="" />
+          </AttachmentMedia>
+          <AttachmentContent>
+            <AttachmentTitle>{pending.file.name}</AttachmentTitle>
+            <AttachmentDescription>
+              {pending.phase === "error"
+                ? t("failed")
+                : pending.phase === "attaching"
+                  ? t("saving")
+                  : t("uploadingProgress", {
+                      percent: pending.progress,
+                    })}
+              {" · "}
+              {formatBytes(pending.file.size)}
+            </AttachmentDescription>
+            {pending.phase !== "error" && (
+              <Progress
+                value={pending.progress}
+                aria-label={t("uploading")}
+                className="mt-1.5"
+              />
+            )}
+          </AttachmentContent>
+          <AttachmentActions>
+            {pending.phase === "error" ? (
+              <>
+                <AttachmentAction
+                  aria-label={t("retry")}
+                  title={t("retry")}
+                  onClick={() => void startUpload(pending.file)}
+                >
+                  <RotateCcw aria-hidden />
+                </AttachmentAction>
+                <AttachmentAction
+                  aria-label={t("dismiss")}
+                  title={t("dismiss")}
+                  onClick={clearPending}
+                >
+                  <X aria-hidden />
+                </AttachmentAction>
+              </>
+            ) : (
+              <AttachmentAction
+                aria-label={t("cancel")}
+                title={t("cancel")}
+                onClick={clearPending}
+              >
+                <X aria-hidden />
+              </AttachmentAction>
+            )}
+          </AttachmentActions>
+        </Attachment>
+      ) : (
+        // A quiet text link rather than a full button: adding a photo is
+        // a low-frequency act next to directions and the photo itself.
+        <Button
+          variant="link"
+          className="h-10 w-full"
+          onClick={() => input.current?.click()}
+        >
+          <ImagePlus className="size-4" aria-hidden />
+          {photoCount > 0 ? t("addAnother") : t("addFirst")}
+        </Button>
+      )}
 
-      {signedIn && (
-        <>
-          <input
-            ref={input}
-            type="file"
-            accept={ACCEPTED}
-            // No `capture`: the OS then offers both the camera and the photo
-            // library, instead of jumping straight into the camera.
-            className="sr-only"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (!file) return;
-              void startUpload(file);
-            }}
-          />
-          {pending ? (
-            <Attachment
-              state={pending.phase === "error" ? "error" : "uploading"}
-            >
-              <AttachmentMedia variant="image">
-                {/* An object URL, not a remote image: plain img, no optimizer. */}
-                {/* biome-ignore lint/performance/noImgElement: blob URL */}
-                <img src={pending.preview} alt="" />
-              </AttachmentMedia>
-              <AttachmentContent>
-                <AttachmentTitle>{pending.file.name}</AttachmentTitle>
-                <AttachmentDescription>
-                  {pending.phase === "error"
-                    ? t("failed")
-                    : pending.phase === "attaching"
-                      ? t("saving")
-                      : t("uploadingProgress", {
-                          percent: pending.progress,
-                        })}
-                  {" · "}
-                  {formatBytes(pending.file.size)}
-                </AttachmentDescription>
-                {pending.phase !== "error" && (
-                  <Progress
-                    value={pending.progress}
-                    aria-label={t("uploading")}
-                    className="mt-1.5"
-                  />
-                )}
-              </AttachmentContent>
-              <AttachmentActions>
-                {pending.phase === "error" ? (
-                  <>
-                    <AttachmentAction
-                      aria-label={t("retry")}
-                      title={t("retry")}
-                      onClick={() => void startUpload(pending.file)}
-                    >
-                      <RotateCcw aria-hidden />
-                    </AttachmentAction>
-                    <AttachmentAction
-                      aria-label={t("dismiss")}
-                      title={t("dismiss")}
-                      onClick={clearPending}
-                    >
-                      <X aria-hidden />
-                    </AttachmentAction>
-                  </>
-                ) : (
-                  <AttachmentAction
-                    aria-label={t("cancel")}
-                    title={t("cancel")}
-                    onClick={clearPending}
-                  >
-                    <X aria-hidden />
-                  </AttachmentAction>
-                )}
-              </AttachmentActions>
-            </Attachment>
-          ) : (
-            // A quiet text link rather than a full button: adding a photo is
-            // a low-frequency act next to directions and the photo itself.
-            <Button
-              variant="link"
-              className="h-10 w-full"
-              onClick={() => input.current?.click()}
-            >
-              <ImagePlus className="size-4" aria-hidden />
-              {photos.length > 0 ? t("addAnother") : t("addFirst")}
-            </Button>
-          )}
-
-          {viewer?.kind !== "citizen" && (
-            <p className="text-center text-muted-foreground text-[11px] leading-relaxed">
-              {t("visitorNote")}
-            </p>
-          )}
-        </>
+      {viewer?.kind !== "citizen" && (
+        <p className="text-center text-muted-foreground text-[11px] leading-relaxed">
+          {t("visitorNote")}
+        </p>
       )}
     </div>
   );
