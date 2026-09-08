@@ -1,6 +1,10 @@
+import { UserRound } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { Brand } from "@/components/shell/brand";
+import { HeaderScrollFade } from "@/components/shell/header-scroll-fade";
+import { SiteNav } from "@/components/shell/site-nav";
 import { UserMenu } from "@/components/shell/user-menu";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
@@ -20,13 +24,31 @@ async function AccountArea() {
 
   if (viewer.kind === "anonymous") {
     return (
-      <Button
-        nativeButton={false}
-        variant="secondary"
-        render={<Link href="/entrar" />}
-      >
-        {t("signIn")}
-      </Button>
+      <>
+        {/* On a phone the header has one job and no room to argue about it: a
+            circle you press to become someone. The word comes back as soon as
+            there is width for it. */}
+        <Button
+          nativeButton={false}
+          variant="ghost"
+          size="icon"
+          className="size-11 rounded-full sm:hidden"
+          render={
+            <Link href="/entrar" aria-label={t("signIn")} title={t("signIn")} />
+          }
+        >
+          <UserRound className="size-5" aria-hidden />
+        </Button>
+
+        <Button
+          nativeButton={false}
+          variant="default"
+          className="hidden h-11 rounded-full px-6 shadow-sm sm:inline-flex"
+          render={<Link href="/entrar" />}
+        >
+          {t("signIn")}
+        </Button>
+      </>
     );
   }
 
@@ -37,6 +59,7 @@ async function AccountArea() {
         viewer={{
           kind: viewer.kind,
           displayName: viewer.profile.displayName,
+          image: viewer.image,
           cedulaStatus: viewer.profile.cedulaStatus,
         }}
       />
@@ -53,7 +76,7 @@ export async function AppHeader() {
   const t = await getTranslations("app");
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 bg-background">
       {/* Standard, invisible until focused, and the first thing a keyboard or
           screen-reader user reaches. */}
       <a
@@ -63,15 +86,15 @@ export async function AppHeader() {
         {t("skipToContent")}
       </a>
 
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-3">
-        <Link href="/" className="font-semibold text-base tracking-tight">
-          {t("name")}
-        </Link>
+      <div className="mx-auto flex h-20 w-full max-w-6xl items-center justify-between gap-4 px-5">
+        <Brand />
+        <SiteNav />
 
         <Suspense fallback={<AccountAreaFallback />}>
           <AccountArea />
         </Suspense>
       </div>
+      <HeaderScrollFade />
     </header>
   );
 }

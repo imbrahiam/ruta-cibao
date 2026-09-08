@@ -1,9 +1,11 @@
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { cache } from "react";
 import { db } from "@/db";
 import { memberProfiles } from "@/db/schema";
 import { getAuth } from "@/lib/auth";
-import { toViewer, type Viewer } from "./viewer";
+import { type MemberViewer, toViewer, type Viewer } from "./viewer";
 
 /**
  * The viewer for Server Components and Server Actions.
@@ -13,7 +15,7 @@ import { toViewer, type Viewer } from "./viewer";
  * rather than at the top of a layout, which would drag the whole page out of
  * the static shell.
  */
-export async function getServerViewer(): Promise<Viewer> {
+export const getServerViewer = cache(async (): Promise<Viewer> => {
   const session = await getAuth().api.getSession({ headers: await headers() });
   if (!session?.user) return { kind: "anonymous" };
 
@@ -23,5 +25,16 @@ export async function getServerViewer(): Promise<Viewer> {
     .where(eq(memberProfiles.userId, session.user.id))
     .limit(1);
 
-  return toViewer(session.user.id, profile);
+  return toViewer(session.user.id, profile, session.user.image ?? null);
+});
+
+/** Secure page guard; Proxy only performs the cheaper cookie pre-check. */
+export async function requirePageMember(
+  callbackPath: string,
+): Promise<MemberViewer> {
+  const viewer = await getServerViewer();
+  if (viewer.kind === "anonymous") {
+    redirect(`/entrar?callbackUrl=${encodeURIComponent(callbackPath)}`);
+  }
+  return viewer;
 }

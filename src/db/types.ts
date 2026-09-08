@@ -41,6 +41,39 @@ function parsePointEwkb(hex: string): LngLat {
     : { x: buffer.readDoubleBE(offset), y: buffer.readDoubleBE(offset + 8) };
 }
 
+/**
+ * Reads a line back from the wire.
+ *
+ * Same EWKB shape as a point, with a four-byte count in front of the
+ * coordinates. Small enough to read directly rather than pull in a parser, and
+ * the alternative — `ST_AsGeoJSON` on every select — would mean every query
+ * that touches the column has to remember to ask for it.
+ */
+function parseLineStringEwkb(hex: string): LngLat[] {
+  const buffer = Buffer.from(hex, "hex");
+  const littleEndian = buffer.readUInt8(0) === 1;
+
+  const readU32 = (offset: number) =>
+    littleEndian ? buffer.readUInt32LE(offset) : buffer.readUInt32BE(offset);
+  const readF64 = (offset: number) =>
+    littleEndian ? buffer.readDoubleLE(offset) : buffer.readDoubleBE(offset);
+
+  const type = readU32(1);
+  const hasSrid = (type & 0x20000000) !== 0;
+  let offset = hasSrid ? 9 : 5;
+
+  const count = readU32(offset);
+  offset += 4;
+
+  const points: LngLat[] = [];
+  for (let index = 0; index < count; index += 1) {
+    points.push({ x: readF64(offset), y: readF64(offset + 8) });
+    offset += 16;
+  }
+
+  return points;
+}
+
 /** A longitude/latitude point. `x` is longitude, `y` is latitude, as PostGIS orders them. */
 export const point = customType<{ data: LngLat; driverData: string }>({
   dataType() {
@@ -51,6 +84,27 @@ export const point = customType<{ data: LngLat; driverData: string }>({
   },
   fromDriver(value) {
     return parsePointEwkb(value);
+  },
+});
+
+/**
+ * A stretch of road.
+ *
+ * A traffic report can be a point — a hole, a fallen tree — or a length of
+ * road that is blocked or flooded, and those are different facts. A point
+ * standing in for a stretch tells a driver the wrong thing twice: it hides how
+ * much road is affected, and it puts the whole problem at one end of it.
+ */
+export const lineString = customType<{ data: LngLat[]; driverData: string }>({
+  dataType() {
+    return `geometry(LineString,${WGS84})`;
+  },
+  toDriver(value) {
+    const points = value.map((point) => `${point.x} ${point.y}`).join(",");
+    return `SRID=${WGS84};LINESTRING(${points})`;
+  },
+  fromDriver(value) {
+    return parseLineStringEwkb(value);
   },
 });
 
@@ -69,3 +123,27 @@ export const multiPolygon = customType<{ data: string; driverData: string }>({
     return value;
   },
 });
+
+/**
+ * A sentence embedding.
+ *
+ * Drizzle ships a `vector()` type, but it takes the dimension count as a bare
+ * number at every call site — and a column declared 384 wide while the model
+ * emits 768 fails at insert time, in production, with a message about arrays.
+ * Declaring it once here means the dimension has one source of truth.
+ *
+ * pgvector's wire format is a bracketed list, which is what `toDriver` writes
+ * and what `fromDriver` is handed back.
+ */
+export const embedding = (dimensions: number) =>
+  customType<{ data: number[]; driverData: string }>({
+    dataType() {
+      return `vector(${dimensions})`;
+    },
+    toDriver(value) {
+      return `[${value.join(",")}]`;
+    },
+    fromDriver(value) {
+      return JSON.parse(value) as number[];
+    },
+  });

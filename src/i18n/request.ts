@@ -12,9 +12,19 @@ import { routing } from "./routing";
  * is what replaced `setRequestLocale`: the old call had to be repeated at the
  * top of every layout and page, and forgetting one silently produced the
  * default language.
+ *
+ * The locale arrives through next-intl's params: a caller that already knows
+ * it — a Server Action, which has no route context — hands it over explicitly
+ * via `getTranslations({ locale })`, and routes keep resolving it from the
+ * segment exactly as before.
  */
-export default getRequestConfig(async () => {
-  const requested = await rootParams.locale();
+export default getRequestConfig(async ({ locale }) => {
+  // An override the client sent along (a Server Action posts one); anything
+  // else falls back to the default rather than trusting the wire.
+  const requested =
+    locale && hasLocale(routing.locales, locale)
+      ? locale
+      : ((await rootParams.locale()) as string);
 
   if (!hasLocale(routing.locales, requested)) {
     notFound();

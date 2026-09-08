@@ -36,7 +36,7 @@ route handlers instead of oRPC, since they are not JSON-shaped.
 ```
 src/app/        routes and UI
 src/orpc/       procedures, request context, permission middleware
-src/modules/    domain services — typed commands, Zod contracts   (planned)
+src/modules/    domain services — typed commands, Zod contracts
 src/db/         Drizzle schema, connection pool, migrations
 src/lib/        adapters and cross-cutting helpers
 ```
@@ -90,9 +90,11 @@ residents:
 | `visitor` | Email or passkey | Review, upload photos, report traffic |
 | `citizen` | Verified cédula | Also vote, open consultations, register a business |
 
-**Planned.** `requireMember()` and `requireCitizen()` will enforce the split, and
-upgrading from visitor to citizen must preserve everything the account already
-created.
+`requireMember()` and `requireCitizen()` enforce the split, and the oRPC builder
+each procedure hangs off is where the check lives — so a new procedure cannot
+quietly skip it. Upgrading from visitor to citizen preserves everything the
+account already created: verification writes to the profile and touches nothing
+the person contributed.
 
 `src/lib/jce.ts` looks a cédula up in the civil registry. It returns a
 `found | not_found | unavailable` result rather than throwing, because the
@@ -128,7 +130,8 @@ Two details worth knowing:
   seconds and readers de-duplicate by id, which closes that window for any
   transaction shorter than it.
 - A viewer's own `user:<id>` channel is derived from the session, never from
-  the query string. Public channels are an allowlist.
+  the query string. Public channels are an allowlist: `traffic`, `places`,
+  `routes`, `consultations`.
 
 Events expire after an hour. The log is there so a reconnecting browser can
 catch up, not to be a history — `audit_events` answers questions about the past.
@@ -156,21 +159,127 @@ learning what an event already said. `useRealtime` invalidates the queries a
 channel feeds, or hands the payload over for a direct cache patch where that
 avoids a round trip.
 
+## Background jobs
+
+pg-boss, in its own container (`scripts/worker.ts`, the `worker` compose
+service), keeping its queues in the same PostgreSQL everything else uses. One
+database to back up and to explain in the handover runbook, and a job queued
+inside a transaction cannot survive that transaction rolling back.
+
+Two processes hold an instance and they want different things. The web app
+sends and nothing else — no supervisor, no cron, no migrations. The worker owns
+the schema, runs the cron, and does the work, which is what stops a rolling
+deploy racing two migrations and three app instances racing the same schedule.
+
+`dispatch()` is the only way work is handed over, and it has two behaviours
+behind one signature: with a queue, the job is sent and the request returns;
+without one, the same handler runs in-process, detached, with its failure
+logged. So `JOBS_ENABLED=0` — `bun run dev`, a single-container demo — means
+"this happens on the request instead", never "this never happens". Every
+handler is idempotent, because pg-boss retries and a restart mid-job is
+ordinary.
+
+| Queue | When | What |
+| --- | --- | --- |
+| `traffic.notify-nearby` | on report | Tells people near a fresh report |
+| `traffic.expire` | every 10 min | Lapses reports nobody vouched for |
+| `reports.weekly` | Mon 06:00 | Builds last week for every municipality |
+| `reports.render` | on request | Prints one report to PDF |
+| `platform.cleanup` | hourly | Drops expired events, keys and buckets |
+| `cedula.retry` | every 30 min | Finishes what the registry could not answer |
+
+Cron times are `America/Santo_Domingo`, which does not observe daylight saving —
+so a schedule means the same wall-clock time all year, and the weekly report can
+be promised for Monday morning rather than "give or take an hour, twice a year".
+
+## Traffic
+
+A traffic report is a point or a stretch of road, and the difference is not
+cosmetic: a hole is *somewhere*, a flood is somewhere *along*, and standing a
+point in for a stretch tells a driver the wrong thing twice — it hides how much
+road is affected and puts the whole problem at one end of it.
+
+Nothing is drawn or measured out by hand. The crosshair asks one question — 
+which road is this — and the map shades the answer, the way a chosen route is
+drawn in blue except that it is one street rather than a journey. Covering the
+street is the default when reporting traffic; a point is the fallback, for a
+problem that genuinely is at one spot and for a crosshair sitting off the road
+network entirely.
+
+Nothing Google sells answers "what shape is the street under this point". Roads
+snaps points *to* the network without returning the way they landed on,
+Directions routes *between* two points, and Places returns businesses.
+OpenStreetMap is the only source with the way itself, so the geometry is OSM's.
+
+It is read from this project's own PostGIS, not from Overpass per request. The
+per-request version worked in testing and then stopped dead: the public
+instances rate-limit by IP and eventually refuse the connection outright, and
+every lookup after that reached a citizen as "aquí no encontramos una calle" —
+the map blaming the road for a quota. `bun run db:roads` imports the province
+once into `roads` (~4,300 ways), rotating across Overpass mirrors; a lookup is
+then one indexed nearest-neighbour query answering in single-digit milliseconds
+with no network at all.
+
+Because the network is local, the picker can afford to show its work: every road
+in view is drawn as a translucent band, which is both the highlight and the tap
+target — Google decides what a polyline click catches from its `strokeWeight`,
+so there is no invisible second shape to keep in step. Tapping a band picks that
+road; on a desktop, hovering previews one; the crosshair still works and is the
+fallback above street zoom, where the box holds more ways than can be drawn as
+choices.
+
+The answer is trimmed to a window around the point. OSM draws a road as one way
+until something about it changes, and shading eleven kilometres of highway would
+say the whole road is flooded when what is flooded is the bit by the bridge.
+
+The browser never sends the road's shape. It sends where the crosshair was and
+whether the report covers the street, and the server looks the street up again
+from that coordinate — a client that could post arbitrary geometry could lay a
+closed road across somebody's front garden.
+
+`location` stays on every report — the midpoint of the road for a stretch — so
+the marker, the municipality lookup and the "cerca de ti" fan-out all have one
+coordinate to work from instead of deriving one per query from a line.
+
+Reported roads are drawn on the scale everybody already reads: red for blocked,
+amber for passable-with-care, yellow for worth-knowing, green for a road
+neighbours have since said is clear. That last colour is the one a speed-based
+layer cannot have, and the most useful thing here — a road flooded this morning
+and open now is exactly what somebody deciding whether to set off is asking, and
+only the people who drove past can answer it. Cleared roads stay for three hours
+and carry no marker: information, not something to act on.
+
+Which problems block a road is `categories.severity`, not a list of ids in the
+code — an official adding "Derrumbe" has to be able to say it blocks without a
+deploy. The layer is on by default, unlike every other one, because what
+citizens report about the roads is what this platform knows that no other map
+does; Google's speed layer sits beside it and covers the highways, where this
+one covers the rural roads Google has no probe data for at all.
+
+## Reports
+
+A weekly report is a statement about a week that has ended, so the figures are
+computed once and stored in `weekly_reports.metrics` rather than queried on
+read. Opening one in November has to give the numbers it gave in March, even
+though the rows behind it have since been moderated, edited or deleted; a live
+query would quietly rewrite history every time somebody looked.
+
+The PDF is the report *page* printed by headless Playwright, so there is one
+layout rather than two and no way for the file an official forwards to disagree
+with the screen they read it on. That page is behind a moderator session and the
+renderer has none, so it also accepts a token derived from the one report id
+with the application's key — narrower than an account, and nothing to store.
+
+Playwright is a development dependency and the runtime image carries no browser:
+~400 MB for a file nobody may ask for. The render degrades instead of failing —
+the report is `ready` either way, because the numbers are the report and the PDF
+is a convenience.
+
 ## Planned
 
 - **Map** — MapLibre GL with a custom style, deck.gl for heatmaps and
   choropleths, MapTiler for the demo with a self-hosted PMTiles path for handoff.
-- **Background jobs** — pg-boss in its own container: weekly PDF reports,
-  notification fan-out, traffic-report expiry, JCE retries, embedding backfill.
-- **Reports** — an internal route rendered to PDF by Playwright, so screen and
-  print share one render path.
-- **Offline queue** — a Dexie queue with idempotency keys, replayed on
-  reconnect against the `idempotency_keys` table.
-- **Offline** — Serwist app shell plus a Dexie queue with idempotency keys, for
-  a rural province with intermittent connectivity.
-- **AI** — Transformers.js embeddings locally into pgvector; the report
-  narrative behind a provider abstraction with a deterministic template
-  fallback, so the platform costs nothing to run without an API key.
-- **i18n** — next-intl with `[locale]` routing. Every user-facing string lives
-  in `messages/es.json`; nothing is hardcoded in JSX, so adding a language is
-  adding a JSON file.
+- **Embedding backfill** — as a queued job rather than the standalone script.
+- **Report narrative** — a paragraph over the weekly figures, behind the same
+  provider abstraction the assistant uses, with a deterministic Spanish
+  template fallback so the platform still costs nothing to run without a key.

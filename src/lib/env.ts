@@ -60,6 +60,32 @@ const serverSchema = z.object({
   RESEND_API_KEY: optionalString(),
   EMAIL_FROM: z.string().min(1).default("Ruta Cibao <onboarding@resend.dev>"),
 
+  // The assistant's narrative layer. Optional by design: retrieval is local
+  // and the answer falls back to a deterministic Spanish template, so the
+  // platform costs nothing to run without this.
+  ANTHROPIC_API_KEY: optionalString(),
+
+  // Google sign-in. Optional: without a client id the button is not rendered
+  // and the phone and email routes are unaffected.
+  GOOGLE_CLIENT_ID: optionalString(),
+  GOOGLE_CLIENT_SECRET: optionalString(),
+
+  // SMS. A phone number is the default way into this app, so the sign-in code
+  // has to arrive by text. Without Twilio credentials the code is written to
+  // the server log instead, which is what development and the demo want.
+  TWILIO_ACCOUNT_SID: optionalString(),
+  TWILIO_AUTH_TOKEN: optionalString(),
+  /** The Twilio number the code is sent from, in E.164. */
+  TWILIO_FROM: optionalString(),
+
+  // The Android app on Google Play is a Trusted Web Activity: Chrome, full
+  // screen, pointed at this origin. Android only trusts it once this origin
+  // publishes the app's package name and signing certificate at
+  // /.well-known/assetlinks.json, which these two feed. Several fingerprints,
+  // comma-separated, cover an upload key and Play's own signing key.
+  ANDROID_PACKAGE_NAME: optionalString(),
+  ANDROID_SHA256_FINGERPRINTS: optionalString(),
+
   // Web Push. Without a keypair, push notifications are disabled and the
   // in-app notification centre still works. Generate with: bunx web-push generate-vapid-keys
   VAPID_PUBLIC_KEY: optionalString(),
@@ -85,10 +111,29 @@ const serverSchema = z.object({
   IMGPROXY_KEY: optionalString(),
   IMGPROXY_SALT: optionalString(),
 
+  // Street geometry, for a traffic report that covers the road rather than a
+  // point on it. OpenStreetMap through Overpass — the same project behind
+  // address search above, free and with no key. Set it empty to turn the
+  // feature off: reports then fall back to a point, which is still true.
+  OVERPASS_URL: z
+    .string()
+    .default("https://overpass-api.de/api/interpreter")
+    .transform((value) => value.trim()),
+
   // Address search. `none` keeps search working against the province's own
   // places and drops only street addresses.
   GEOCODER: z.enum(["nominatim", "none"]).default("nominatim"),
   NOMINATIM_URL: z.url().default("https://nominatim.openstreetmap.org"),
+
+  // Background jobs. pg-boss keeps its queues in this same database, in its
+  // own schema, so there is nothing extra to run or back up. Turn it off and
+  // the work still happens — in-process, on the request that caused it — which
+  // is what a single-container demo and `bun run dev` want.
+  JOBS_ENABLED: z
+    .enum(["0", "1"])
+    .default("1")
+    .transform((value) => value === "1"),
+  JOBS_SCHEMA: z.string().min(1).default("pgboss"),
 
   // Set to 1 only when a reverse proxy you control sets X-Forwarded-For.
   // Trusting that header without one lets any client forge its own IP and

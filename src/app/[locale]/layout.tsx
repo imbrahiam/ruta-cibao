@@ -32,7 +32,14 @@ const mono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#166534",
+  themeColor: "#213d34",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // Safari (iOS 26 included) can overlay its bottom bar over fixed content.
+  // `resizes-content` makes the layout viewport shrink instead, so the bottom
+  // nav and the map controls above it are never covered.
+  interactiveWidget: "resizes-content",
   // The map needs pinch-to-zoom, and capping it would fail WCAG 1.4.4 anyway.
   maximumScale: 5,
 };
@@ -72,7 +79,13 @@ async function shellNow() {
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("app");
 
-  return { title: t("name"), description: t("tagline") };
+  return {
+    title: { default: t("name"), template: `%s · ${t("name")}` },
+    description: t("tagline"),
+    applicationName: t("name"),
+    appleWebApp: { capable: true, statusBarStyle: "default", title: t("name") },
+    formatDetection: { telephone: false },
+  };
 }
 
 export default async function LocaleLayout({

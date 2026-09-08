@@ -74,12 +74,56 @@ services:
     build:
       context: ..
       dockerfile: infra/Dockerfile
+      # Next inlines `NEXT_PUBLIC_*` into the client bundle, so these have to be
+      # present at build time — passing them at runtime would leave the browser
+      # with `undefined`. Interpolated from the root `.env`, which is why the
+      # documented command passes `--env-file .env`.
+      args:
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+        NEXT_PUBLIC_MAP_RENDERER: ${NEXT_PUBLIC_MAP_RENDERER:-google}
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+        NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ${NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID:-}
+        NEXT_PUBLIC_MAPTILER_KEY: ${NEXT_PUBLIC_MAPTILER_KEY:-}
+        NEXT_PUBLIC_BASEMAP_PMTILES_URL: ${NEXT_PUBLIC_BASEMAP_PMTILES_URL:-}
+        NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-ruta}:${POSTGRES_PASSWORD:-ruta}@postgres:5432/${POSTGRES_DB:-ruta_cibao}
     env_file: [../.env]
     expose:
       - "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+  # The background worker. Its own container because a weekly PDF render holds
+  # a headless browser for tens of seconds, which has no business inside the
+  # process serving map tiles — and because the app can be scaled to several
+  # instances without three of them racing the same cron.
+  #
+  # It owns the pg-boss schema: it is the only service that migrates it, which
+  # is what stops a rolling deploy running two migrations at once.
+  worker:
+    profiles: ["full"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: worker
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ruta}:${POSTGRES_PASSWORD:-ruta}@postgres:5432/${POSTGRES_DB:-ruta_cibao}
+      # The worker renders the report page over HTTP, so it needs to be able to
+      # reach the app by its service name rather than by the public origin.
+      APP_URL: http://app:3000
+    env_file: [../.env]
     depends_on:
       postgres:
         condition: service_healthy

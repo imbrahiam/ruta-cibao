@@ -10,6 +10,28 @@ import {
 } from "drizzle-orm/pg-core";
 
 /**
+ * How much a traffic category actually costs a driver.
+ *
+ * The map colours a reported stretch of road by this, the way every traffic
+ * layer people have already learned does: red is do not go, amber is go
+ * carefully, yellow is worth knowing. Green is not here because it is not a
+ * property of a problem — it is what the map says once neighbours have
+ * confirmed one is over.
+ *
+ * A column rather than a list of category ids in the code, because which
+ * problems block a road is a judgement about this province, and an official
+ * adding "Derrumbe" from the admin panel has to be able to say it blocks
+ * without waiting for a deploy.
+ *
+ * Null for every category that is not a traffic one: a colmado has no severity.
+ */
+export const trafficSeverity = pgEnum("traffic_severity", [
+  "blocking",
+  "partial",
+  "minor",
+]);
+
+/**
  * Which feature a category belongs to.
  *
  * One table rather than five near-identical ones: a category is the same shape
@@ -46,6 +68,8 @@ export const categories = pgTable(
     icon: text().notNull().default("map-pin"),
     /** Hex, used for the map marker and the legend chip. */
     color: text().notNull().default("#166534"),
+    /** Only meaningful on a `traffic` category; null everywhere else. */
+    severity: trafficSeverity(),
     sortOrder: integer().notNull().default(0),
     isActive: boolean().notNull().default(true),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
@@ -58,3 +82,4 @@ export const categories = pgTable(
 
 export type Category = typeof categories.$inferSelect;
 export type CategoryKind = (typeof categoryKind.enumValues)[number];
+export type TrafficSeverity = (typeof trafficSeverity.enumValues)[number];

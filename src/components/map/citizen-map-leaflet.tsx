@@ -4,14 +4,17 @@ import type * as LeafletTypes from "leaflet";
 import { useEffect, useRef, useState } from "react";
 import { RASTER_BASEMAP } from "@/lib/map/basemap";
 import {
+  COUNTRY_BOUNDS,
   DEFAULT_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
-  PROVINCE_BOUNDS,
+  PLACE_LABEL_ZOOM,
   PROVINCE_CENTER,
 } from "@/lib/map/config";
+import { labelInk, markerPin, markerSize } from "@/lib/map/marker-pin";
 import { mapPalette } from "@/lib/map/palette";
-import type { PlaceSelection } from "./types";
+import { mapOverlays } from "./overlay-features";
+import type { CitizenMapProps } from "./types";
 
 /** The properties every feature from `/api/places/geojson` carries. */
 type PlaceProperties = {
@@ -20,6 +23,7 @@ type PlaceProperties = {
   name: string;
   category: string;
   color: string;
+  icon: string;
 };
 
 /** Leaflet types the properties as `any`; this names what is actually there. */
@@ -46,27 +50,43 @@ function propertiesOf(
  * That is the seam a React Native build comes in at.
  */
 export function CitizenMap({
+  communityFeatures,
+  onSelectCommunity,
+  trafficReports,
+  onSelectTraffic,
+  draftPath,
+  hoverPath,
+  onMapPoint,
   selectedId,
   categoryIds,
   flyTo,
+  searchMarker,
+  pickingLocation = false,
+  onViewportChange,
+  onMovingChange,
   onSelect,
-}: {
-  selectedId: string | null;
-  categoryIds: string[];
-  flyTo: { lng: number; lat: number } | null;
-  onSelect: (place: PlaceSelection) => void;
-}) {
+}: CitizenMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<LeafletTypes.Map | null>(null);
   const layer = useRef<LeafletTypes.GeoJSON | null>(null);
+  const searchLayer = useRef<LeafletTypes.Marker | null>(null);
   const leaflet = useRef<typeof LeafletTypes | null>(null);
 
   const [failed, setFailed] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const pointRef = useRef(onMapPoint);
+  pointRef.current = onMapPoint;
 
   // Held in refs so a new handler never tears the map down and rebuilds it,
   // which would lose the viewport someone had panned to.
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onViewportChangeRef = useRef(onViewportChange);
+  onViewportChangeRef.current = onViewportChange;
+  const onMovingChangeRef = useRef(onMovingChange);
+  onMovingChangeRef.current = onMovingChange;
+  const pickingLocationRef = useRef(pickingLocation);
+  pickingLocationRef.current = pickingLocation;
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
 
@@ -89,8 +109,8 @@ export function CitizenMap({
         // This is a provincial platform: panning to Santo Domingo to find an
         // empty map is worse than gently declining to go there.
         maxBounds: L.latLngBounds(
-          [PROVINCE_BOUNDS[1], PROVINCE_BOUNDS[0]],
-          [PROVINCE_BOUNDS[3], PROVINCE_BOUNDS[2]],
+          [COUNTRY_BOUNDS[1], COUNTRY_BOUNDS[0]],
+          [COUNTRY_BOUNDS[3], COUNTRY_BOUNDS[2]],
         ),
         maxBoundsViscosity: 0.8,
         zoomControl: false,
@@ -107,9 +127,52 @@ export function CitizenMap({
 
       // A tap on empty ground closes whatever was open, which is what people
       // expect from a map and saves them hunting for a close button.
-      instance.on("click", () => onSelectRef.current(null));
+      instance.on("click", (event) => {
+        if (pickingLocationRef.current)
+          pointRef.current?.({ lng: event.latlng.lng, lat: event.latlng.lat });
+        if (!pickingLocationRef.current) onSelectRef.current(null);
+      });
+
+      // Names only from close in — see `PLACE_LABEL_ZOOM`. A class on the
+      // container rather than unbinding every tooltip: the labels come and go
+      // on every pinch, and rebuilding fifty of them each time is work the
+      // stylesheet does for free.
+      const showLabels = () => {
+        instance
+          .getContainer()
+          .classList.toggle(
+            "map-labels-hidden",
+            instance.getZoom() < PLACE_LABEL_ZOOM,
+          );
+      };
+      showLabels();
+      instance.on("zoomend", showLabels);
+
+      instance.on("movestart", () => onMovingChangeRef.current?.(true));
+      instance.on("moveend", () => {
+        const center = instance.getCenter();
+        onMovingChangeRef.current?.(false);
+        onViewportChangeRef.current?.({
+          lng: center.lng,
+          lat: center.lat,
+          zoom: instance.getZoom(),
+          bounds: {
+            west: instance.getBounds().getWest(),
+            east: instance.getBounds().getEast(),
+            south: instance.getBounds().getSouth(),
+            north: instance.getBounds().getNorth(),
+          },
+        });
+      });
 
       map.current = instance;
+      setReady(true);
+      const initialCenter = instance.getCenter();
+      onViewportChangeRef.current?.({
+        lng: initialCenter.lng,
+        lat: initialCenter.lat,
+        zoom: instance.getZoom(),
+      });
 
       try {
         const response = await fetch("/api/places/geojson");
@@ -123,15 +186,17 @@ export function CitizenMap({
             const properties = propertiesOf(feature);
             const isSelected = properties?.id === selectedRef.current;
 
-            // A white ring is what separates a marker from the ground beneath
-            // it on a map this pale, and it thickens on the selected one
-            // instead of recolouring it — colour already means category.
-            return L.circleMarker(latlng, {
-              radius: isSelected ? 11 : 8,
-              fillColor: properties?.color || mapPalette.ink,
-              fillOpacity: 1,
-              color: mapPalette.road,
-              weight: isSelected ? 4 : 2,
+            const size = markerSize(isSelected);
+            return L.marker(latlng, {
+              icon: L.icon({
+                iconUrl: markerPin(
+                  properties?.color || mapPalette.ink,
+                  properties?.icon,
+                  isSelected,
+                ),
+                iconSize: [size.width, size.height],
+                iconAnchor: [size.width / 2, size.height],
+              }),
             });
           },
           onEachFeature: (feature, marker) => {
@@ -141,11 +206,29 @@ export function CitizenMap({
             marker.on("click", (event) => {
               // Otherwise the map's own click handler closes it again.
               L.DomEvent.stopPropagation(event);
-              onSelectRef.current({ id: properties.id, slug: properties.slug });
+              if (!pickingLocationRef.current) {
+                onSelectRef.current({
+                  id: properties.id,
+                  slug: properties.slug,
+                  name: properties.name,
+                  categoryId: properties.category,
+                });
+              }
             });
-            marker.bindTooltip(properties.name, {
-              direction: "top",
-              offset: [0, -10],
+            // The name under the pin, in the category's colour with a white
+            // ring around the letters — the same label the other two renderers
+            // draw. An element rather than a string so the colour can be set
+            // per place without building markup out of a name somebody typed.
+            const label = document.createElement("span");
+            label.className = "map-place-label";
+            label.textContent = properties.name;
+            label.style.color = labelInk(properties.color || mapPalette.ink);
+
+            marker.bindTooltip(label, {
+              permanent: true,
+              direction: "bottom",
+              offset: [0, 2],
+              className: "map-place-tooltip",
               opacity: 1,
             });
           },
@@ -179,11 +262,17 @@ export function CitizenMap({
         (marker as LeafletTypes.Layer & { feature?: { properties?: unknown } })
           .feature,
       );
-      if (!properties || !(marker instanceof L.CircleMarker)) return;
+      if (!properties || !(marker instanceof L.Marker)) return;
 
       const isSelected = properties.id === selectedId;
-      marker.setStyle({ weight: isSelected ? 4 : 2 });
-      marker.setRadius(isSelected ? 11 : 8);
+      const size = markerSize(isSelected);
+      marker.setIcon(
+        L.icon({
+          iconUrl: markerPin(properties.color, properties.icon, isSelected),
+          iconSize: [size.width, size.height],
+          iconAnchor: [size.width / 2, size.height],
+        }),
+      );
     });
   }, [selectedId]);
 
@@ -207,19 +296,124 @@ export function CitizenMap({
 
       const visible =
         categoryIds.length === 0 || categoryIds.includes(properties.category);
-      const element = (marker as LeafletTypes.CircleMarker).getElement();
-      if (element instanceof SVGElement) {
+      const element = (marker as LeafletTypes.Marker).getElement();
+      if (element instanceof HTMLElement) {
         element.style.display = visible ? "" : "none";
       }
     });
   }, [categoryIds]);
 
   useEffect(() => {
-    if (!flyTo) return;
+    if (!flyTo || !ready) return;
     // `setView`, not `flyTo`: the zoom-out-and-back arc is disorienting on a
-    // small screen and slower to read than a straight move.
-    map.current?.setView([flyTo.lat, flyTo.lng], 16, { animate: true });
-  }, [flyTo]);
+    // small screen and slower to read than a straight move. The offset is
+    // subtracted in projected pixels at the destination zoom, so the point
+    // lands at viewport centre plus offset — centre plus nothing without one.
+    const instance = map.current;
+    const L = leaflet.current;
+    if (!instance || !L) return;
+    const zoom = flyTo.zoom ?? 16;
+    const target = flyTo.offset
+      ? instance.unproject(
+          instance
+            .project([flyTo.lat, flyTo.lng], zoom)
+            .subtract([flyTo.offset.x, flyTo.offset.y]),
+          zoom,
+        )
+      : L.latLng(flyTo.lat, flyTo.lng);
+    instance.setView(target, zoom, {
+      animate: true,
+    });
+  }, [flyTo, ready]);
+
+  useEffect(() => {
+    const L = leaflet.current;
+    const instance = map.current;
+    if (!ready || !L || !instance) return;
+    const group = L.layerGroup().addTo(instance);
+    for (const overlay of mapOverlays({
+      communityFeatures,
+      onSelectCommunity,
+      trafficReports,
+      onSelectTraffic,
+      draftPath,
+      hoverPath,
+    })) {
+      if (overlay.path && overlay.path.length > 1) {
+        const path = overlay.path.map(
+          ({ lat, lng }): LeafletTypes.LatLngTuple => [lat, lng],
+        );
+        L.polyline(path, {
+          color: "#ffffff",
+          weight: 9,
+          interactive: false,
+        }).addTo(group);
+        L.polyline(path, { color: overlay.color, weight: 5 })
+          .on("click", (event) => {
+            L.DomEvent.stopPropagation(event);
+            if (!pickingLocation) overlay.select?.();
+          })
+          .addTo(group);
+      }
+      if (overlay.point && overlay.label) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = overlay.label;
+        button.className =
+          "max-w-44 truncate rounded-full border-2 bg-background px-3 py-2 text-xs font-semibold shadow-sm";
+        button.style.borderColor = overlay.color;
+        L.marker([overlay.point.lat, overlay.point.lng], {
+          icon: L.divIcon({ html: button, className: "", iconSize: [150, 40] }),
+          title: overlay.label,
+        })
+          .on("click", (event) => {
+            L.DomEvent.stopPropagation(event);
+            if (!pickingLocation) overlay.select?.();
+          })
+          .addTo(group);
+      }
+    }
+    return () => {
+      group.remove();
+    };
+  }, [
+    ready,
+    communityFeatures,
+    onSelectCommunity,
+    trafficReports,
+    onSelectTraffic,
+    draftPath,
+    hoverPath,
+    pickingLocation,
+  ]);
+
+  useEffect(() => {
+    const L = leaflet.current;
+    const instance = map.current;
+    if (!L || !instance || !searchMarker) return;
+
+    const size = markerSize(true);
+    const marker = L.marker([searchMarker.lat, searchMarker.lng], {
+      icon: L.icon({
+        iconUrl: markerPin("#2563eb", "map-pin", true),
+        iconSize: [size.width, size.height],
+        iconAnchor: [size.width / 2, size.height],
+      }),
+      interactive: false,
+      title: searchMarker.label,
+    }).addTo(instance);
+    searchLayer.current = marker;
+
+    return () => {
+      marker.remove();
+      if (searchLayer.current === marker) searchLayer.current = null;
+    };
+  }, [searchMarker]);
+
+  useEffect(() => {
+    const canvas = map.current?.getContainer();
+    if (canvas) canvas.style.cursor = pickingLocation ? "grab" : "";
+  }, [pickingLocation]);
 
   return (
     <>

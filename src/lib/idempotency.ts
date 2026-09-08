@@ -12,7 +12,7 @@
  * decide they are first.
  */
 import { and, eq, sql } from "drizzle-orm";
-import { db } from "@/db";
+import { type DbTransaction, db } from "@/db";
 import { idempotencyKeys } from "@/db/schema";
 import { hashContent } from "@/lib/crypto";
 
@@ -32,60 +32,63 @@ export async function withIdempotency<T>(options: {
   userId: string | null;
   /** The request body, so a reused key carrying different content is caught. */
   request: unknown;
-  run: () => Promise<T>;
+  run: (tx: DbTransaction) => Promise<T>;
 }): Promise<IdempotencyOutcome<T>> {
   const requestHash = hashContent(
     new TextEncoder().encode(JSON.stringify(options.request)),
   );
   const expiresAt = new Date(Date.now() + RETENTION_HOURS * 60 * 60 * 1_000);
 
-  const claimed = await db
-    .insert(idempotencyKeys)
-    .values({
-      key: options.key,
-      userId: options.userId,
-      requestHash,
-      expiresAt,
-    })
-    .onConflictDoNothing({ target: idempotencyKeys.key })
-    .returning({ key: idempotencyKeys.key });
+  return db.transaction(async (tx) => {
+    const claimed = await tx
+      .insert(idempotencyKeys)
+      .values({
+        key: options.key,
+        userId: options.userId,
+        requestHash,
+        expiresAt,
+      })
+      .onConflictDoNothing({ target: idempotencyKeys.key })
+      .returning({ key: idempotencyKeys.key });
 
-  if (claimed.length === 0) {
-    const [existing] = await db
-      .select()
-      .from(idempotencyKeys)
-      .where(eq(idempotencyKeys.key, options.key))
-      .limit(1);
+    if (claimed.length === 0) {
+      const [existing] = await tx
+        .select()
+        .from(idempotencyKeys)
+        .where(eq(idempotencyKeys.key, options.key))
+        .limit(1);
 
-    // The same key with a different body is a client bug, not a retry, and
-    // silently returning the first response would hide it.
-    if (existing && existing.requestHash !== requestHash) {
-      throw new IdempotencyConflictError();
+      if (
+        existing &&
+        (existing.requestHash !== requestHash ||
+          existing.userId !== options.userId)
+      ) {
+        throw new IdempotencyConflictError();
+      }
+
+      if (!existing || existing.responseStatus === null) {
+        throw new IdempotencyInFlightError();
+      }
+
+      return { replayed: true, result: existing.responseBody as T };
     }
 
-    // The winner may still be working. Its response lands on the row when it
-    // finishes; until then the caller is told to try again rather than being
-    // handed an empty result.
-    if (!existing || existing.responseStatus === null) {
-      throw new IdempotencyInFlightError();
-    }
+    // The claim, domain write and saved response commit together. A crash at
+    // any point rolls all three back, so the next retry starts cleanly.
+    const result = await options.run(tx);
 
-    return { replayed: true, result: existing.responseBody as T };
-  }
+    await tx
+      .update(idempotencyKeys)
+      .set({ responseStatus: 200, responseBody: result as never })
+      .where(
+        and(
+          eq(idempotencyKeys.key, options.key),
+          sql`${idempotencyKeys.responseStatus} is null`,
+        ),
+      );
 
-  const result = await options.run();
-
-  await db
-    .update(idempotencyKeys)
-    .set({ responseStatus: 200, responseBody: result as never })
-    .where(
-      and(
-        eq(idempotencyKeys.key, options.key),
-        sql`${idempotencyKeys.responseStatus} is null`,
-      ),
-    );
-
-  return { replayed: false, result };
+    return { replayed: false, result };
+  });
 }
 
 export class IdempotencyInFlightError extends Error {

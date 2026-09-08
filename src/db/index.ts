@@ -26,3 +26,4 @@ if (env.NODE_ENV !== "production") {
 export const db = drizzle(pool, { schema, casing: "snake_case" });
 export { pool, schema };
 export type Db = typeof db;
+export type DbTransaction = Parameters<Parameters<Db["transaction"]>[0]>[0];

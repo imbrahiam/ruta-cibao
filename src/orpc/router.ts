@@ -1,11 +1,18 @@
 import { openapi } from "@orpc/openapi";
 import { z } from "zod";
 import { pub } from "./base";
+import { businessesRouter } from "./routers/businesses";
+import { catalogRouter } from "./routers/catalog";
 import { citizenRouter } from "./routers/citizen";
+import { consultationsRouter } from "./routers/consultations";
 import { meRouter } from "./routers/me";
+import { moderationRouter } from "./routers/moderation";
 import { municipalitiesRouter } from "./routers/municipalities";
 import { notificationsRouter } from "./routers/notifications";
 import { placesRouter } from "./routers/places";
+import { reportsRouter } from "./routers/reports";
+import { routesRouter } from "./routers/routes";
+import { trafficRouter } from "./routers/traffic";
 
 /**
  * Root router. The shape of this object is what the typed client and the
@@ -26,8 +33,15 @@ export const router = {
   me: meRouter,
   municipalities: municipalitiesRouter,
   citizen: citizenRouter,
+  moderation: moderationRouter,
   notifications: notificationsRouter,
   places: placesRouter,
+  traffic: trafficRouter,
+  consultations: consultationsRouter,
+  businesses: businessesRouter,
+  reports: reportsRouter,
+  catalog: catalogRouter,
+  routes: routesRouter,
 };
 
 export type AppRouter = typeof router;

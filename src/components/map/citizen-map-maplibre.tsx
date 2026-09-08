@@ -1,17 +1,19 @@
 "use client";
 
+import type { Feature, LineString } from "geojson";
 import {
   addProtocol,
-  GeolocateControl,
   Map as MapLibreMap,
+  Marker as MapLibreMarker,
   type MapMouseEvent,
   NavigationControl,
   removeProtocol,
 } from "maplibre-gl";
 import { Protocol } from "pmtiles";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { publicEnv } from "@/lib/env.public";
 import {
+  COUNTRY_BOUNDS,
   DEFAULT_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
@@ -26,8 +28,10 @@ import {
   INTERACTIVE_LAYER_IDS,
   placesLayers,
 } from "@/lib/map/layers";
+import { markerPin, markerSize } from "@/lib/map/marker-pin";
 import { buildMapStyle } from "@/lib/map/style";
-import type { PlaceSelection } from "./types";
+import { mapOverlays } from "./overlay-features";
+import type { CitizenMapProps } from "./types";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 /**
@@ -62,23 +66,38 @@ function resolveBasemap() {
 }
 
 export function CitizenMap({
+  communityFeatures,
+  onSelectCommunity,
+  trafficReports,
+  onSelectTraffic,
+  draftPath,
+  hoverPath,
+  onMapPoint,
   selectedId,
   categoryIds,
   flyTo,
+  searchMarker,
+  pickingLocation = false,
+  onViewportChange,
+  onMovingChange,
   onSelect,
-}: {
-  selectedId: string | null;
-  categoryIds: string[];
-  /** Where a search result asked the map to go. */
-  flyTo: { lng: number; lat: number } | null;
-  onSelect: (place: PlaceSelection) => void;
-}) {
+}: CitizenMapProps) {
   const container = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
+  const pointRef = useRef(onMapPoint);
+  pointRef.current = onMapPoint;
   const map = useRef<MapLibreMap | null>(null);
+  const searchLayer = useRef<MapLibreMarker | null>(null);
   // Held in a ref so changing the handler never tears the map down and
   // rebuilds it, which would lose the viewport the person had panned to.
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onViewportChangeRef = useRef(onViewportChange);
+  onViewportChangeRef.current = onViewportChange;
+  const onMovingChangeRef = useRef(onMovingChange);
+  onMovingChangeRef.current = onMovingChange;
+  const pickingLocationRef = useRef(pickingLocation);
+  pickingLocationRef.current = pickingLocation;
 
   useEffect(() => {
     if (!container.current || map.current) return;
@@ -97,6 +116,7 @@ export function CitizenMap({
       center: [PROVINCE_CENTER.longitude, PROVINCE_CENTER.latitude],
       zoom: DEFAULT_ZOOM,
       minZoom: MIN_ZOOM,
+      maxBounds: COUNTRY_BOUNDS,
       maxZoom: MAX_ZOOM,
       attributionControl: { compact: true },
       // The province is flat enough that tilting adds nothing and costs a
@@ -105,15 +125,11 @@ export function CitizenMap({
       dragRotate: false,
     });
 
+    // Zoom only. Location has one control — `MapActions` — shared by every
+    // renderer, so a second geolocate button here would be two targets for
+    // the same action in the same corner.
     instance.addControl(
       new NavigationControl({ showCompass: false }),
-      "bottom-right",
-    );
-    instance.addControl(
-      new GeolocateControl({
-        trackUserLocation: true,
-        positionOptions: { enableHighAccuracy: true },
-      }),
       "bottom-right",
     );
 
@@ -134,9 +150,15 @@ export function CitizenMap({
       for (const layer of [...clusterLayers(), ...placesLayers(null)]) {
         instance.addLayer(layer);
       }
+      setReady(true);
     });
 
     instance.on("click", (event: MapMouseEvent) => {
+      if (pickingLocationRef.current) {
+        pointRef.current?.({ lng: event.lngLat.lng, lat: event.lngLat.lat });
+        return;
+      }
+
       const features = instance.queryRenderedFeatures(event.point, {
         layers: INTERACTIVE_LAYER_IDS.filter((id) => instance.getLayer(id)),
       });
@@ -164,8 +186,32 @@ export function CitizenMap({
         return;
       }
 
-      const { id, slug } = feature.properties as { id?: string; slug?: string };
-      onSelectRef.current(id && slug ? { id, slug } : null);
+      const { id, slug, name, category } = feature.properties as {
+        id?: string;
+        slug?: string;
+        name?: string;
+        category?: string;
+      };
+      onSelectRef.current(
+        id && slug ? { id, slug, name, categoryId: category } : null,
+      );
+    });
+
+    instance.on("movestart", () => onMovingChangeRef.current?.(true));
+    instance.on("moveend", () => {
+      const center = instance.getCenter();
+      onMovingChangeRef.current?.(false);
+      onViewportChangeRef.current?.({
+        lng: center.lng,
+        lat: center.lat,
+        zoom: instance.getZoom(),
+        bounds: {
+          west: instance.getBounds().getWest(),
+          east: instance.getBounds().getEast(),
+          south: instance.getBounds().getSouth(),
+          north: instance.getBounds().getNorth(),
+        },
+      });
     });
 
     // A pointer over something tappable, so a desktop user knows it is one.
@@ -185,6 +231,12 @@ export function CitizenMap({
     });
 
     map.current = instance;
+    const initialCenter = instance.getCenter();
+    onViewportChangeRef.current?.({
+      lng: initialCenter.lng,
+      lat: initialCenter.lat,
+      zoom: instance.getZoom(),
+    });
 
     return () => {
       instance.remove();
@@ -221,11 +273,131 @@ export function CitizenMap({
   }, [categoryIds]);
 
   useEffect(() => {
-    if (!flyTo) return;
+    if (!flyTo || !ready) return;
     // `easeTo`, not `flyTo`: the zoom-out-and-back arc is disorienting on a
-    // small screen and slower to read than a straight move.
-    map.current?.easeTo({ center: flyTo, zoom: 16, duration: 700 });
-  }, [flyTo]);
+    // small screen and slower to read than a straight move. The offset lands
+    // the point at viewport centre plus offset — centre plus nothing without
+    // one, so every existing flight is unchanged.
+    map.current?.easeTo({
+      center: { lng: flyTo.lng, lat: flyTo.lat },
+      zoom: flyTo.zoom ?? 16,
+      offset: [flyTo.offset?.x ?? 0, flyTo.offset?.y ?? 0],
+      duration: 700,
+    });
+  }, [flyTo, ready]);
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance?.isStyleLoaded()) return;
+    const overlays = mapOverlays({
+      communityFeatures,
+      onSelectCommunity,
+      trafficReports,
+      onSelectTraffic,
+      draftPath,
+      hoverPath,
+    });
+    const lines: Feature<LineString>[] = overlays
+      .filter((item) => item.path && item.path.length > 1)
+      .map((item) => ({
+        type: "Feature",
+        properties: { id: item.id, color: item.color },
+        geometry: {
+          type: "LineString",
+          coordinates: (item.path ?? []).map(({ lng, lat }) => [lng, lat]),
+        },
+      }));
+    instance.addSource("community-overlays", {
+      type: "geojson",
+      data: { type: "FeatureCollection", features: lines },
+    });
+    instance.addLayer({
+      id: "community-halo",
+      type: "line",
+      source: "community-overlays",
+      paint: { "line-color": "#ffffff", "line-width": 9 },
+    });
+    instance.addLayer({
+      id: "community-lines",
+      type: "line",
+      source: "community-overlays",
+      paint: { "line-color": ["get", "color"], "line-width": 5 },
+    });
+    const clickLine = (event: MapMouseEvent) => {
+      if (pickingLocation) return;
+      const feature = instance.queryRenderedFeatures(event.point, {
+        layers: ["community-lines"],
+      })[0];
+      overlays.find((item) => item.id === feature?.properties?.id)?.select?.();
+    };
+    instance.on("click", "community-lines", clickLine);
+    const markers: MapLibreMarker[] = [];
+    for (const overlay of overlays) {
+      if (!overlay.point || !overlay.label) continue;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = overlay.label;
+      button.className =
+        "max-w-44 truncate rounded-full border-2 bg-background px-3 py-2 text-xs font-semibold shadow-sm";
+      button.style.borderColor = overlay.color;
+      button.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (!pickingLocation) overlay.select?.();
+      });
+      markers.push(
+        new MapLibreMarker({ element: button })
+          .setLngLat([overlay.point.lng, overlay.point.lat])
+          .addTo(instance),
+      );
+    }
+    return () => {
+      instance.off("click", "community-lines", clickLine);
+      for (const marker of markers) marker.remove();
+      if (instance.getLayer("community-lines"))
+        instance.removeLayer("community-lines");
+      if (instance.getLayer("community-halo"))
+        instance.removeLayer("community-halo");
+      if (instance.getSource("community-overlays"))
+        instance.removeSource("community-overlays");
+    };
+  }, [
+    ready,
+    communityFeatures,
+    onSelectCommunity,
+    trafficReports,
+    onSelectTraffic,
+    draftPath,
+    hoverPath,
+    pickingLocation,
+  ]);
+
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || !searchMarker) return;
+
+    const size = markerSize(true);
+    const element = document.createElement("div");
+    element.style.width = `${size.width}px`;
+    element.style.height = `${size.height}px`;
+    element.style.backgroundImage = `url("${markerPin("#2563eb", "map-pin", true)}")`;
+    element.style.backgroundSize = "contain";
+    element.title = searchMarker.label;
+
+    const marker = new MapLibreMarker({ element, anchor: "bottom" })
+      .setLngLat([searchMarker.lng, searchMarker.lat])
+      .addTo(instance);
+    searchLayer.current = marker;
+
+    return () => {
+      marker.remove();
+      if (searchLayer.current === marker) searchLayer.current = null;
+    };
+  }, [searchMarker]);
+
+  useEffect(() => {
+    const canvas = map.current?.getCanvas();
+    if (canvas) canvas.style.cursor = pickingLocation ? "grab" : "";
+  }, [pickingLocation]);
 
   return <div ref={container} className="absolute inset-0" />;
 }

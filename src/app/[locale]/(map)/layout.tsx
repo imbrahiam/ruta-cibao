@@ -1,4 +1,5 @@
-import { MapAccountCluster, MapRail } from "@/components/map/map-rail";
+import { MapRail } from "@/components/map/map-rail";
+import { SiteNav } from "@/components/shell/site-nav";
 
 /**
  * Full-bleed shell for the map.
@@ -13,12 +14,12 @@ import { MapAccountCluster, MapRail } from "@/components/map/map-rail";
  */
 export default function MapLayout({ children }: LayoutProps<"/[locale]">) {
   return (
-    <div className="flex h-dvh w-full overflow-hidden">
+    <div className="flex h-dvh w-full overflow-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
       <MapRail />
-      <main id="contenido" className="relative flex-1">
+      <main id="contenido" className="relative min-w-0 flex-1">
         {children}
-        <MapAccountCluster />
       </main>
+      <SiteNav mobile />
     </div>
   );
 }

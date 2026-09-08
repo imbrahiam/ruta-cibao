@@ -2,6 +2,7 @@ import type { ExpressionSpecification, LayerSpecification } from "maplibre-gl";
 import {
   CLUSTER_MAX_ZOOM,
   CLUSTERS_SOURCE_LAYER,
+  PLACE_LABEL_ZOOM,
   PLACES_SOURCE_ID,
   PLACES_SOURCE_LAYER,
 } from "./config";
@@ -126,7 +127,7 @@ export function placesLayers(selectedId: string | null): LayerSpecification[] {
       "source-layer": PLACES_SOURCE_LAYER,
       // Names only once the map is close enough that they will not collide into
       // an unreadable pile.
-      minzoom: 13,
+      minzoom: PLACE_LABEL_ZOOM,
       layout: {
         "text-field": ["get", "name"],
         "text-font": ["Noto Sans Regular"],
@@ -137,7 +138,15 @@ export function placesLayers(selectedId: string | null): LayerSpecification[] {
         "text-optional": true,
       },
       paint: {
-        "text-color": mapPalette.label,
+        // The category's own colour, straight off the tile property the circle
+        // above it already uses, so the word belongs to the marker rather than
+        // to the basemap — the same rule the Google renderer follows.
+        //
+        // That renderer darkens a pale category before drawing the text; this
+        // one cannot, because the style spec has no colour arithmetic and the
+        // property arrives from the tile. The halo carries it instead, which is
+        // why it is wider here than the hairline the DOM labels use.
+        "text-color": ["coalesce", ["get", "color"], mapPalette.label],
         "text-halo-color": mapPalette.labelHalo,
         "text-halo-width": 1.6,
       },

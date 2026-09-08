@@ -13,9 +13,17 @@ import type { AppRouter } from "@/orpc/router";
  * `AppRouter` is imported as a type, so none of the server router's code — its
  * database access, its permission checks — is reachable from the bundle.
  */
-const link = new RPCLink({ url: "/api/rpc" });
+type ClientContext = { expectedUserId?: string };
+const link = new RPCLink<ClientContext>({
+  url: "/api/rpc",
+  headers: ({ context }) =>
+    context.expectedUserId
+      ? { "x-expected-user-id": context.expectedUserId }
+      : {},
+});
 
-export const client: RouterClient<AppRouter> = createORPCClient(link);
+export const client: RouterClient<AppRouter, ClientContext> =
+  createORPCClient(link);
 
 /** Query and mutation options derived from the router, for TanStack Query. */
 export const orpc = createRouterUtils(client);

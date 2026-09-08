@@ -69,22 +69,45 @@
       transform: translateZ(0) rotate(360deg);
     }
   }
+  --animate-aurora: aurora 8s ease-in-out infinite alternate;
+  @keyframes aurora {
+    0% {
+      background-position: 0% 50%;
+      transform: rotate(-5deg) scale(0.9);
+    }
+    25% {
+      background-position: 50% 100%;
+      transform: rotate(5deg) scale(1.1);
+    }
+    50% {
+      background-position: 100% 50%;
+      transform: rotate(-3deg) scale(0.95);
+    }
+    75% {
+      background-position: 50% 0%;
+      transform: rotate(3deg) scale(1.05);
+    }
+    100% {
+      background-position: 0% 50%;
+      transform: rotate(-5deg) scale(0.9);
+    }
+  }
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.989 0.002 100);
+  --foreground: oklch(0.24 0.012 160);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.36 0.055 164);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.49 0.008 160);
+  --accent: oklch(0.955 0.012 160);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
@@ -95,7 +118,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.875rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -145,10 +168,130 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer components {
+  .surface-card {
+    @apply rounded-3xl border border-black/7 bg-card shadow-[0_3px_14px_-8px_rgb(0_0_0_/_0.14)];
+  }
+
+  /*
+   * The name of a place, on the map itself.
+   *
+   * Set in the category's own colour, so the word and the pin above it read as
+   * one object rather than a label that happens to be near a marker — and
+   * ringed in white, because the ground underneath is a photograph as often as
+   * it is a pale basemap, and neither dark text nor light text survives both.
+   * The ring is eight one-pixel copies of the word behind itself: `paint-order`
+   * would be the honest way to say that, but it only reaches SVG text, and the
+   * halo has to hold on the satellite view where the failure is illegibility.
+   *
+   * Two lines at most. A long business name is trimmed rather than allowed to
+   * wrap into a paragraph over the street it is meant to be pointing at; the
+   * full name is one tap away in the drawer.
+   */
+  .map-place-label {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    max-width: 8.5rem;
+    margin-inline: auto;
+    text-align: center;
+    text-wrap: balance;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.005em;
+    text-shadow:
+      1px 0 0 #fff,
+      -1px 0 0 #fff,
+      0 1px 0 #fff,
+      0 -1px 0 #fff,
+      0.7px 0.7px 0 #fff,
+      -0.7px 0.7px 0 #fff,
+      0.7px -0.7px 0 #fff,
+      -0.7px -0.7px 0 #fff;
+  }
+}
+
+/*
+ * Map chrome vs. browser chrome (Safari on iOS 26 included).
+ *
+ * The map renderers draw their own zoom/attribution controls inside the map
+ * container, where Tailwind spacing utilities cannot reach them. The layout
+ * viewport already shrinks above Safari's bottom bar
+ * (`interactiveWidget: resizes-content`), and this keeps those native controls
+ * clear of the home indicator / Dynamic Island edges as well, so they never
+ * sit under a rounded corner or the swipe bar on any mobile browser.
+ */
+.leaflet-bottom.leaflet-right,
+.maplibregl-ctrl-bottom-right {
+  margin-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  margin-right: max(0.625rem, env(safe-area-inset-right));
+}
+
+.leaflet-bottom.leaflet-left,
+.maplibregl-ctrl-bottom-left {
+  margin-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  margin-left: max(0.625rem, env(safe-area-inset-left));
+}
+
+/*
+ * A place name on the Leaflet map is a tooltip, because that is the only label
+ * Leaflet has — but nothing about it should look like one. The white box, the
+ * border, the little arrow and the shadow all come off, leaving the word itself
+ * with the halo `.map-place-label` gives it, exactly as the other two renderers
+ * draw it. Unlayered on purpose: Leaflet's own stylesheet is unlayered too, and
+ * anything inside a Tailwind layer would lose to it.
+ */
+.leaflet-tooltip.map-place-tooltip {
+  margin-top: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  white-space: normal;
+}
+
+.leaflet-tooltip.map-place-tooltip::before {
+  display: none;
+}
+
+.map-labels-hidden .leaflet-tooltip.map-place-tooltip {
+  display: none;
+}
+
+/*
+ * One floor for every bottom drawer.
+ *
+ * A drawer with little content (one notification, an empty list) hugs the
+ * bottom edge and reads as a glitch rather than a panel. This gives all of
+ * them the same minimum presence — about a third of the viewport — while
+ * taller content keeps sizing itself. Drawers with snap points opt out: they
+ * already own explicit heights, and a floor above their peek state would
+ * break it.
+ */
+[data-slot="drawer-popup"][data-swipe-axis="y"]:not([data-snap-points]) {
+  min-height: 32dvh;
+}
+
+@media (pointer: coarse) {
+  [data-slot="button"],
+  [data-slot="input"],
+  [data-slot="select-trigger"] {
+    min-height: 44px;
+  }
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 

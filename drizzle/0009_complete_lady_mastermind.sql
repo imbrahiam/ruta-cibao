@@ -1,0 +1,1 @@
+ALTER TABLE "member_profiles" ADD COLUMN "residency_declared_at" timestamp with time zone;

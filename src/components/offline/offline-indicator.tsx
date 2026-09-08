@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useOfflineQueue } from "@/hooks/use-offline-queue";
+import { Link } from "@/i18n/navigation";
 
 /**
  * Says what is happening to work the person has already done.
@@ -19,15 +20,15 @@ import { useOfflineQueue } from "@/hooks/use-offline-queue";
  */
 export function OfflineIndicator() {
   const t = useTranslations("offline");
-  const { pending, isFlushing, isOnline, flush } = useOfflineQueue();
+  const { pending, isFlushing, isOnline, hasError, flush } = useOfflineQueue();
 
-  if (isOnline && pending === 0) return null;
+  if (isOnline && pending === 0 && !hasError) return null;
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 bottom-0 z-50 border-t bg-background/95 px-4 py-3 backdrop-blur-sm"
+      className="fixed inset-x-3 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-50 rounded-2xl border bg-background/95 px-4 py-3 shadow-sm backdrop-blur-sm md:inset-x-auto md:right-5 md:bottom-5 md:max-w-lg"
     >
       <div className="mx-auto flex w-full max-w-5xl items-center gap-3">
         <span className="shrink-0 text-muted-foreground">
@@ -41,14 +42,24 @@ export function OfflineIndicator() {
         </span>
 
         <p className="flex-1 text-sm leading-snug">
-          {!isOnline
-            ? pending > 0
-              ? t("offlineWithPending", { count: pending })
-              : t("offline")
-            : isFlushing
-              ? t("sending", { count: pending })
-              : t("pending", { count: pending })}
+          {hasError
+            ? t("queueError")
+            : !isOnline
+              ? pending > 0
+                ? t("offlineWithPending", { count: pending })
+                : t("offline")
+              : isFlushing
+                ? t("sending", { count: pending })
+                : t("pending", { count: pending })}
         </p>
+        {pending > 0 && (
+          <Link
+            href="/pendientes"
+            className="shrink-0 text-xs font-medium underline underline-offset-4"
+          >
+            {t("viewPending")}
+          </Link>
+        )}
 
         {isOnline && pending > 0 && !isFlushing && (
           <Button

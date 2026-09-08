@@ -1,6 +1,8 @@
 "use client";
 
 import Dexie, { type EntityTable } from "dexie";
+import { uuid } from "@/lib/uuid";
+import { requestBackgroundSync } from "./background-sync";
 
 /**
  * Mutations waiting for a signal.
@@ -19,6 +21,9 @@ import Dexie, { type EntityTable } from "dexie";
  */
 export type QueuedMutation = {
   id: number;
+  /** Missing only for legacy drafts; these must never be sent as a new user. */
+  userId?: string;
+  blocked?: boolean;
   /** Dotted path into the oRPC router, e.g. `traffic.report`. */
   procedure: string;
   input: unknown;
@@ -35,19 +40,25 @@ const db = new Dexie("ruta-cibao-offline") as Dexie & {
 };
 
 db.version(1).stores({ queue: "++id, createdAt, procedure" });
+db.version(2).stores({ queue: "++id, createdAt, procedure, userId" });
 
 export function offlineDb() {
   return db;
 }
 
 export async function enqueue(
-  item: Omit<QueuedMutation, "id" | "createdAt" | "attempts">,
+  item: Omit<QueuedMutation, "id" | "createdAt" | "attempts"> & {
+    userId: string;
+  },
 ): Promise<number> {
-  return db.queue.add({
+  const id = await db.queue.add({
     ...item,
     createdAt: Date.now(),
     attempts: 0,
-  } as QueuedMutation);
+  });
+  // So the browser sends it when signal returns, even with the app closed.
+  void requestBackgroundSync();
+  return id;
 }
 
 export function pendingCount(): Promise<number> {
@@ -62,13 +73,21 @@ export async function forget(id: number): Promise<void> {
   await db.queue.delete(id);
 }
 
-export async function recordFailure(id: number, error: string): Promise<void> {
+export async function recordFailure(
+  id: number,
+  error: string,
+  blocked = false,
+): Promise<void> {
   const item = await db.queue.get(id);
   if (!item) return;
-  await db.queue.update(id, { attempts: item.attempts + 1, lastError: error });
+  await db.queue.update(id, {
+    attempts: item.attempts + 1,
+    lastError: error,
+    blocked,
+  });
 }
 
 /** Generated when queued, so every retry of the same action carries it. */
 export function newIdempotencyKey(): string {
-  return crypto.randomUUID();
+  return uuid();
 }

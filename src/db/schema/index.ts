@@ -5,9 +5,14 @@
  * Better Auth adapter both see one complete schema object.
  */
 export * from "./auth";
+export * from "./businesses";
 export * from "./catalog";
+export * from "./consultations";
 export * from "./geography";
 export * from "./members";
 export * from "./places";
 export * from "./platform";
 export * from "./realtime";
+export * from "./reports";
+export * from "./routes";
+export * from "./traffic";

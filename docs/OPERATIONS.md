@@ -49,6 +49,45 @@ A failing lookup is not an outage for the user: onboarding degrades to
 Never re-query a cédula that has already resolved. The name is stored on the
 profile; re-verifying spends shared quota for no new information.
 
+## The background worker
+
+One container, `worker`, running `scripts/worker.ts`. It owns the pg-boss schema
+(`JOBS_SCHEMA`, default `pgboss`) in the same database as everything else, so
+there is nothing extra to back up.
+
+```bash
+docker compose -f infra/docker-compose.yml --profile full logs -f worker
+```
+
+Every finished job logs one line with its queue, its id, how long it took and
+what it returned, so "did the weekly report run" is answerable from the log
+without opening the database.
+
+**Nothing is running.** Check `JOBS_ENABLED`. At `0` the worker exits
+immediately and says so, and the app runs every job in-process on the request
+that caused it instead — which is correct but slower, and means no cron at all:
+reports are never built and traffic reports never lapse.
+
+**A schedule did not fire.** Schedules are re-registered on every boot, so
+restarting the worker is the fix for a cron that was edited but not picked up.
+`pgboss.schedule` holds what is currently registered.
+
+**A job keeps failing.** pg-boss retries and then parks it. Every handler is
+idempotent, so replaying one by hand is safe:
+
+```sql
+select name, state, output from pgboss.job
+ where state in ('failed', 'retry') order by created_on desc limit 20;
+```
+
+**A weekly report is stuck at `pending`.** The row exists but the figures
+failed. Re-running the job overwrites the same row — the upsert is keyed on
+(municipality, week) — so there is no cleanup step first.
+
+**The PDF button does nothing.** Expected unless Chromium is installed in the
+worker image; the report itself is unaffected and the page still prints from a
+browser. See the `worker` stage in `infra/Dockerfile` to turn it on.
+
 ## Secrets
 
 Secrets live in `.env` on the host and nowhere else — not in the image, not in
@@ -62,5 +101,3 @@ provider to revoke that specific key; other keys keep working.
 
 - Log aggregation and error tracking (Sentry, pino).
 - Backup and restore, with a tested restore.
-- The background worker: weekly reports, notification fan-out, traffic expiry,
-  JCE retries.

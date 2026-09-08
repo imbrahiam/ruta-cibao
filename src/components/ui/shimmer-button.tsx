@@ -13,6 +13,17 @@ export interface ShimmerButtonProps extends ComponentPropsWithoutRef<"button"> {
   background?: string;
   className?: string;
   children?: React.ReactNode;
+  /**
+   * Render as something other than a `<button>` — an `<a>`, a next-intl
+   * `<Link>` — the way the rest of this project's buttons do. A link nested
+   * inside a button is invalid HTML and unreachable by keyboard, so the primary
+   * call to action on the landing page has to *be* the link, not contain one.
+   */
+  render?: React.ReactElement<{
+    className?: string;
+    style?: CSSProperties;
+    children?: React.ReactNode;
+  }>;
 }
 
 export const ShimmerButton = React.forwardRef<
@@ -28,30 +39,28 @@ export const ShimmerButton = React.forwardRef<
       background = "rgba(0, 0, 0, 1)",
       className,
       children,
+      render,
       ...props
     },
     ref,
   ) => {
-    return (
-      <button
-        style={
-          {
-            "--spread": "90deg",
-            "--shimmer-color": shimmerColor,
-            "--radius": borderRadius,
-            "--speed": shimmerDuration,
-            "--cut": shimmerSize,
-            "--bg": background,
-          } as CSSProperties
-        }
-        className={cn(
-          "group relative z-0 flex cursor-pointer items-center justify-center overflow-hidden [border-radius:var(--radius)] border border-white/10 px-6 py-3 whitespace-nowrap text-white [background:var(--bg)]",
-          "transform-gpu transition-transform duration-300 ease-in-out active:translate-y-px",
-          className,
-        )}
-        ref={ref}
-        {...props}
-      >
+    const style = {
+      "--spread": "90deg",
+      "--shimmer-color": shimmerColor,
+      "--radius": borderRadius,
+      "--speed": shimmerDuration,
+      "--cut": shimmerSize,
+      "--bg": background,
+    } as CSSProperties;
+
+    const classes = cn(
+      "group relative z-0 flex cursor-pointer items-center justify-center overflow-hidden [border-radius:var(--radius)] border border-white/10 px-6 py-3 whitespace-nowrap text-white [background:var(--bg)]",
+      "transform-gpu transition-transform duration-300 ease-in-out active:translate-y-px",
+      className,
+    );
+
+    const decoration = (
+      <>
         {/* spark container */}
         <div
           className={cn(
@@ -65,8 +74,6 @@ export const ShimmerButton = React.forwardRef<
             <div className="animate-spin-around absolute -inset-full w-auto [translate:0_0] rotate-0 [background:conic-gradient(from_calc(270deg-(var(--spread)*0.5)),transparent_0,var(--shimmer-color)_var(--spread),transparent_var(--spread))]" />
           </div>
         </div>
-        {children}
-
         {/* Highlight */}
         <div
           className={cn(
@@ -91,6 +98,26 @@ export const ShimmerButton = React.forwardRef<
             "absolute inset-(--cut) -z-20 [border-radius:var(--radius)] [background:var(--bg)]",
           )}
         />
+      </>
+    );
+
+    if (render) {
+      return React.cloneElement(render, {
+        className: cn(classes, render.props.className),
+        style: { ...style, ...render.props.style },
+        children: (
+          <>
+            {decoration}
+            {render.props.children ?? children}
+          </>
+        ),
+      });
+    }
+
+    return (
+      <button style={style} className={classes} ref={ref} {...props}>
+        {decoration}
+        {children}
       </button>
     );
   },

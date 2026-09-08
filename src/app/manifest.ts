@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import messages from "../../messages/es.json";
 
 /**
  * Installable on a phone's home screen.
@@ -11,15 +12,29 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Ruta Cibao",
     short_name: "Ruta Cibao",
-    description: "Mapa cívico de la provincia Santiago Rodríguez",
-    start_url: "/",
+    description: messages.app.tagline,
+    id: "/",
+    scope: "/",
+    start_url: "/mapa",
     display: "standalone",
-    orientation: "portrait",
+    orientation: "any",
     background_color: "#ffffff",
-    theme_color: "#ffffff",
+    theme_color: "#213d34",
     lang: "es-DO",
     dir: "ltr",
     categories: ["travel", "navigation", "government"],
+    shortcuts: [
+      {
+        name: messages.navigation.explore,
+        url: "/explorar",
+        icons: [{ src: "/icon-192.png", sizes: "192x192" }],
+      },
+      {
+        name: messages.navigation.contributions,
+        url: "/aportes",
+        icons: [{ src: "/icon-192.png", sizes: "192x192" }],
+      },
+    ],
     icons: [
       {
         src: "/icon-192.png",

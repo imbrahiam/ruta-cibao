@@ -1,6 +1,7 @@
 import { SerwistProvider } from "@serwist/turbopack/react";
 import type { ReactNode } from "react";
 import { ServiceWorkerCleanup } from "./service-worker-cleanup";
+import { ServiceWorkerUpdate } from "./service-worker-update";
 
 /**
  * Registers the service worker — in production only.
@@ -26,5 +27,14 @@ export function ServiceWorker({ children }: { children: ReactNode }) {
     );
   }
 
-  return <SerwistProvider swUrl="/serwist/sw.js">{children}</SerwistProvider>;
+  return (
+    <SerwistProvider
+      swUrl="/serwist/sw.js"
+      cacheOnNavigation={false}
+      reloadOnOnline={false}
+    >
+      <ServiceWorkerUpdate />
+      {children}
+    </SerwistProvider>
+  );
 }

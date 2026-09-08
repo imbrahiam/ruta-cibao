@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
+import { connection } from "next/server";
 import { db } from "@/db";
 import { categories, places } from "@/db/schema";
 
@@ -58,6 +59,8 @@ async function collection() {
 }
 
 export async function GET() {
+  // Keep database access out of the build while retaining the tagged cache.
+  await connection();
   return Response.json(await collection(), {
     headers: {
       "cache-control":

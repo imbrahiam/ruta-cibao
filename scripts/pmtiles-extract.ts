@@ -1,5 +1,6 @@
 /**
- * Cuts a basemap for the province out of the global Protomaps build.
+ * Cuts basemaps for the province and the country out of the global Protomaps
+ * build.
  *
  * This is the handover path. A hosted tile provider is convenient while
  * building, but it is a key, a bill and a third party the municipality would
@@ -7,19 +8,45 @@
  * the extractor reads it over HTTP range requests — so this pulls down only the
  * tiles covering Santiago Rodríguez, a few megabytes, and never the planet.
  *
- * What comes out is one file. Serve it from the same server as the app, point
- * NEXT_PUBLIC_BASEMAP_PMTILES_URL at it, and the map has no external
+ * What comes out is one file per region. Serve one from the same server as the
+ * app, point NEXT_PUBLIC_BASEMAP_PMTILES_URL at it, and the map has no external
  * dependency, no quota and nothing to renew. It is also what makes the offline
  * story real: a file the service worker can cache is a map that works in a dead
  * zone.
  *
- *   bun run scripts/pmtiles-extract.ts
+ *   bun run scripts/pmtiles-extract.ts              # both regions
+ *   bun run scripts/pmtiles-extract.ts provincia    # just the small one
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
 
-/** Matches PROVINCE_BOUNDS in `@/lib/map/config`, with a little margin. */
-const BBOX = { west: -71.8, south: 19.1, east: -70.8, north: 19.8 };
+/**
+ * What to cut, and how much it costs.
+ *
+ * Two archives rather than one, because they answer different questions. The
+ * province is what the app is for today and what a phone on a metered plan can
+ * reasonably save for offline use. The country is the same map ready for the
+ * day another municipality asks to join — at street level it is ~57 MB, which
+ * is a Wi-Fi download but a small one, and cutting it now means expansion is a
+ * change of environment variable rather than a new build of anything.
+ *
+ * Both boxes carry a little margin. The province box matches PROVINCE_BOUNDS
+ * in `@/lib/map/config`; the country box is drawn tight around the island's
+ * Dominican side so the strip of Haiti and the open sea stay thin — sea tiles
+ * are nearly free, but the west edge is where the file would grow for nothing.
+ */
+const REGIONS = {
+  provincia: {
+    bbox: { west: -71.8, south: 19.1, east: -70.8, north: 19.8 },
+    output: "public/basemap/santiago-rodriguez.pmtiles",
+  },
+  pais: {
+    bbox: { west: -72.05, south: 17.4, east: -68.2, north: 20.0 },
+    output: "public/basemap/republica-dominicana.pmtiles",
+  },
+} as const;
+
+type Region = keyof typeof REGIONS;
 
 /**
  * Street level. Past this the basemap adds detail nobody reads at walking pace
@@ -36,7 +63,6 @@ const MAX_ZOOM = 15;
  * holding the tiles inside the bounding box below.
  */
 const SOURCE = "https://data.source.coop/protomaps/openstreetmap/v4.pmtiles";
-const OUTPUT = "public/basemap/santiago-rodriguez.pmtiles";
 
 /**
  * Where the extractor lives.
@@ -72,6 +98,50 @@ function explainMissingCli(): never {
   process.exit(1);
 }
 
+function extract(region: Region) {
+  const { bbox: box, output } = REGIONS[region];
+  const bbox = `${box.west},${box.south},${box.east},${box.north}`;
+  console.log(`extracting ${region}: ${bbox} up to z${MAX_ZOOM}`);
+  console.log(`  from ${SOURCE}`);
+  console.log(`  to   ${output}`);
+
+  const result = spawnSync(
+    cli(),
+    ["extract", SOURCE, output, `--bbox=${bbox}`, `--maxzoom=${MAX_ZOOM}`],
+    { stdio: "inherit" },
+  );
+
+  if (result.status !== 0) {
+    console.error(`extraction of ${region} failed`);
+    process.exit(result.status ?? 1);
+  }
+
+  if (!existsSync(output)) {
+    console.error("the extractor reported success but wrote no file");
+    process.exit(1);
+  }
+}
+
+/**
+ * Which regions to cut: every one by default, or the ones named.
+ *
+ *   bun run basemap
+ *   bun run basemap -- provincia
+ */
+function requestedRegions(): Region[] {
+  const named = process.argv.slice(2).filter((arg) => !arg.startsWith("-"));
+  if (named.length === 0) return Object.keys(REGIONS) as Region[];
+
+  const unknown = named.find((name) => !(name in REGIONS));
+  if (unknown) {
+    console.error(
+      `unknown region "${unknown}"; expected one of ${Object.keys(REGIONS).join(", ")}`,
+    );
+    process.exit(1);
+  }
+  return named as Region[];
+}
+
 function main() {
   if (spawnSync(cli(), ["version"], { stdio: "ignore" }).error) {
     explainMissingCli();
@@ -79,33 +149,21 @@ function main() {
 
   mkdirSync("public/basemap", { recursive: true });
 
-  const bbox = `${BBOX.west},${BBOX.south},${BBOX.east},${BBOX.north}`;
-  console.log(`extracting ${bbox} up to z${MAX_ZOOM}`);
-  console.log(`  from ${SOURCE}`);
-  console.log(`  to   ${OUTPUT}`);
-
-  const result = spawnSync(
-    cli(),
-    ["extract", SOURCE, OUTPUT, `--bbox=${bbox}`, `--maxzoom=${MAX_ZOOM}`],
-    { stdio: "inherit" },
-  );
-
-  if (result.status !== 0) {
-    console.error("extraction failed");
-    process.exit(result.status ?? 1);
-  }
-
-  if (!existsSync(OUTPUT)) {
-    console.error("the extractor reported success but wrote no file");
-    process.exit(1);
-  }
+  const regions = requestedRegions();
+  for (const region of regions) extract(region);
 
   console.log(
     [
       "",
-      "Done. To use it:",
+      "Done. Serve one of them as the basemap:",
       "",
-      `  NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/${OUTPUT.split("/").pop()}`,
+      ...regions.map(
+        (region) =>
+          `  NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/${REGIONS[region].output.split("/").pop()}   # ${region}`,
+      ),
+      "",
+      "The country file is the same map with room to grow; the province file",
+      "is the small one a phone can save for offline use.",
       "",
       "The style also needs glyphs for its labels. Copy a font pack into",
       "public/fonts/{fontstack}/{range}.pbf — the Noto Sans build from",

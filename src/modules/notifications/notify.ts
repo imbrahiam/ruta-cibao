@@ -11,16 +11,19 @@
  * today still reads correctly in whatever language the recipient picks
  * tomorrow, and the catalogue stays the single source of user-facing text.
  */
-import { getTranslations } from "next-intl/server";
+import { createTranslator } from "next-intl";
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
-import { withOpenKeys } from "@/i18n/open-keys";
+import { renderNotification } from "@/i18n/open-keys";
+import { routing } from "@/i18n/routing";
+import { recordAudit } from "@/lib/audit";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/mail";
 import { sendPushToUser } from "@/lib/push";
 import { publishRealtimeEvent, userChannel } from "@/lib/realtime";
 
 export type NotifyInput = {
+  dedupeKey?: string;
   userId: string;
   /** Key into `messages/<locale>.json`, e.g. `notifications.placeApproved`. */
   messageKey: string;
@@ -38,12 +41,19 @@ export async function notify(input: NotifyInput): Promise<void> {
     .values({
       userId: input.userId,
       messageKey: input.messageKey,
+      dedupeKey: input.dedupeKey,
       params: input.params ?? {},
       href: input.href ?? null,
     })
+    .onConflictDoNothing({ target: notifications.dedupeKey })
     .returning({ id: notifications.id });
 
   if (!created) return;
+  await recordAudit({
+    action: "notification.created",
+    subjectType: "notification",
+    subjectId: created.id,
+  });
 
   // Wakes any tab this person has open, so the bell updates without polling.
   await publishRealtimeEvent({
@@ -55,9 +65,19 @@ export async function notify(input: NotifyInput): Promise<void> {
   });
 
   // Rendered once, here, for the channels that carry text rather than a key.
-  const t = await getTranslations("notifications");
-  const title = t("title");
-  const body = withOpenKeys(t)(input.messageKey, input.params);
+  // Two translators, because they answer different questions: the scoped one
+  // writes the app's own chrome, and the rooted one resolves a stored key,
+  // which is a full catalogue path and would otherwise be looked up under
+  // `notifications.notifications.…`.
+  const messages = (
+    await import(`../../../messages/${routing.defaultLocale}.json`)
+  ).default;
+  const catalogue = createTranslator({
+    locale: routing.defaultLocale,
+    messages,
+  });
+  const title = catalogue("notifications.title");
+  const body = renderNotification(catalogue, input.messageKey, input.params);
 
   const wantsPush = input.channels?.push ?? true;
   const wantsEmail = (input.channels?.email ?? false) && Boolean(input.email);
@@ -79,8 +99,17 @@ export async function notify(input: NotifyInput): Promise<void> {
           to: input.email,
           subject: title,
           text: `${body}\n\n${input.href ? new URL(input.href, env.APP_URL).toString() : ""}`.trim(),
-          html: `<p>${body}</p>${input.href ? `<p><a href="${new URL(input.href, env.APP_URL).toString()}">Ver en Ruta Cibao</a></p>` : ""}`,
+          html: `<p>${escapeHtml(body)}</p>${input.href ? `<p><a href="${escapeHtml(new URL(input.href, env.APP_URL).toString())}">${escapeHtml(catalogue("notifications.open"))}</a></p>` : ""}`,
         })
       : Promise.resolve(),
   ]);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }

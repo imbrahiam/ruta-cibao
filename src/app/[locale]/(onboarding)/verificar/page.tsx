@@ -1,4 +1,5 @@
 import { asc } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { CedulaForm } from "@/components/onboarding/cedula-form";
@@ -9,11 +10,13 @@ import {
 import { BlurFade } from "@/components/ui/blur-fade";
 import { db } from "@/db";
 import { municipalities } from "@/db/schema";
+import { safeCallbackPath } from "@/modules/access/route-policy";
+import { getServerViewer, requirePageMember } from "@/modules/access/server";
 
 /**
- * The municipality list changes about once a decade, so it is cached and lands
- * in the static shell. The form is therefore fully rendered before anyone
- * clicks — there is nothing to wait for and nothing to fake with a skeleton.
+ * The municipality list changes about once a decade, so it is cached. The
+ * authenticated page can reuse it without tying that reference data to a
+ * session.
  */
 async function loadMunicipalities() {
   "use cache";
@@ -23,7 +26,13 @@ async function loadMunicipalities() {
     .orderBy(asc(municipalities.name));
 }
 
-export default async function VerifyPage() {
+async function ProtectedVerifyPage({ next }: { next: string }) {
+  await requirePageMember("/verificar");
+  // Nothing left to do here: sending a verified resident back into the form
+  // is how they ended up staring at two success messages and no way forward.
+  const viewer = await getServerViewer();
+  if (viewer.kind === "citizen") redirect(next);
+
   const t = await getTranslations("onboarding.cedula");
   const list = await loadMunicipalities();
 
@@ -40,15 +49,35 @@ export default async function VerifyPage() {
         </header>
       </BlurFade>
 
-      {/* The only per-person part of this page. It streams into place while the
-          form above is already usable, instead of holding the page back. */}
+      {/* This second read is deduplicated by the request-scoped viewer cache. */}
       <Suspense fallback={<VerificationStatusFallback />}>
         <VerificationStatus />
       </Suspense>
 
       <BlurFade delay={0.1} inView>
-        <CedulaForm municipalities={list} />
+        <CedulaForm municipalities={list} next={next} />
       </BlurFade>
     </>
   );
+}
+
+export default function VerifyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  return (
+    <Suspense fallback={<VerificationStatusFallback />}>
+      <VerifyPageWithNext searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function VerifyPageWithNext({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const next = safeCallbackPath((await searchParams).next);
+  return <ProtectedVerifyPage next={next} />;
 }

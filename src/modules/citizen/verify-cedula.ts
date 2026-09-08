@@ -17,12 +17,13 @@
  */
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { memberProfiles } from "@/db/schema";
+import { memberProfiles, user } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { encryptSensitive, hashLookup } from "@/lib/crypto";
 import { type Cedula, lookupCedula } from "@/lib/jce";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import type { MemberViewer } from "@/modules/access/viewer";
+import { notify } from "@/modules/notifications/notify";
 import type { VerifyCedulaInput } from "./contracts";
 
 /** Namespace for the cédula blind index. Changing it orphans every existing row. */
@@ -95,6 +96,7 @@ export async function verifyCedula(
   const platform = await consumeRateLimit("all", PLATFORM_POLICY);
   if (!platform.allowed) {
     await markPending(viewer, blindIndex, cedula, input.municipalityId);
+    await notifyPending(viewer);
     return {
       status: "pending",
       fullName: null,
@@ -106,6 +108,7 @@ export async function verifyCedula(
 
   if (lookup.status === "unavailable") {
     await markPending(viewer, blindIndex, cedula, input.municipalityId);
+    await notifyPending(viewer);
     await recordAudit({
       actorUserId: viewer.userId,
       action: "member.cedula_verification_deferred",
@@ -160,11 +163,78 @@ export async function verifyCedula(
     municipalityId: input.municipalityId,
   });
 
+  // The one notification somebody is genuinely waiting for, and the one this
+  // flow never sent. Verification can finish minutes or hours after the form
+  // was submitted — a retry job picks up whatever the registry could not answer
+  // live — so the person who now has a vote has to be told they have one.
+  await notifyVerified(viewer.userId, lookup.fullName);
+
   return {
     status: "verified",
     fullName: lookup.fullName,
     retryAfterSeconds: null,
   };
+}
+
+/**
+ * "We are still trying."
+ *
+ * Sent once per attempt that could not be answered, and deliberately without
+ * email or push: the person is almost always still on the verification screen,
+ * which already says this. What the notification buys is the record — so
+ * somebody who closed the tab and comes back tomorrow can see that the platform
+ * did not simply lose their cédula.
+ */
+async function notifyPending(viewer: MemberViewer): Promise<void> {
+  await notify({
+    userId: viewer.userId,
+    messageKey: "notifications.cedulaPending",
+    href: "/verificar",
+    channels: { push: false, email: false },
+  });
+}
+
+/**
+ * "You are a verified resident now."
+ *
+ * The one notification in this flow that is worth an email, which is why the
+ * address is looked up rather than assumed: `notify` sends email only when it
+ * is given one, so a comment promising a copy without fetching it would have
+ * been a comment describing something that never happens.
+ *
+ * Shared with the retry job, because that is the case the notification really
+ * exists for — nobody is watching a screen when the registry finally answers.
+ */
+export async function notifyVerified(
+  userId: string,
+  fullName: string,
+): Promise<void> {
+  const [account] = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+
+  await notify({
+    userId,
+    messageKey: "notifications.cedulaVerified",
+    params: { name: firstName(fullName) },
+    href: "/cuenta",
+    email: account?.email,
+    // Becoming a verified resident is a change to the account itself, and this
+    // may be arriving long after they closed the tab.
+    channels: { push: true, email: true },
+  });
+}
+
+/**
+ * The registry returns a full legal name in capitals. A notification that
+ * greets somebody as "MARÍA ALTAGRACIA PÉREZ DE LOS SANTOS" is shouting a
+ * stranger's paperwork at them; the first name is what a person is called.
+ */
+function firstName(fullName: string): string {
+  const first = fullName.trim().split(/\s+/)[0] ?? fullName;
+  return first.charAt(0) + first.slice(1).toLowerCase();
 }
 
 /**

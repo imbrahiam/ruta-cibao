@@ -18,12 +18,16 @@ export type AnonymousViewer = { kind: "anonymous" };
 export type VisitorViewer = {
   kind: "visitor";
   userId: string;
+  /** The identity provider's photo (Google), if there is one. */
+  image: string | null;
   profile: MemberProfile;
 };
 
 export type CitizenViewer = {
   kind: "citizen";
   userId: string;
+  /** The identity provider's photo (Google), if there is one. */
+  image: string | null;
   profile: MemberProfile & { municipalityId: string; verifiedFullName: string };
 };
 
@@ -41,6 +45,7 @@ export type Viewer = AnonymousViewer | MemberViewer;
 export function toViewer(
   userId: string,
   profile: MemberProfile | undefined,
+  image: string | null = null,
 ): Viewer {
   if (!profile) return { kind: "anonymous" };
 
@@ -53,6 +58,7 @@ export function toViewer(
     return {
       kind: "citizen",
       userId,
+      image,
       profile: {
         ...profile,
         municipalityId: profile.municipalityId,
@@ -61,5 +67,5 @@ export function toViewer(
     };
   }
 
-  return { kind: "visitor", userId, profile };
+  return { kind: "visitor", userId, image, profile };
 }

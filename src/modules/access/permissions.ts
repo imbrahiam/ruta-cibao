@@ -9,6 +9,18 @@
 import { ORPCError } from "@orpc/server";
 import type { CitizenViewer, MemberViewer, Viewer } from "./viewer";
 
+/**
+ * A citizen who may act on other people's content, and where.
+ *
+ * `"all"` is the province administrator; a moderator carries the one
+ * municipality they were appointed to. Carrying the scope on the viewer rather
+ * than re-deriving it per procedure is what makes "did we check the
+ * municipality" impossible to answer with "we forgot".
+ */
+export type ModeratorViewer = CitizenViewer & {
+  scope: "all" | readonly string[];
+};
+
 /** Requires an account of any tier. Visitors pass. */
 export function requireMember(viewer: Viewer): MemberViewer {
   if (viewer.kind === "anonymous") {
@@ -62,4 +74,50 @@ export function requireMunicipalityScope(
   }
 
   return citizen;
+}
+
+/**
+ * Requires moderation authority.
+ *
+ * Built on `requireCitizen`, not on `requireMember`: somebody deciding whether
+ * a neighbour's clinic goes on the public map has a verified cédula behind
+ * that decision, and the audit trail names them. It also guarantees a
+ * `municipalityId`, which is what the scope is made of.
+ */
+export function requireModerator(viewer: Viewer): ModeratorViewer {
+  const citizen = requireCitizen(viewer);
+  const role = citizen.profile.staffRole;
+
+  if (role === "none") {
+    throw new ORPCError("FORBIDDEN", {
+      message: "This action is for moderators.",
+      data: { reason: "moderator_required" },
+    });
+  }
+
+  return {
+    ...citizen,
+    scope: role === "admin" ? "all" : [citizen.profile.municipalityId],
+  };
+}
+
+/** Whether a moderator may act on content belonging to a municipality. */
+export function canModerate(
+  viewer: ModeratorViewer,
+  municipalityId: string,
+): boolean {
+  return viewer.scope === "all" || viewer.scope.includes(municipalityId);
+}
+
+/** The same check, as a gate. */
+export function assertModerates(
+  viewer: ModeratorViewer,
+  municipalityId: string,
+): void {
+  if (canModerate(viewer, municipalityId)) return;
+
+  throw new ORPCError("FORBIDDEN", {
+    message: "This content belongs to another municipality.",
+    data: { reason: "municipality_scope" },
+  });
 }

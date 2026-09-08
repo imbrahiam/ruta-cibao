@@ -42,5 +42,5 @@ async function resolveViewer(request: Request): Promise<Viewer> {
     .where(eq(memberProfiles.userId, session.user.id))
     .limit(1);
 
-  return toViewer(session.user.id, profile);
+  return toViewer(session.user.id, profile, session.user.image ?? null);
 }

@@ -9,7 +9,7 @@
  * logged, not thrown. Losing the record of an approval is bad; refusing the
  * approval because the record failed is worse.
  */
-import { db } from "@/db";
+import { type Db, type DbTransaction, db } from "@/db";
 import { auditEvents } from "@/db/schema";
 import { hashLookup } from "@/lib/crypto";
 
@@ -26,9 +26,12 @@ export type AuditInput = {
   ip?: string | null;
 };
 
-export async function recordAudit(input: AuditInput): Promise<void> {
+export async function recordAudit(
+  input: AuditInput,
+  executor: Db | DbTransaction = db,
+): Promise<void> {
   try {
-    await db.insert(auditEvents).values({
+    await executor.insert(auditEvents).values({
       actorUserId: input.actorUserId ?? null,
       action: input.action,
       subjectType: input.subjectType,

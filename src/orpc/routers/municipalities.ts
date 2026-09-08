@@ -14,11 +14,34 @@ export const municipalitiesRouter = {
         summary: "Municipalities of the province",
       }),
     )
-    .output(z.array(z.object({ id: z.string(), name: z.string() })))
-    .handler(async ({ context }) =>
-      context.db
-        .select({ id: municipalities.id, name: municipalities.name })
+    .output(
+      z.array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          center: z.object({ lng: z.number(), lat: z.number() }).nullable(),
+        }),
+      ),
+    )
+    .handler(async ({ context }) => {
+      const rows = await context.db
+        .select({
+          id: municipalities.id,
+          name: municipalities.name,
+          center: municipalities.center,
+        })
         .from(municipalities)
-        .orderBy(asc(municipalities.name)),
-    ),
+        .orderBy(asc(municipalities.name));
+
+      return rows.map((municipality) => ({
+        id: municipality.id,
+        name: municipality.name,
+        center: municipality.center
+          ? {
+              lng: municipality.center.x,
+              lat: municipality.center.y,
+            }
+          : null,
+      }));
+    }),
 };

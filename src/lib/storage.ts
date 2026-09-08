@@ -66,6 +66,29 @@ export function createReadUrl(key: string): Promise<string> {
   );
 }
 
+/**
+ * Puts an object the server produced itself.
+ *
+ * The presigned path above exists so a phone's photo never travels through this
+ * process. A rendered PDF is the opposite case: it was made here, it is already
+ * in memory, and handing the worker a URL to PUT to would be a round trip for
+ * nothing.
+ */
+export async function putObject(
+  key: string,
+  body: Uint8Array,
+  contentType: string,
+): Promise<void> {
+  await s3().send(
+    new PutObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+    }),
+  );
+}
+
 export async function deleteObject(key: string): Promise<void> {
   await s3().send(new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));
 }
@@ -91,6 +114,11 @@ export async function imageUrl(
   key: string,
   transform: ImageTransform = {},
 ): Promise<string> {
+  // Seeded imagery ships in `public/` and is addressed by path, not by object
+  // key: there is nothing in the bucket to sign, and the browser can fetch it
+  // as it stands. Same convention as `places.imageUrl`.
+  if (key.startsWith("/")) return key;
+
   if (!env.IMGPROXY_URL || !env.IMGPROXY_KEY || !env.IMGPROXY_SALT) {
     return createReadUrl(key);
   }

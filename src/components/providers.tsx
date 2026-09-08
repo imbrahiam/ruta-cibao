@@ -3,6 +3,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { useState } from "react";
+import { AuthProvider } from "@/components/auth/auth-context";
+import { InstallProvider } from "@/components/offline/install-provider";
 import { makeQueryClient } from "@/lib/query";
 
 /**
@@ -17,11 +19,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Map state — which place is open, which categories are on — lives in
-          the URL. That makes a view shareable by pasting a link, survivable
-          across the reload a phone does when it drops signal, and closable with
-          the back button rather than an affordance people have to find. */}
-      <NuqsAdapter>{children}</NuqsAdapter>
+      <AuthProvider>
+        {/* Map state — which place is open, which categories are on — lives in
+            the URL. That makes a view shareable by pasting a link, survivable
+            across the reload a phone does when it drops signal, and closable
+            with the back button rather than a control people have to find. */}
+        <InstallProvider>
+          <NuqsAdapter>{children}</NuqsAdapter>
+        </InstallProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

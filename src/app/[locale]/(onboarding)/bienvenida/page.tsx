@@ -1,16 +1,38 @@
-import { Compass, IdCard } from "lucide-react";
+import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { TierCard } from "@/components/onboarding/tier-card";
+import { Suspense } from "react";
+import { ResidencyChoice } from "@/components/onboarding/residency-choice";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Link } from "@/i18n/navigation";
+import { safeCallbackPath } from "@/modules/access/route-policy";
+import { requirePageMember } from "@/modules/access/server";
 
 /**
- * The fork: visitor or resident.
+ * The fork: resident or visitor.
  *
- * Fully static — there is nothing here that depends on who is asking, so it
- * lands in the static shell and appears the instant a link to it is clicked.
+ * Shown once, immediately after an account exists, because that is the only
+ * moment where asking costs nothing. `next` carries where the person was
+ * heading before sign-in got in the way, so choosing "just visiting" puts them
+ * back on the map rather than on a landing page they did not ask for.
  */
-export default async function WelcomePage() {
+async function Fork({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const next = safeCallbackPath((await searchParams).next, "/mapa");
+  const viewer = await requirePageMember(
+    `/bienvenida?next=${encodeURIComponent(next)}`,
+  );
+  if (viewer.kind === "citizen" || viewer.profile.residencyDeclaredAt)
+    redirect(next === "/bienvenida" ? "/mapa" : next);
+
+  return <ResidencyChoice next={next} />;
+}
+
+export default async function WelcomePage({
+  searchParams,
+}: PageProps<"/[locale]/bienvenida">) {
   const t = await getTranslations("onboarding");
 
   return (
@@ -24,36 +46,18 @@ export default async function WelcomePage() {
         </header>
       </BlurFade>
 
-      <div className="flex flex-col gap-4">
-        <BlurFade delay={0.12} inView>
-          <TierCard
-            href="/verificar"
-            icon={<IdCard className="size-6" aria-hidden />}
-            title={t("citizen.title")}
-            description={t("citizen.description")}
-            action={t("citizen.action")}
-            highlighted
-          />
-        </BlurFade>
+      {/* Reading `next` is a runtime access; isolating it keeps the heading and
+          the frame in the static shell. */}
+      <Suspense fallback={<div className="min-h-52" aria-hidden />}>
+        <Fork searchParams={searchParams} />
+      </Suspense>
 
-        <BlurFade delay={0.18} inView>
-          <TierCard
-            href="/"
-            icon={<Compass className="size-6" aria-hidden />}
-            title={t("visitor.title")}
-            description={t("visitor.description")}
-            action={t("visitor.action")}
-          />
-        </BlurFade>
-      </div>
-
-      <BlurFade delay={0.24} inView>
-        <p className="text-center text-muted-foreground text-xs">
-          <Link className="underline underline-offset-4" href="/entrar">
-            {t("alreadyHaveAccount")}
-          </Link>
-        </p>
-      </BlurFade>
+      <Link
+        href="/mapa"
+        className="text-center text-sm text-muted-foreground underline underline-offset-4"
+      >
+        {t("back")}
+      </Link>
     </>
   );
 }

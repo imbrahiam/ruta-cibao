@@ -1,14 +1,15 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
-import { useTranslations } from "next-intl";
-import { useActionState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
+import { verifyCedulaAction } from "@/app/[locale]/(onboarding)/verificar/actions";
 import {
   initialVerifyState,
   type VerifyState,
-  verifyCedulaAction,
-} from "@/app/[locale]/(onboarding)/verificar/actions";
+} from "@/app/[locale]/(onboarding)/verificar/verify-state";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -17,6 +18,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
+import { useRouter } from "@/i18n/navigation";
 import { CedulaInput } from "./cedula-input";
 import { CedulaPrivacyDrawer } from "./cedula-privacy-drawer";
 import { MunicipalityPicker } from "./municipality-picker";
@@ -73,14 +75,28 @@ const OUTCOME_TONE: Record<Exclude<VerifyState["status"], "idle">, string> = {
 
 export function CedulaForm({
   municipalities,
+  next,
 }: {
   municipalities: Municipality[];
+  /** Where a verified resident continues. Sanitized by the page. */
+  next: string;
 }) {
   const t = useTranslations("onboarding.cedula");
+  const locale = useLocale();
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const [state, formAction] = useActionState(
     verifyCedulaAction,
     initialVerifyState,
   );
+
+  // Verified means done here: leave for the next step rather than sitting on
+  // the form admiring the success message — which is also what left two of
+  // them on screen and nowhere to go.
+  useEffect(() => {
+    if (state.status !== "verified") return;
+    void queryClient.invalidateQueries().then(() => router.push(next));
+  }, [state.status, next, queryClient, router]);
 
   // Narrowed once, so the icon, the tone and the message are known to belong
   // to the same outcome rather than being looked up three separate times.
@@ -95,6 +111,9 @@ export function CedulaForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
+      {/* The Server Action has no route context, so the locale it translates
+          with rides along in the post. */}
+      <input type="hidden" name="locale" value={locale} />
       <Field>
         <FieldLabel htmlFor="cedula">{t("label")}</FieldLabel>
         <CedulaInput

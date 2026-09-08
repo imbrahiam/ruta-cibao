@@ -100,6 +100,7 @@ export const notifications = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     /** Key into `messages/<locale>.json`, e.g. `notifications.placeApproved`. */
     messageKey: text().notNull(),
+    dedupeKey: text().unique(),
     params: jsonb()
       .$type<Record<string, string | number>>()
       .notNull()

@@ -1,20 +1,13 @@
 "use server";
 
+import { hasLocale } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { routing } from "@/i18n/routing";
 import { requireMember } from "@/modules/access/permissions";
 import { getServerViewer } from "@/modules/access/server";
 import { verifyCedulaInput } from "@/modules/citizen/contracts";
 import { verifyCedula } from "@/modules/citizen/verify-cedula";
-
-export type VerifyState = {
-  status: "idle" | "verified" | "pending" | "rejected" | "taken" | "invalid";
-  message: string | null;
-};
-
-export const initialVerifyState: VerifyState = {
-  status: "idle",
-  message: null,
-};
+import type { VerifyState } from "./verify-state";
 
 /**
  * The cédula step, as a Server Action.
@@ -28,7 +21,15 @@ export async function verifyCedulaAction(
   _previous: VerifyState,
   formData: FormData,
 ): Promise<VerifyState> {
-  const t = await getTranslations("onboarding.cedula");
+  // The locale rides along in the form: a Server Action has no route context,
+  // so resolving it from the `[locale]` segment here would crash. Anything
+  // but a known locale falls back to the default rather than trusting the wire.
+  const posted = formData.get("locale");
+  const locale =
+    typeof posted === "string" && hasLocale(routing.locales, posted)
+      ? posted
+      : routing.defaultLocale;
+  const t = await getTranslations({ locale, namespace: "onboarding.cedula" });
 
   const parsed = verifyCedulaInput.safeParse({
     cedula: formData.get("cedula"),
@@ -36,7 +37,7 @@ export async function verifyCedulaAction(
   });
 
   if (!parsed.success) {
-    const tv = await getTranslations("validation");
+    const tv = await getTranslations({ locale, namespace: "validation" });
     return { status: "invalid", message: tv("cedula.format") };
   }
 

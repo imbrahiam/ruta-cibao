@@ -21,7 +21,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { useRealtime } from "@/hooks/use-realtime";
 import { Link } from "@/i18n/navigation";
-import { withOpenKeys } from "@/i18n/open-keys";
+import { renderNotification } from "@/i18n/open-keys";
 import { orpc } from "@/lib/orpc";
 
 /**
@@ -37,6 +37,9 @@ import { orpc } from "@/lib/orpc";
  */
 export function NotificationList({ onNavigate }: { onNavigate?: () => void }) {
   const t = useTranslations("notifications");
+  // Rooted, not scoped: a stored key is a full catalogue path, and the scoped
+  // translator above would look it up under `notifications.` a second time.
+  const catalogue = useTranslations();
   const format = useFormatter();
   const queryClient = useQueryClient();
 
@@ -124,7 +127,7 @@ export function NotificationList({ onNavigate }: { onNavigate?: () => void }) {
               )}
               <ItemContent>
                 <ItemTitle className="whitespace-normal text-sm leading-snug">
-                  {withOpenKeys(t)(item.messageKey, item.params)}
+                  {renderNotification(catalogue, item.messageKey, item.params)}
                 </ItemTitle>
                 <ItemDescription className="text-xs">
                   {format.dateTime(new Date(item.createdAt), "short")}

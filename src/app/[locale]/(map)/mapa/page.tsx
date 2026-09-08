@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
+import { MapAccountCluster } from "@/components/map/map-account-cluster";
 import { MapScreen } from "@/components/map/map-screen";
 import { Spinner } from "@/components/ui/spinner";
 import { mapPalette } from "@/lib/map/palette";
@@ -40,7 +41,9 @@ export default function MapPage() {
     // Which place is open comes from the URL, and reading that is a runtime
     // access. Isolating it here is what lets the rest of the route prerender.
     <Suspense fallback={<MapFallback />}>
-      <MapScreen />
+      {/* The account control sits on the search row on a phone — one avatar
+          with an unread badge — handed over as a slot like before. */}
+      <MapScreen account={<MapAccountCluster />} />
     </Suspense>
   );
 }

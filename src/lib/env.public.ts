@@ -47,6 +47,18 @@ const publicSchema = z.object({
     .enum(["google", "leaflet", "maplibre"])
     .default("google"),
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: optional,
+
+  /**
+   * The VAPID public key, which is public by definition — it is what a browser
+   * signs its subscription against, and the private half never leaves the
+   * server.
+   *
+   * Absent means the account screen offers no push toggle at all, rather than
+   * one that fails at the browser prompt. `VAPID_PUBLIC_KEY` on the server side
+   * must be the same key: two halves of one pair, and a mismatch subscribes
+   * devices the server cannot sign for.
+   */
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: optional,
   /** Enables Advanced Markers. Falls back to Google's documented dev id. */
   NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: optional,
 });
@@ -58,4 +70,7 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_MAP_RENDERER: process.env.NEXT_PUBLIC_MAP_RENDERER,
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID,
+  // Written out literally like the rest: Next inlines these at build time and
+  // a computed lookup comes back undefined.
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
 });

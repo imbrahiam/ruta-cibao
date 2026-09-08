@@ -13,8 +13,9 @@
  * task.
  */
 
+import { eq } from "drizzle-orm";
 import { db, pool } from "@/db";
-import { categories, municipalities, places } from "@/db/schema";
+import { categories, municipalities, placePhotos, places } from "@/db/schema";
 
 const MUNICIPALITIES = [
   { id: "sabaneta", name: "Sabaneta", center: { x: -71.3506, y: 19.4833 } },
@@ -123,12 +124,16 @@ const CATEGORIES = [
     color: "#0891b2",
     sortOrder: 20,
   },
+  // `severity` is what colours the road on the citizen traffic layer. It is a
+  // judgement about this province — water over a road here means turn around —
+  // and an official can change it from the admin panel without a deploy.
   {
     id: "via-bloqueada",
     kind: "traffic",
     name: "Vía bloqueada",
     icon: "octagon-x",
     color: "#dc2626",
+    severity: "blocking",
     sortOrder: 10,
   },
   {
@@ -137,6 +142,7 @@ const CATEGORIES = [
     name: "Hoyo en la vía",
     icon: "triangle-alert",
     color: "#f59e0b",
+    severity: "partial",
     sortOrder: 20,
   },
   {
@@ -145,6 +151,7 @@ const CATEGORIES = [
     name: "Inundación",
     icon: "cloud-rain",
     color: "#2563eb",
+    severity: "blocking",
     sortOrder: 30,
   },
   {
@@ -186,6 +193,8 @@ const PLACES = [
     slug: "presa-de-moncion",
     name: "Presa de Monción",
     description: "La segunda presa más grande del país, sobre el río Mao.",
+    address: "Carretera de la Presa, Monción",
+    imageUrl: "/places/presa-moncion.webp",
     categoryId: "parque",
     municipalityId: "moncion",
     location: { x: -71.1508, y: 19.4494 },
@@ -194,6 +203,8 @@ const PLACES = [
     slug: "parque-central-sabaneta",
     name: "Parque Central de Sabaneta",
     description: "Plaza principal del municipio cabecera.",
+    address: "Centro de Sabaneta",
+    imageUrl: "/places/parque-sabaneta.webp",
     categoryId: "parque",
     municipalityId: "sabaneta",
     location: { x: -71.3506, y: 19.4833 },
@@ -201,6 +212,10 @@ const PLACES = [
   {
     slug: "hospital-municipal-sabaneta",
     name: "Hospital Municipal de Sabaneta",
+    description:
+      "Centro de atención de salud para Sabaneta y comunidades cercanas.",
+    address: "Sabaneta, Santiago Rodríguez",
+    imageUrl: "/places/hospital-sabaneta.webp",
     categoryId: "salud",
     municipalityId: "sabaneta",
     location: { x: -71.3489, y: 19.4851 },
@@ -208,18 +223,73 @@ const PLACES = [
   {
     slug: "ayuntamiento-villa-los-almacigos",
     name: "Ayuntamiento de Villa Los Almácigos",
+    description:
+      "Sede del gobierno municipal y de los servicios del ayuntamiento.",
+    address: "Centro de Villa Los Almácigos",
+    imageUrl: "/places/ayuntamiento-almacigos.webp",
     categoryId: "gobierno",
     municipalityId: "villa-los-almacigos",
     location: { x: -71.4172, y: 19.4162 },
   },
+  // Two businesses, so the claim flow has something real to be demonstrated
+  // against. A business is a place with a `business` category — there is no
+  // separate table — and `business_claims` is what answers "whose is it".
+  {
+    slug: "colmado-la-esquina-sabaneta",
+    name: "Colmado La Esquina",
+    description:
+      "Colmado de barrio con víveres, bebidas frías y servicio de delivery en motor.",
+    address: "Calle Duarte, Sabaneta",
+    imageUrl: null,
+    categoryId: "colmado",
+    municipalityId: "sabaneta",
+    location: { x: -71.3521, y: 19.4839 },
+  },
+  {
+    slug: "comedor-dona-mercedes-moncion",
+    name: "Comedor Doña Mercedes",
+    description:
+      "Comida criolla al mediodía: sancocho los sábados y plato del día toda la semana.",
+    address: "Frente al parque, Monción",
+    imageUrl: null,
+    categoryId: "comedor",
+    municipalityId: "moncion",
+    location: { x: -71.1451, y: 19.4163 },
+  },
   {
     slug: "parada-guaguas-moncion",
     name: "Parada de guaguas de Monción",
+    description:
+      "Punto de salida del transporte público hacia los municipios cercanos.",
+    address: "Centro de Monción",
+    imageUrl: "/places/parada-moncion.webp",
     categoryId: "transporte",
     municipalityId: "moncion",
     location: { x: -71.1447, y: 19.4171 },
   },
 ] as const;
+
+/**
+ * Photos for the seeded places, so the drawer's photo strip and the viewer
+ * have more than one image to show before anybody has uploaded anything.
+ *
+ * A key here is a public path under `public/`, the same convention
+ * `places.imageUrl` uses — nothing is in the bucket to sign. The same file
+ * repeats under distinct query strings because the key is unique and the
+ * strip only needs several photos, not several photographs. Real photos
+ * arrive as object keys the moment a citizen uploads one.
+ */
+const PLACE_PHOTOS: Record<string, readonly string[]> = {
+  "presa-de-moncion": [
+    "/places/presa-moncion.webp",
+    "/places/presa-moncion.webp?2",
+    "/places/presa-moncion.webp?3",
+  ],
+  "parque-central-sabaneta": [
+    "/places/parque-sabaneta.webp",
+    "/places/parque-sabaneta.webp?2",
+  ],
+};
 
 async function main() {
   for (const municipality of MUNICIPALITIES) {
@@ -235,13 +305,17 @@ async function main() {
   for (const category of CATEGORIES) {
     await db
       .insert(categories)
-      .values(category)
+      .values({
+        ...category,
+        severity: "severity" in category ? category.severity : null,
+      })
       .onConflictDoUpdate({
         target: categories.id,
         set: {
           name: category.name,
           icon: category.icon,
           color: category.color,
+          severity: "severity" in category ? category.severity : null,
           sortOrder: category.sortOrder,
         },
       });
@@ -255,14 +329,43 @@ async function main() {
         target: places.slug,
         set: {
           name: place.name,
+          description: place.description,
+          address: place.address,
+          imageUrl: place.imageUrl,
           location: place.location,
           categoryId: place.categoryId,
         },
       });
   }
 
+  let photoCount = 0;
+  for (const [slug, keys] of Object.entries(PLACE_PHOTOS)) {
+    const [place] = await db
+      .select({ id: places.id })
+      .from(places)
+      .where(eq(places.slug, slug))
+      .limit(1);
+    if (!place) continue;
+
+    // Explicit timestamps, spaced a second apart: the strip orders by
+    // `createdAt`, and one insert statement would stamp them all alike.
+    const base = Date.UTC(2026, 0, 1);
+    await db
+      .insert(placePhotos)
+      .values(
+        keys.map((storageKey, index) => ({
+          placeId: place.id,
+          storageKey,
+          status: "published" as const,
+          createdAt: new Date(base + index * 1000),
+        })),
+      )
+      .onConflictDoNothing({ target: placePhotos.storageKey });
+    photoCount += keys.length;
+  }
+
   console.log(
-    `seeded ${MUNICIPALITIES.length} municipalities, ${CATEGORIES.length} categories, ${PLACES.length} places`,
+    `seeded ${MUNICIPALITIES.length} municipalities, ${CATEGORIES.length} categories, ${PLACES.length} places, ${photoCount} photos`,
   );
 }
 
