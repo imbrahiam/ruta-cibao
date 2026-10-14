@@ -23,6 +23,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Link } from "@/i18n/navigation";
 import { type LocationProblem, requestPosition } from "@/lib/geolocation";
 import { shareUrl } from "@/lib/share";
+import { cn } from "@/lib/utils";
 
 /**
  * What the map lets you do without leaving it.
@@ -47,6 +48,16 @@ import { shareUrl } from "@/lib/share";
  */
 const FLOATING =
   "flex size-12 items-center justify-center rounded-full border border-black/5 bg-background text-foreground shadow-[0_2px_10px_-2px_rgb(0_0_0/0.22)] transition-[background-color,box-shadow,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 data-popup-open:bg-foreground data-popup-open:text-background";
+
+/**
+ * The "+" is filled in the primary colour. White, it was the twin of the zoom
+ * control's "+" a few pixels below it, and people pressing it to zoom in got a
+ * menu instead.
+ */
+const FLOATING_PRIMARY = cn(
+  FLOATING,
+  "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",
+);
 
 export function MapActions({
   onLocate,
@@ -97,9 +108,10 @@ export function MapActions({
   }
 
   return (
-    // `right` respects the swipe-bar edge on notched phones; `bottom-28`
-    // clears the renderers' own zoom controls in the same corner.
-    <div className="absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2.5">
+    // `right` respects the swipe-bar edge on notched phones. `bottom-28`
+    // clears the attribution; with a mouse the renderer adds zoom buttons in
+    // the same corner, so the column sits higher to stay clear of them.
+    <div className="absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2.5 pointer-fine:bottom-40">
       {/* The shared menu component rather than a hand-built one: focus moves
           in on open, arrow keys and typeahead walk it, Escape and an outside
           tap close it and hand focus back — the same behaviour as the place
@@ -111,7 +123,7 @@ export function MapActions({
               type="button"
               aria-label={moreT("more")}
               title={moreT("more")}
-              className={FLOATING}
+              className={FLOATING_PRIMARY}
             />
           }
         >

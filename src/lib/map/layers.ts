@@ -1,4 +1,9 @@
-import type { ExpressionSpecification, LayerSpecification } from "maplibre-gl";
+import type {
+  ExpressionSpecification,
+  LayerSpecification,
+  SourceSpecification,
+} from "maplibre-gl";
+import type { MunicipalBoundaries } from "./boundaries";
 import {
   CLUSTER_MAX_ZOOM,
   CLUSTERS_SOURCE_LAYER,
@@ -26,6 +31,25 @@ export const PLACES_LABEL_LAYER_ID = "places-label";
 export const PLACES_HIT_LAYER_ID = "places-hit";
 export const CLUSTERS_LAYER_ID = "clusters-marker";
 export const CLUSTERS_COUNT_LAYER_ID = "clusters-count";
+/** A cell holding one place: drawn as that place's pin, not as a "1". */
+export const CLUSTERS_SINGLE_LAYER_ID = "clusters-single";
+
+/**
+ * The pin image for a feature carrying `color` and `icon`, in the id format
+ * `installPinResolver` draws on demand. Clusters of one carry the same two
+ * properties, so they ask for the same image the place has up close.
+ */
+export function pinImage(selectedId: string | null): ExpressionSpecification {
+  return [
+    "concat",
+    "pin|",
+    ["coalesce", ["get", "color"], mapPalette.ink],
+    "|",
+    ["coalesce", ["get", "icon"], ""],
+    "|",
+    ["case", ["==", ["get", "id"], selectedId ?? ""], "1", "0"],
+  ];
+}
 
 /**
  * The clusters shown below `CLUSTER_MAX_ZOOM`.
@@ -53,7 +77,9 @@ export function clusterLayers(
             ],
           ),
         ];
-  const filter: ExpressionSpecification = [">", count, 0];
+  const visible: ExpressionSpecification = [">", count, 0];
+  const single: ExpressionSpecification = ["==", ["get", "count"], 1];
+  const filter: ExpressionSpecification = ["all", visible, ["!", single]];
   return [
     {
       id: CLUSTERS_LAYER_ID,
@@ -97,6 +123,24 @@ export function clusterLayers(
       },
       paint: { "text-color": mapPalette.land },
     },
+    {
+      // A bubble reading "1" asks for a tap to reveal what a pin would have
+      // said outright. The tile sends a lone place's id, colour and icon, so it
+      // is drawn as itself and opens on the first tap.
+      id: CLUSTERS_SINGLE_LAYER_ID,
+      type: "symbol",
+      source: PLACES_SOURCE_ID,
+      "source-layer": CLUSTERS_SOURCE_LAYER,
+      maxzoom: CLUSTER_MAX_ZOOM + 1,
+      filter: ["all", visible, single],
+      layout: {
+        "icon-image": pinImage(null),
+        "icon-anchor": "bottom",
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 9, 0.75, 13, 1],
+      },
+    },
   ];
 }
 
@@ -106,6 +150,7 @@ export function placesLayers(selectedId: string | null): LayerSpecification[] {
     ["get", "id"],
     selectedId ?? "",
   ];
+  const image = pinImage(selectedId);
 
   return [
     {
@@ -124,15 +169,7 @@ export function placesLayers(selectedId: string | null): LayerSpecification[] {
       source: PLACES_SOURCE_ID,
       "source-layer": PLACES_SOURCE_LAYER,
       layout: {
-        "icon-image": [
-          "concat",
-          "pin|",
-          ["coalesce", ["get", "color"], mapPalette.ink],
-          "|",
-          ["coalesce", ["get", "icon"], ""],
-          "|",
-          ["case", isSelected, "1", "0"],
-        ],
+        "icon-image": image,
         "icon-anchor": "bottom",
         // Every pin stays: hiding one because it collides with another would
         // be the map deciding which neighbour's place matters more.
@@ -178,7 +215,141 @@ export function placesLayers(selectedId: string | null): LayerSpecification[] {
 }
 
 /** Layers a tap should be tested against. */
-export const INTERACTIVE_LAYER_IDS = [PLACES_HIT_LAYER_ID, CLUSTERS_LAYER_ID];
+export const INTERACTIVE_LAYER_IDS = [
+  PLACES_HIT_LAYER_ID,
+  CLUSTERS_SINGLE_LAYER_ID,
+  CLUSTERS_LAYER_ID,
+];
+
+export const PROVINCE_SOURCE_ID = "province";
+export const PROVINCE_LABELS_SOURCE_ID = "province-labels";
+
+/**
+ * The province, drawn as the subject of the map.
+ *
+ * The rest of the country is dimmed rather than hidden — where Santiago and the
+ * border are still matters to somebody finding their way — and the three
+ * municipalities are outlined and named in the basemap's own voice. The names
+ * stand down once streets take over, which is when the basemap's own town
+ * labels say the same thing at street scale.
+ *
+ * Plain data, returned as sources and layers so every MapLibre build —
+ * browser or native — gets the same province from the same polygons.
+ */
+export function provinceSources(
+  boundaries: MunicipalBoundaries,
+): Record<string, SourceSpecification> {
+  return {
+    [PROVINCE_SOURCE_ID]: {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: [
+          ...boundaries.features.map((feature) => ({
+            type: "Feature" as const,
+            properties: { kind: "municipality" },
+            geometry: feature.geometry,
+          })),
+          ...(boundaries.outside
+            ? [
+                {
+                  type: "Feature" as const,
+                  properties: { kind: "outside" },
+                  geometry: boundaries.outside,
+                },
+              ]
+            : []),
+        ],
+      },
+    },
+    [PROVINCE_LABELS_SOURCE_ID]: {
+      type: "geojson",
+      data: {
+        type: "FeatureCollection",
+        features: boundaries.features.flatMap((feature) =>
+          feature.properties.label
+            ? [
+                {
+                  type: "Feature" as const,
+                  properties: { name: feature.properties.name },
+                  geometry: {
+                    type: "Point" as const,
+                    coordinates: feature.properties.label,
+                  },
+                },
+              ]
+            : [],
+        ),
+      },
+    },
+  };
+}
+
+export function provinceLayers(): LayerSpecification[] {
+  const isOutside: ExpressionSpecification = ["==", ["get", "kind"], "outside"];
+  return [
+    {
+      id: "province-outside",
+      type: "fill",
+      source: PROVINCE_SOURCE_ID,
+      filter: isOutside,
+      paint: {
+        "fill-color": mapPalette.outside,
+        // Strongest when the whole province is on screen, gone by street
+        // level, where the edge of a municipality is just another road.
+        "fill-opacity": ["interpolate", ["linear"], ["zoom"], 8, 0.32, 14, 0],
+      },
+    },
+    {
+      id: "province-municipality-line",
+      type: "line",
+      source: PROVINCE_SOURCE_ID,
+      filter: ["!", isOutside],
+      layout: { "line-join": "round" },
+      paint: {
+        "line-color": mapPalette.province,
+        "line-opacity": 0.45,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1, 14, 2],
+        "line-dasharray": [3, 2],
+      },
+    },
+    {
+      // The edge of the mask is the edge of the province, solid, so the
+      // outline reads as one shape with the municipalities dashed inside it.
+      id: "province-line",
+      type: "line",
+      source: PROVINCE_SOURCE_ID,
+      filter: isOutside,
+      layout: { "line-join": "round" },
+      paint: {
+        "line-color": mapPalette.province,
+        "line-opacity": 0.75,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 8, 1.5, 14, 3],
+      },
+    },
+    {
+      id: "province-label",
+      type: "symbol",
+      source: PROVINCE_LABELS_SOURCE_ID,
+      maxzoom: 12,
+      layout: {
+        "text-field": ["get", "name"],
+        "text-font": ["Noto Sans Medium"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 8, 13, 11, 17],
+        "text-letter-spacing": 0.04,
+        "text-max-width": 8,
+        // Ours outrank the basemap's villages: these are the three names the
+        // whole product is about.
+        "text-allow-overlap": true,
+      },
+      paint: {
+        "text-color": mapPalette.province,
+        "text-halo-color": mapPalette.labelHalo,
+        "text-halo-width": 2,
+      },
+    },
+  ];
+}
 
 /**
  * Shows only the chosen categories.

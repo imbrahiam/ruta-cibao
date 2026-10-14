@@ -17,13 +17,17 @@ import { eq } from "drizzle-orm";
 import { db, pool } from "@/db";
 import { categories, municipalities, placePhotos, places } from "@/db/schema";
 
+// Centres and the landmarks below are OpenStreetMap's positions (parque
+// central, ayuntamiento, hospital, dam), checked against Nominatim on
+// 2026-10-14. The rounded estimates that stood here put Sabaneta's square in
+// open country 900 m west of town and the dam 5 km from its wall.
 const MUNICIPALITIES = [
-  { id: "sabaneta", name: "Sabaneta", center: { x: -71.3506, y: 19.4833 } },
-  { id: "moncion", name: "Monción", center: { x: -71.1442, y: 19.4167 } },
+  { id: "sabaneta", name: "Sabaneta", center: { x: -71.3418, y: 19.4757 } },
+  { id: "moncion", name: "Monción", center: { x: -71.1504, y: 19.4109 } },
   {
     id: "villa-los-almacigos",
     name: "Villa Los Almácigos",
-    center: { x: -71.4167, y: 19.4167 },
+    center: { x: -71.442, y: 19.4088 },
   },
 ] as const;
 
@@ -197,7 +201,7 @@ const PLACES = [
     imageUrl: "/places/presa-moncion.webp",
     categoryId: "parque",
     municipalityId: "moncion",
-    location: { x: -71.1508, y: 19.4494 },
+    location: { x: -71.119, y: 19.4057 },
   },
   {
     slug: "parque-central-sabaneta",
@@ -207,7 +211,7 @@ const PLACES = [
     imageUrl: "/places/parque-sabaneta.webp",
     categoryId: "parque",
     municipalityId: "sabaneta",
-    location: { x: -71.3506, y: 19.4833 },
+    location: { x: -71.3418, y: 19.4757 },
   },
   {
     slug: "hospital-municipal-sabaneta",
@@ -218,7 +222,7 @@ const PLACES = [
     imageUrl: "/places/hospital-sabaneta.webp",
     categoryId: "salud",
     municipalityId: "sabaneta",
-    location: { x: -71.3489, y: 19.4851 },
+    location: { x: -71.3417, y: 19.4785 },
   },
   {
     slug: "ayuntamiento-villa-los-almacigos",
@@ -229,7 +233,7 @@ const PLACES = [
     imageUrl: "/places/ayuntamiento-almacigos.webp",
     categoryId: "gobierno",
     municipalityId: "villa-los-almacigos",
-    location: { x: -71.4172, y: 19.4162 },
+    location: { x: -71.442, y: 19.4088 },
   },
   // Two businesses, so the claim flow has something real to be demonstrated
   // against. A business is a place with a `business` category — there is no
@@ -239,11 +243,11 @@ const PLACES = [
     name: "Colmado La Esquina",
     description:
       "Colmado de barrio con víveres, bebidas frías y servicio de delivery en motor.",
-    address: "Calle Duarte, Sabaneta",
+    address: "Calle Rosa Duarte, Sabaneta",
     imageUrl: null,
     categoryId: "colmado",
     municipalityId: "sabaneta",
-    location: { x: -71.3521, y: 19.4839 },
+    location: { x: -71.3405, y: 19.4831 },
   },
   {
     slug: "comedor-dona-mercedes-moncion",
@@ -254,7 +258,7 @@ const PLACES = [
     imageUrl: null,
     categoryId: "comedor",
     municipalityId: "moncion",
-    location: { x: -71.1451, y: 19.4163 },
+    location: { x: -71.1497, y: 19.4106 },
   },
   {
     slug: "parada-guaguas-moncion",
@@ -265,7 +269,7 @@ const PLACES = [
     imageUrl: "/places/parada-moncion.webp",
     categoryId: "transporte",
     municipalityId: "moncion",
-    location: { x: -71.1447, y: 19.4171 },
+    location: { x: -71.151, y: 19.4113 },
   },
 ] as const;
 

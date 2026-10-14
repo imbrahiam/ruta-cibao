@@ -14,6 +14,7 @@ import {
 import { useTranslations } from "next-intl";
 import { Protocol } from "pmtiles";
 import { useEffect, useRef, useState } from "react";
+import { useBoundaries } from "@/hooks/use-boundaries";
 import { publicEnv } from "@/lib/env.public";
 import {
   COUNTRY_BOUNDS,
@@ -25,11 +26,15 @@ import {
 } from "@/lib/map/config";
 import {
   CLUSTERS_LAYER_ID,
+  CLUSTERS_SINGLE_LAYER_ID,
   categoryFilter,
   clusterLayers,
   INTERACTIVE_LAYER_IDS,
   PLACES_LAYER_ID,
+  pinImage,
   placesLayers,
+  provinceLayers,
+  provinceSources,
 } from "@/lib/map/layers";
 import { markerPin, markerSize } from "@/lib/map/marker-pin";
 import { buildMapStyle } from "@/lib/map/style";
@@ -95,6 +100,7 @@ export function CitizenMap({
   });
   const container = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const { data: boundaries } = useBoundaries();
   const pointRef = useRef(onMapPoint);
   pointRef.current = onMapPoint;
   const map = useRef<MapLibreMap | null>(null);
@@ -301,7 +307,30 @@ export function CitizenMap({
         }
       }
     }
+    if (instance.getLayer(CLUSTERS_SINGLE_LAYER_ID)) {
+      instance.setLayoutProperty(
+        CLUSTERS_SINGLE_LAYER_ID,
+        "icon-image",
+        pinImage(selectedId),
+      );
+    }
   }, [selectedId, ready]);
+
+  // The province outline arrives on its own request, after the map is up; it
+  // goes in beneath the pins so it never covers a place.
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || !boundaries?.features.length) return;
+    const sources = provinceSources(boundaries);
+    for (const [id, source] of Object.entries(sources)) {
+      if (!instance.getSource(id)) instance.addSource(id, source);
+    }
+    for (const layer of provinceLayers()) {
+      if (!instance.getLayer(layer.id)) {
+        instance.addLayer(layer, CLUSTERS_LAYER_ID);
+      }
+    }
+  }, [boundaries, ready]);
 
   useEffect(() => {
     const instance = map.current;

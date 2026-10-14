@@ -255,8 +255,16 @@ export function buildMapStyle(
         '<a href="https://protomaps.com">Protomaps</a> © OpenStreetMap',
       maxzoom: 15,
     };
-    // Spanish labels where the data carries them.
-    style.layers.push(...layers(SOURCE_ID, protomapsFlavor(), { lang: "es" }));
+    // Spanish labels where the data carries them. Without the basemap's own
+    // points of interest: an OSM "Ayuntamiento" icon beside the province's
+    // pin for the same building is two answers to one question, and only one
+    // of them can be tapped. The Google renderer hides its POIs for the same
+    // reason.
+    style.layers.push(
+      ...layers(SOURCE_ID, protomapsFlavor(), { lang: "es" }).filter(
+        (layer) => layer.id !== "pois",
+      ),
+    );
   }
 
   return style;

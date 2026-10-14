@@ -35,6 +35,10 @@ export const mapPalette = {
   forest: "#cfe4c6",
   farmland: "#edf0e0",
   labelHalo: "#ffffff",
+  /** The province's outline and names: the app's primary green. */
+  province: "#1f4d3f",
+  /** Laid over the rest of the country, at low opacity, to dim it. */
+  outside: "#8c8a83",
 } as const;
 
 export type MapPalette = typeof mapPalette;

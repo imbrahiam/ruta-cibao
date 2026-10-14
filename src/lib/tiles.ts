@@ -127,6 +127,10 @@ async function clustersTile({
       select
         ST_Transform(places.location, 3857) as mercator_point,
         categories.color,
+        categories.icon,
+        places.id,
+        places.slug,
+        places.name,
         places.category_id as category,
         ST_SnapToGrid(
           ST_Transform(places.location, 3857),
@@ -159,6 +163,13 @@ async function clustersTile({
         ) as geom,
         count(*)::int as count,
         mode() within group (order by snapped.color) as color,
+        -- A cell of one is drawn as that place's own pin and opens on a tap,
+        -- so it carries what a point tile would. Null on every larger cell.
+        case when count(*) = 1 then min(snapped.icon::text) end as icon,
+        case when count(*) = 1 then min(snapped.id::text) end as id,
+        case when count(*) = 1 then min(snapped.slug) end as slug,
+        case when count(*) = 1 then min(snapped.name) end as name,
+        case when count(*) = 1 then min(snapped.category::text) end as category,
         cell_counts.category_counts
       from snapped
       join cell_counts on cell_counts.cell = snapped.cell

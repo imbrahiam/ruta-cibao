@@ -158,7 +158,7 @@ const TRAFFIC = [
   {
     label: "Vía bloqueada en Sabaneta",
     category: "via-bloqueada",
-    at: { lng: -71.3506, lat: 19.4833 },
+    at: { lng: -71.3392, lat: 19.4769 },
     street: true,
     description: "Camión atravesado desde esta mañana. No se puede pasar.",
     hoursAgo: 2,
@@ -176,7 +176,7 @@ const TRAFFIC = [
   {
     label: "Hoyo en Monción",
     category: "hoyo",
-    at: { lng: -71.1447, lat: 19.4171 },
+    at: { lng: -71.1499, lat: 19.4113 },
     street: false,
     description: "Hoyo grande justo saliendo del parque.",
     hoursAgo: 5,
@@ -185,7 +185,7 @@ const TRAFFIC = [
   {
     label: "Hoyo en Villa Los Almácigos",
     category: "hoyo",
-    at: { lng: -71.4172, lat: 19.4162 },
+    at: { lng: -71.4415, lat: 19.409 },
     street: false,
     description: null,
     hoursAgo: 3,
@@ -196,7 +196,7 @@ const TRAFFIC = [
     // colour a speed-based traffic layer cannot have.
     label: "Inundación resuelta",
     category: "inundacion",
-    at: { lng: -71.3489, lat: 19.4851 },
+    at: { lng: -71.3412, lat: 19.4783 },
     street: true,
     description: "Bajó el agua, ya se puede pasar.",
     hoursAgo: 4,
