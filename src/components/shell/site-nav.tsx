@@ -64,7 +64,7 @@ function Destinations({ mobile }: { mobile: boolean }) {
     return (
       <nav
         aria-label={t("label")}
-        className="fixed inset-x-0 bottom-0 z-40 grid h-(--mobile-nav-height) grid-cols-5 content-start border-black/5 border-t bg-background/90 px-1 pt-1.5 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-[0_-1px_12px_-6px_rgb(0_0_0/0.12)] backdrop-blur-xl md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid h-(--mobile-nav-height) grid-cols-5 content-start border-border border-t bg-background px-0.5 pt-1.5 pb-[max(.5rem,env(safe-area-inset-bottom))] md:hidden"
       >
         {destinations.map(({ href, key, icon: Icon }) => {
           const current = isCurrent(pathname, href);
@@ -74,28 +74,39 @@ function Destinations({ mobile }: { mobile: boolean }) {
               href={href}
               aria-current={current ? "page" : undefined}
               className={cn(
-                "group flex min-h-12 flex-col items-center justify-center gap-1 rounded-xl text-[11px] leading-none transition-colors focus-visible:outline-2 focus-visible:outline-offset-2",
+                "group flex min-h-12 flex-col items-center justify-start gap-1 rounded-xl pt-0.5 text-xs leading-none tracking-[-0.01em] focus-visible:outline-2 focus-visible:outline-offset-2",
                 current
-                  ? "font-semibold text-primary"
+                  ? "font-semibold text-foreground"
                   : "font-medium text-muted-foreground active:text-foreground",
               )}
             >
-              {/* The pill behind the icon is the selection, Material-style:
-                  a filled shape reads at a glance in sunlight, where a colour
-                  change on a thin icon does not. */}
-              <span
-                className={cn(
-                  "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
-                  current ? "bg-accent" : "group-active:bg-secondary",
-                )}
-              >
+              {/* The selection is a soft grey pill behind the icon and a dot
+                  under the word: a shape and a mark, so it reads in sunlight
+                  and without colour. The pill grows in under motion-safe only. */}
+              <span className="relative flex h-8 w-14 items-center justify-center">
+                <span
+                  aria-hidden
+                  className={cn(
+                    "absolute inset-0 rounded-full",
+                    current
+                      ? "nav-pill bg-foreground/[0.08]"
+                      : "group-active:bg-foreground/[0.05]",
+                  )}
+                />
                 <Icon
-                  className="size-5"
+                  className="relative size-[22px]"
                   strokeWidth={current ? 2.25 : 1.75}
                   aria-hidden
                 />
               </span>
-              <span className="max-w-full truncate px-0.5">{t(key)}</span>
+              <span className="max-w-full truncate">{t(key)}</span>
+              <span
+                aria-hidden
+                className={cn(
+                  "size-1 rounded-full",
+                  current ? "bg-foreground" : "bg-transparent",
+                )}
+              />
             </Link>
           );
         })}
@@ -105,7 +116,7 @@ function Destinations({ mobile }: { mobile: boolean }) {
 
   return (
     <nav aria-label={t("label")} className="hidden items-center gap-1 md:flex">
-      {destinations.map(({ href, key, icon: Icon }) => {
+      {destinations.map(({ href, key }) => {
         const current = isCurrent(pathname, href);
         return (
           <Link
@@ -113,14 +124,19 @@ function Destinations({ mobile }: { mobile: boolean }) {
             href={href}
             aria-current={current ? "page" : undefined}
             className={cn(
-              "flex h-10 items-center justify-center gap-1.5 rounded-full px-3 font-medium text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:px-4",
+              "relative flex h-10 items-center justify-center rounded-full px-3.5 font-medium text-[15px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 lg:px-4",
               current
-                ? "bg-accent text-primary"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                ? "bg-foreground/[0.07] text-foreground"
+                : "text-muted-foreground hover:bg-foreground/[0.04] hover:text-foreground",
             )}
           >
-            <Icon className="size-4" aria-hidden />
             {t(key)}
+            {current && (
+              <span
+                aria-hidden
+                className="absolute -bottom-2 left-1/2 size-1 -translate-x-1/2 rounded-full bg-foreground"
+              />
+            )}
           </Link>
         );
       })}
@@ -137,7 +153,7 @@ export function SiteNav({ mobile = false }: { mobile?: boolean }) {
         mobile ? (
           <div
             aria-hidden
-            className="fixed inset-x-0 bottom-0 z-40 h-(--mobile-nav-height) border-t bg-background/95 backdrop-blur-md md:hidden"
+            className="fixed inset-x-0 bottom-0 z-40 h-(--mobile-nav-height) border-t bg-background md:hidden"
           />
         ) : (
           <div aria-hidden className="hidden h-11 md:block" />

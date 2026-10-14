@@ -76,7 +76,7 @@ export async function AppHeader() {
   const t = await getTranslations("app");
 
   return (
-    <header className="sticky top-0 z-40 bg-background/90 backdrop-blur-xl supports-backdrop-filter:bg-background/75">
+    <header className="sticky top-0 z-40 bg-background">
       {/* Standard, invisible until focused, and the first thing a keyboard or
           screen-reader user reaches. */}
       <a
@@ -86,7 +86,7 @@ export async function AppHeader() {
         {t("skipToContent")}
       </a>
 
-      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-5 md:h-20">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-5 md:h-[4.5rem]">
         <Brand />
         <SiteNav />
 

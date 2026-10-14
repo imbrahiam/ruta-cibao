@@ -2,10 +2,10 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowUpRight,
-  BadgeCheck,
   Bell,
-  BellOff,
+  BellRing,
+  Bookmark,
+  ChevronRight,
   ClipboardList,
   Fingerprint,
   LogOut,
@@ -16,17 +16,116 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { useEffect, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-context";
 import { SavedPlaces } from "@/components/map/saved-places";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui-patterns/empty-state";
 import { usePasskeySupport } from "@/hooks/use-passkey-support";
 import { usePushSubscription } from "@/hooks/use-push-subscription";
 import { Link, useRouter } from "@/i18n/navigation";
 import { authClient, signOut } from "@/lib/auth-client";
+import { orpc } from "@/lib/orpc";
+import { cn } from "@/lib/utils";
+
+type RowIcon = typeof Bell;
+
+/**
+ * One line of the account page: a plain row under a bold heading.
+ *
+ * Settings the way a council website lists services: the name underlined so
+ * it reads as something you press, a short hint under it, and either a chevron
+ * (it goes somewhere) or a control at the edge (it does something here). No
+ * cards — a ruled list is quicker to scan and costs nothing to draw.
+ */
+function AccountRow({
+  icon: Icon,
+  title,
+  hint,
+  href,
+  onClick,
+  aside,
+  control,
+}: {
+  icon: RowIcon;
+  title: string;
+  hint?: string;
+  href?: string;
+  onClick?: () => void;
+  /** Short state shown before the chevron, such as a count. */
+  aside?: ReactNode;
+  /** A control at the edge, for rows that act in place. */
+  control?: ReactNode;
+}) {
+  const pressable = Boolean(href || onClick);
+  const body = (
+    <>
+      <Icon className="size-[22px] shrink-0 text-primary" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span
+          className={cn(
+            "block font-semibold text-[17px] leading-snug",
+            pressable &&
+              "underline decoration-foreground/25 decoration-1 underline-offset-[5px] group-hover:decoration-foreground",
+          )}
+        >
+          {title}
+        </span>
+        {hint && (
+          <span className="mt-0.5 block text-[15px] text-muted-foreground leading-snug">
+            {hint}
+          </span>
+        )}
+      </span>
+      {aside}
+      {pressable && (
+        <ChevronRight
+          className="size-5 shrink-0 text-muted-foreground/70"
+          aria-hidden
+        />
+      )}
+    </>
+  );
+  const shape =
+    "group -mx-2 flex min-h-[72px] w-[calc(100%+1rem)] items-center gap-4 rounded-xl px-2 py-3 text-left";
+  const press =
+    "transition-colors hover:bg-secondary/70 active:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2";
+
+  if (href) {
+    return (
+      <Link href={href} className={cn(shape, press)}>
+        {body}
+      </Link>
+    );
+  }
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={cn(shape, press)}>
+        {body}
+      </button>
+    );
+  }
+  return (
+    <div className={cn(shape, "flex-wrap sm:flex-nowrap")}>
+      {body}
+      {control && (
+        <div className="w-full pl-[38px] sm:w-auto sm:pl-0">{control}</div>
+      )}
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="mt-9">
+      <h2 className="mb-1 font-bold text-lg tracking-[-0.01em]">{title}</h2>
+      <ul className="ruled border-border border-y">{children}</ul>
+    </section>
+  );
+}
 
 export function AccountScreen() {
   const t = useTranslations("account");
@@ -138,286 +237,323 @@ export function AccountScreen() {
       toast.success(shellT("passkeyAdded"));
     });
   }
+  const member = Boolean(viewer && viewer.kind !== "anonymous");
+  // The same queries the bell and the bookmark panel run, so these counts come
+  // from the cache they already fill rather than costing a request of their own.
+  const notifications = useQuery({
+    ...orpc.notifications.list.queryOptions({ input: { limit: 20 } }),
+    enabled: member,
+  });
+  const saved = useQuery({
+    ...orpc.places.saved.queryOptions(),
+    enabled: member,
+  });
+  const unread = notifications.data?.unread ?? 0;
+  const savedCount = saved.data?.length ?? 0;
+
+  function openPanel(next: "avisos" | "guardados") {
+    setPanel(next);
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}${window.location.search}#${next}`,
+    );
+  }
+
   if (isLoading)
     return (
-      <p
-        className="flex justify-center gap-2 py-16 text-sm text-muted-foreground"
-        role="status"
-      >
-        <Spinner className="size-4" />
-        {t("loading")}
-      </p>
+      <div role="status" className="mx-auto max-w-2xl space-y-4">
+        <span className="sr-only">{t("loading")}</span>
+        <Skeleton aria-hidden className="h-9 w-40" />
+        <div aria-hidden className="flex items-center gap-4 pt-4">
+          <Skeleton className="size-14 rounded-full" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-5 w-1/2" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
+        </div>
+      </div>
     );
   if (isUnavailable)
     return (
-      <div role="alert" className="surface-card p-8 text-center">
-        <p>{t("error")}</p>
-        <Button className="mt-4" onClick={() => window.location.reload()}>
-          {t("retry")}
-        </Button>
+      <div className="mx-auto max-w-2xl">
+        <EmptyState
+          illustration="account"
+          title={t("error")}
+          action={
+            <Button
+              className="rounded-full px-6"
+              onClick={() => window.location.reload()}
+            >
+              {t("retry")}
+            </Button>
+          }
+        />
       </div>
     );
-  const member = viewer && viewer.kind !== "anonymous";
+
   const verificationKey =
-    member && viewer.cedulaStatus === "in_review"
+    member &&
+    viewer?.kind !== "anonymous" &&
+    viewer?.cedulaStatus === "in_review"
       ? "verificationReview"
       : member &&
-          (viewer.cedulaStatus === "matched" ||
-            viewer.cedulaStatus === "pending")
+          viewer?.kind !== "anonymous" &&
+          (viewer?.cedulaStatus === "matched" ||
+            viewer?.cedulaStatus === "pending")
         ? "verificationDocuments"
         : "verification";
+
+  const countBadge = (count: number) =>
+    count > 0 ? (
+      <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-foreground px-2 font-semibold text-background text-sm tabular-nums">
+        {count > 99 ? "99+" : count}
+      </span>
+    ) : null;
+
   return (
-    <div className="mx-auto max-w-3xl">
-      <p className="page-eyebrow mb-3">{t("eyebrow")}</p>
-      <h1 className="page-title mb-8">{t("title")}</h1>
-      <section className="surface-card mb-6 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-7">
-        {member && viewer.image ? (
-          <span className="relative size-14 shrink-0 overflow-hidden rounded-2xl">
-            <Image
-              src={viewer.image}
-              alt=""
-              fill
-              sizes="3.5rem"
-              className="object-cover"
-              referrerPolicy="no-referrer"
-              unoptimized
-            />
-          </span>
-        ) : (
-          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-primary">
-            <UserRound className="size-6" aria-hidden />
-          </span>
-        )}
-        <div className="flex-1">
-          <h2 className="font-semibold text-xl tracking-tight">
-            {member ? viewer.displayName : t("anonymousTitle")}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {member
-              ? viewer.kind === "citizen"
-                ? t("verified")
-                : t("visitor")
-              : t("anonymousBody")}
-          </p>
-        </div>
-        {!member && (
-          <Button
-            className="h-11 self-start rounded-full px-5"
-            nativeButton={false}
-            render={<Link href="/entrar?callbackUrl=%2Fcuenta" />}
-          >
-            {t("signIn")}
-          </Button>
-        )}
-      </section>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {(
-          [
-            { key: "contributions", href: "/aportes", icon: ClipboardList },
-            { key: "passport", href: "/pasaporte", icon: Stamp },
-            { key: "install", href: "/instalar", icon: Smartphone },
-            { key: "privacy", href: "/privacidad", icon: ShieldCheck },
-            ...(member && viewer.kind === "visitor"
-              ? [
-                  {
-                    key: verificationKey,
-                    href: "/verificar",
-                    icon: Fingerprint,
-                  },
-                ]
-              : []),
-            ...(member && viewer.staffRole !== "none"
-              ? [
-                  {
-                    key: "moderation" as const,
-                    href: "/moderacion",
-                    icon: ShieldCheck,
-                  },
-                ]
-              : []),
-          ] as const
-        ).map(({ key, href, icon: Icon }) => (
-          <Link
-            key={key}
-            href={href}
-            className="surface-card group flex items-start gap-4 p-5 transition-[box-shadow,transform] duration-200 hover:shadow-[0_12px_32px_-16px_rgb(0_0_0/0.3)] focus-visible:outline-2 focus-visible:outline-offset-4 motion-safe:hover:-translate-y-0.5 sm:p-6"
-          >
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-primary">
-              <Icon className="size-5" aria-hidden />
+    <div className="mx-auto max-w-2xl">
+      <h1 className="page-title">{t("title")}</h1>
+
+      {member && viewer && viewer.kind !== "anonymous" ? (
+        <div className="mt-6 flex items-center gap-4">
+          {viewer.image ? (
+            <span className="relative size-14 shrink-0 overflow-hidden rounded-full">
+              <Image
+                src={viewer.image}
+                alt=""
+                fill
+                sizes="3.5rem"
+                className="object-cover"
+                referrerPolicy="no-referrer"
+                unoptimized
+              />
             </span>
-            <div className="flex-1">
-              <h2 className="font-semibold tracking-tight">{t(key)}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {t(`${key}Hint`)}
-              </p>
-            </div>
-            <ArrowUpRight
-              className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
-              aria-hidden
-            />
-          </Link>
-        ))}
-        {member && (
-          <>
-            {/* No leading icon: the trigger on the right already is the bell,
-                and a decorative twin only stretched the card. The hint stays
-                to one short line so both cards keep the same compact height. */}
-            <section
-              id="avisos"
-              className="surface-card flex scroll-mt-24 items-center gap-4 p-5 sm:p-6"
-            >
-              <div className="flex-1">
-                <h2 className="font-semibold tracking-tight">
-                  {notificationsT("title")}
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {t("avisosHint")}
-                </p>
-              </div>
-              <NotificationBell
-                open={panel === "avisos"}
-                onOpenChange={(next) => {
-                  if (next) setPanel("avisos");
-                  else closePanel();
-                }}
-              />
-            </section>
-            <section
-              id="guardados"
-              className="surface-card flex scroll-mt-24 items-center gap-4 p-5 sm:p-6"
-            >
-              <div className="flex-1">
-                <h2 className="font-semibold tracking-tight">{t("saved")}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {t("savedHint")}
-                </p>
-              </div>
-              <SavedPlaces
-                open={panel === "guardados"}
-                onOpenChange={(next) => {
-                  if (next) setPanel("guardados");
-                  else closePanel();
-                }}
-              />
-            </section>
-          </>
-        )}
-      </div>
-      {/* Nothing at all until the list has answered: offering to set up
-          something already set up is worse than a moment with no card. */}
-      {member && passkeySupport === "available" && passkeys.isSuccess && (
-        <section className="surface-card mt-4 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
-          {hasPasskey ? (
-            <BadgeCheck
-              className="size-5 shrink-0 text-emerald-600"
-              aria-hidden
-            />
           ) : (
-            <Fingerprint className="size-5 shrink-0 text-primary" aria-hidden />
+            <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground/70">
+              <UserRound className="size-7" aria-hidden />
+            </span>
           )}
-          <div className="flex-1">
-            <h2 className="font-semibold tracking-tight">{t("passkey")}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {hasPasskey ? t("passkeyActiveHint") : t("passkeyHint")}
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-xl tracking-[-0.01em]">
+              {viewer.displayName}
             </p>
-          </div>
-          {hasPasskey ? (
-            <p className="shrink-0 font-medium text-emerald-700 text-sm dark:text-emerald-400">
-              {t("passkeyActive")}
-            </p>
-          ) : (
-            <Button
-              variant="outline"
-              className="h-11 shrink-0 rounded-full px-5"
-              disabled={isRegistering}
-              onClick={addPasskey}
-            >
-              {isRegistering ? shellT("passkeyAdding") : shellT("addPasskey")}
-            </Button>
-          )}
-        </section>
-      )}
-      {/* Per device, which is why it lives beside the passkey rather than in a
-          settings list: both are things this browser can do that the account
-          alone cannot, and both are meaningless on somebody else's phone. */}
-      {member && push.state !== "unknown" && push.state !== "unsupported" && (
-        <section className="surface-card mt-4 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
-          {push.state === "on" ? (
-            <Bell className="size-5 shrink-0 text-primary" aria-hidden />
-          ) : (
-            <BellOff
-              className="size-5 shrink-0 text-muted-foreground"
-              aria-hidden
-            />
-          )}
-          <div className="flex-1">
-            <h2 className="font-semibold tracking-tight">{t("push")}</h2>
-            <p className="mt-2 text-muted-foreground text-sm leading-relaxed">
-              {t(
-                push.state === "denied"
-                  ? "pushDeniedHint"
-                  : push.state === "on"
-                    ? "pushOnHint"
-                    : "pushHint",
+            <p className="mt-0.5 flex items-center gap-1.5 text-[15px] text-muted-foreground">
+              {viewer.kind === "citizen" && (
+                <ShieldCheck
+                  className="size-4 shrink-0 text-primary"
+                  aria-hidden
+                />
               )}
+              {viewer.kind === "citizen" ? t("verified") : t("visitor")}
             </p>
           </div>
-          {push.state !== "denied" && (
+        </div>
+      ) : (
+        <EmptyState
+          className="mt-6"
+          illustration="account"
+          title={t("anonymousTitle")}
+          action={
             <Button
-              variant="outline"
-              className="h-11 shrink-0 rounded-full px-5"
-              disabled={push.pending}
-              onClick={() =>
-                void (push.state === "on" ? push.disable() : push.enable())
-              }
+              className="h-11 rounded-full px-6"
+              nativeButton={false}
+              render={<Link href="/entrar?callbackUrl=%2Fcuenta" />}
             >
-              {push.pending
-                ? t("pushWorking")
-                : push.state === "on"
-                  ? t("pushOff")
-                  : t("pushOn")}
+              {t("signIn")}
             </Button>
-          )}
-        </section>
+          }
+        />
       )}
 
-      <div className="mt-8 flex items-center justify-between gap-4">
-        <Button
-          variant="ghost"
-          nativeButton={false}
-          render={<Link href="/explorar" />}
-        >
-          {t("explore")}
-        </Button>
-        {member && (
-          <Button
-            variant="ghost"
-            disabled={pending}
-            onClick={async () => {
-              setPending(true);
-              setError(false);
-              try {
-                const result = await signOut();
-                if (result.error) throw result.error;
-                queryClient.clear();
-                router.replace("/");
-                router.refresh();
-              } catch {
-                setError(true);
-              } finally {
-                setPending(false);
-              }
-            }}
-          >
-            <LogOut aria-hidden />
-            {t("signOut")}
-          </Button>
+      {member && (
+        <Section title={t("activity")}>
+          <li>
+            <AccountRow
+              icon={ClipboardList}
+              title={t("contributions")}
+              href="/aportes"
+            />
+          </li>
+          <li>
+            <AccountRow icon={Stamp} title={t("passport")} href="/pasaporte" />
+          </li>
+          <li id="guardados" className="scroll-mt-24">
+            <AccountRow
+              icon={Bookmark}
+              title={t("saved")}
+              onClick={() => openPanel("guardados")}
+              aside={countBadge(savedCount)}
+            />
+          </li>
+          <li id="avisos" className="scroll-mt-24">
+            <AccountRow
+              icon={Bell}
+              title={notificationsT("title")}
+              onClick={() => openPanel("avisos")}
+              aside={countBadge(unread)}
+            />
+          </li>
+        </Section>
+      )}
+
+      {member &&
+        ((push.state !== "unknown" && push.state !== "unsupported") ||
+          (passkeySupport === "available" && passkeys.isSuccess)) && (
+          <Section title={t("device")}>
+            {/* Per device, which is why these sit together: both are things
+                this browser can do that the account alone cannot, and both are
+                meaningless on somebody else's phone. */}
+            {push.state !== "unknown" && push.state !== "unsupported" && (
+              <li>
+                <AccountRow
+                  icon={push.state === "on" ? BellRing : Bell}
+                  title={t("push")}
+                  hint={
+                    push.state === "denied"
+                      ? t("pushDeniedHint")
+                      : push.state === "on"
+                        ? t("pushOnShort")
+                        : t("pushShort")
+                  }
+                  control={
+                    push.state !== "denied" && (
+                      <Button
+                        variant={push.state === "on" ? "outline" : "default"}
+                        className="h-11 rounded-full px-5"
+                        disabled={push.pending}
+                        onClick={() =>
+                          void (push.state === "on"
+                            ? push.disable()
+                            : push.enable())
+                        }
+                      >
+                        {push.pending
+                          ? t("pushWorking")
+                          : push.state === "on"
+                            ? t("pushOff")
+                            : t("pushOn")}
+                      </Button>
+                    )
+                  }
+                />
+              </li>
+            )}
+            {/* Nothing at all until the list has answered: offering to set up
+                something already set up is worse than a moment without it. */}
+            {passkeySupport === "available" && passkeys.isSuccess && (
+              <li>
+                <AccountRow
+                  icon={Fingerprint}
+                  title={t("passkey")}
+                  hint={hasPasskey ? t("passkeyActive") : t("passkeyShort")}
+                  control={
+                    !hasPasskey && (
+                      <Button
+                        variant="outline"
+                        className="h-11 rounded-full px-5"
+                        disabled={isRegistering}
+                        onClick={addPasskey}
+                      >
+                        {isRegistering
+                          ? shellT("passkeyAdding")
+                          : shellT("addPasskey")}
+                      </Button>
+                    )
+                  }
+                />
+              </li>
+            )}
+          </Section>
         )}
-      </div>
+
+      <Section title={t("more")}>
+        {member && viewer?.kind === "visitor" && (
+          <li>
+            <AccountRow
+              icon={Fingerprint}
+              title={t(verificationKey)}
+              href="/verificar"
+            />
+          </li>
+        )}
+        {member &&
+          viewer?.kind !== "anonymous" &&
+          viewer?.staffRole !== "none" && (
+            <li>
+              <AccountRow
+                icon={ShieldCheck}
+                title={t("moderation")}
+                href="/moderacion"
+              />
+            </li>
+          )}
+        <li>
+          <AccountRow icon={Smartphone} title={t("install")} href="/instalar" />
+        </li>
+        <li>
+          <AccountRow
+            icon={ShieldCheck}
+            title={t("privacy")}
+            href="/privacidad"
+          />
+        </li>
+        {member && (
+          <li>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={async () => {
+                setPending(true);
+                setError(false);
+                try {
+                  const result = await signOut();
+                  if (result.error) throw result.error;
+                  queryClient.clear();
+                  router.replace("/");
+                  router.refresh();
+                } catch {
+                  setError(true);
+                } finally {
+                  setPending(false);
+                }
+              }}
+              className="-mx-2 flex min-h-[72px] w-[calc(100%+1rem)] items-center gap-4 rounded-xl px-2 py-3 text-left font-semibold text-[17px] text-red-800 transition-colors hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-60"
+            >
+              <LogOut className="size-[22px] shrink-0" aria-hidden />
+              {t("signOut")}
+            </button>
+          </li>
+        )}
+      </Section>
       {error && (
-        <p role="alert" className="mt-4 text-sm text-destructive">
+        <p role="alert" className="mt-4 text-destructive text-sm">
           {t("error")}
         </p>
+      )}
+
+      {/* The panels the rows above open. Their own triggers stay hidden: the
+          row is the trigger, and a second button for the same thing would be a
+          second tab stop that says less. */}
+      {member && (
+        <>
+          <NotificationBell
+            className="hidden"
+            open={panel === "avisos"}
+            onOpenChange={(next) => {
+              if (next) setPanel("avisos");
+              else closePanel();
+            }}
+          />
+          <SavedPlaces
+            className="hidden"
+            open={panel === "guardados"}
+            onOpenChange={(next) => {
+              if (next) setPanel("guardados");
+              else closePanel();
+            }}
+          />
+        </>
       )}
     </div>
   );

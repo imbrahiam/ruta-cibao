@@ -56,7 +56,7 @@
     "zoomForMore": "Acerca el mapa para ver más registros.",
     "safetyHint": "Comprueba el clima, el acceso y el estado del camino antes de salir. El trazado es un aporte comunitario, no una garantía de acceso.",
     "eyebrow": "A pie, con calma y en comunidad",
-    "title": "Rutas para descubrir el Cibao",
+    "title": "Rutas para descubrir la provincia",
     "intro": "Explora recorridos ecológicos, culturales y de aventura. Consulta el trazado y prepara tu salida antes de partir.",
     "create": "Trazar una ruta",
     "signIn": "Entrar para aportar",
@@ -100,7 +100,7 @@
     "pending": "Pendientes de revisión",
     "allDifficulties": "Todas las dificultades",
     "loading": "Cargando rutas…",
-    "empty": "No hay rutas en esta selección",
+    "empty": "No hay rutas en esta selección.",
     "emptyHint": "Puedes cambiar los filtros o compartir un recorrido que conozcas.",
     "retry": "Reintentar",
     "status": {
@@ -131,7 +131,8 @@
     "close": "Cerrar",
     "mapEmpty": "No hay registros en esta vista",
     "mapError": "No se pudo cargar esta capa. Intenta de nuevo.",
-    "caseLocation": "Ubicación del caso (opcional)"
+    "caseLocation": "Ubicación del caso (opcional)",
+    "pendingShort": "Por revisar"
   },
   "app": {
     "name": "Ruta Cibao",
@@ -789,7 +790,7 @@
     "title": "Un lugar para cada plan.",
     "intro": "Naturaleza, servicios y rincones que vale la pena conocer.",
     "search": "Buscar un lugar",
-    "searchPlaceholder": "Un río, una farmacia, un parque…",
+    "searchPlaceholder": "Río, farmacia, parque…",
     "category": "Tipo de lugar",
     "municipality": "Municipio",
     "allCategories": "Todo",
@@ -799,15 +800,21 @@
     "loading": "Buscando lugares…",
     "error": "No pudimos cargar los lugares. Comprueba tu conexión e inténtalo de nuevo.",
     "retry": "Intentar de nuevo",
-    "empty": "No encontramos lugares",
+    "empty": "No hay lugares con estos filtros.",
     "emptyHint": "Prueba otra búsqueda o cambia los filtros. Si conoces un lugar que falta, puedes añadirlo al mapa.",
     "clear": "Limpiar filtros",
     "addPlace": "Añadir un lugar",
-    "previous": "Página anterior",
-    "next": "Página siguiente",
+    "previous": "Anterior",
+    "next": "Siguiente",
     "page": "{page} de {pages}",
     "imageAlt": "Imagen ilustrativa de {name}",
-    "illustration": "Imagen ilustrativa"
+    "illustration": "Imagen ilustrativa",
+    "mapShort": "Mapa",
+    "view": "Ver como",
+    "viewGrid": "Fotos",
+    "viewList": "Lista",
+    "emptyAll": "Todavía no hay lugares publicados.",
+    "pagination": "Páginas de lugares"
   },
   "install": {
     "eyebrow": "SIEMPRE A MANO",
@@ -851,13 +858,13 @@
   "account": {
     "eyebrow": "TU ESPACIO",
     "title": "Mi cuenta",
-    "anonymousTitle": "Conoce el Cibao. Aporta cuando quieras.",
+    "anonymousTitle": "Entra para guardar lugares, coleccionar sellos y seguir tus aportes.",
     "anonymousBody": "Puedes explorar sin registrarte. Entra para guardar lugares, añadir fotos y seguir tus aportes.",
     "signIn": "Entrar o crear una cuenta",
     "explore": "Seguir explorando",
     "contributions": "Mis aportes",
     "contributionsHint": "Consulta el estado de tus lugares, fotos y correcciones.",
-    "saved": "Mis lugares guardados",
+    "saved": "Lugares guardados",
     "savedHint": "Los lugares a los que quieres volver.",
     "avisosHint": "Avisos sobre tus aportes y el tránsito.",
     "verification": "Verificar identidad y residencia",
@@ -866,9 +873,9 @@
     "passkey": "Acceso con biometría",
     "passkeyHint": "Actívala en este dispositivo y la próxima vez entras sin pedir un código nuevo.",
     "visitor": "Cuenta de visitante",
-    "install": "Instalar Ruta Cibao",
+    "install": "Instalar la app",
     "installHint": "Un acceso directo desde tu pantalla de inicio.",
-    "privacy": "Tus datos y tu privacidad",
+    "privacy": "Privacidad y datos",
     "privacyHint": "Conoce qué guardamos y para qué.",
     "moderation": "Panel de moderación",
     "moderationHint": "Revisa los aportes de tu comunidad.",
@@ -876,7 +883,7 @@
     "error": "No pudimos cargar tu cuenta.",
     "retry": "Intentar de nuevo",
     "signOut": "Cerrar sesión",
-    "passkeyActive": "Activada",
+    "passkeyActive": "Activada en este teléfono",
     "passkeyActiveHint": "Ya puedes entrar con tu huella o tu cara en este dispositivo.",
     "push": "Avisos en este dispositivo",
     "pushHint": "Recibe un aviso cuando respondan tu caso, aprueben un aporte o haya tránsito cerca — aunque no tengas la app abierta.",
@@ -889,8 +896,14 @@
     "verificationDocumentsHint": "Tu cédula está registrada. Envía las fotos para que tu municipio pueda revisarlas.",
     "verificationReview": "Solicitud en revisión",
     "verificationReviewHint": "Consulta el estado de tu verificación de identidad y residencia.",
-    "passport": "Mi pasaporte turístico",
-    "passportHint": "Los sellos de tus visitas a Santiago Rodríguez."
+    "passport": "Mi pasaporte",
+    "passportHint": "Los sellos de tus visitas a Santiago Rodríguez.",
+    "activity": "Tu actividad",
+    "device": "Este teléfono",
+    "more": "Más",
+    "pushShort": "Te avisamos cuando respondan o haya tránsito cerca.",
+    "pushOnShort": "Activados",
+    "passkeyShort": "Entra con tu huella o tu cara."
   },
   "contributions": {
     "eyebrow": "LO QUE HAS COMPARTIDO",
@@ -898,7 +911,7 @@
     "intro": "Cada aporte ayuda a que alguien encuentre lo que necesita. Aquí puedes seguir su revisión.",
     "add": "Añadir un lugar",
     "loading": "Buscando tus aportes…",
-    "empty": "Tu primer aporte empieza aquí",
+    "empty": "Todavía no has aportado nada.",
     "emptyHint": "Añade un lugar, comparte una foto, avisa de un problema en la vía o abre un caso con tu ayuntamiento.",
     "error": "No pudimos cargar tus aportes.",
     "retry": "Intentar de nuevo",
@@ -916,10 +929,10 @@
     "archived": "Archivado",
     "all": "Todos",
     "pendingTab": "En revisión",
-    "signIn": "Entra para ver tus aportes",
+    "signIn": "Entra para ver tus aportes.",
     "signInHint": "El historial es privado y está vinculado a tu cuenta.",
     "recent": "Se muestran hasta 100 aportes de cada tipo.",
-    "pendingEmpty": "Todo al día. No hay aportes en revisión.",
+    "pendingEmpty": "No tienes aportes en revisión.",
     "traffic": "Tránsito",
     "consultation": "Consulta",
     "claim": "Negocio",
@@ -929,7 +942,10 @@
     "removed": "Retirado",
     "in_review": "En revisión",
     "answered": "Respondido",
-    "approved": "Aprobado"
+    "approved": "Aprobado",
+    "signInAction": "Entrar",
+    "filter": "Qué aportes ver",
+    "openStatus": "Recibido"
   },
   "privacy": {
     "eyebrow": "TUS DATOS",
@@ -967,9 +983,9 @@
     "intro": "Casos que vecinos abrieron y las respuestas del ayuntamiento. Todo es público.",
     "open": "Abrir un caso",
     "loading": "Cargando los casos…",
-    "empty": "Todavía no hay casos",
+    "empty": "Todavía no hay casos.",
     "emptyHint": "Cuando alguien abra un caso sobre el agua, las calles o la basura, aparecerá aquí.",
-    "emptyMine": "No has abierto ningún caso",
+    "emptyMine": "No has abierto ningún caso.",
     "emptyMineHint": "Si algo de tu barrio necesita atención del ayuntamiento, cuéntalo aquí.",
     "loadError": "No pudimos cargar los casos. Revisa la conexión.",
     "notFound": "Ese caso no existe o fue retirado.",
@@ -984,14 +1000,14 @@
     "more": "Ver más casos",
     "count": "{count, plural, one {# caso} other {# casos}}",
     "status": {
-      "open": "esperando respuesta",
+      "open": "recibido",
       "in_review": "en revisión",
       "answered": "respondido",
       "resolved": "resuelto",
       "rejected": "no procede"
     },
     "statusLabel": {
-      "open": "Esperando respuesta",
+      "open": "Recibido",
       "in_review": "En revisión",
       "answered": "Respondido",
       "resolved": "Resuelto",
@@ -1010,7 +1026,7 @@
     },
     "responses": {
       "title": "Respuestas del ayuntamiento",
-      "empty": "El ayuntamiento todavía no ha respondido.",
+      "empty": "El ayuntamiento todavía no ha respondido. Te avisamos cuando lo haga.",
       "emptyHint": "Te avisamos apenas respondan. No hace falta que vuelvas a revisar.",
       "byOffice": "Ayuntamiento",
       "author": "{name}, del ayuntamiento"
@@ -1052,7 +1068,13 @@
       "sent": "Respuesta enviada. Le avisamos a quien abrió el caso.",
       "failed": "No pudimos enviar la respuesta. Inténtalo de nuevo.",
       "statusHint": "«En revisión» avisa que lo están viendo. «Respondido» avisa que hay una respuesta que leer."
-    }
+    },
+    "scope": "Qué casos ver",
+    "allTopics": "Todos los temas",
+    "emptyTopic": "No hay casos con este tema.",
+    "retry": "Intentar de nuevo",
+    "viewOnMap": "Ver en el mapa",
+    "timeline": "Seguimiento"
   },
   "business": {
     "claim": "Este negocio es mío",
@@ -1266,9 +1288,9 @@
     "welcomeTitle": "Un pasaporte para tus recuerdos",
     "welcomeBody": "Entra a tu cuenta, abre un lugar en el mapa y registra tu visita cuando estés allí. Un lugar, un sello.",
     "signIn": "Entrar para coleccionar sellos",
-    "emptyTitle": "Tu primer sello te espera",
+    "emptyTitle": "Visita un lugar y regístralo para ganar tu primer sello.",
     "emptyBody": "Abre un lugar en el mapa y toca «Registrar mi visita» cuando estés cerca. Tu teléfono comprobará la ubicación.",
-    "explore": "Explorar el mapa",
+    "explore": "Ver lugares en el mapa",
     "open": "Ver mi pasaporte",
     "visitHint": "Registra tu visita a menos de 150 metros del lugar. Usamos la ubicación solo para esta comprobación; no guardamos tus coordenadas.",
     "collect": "Registrar mi visita",
@@ -1287,6 +1309,17 @@
     "pagination": "Páginas de tu pasaporte",
     "previous": "Anterior",
     "next": "Siguiente",
-    "page": "{page} de {pages}"
+    "page": "{page} de {pages}",
+    "signInTitle": "Entra para coleccionar sellos.",
+    "progress": "de {total, plural, one {# lugar} other {# lugares}} visitados",
+    "cancellation": "SANTIAGO RODRÍGUEZ · {date} ·",
+    "stampLabel": "{name}, visitado el {date}",
+    "slotLabel": "{name}, por visitar",
+    "pageLabel": "Sellos"
+  },
+  "lists": {
+    "thisWeek": "Esta semana",
+    "thisMonth": "Este mes",
+    "earlier": "Antes"
   }
 }
