@@ -33,18 +33,30 @@ export async function verifyCedulaAction(
 
   const parsed = verifyCedulaInput.safeParse({
     cedula: formData.get("cedula"),
+    name: formData.get("name"),
     municipalityId: formData.get("municipalityId"),
+    confirmNumber: formData.get("confirmNumber") === "1",
   });
 
   if (!parsed.success) {
     const tv = await getTranslations({ locale, namespace: "validation" });
-    return { status: "invalid", message: tv("cedula.format") };
+    const nameIssue = parsed.error.issues.some((issue) =>
+      issue.path.includes("name"),
+    );
+    return {
+      status: nameIssue ? "invalid_name" : "invalid",
+      message: tv(nameIssue ? "cedula.name" : "cedula.format"),
+    };
   }
 
   const viewer = requireMember(await getServerViewer());
   const result = await verifyCedula(viewer, parsed.data);
 
   switch (result.status) {
+    case "matched":
+      return { status: "matched", message: t("matched") };
+    case "in_review":
+      return { status: "in_review", message: t("inReview") };
     case "verified":
       return {
         status: "verified",
@@ -56,5 +68,7 @@ export async function verifyCedulaAction(
       return { status: "rejected", message: t("rejected") };
     case "taken":
       return { status: "taken", message: t("taken") };
+    case "check_digit":
+      return { status: "check_digit", message: t("checkDigit") };
   }
 }

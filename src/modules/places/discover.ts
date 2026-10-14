@@ -34,6 +34,7 @@ export async function browsePlaces(input: BrowsePlacesInput) {
         categoryId: categories.id,
         categoryName: categories.name,
         categoryIcon: categories.icon,
+        categoryColor: categories.color,
         municipalityName: municipalities.name,
       })
       .from(places)

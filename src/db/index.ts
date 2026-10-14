@@ -10,20 +10,35 @@ import * as schema from "./schema";
  */
 const globalForDb = globalThis as unknown as { pool?: Pool };
 
-const pool =
-  globalForDb.pool ??
-  new Pool({
+function getPool(): Pool {
+  globalForDb.pool ??= new Pool({
     connectionString: env.DATABASE_URL,
     max: env.NODE_ENV === "production" ? 10 : 4,
+    connectionTimeoutMillis: 5000,
   });
-
-if (env.NODE_ENV !== "production") {
-  globalForDb.pool = pool;
+  return globalForDb.pool;
 }
 
-// `snake_case` matches drizzle.config.ts, so table definitions can use
-// camelCase property names without repeating the column name in every call.
-export const db = drizzle(pool, { schema, casing: "snake_case" });
+// Route discovery during a secret-free build must not validate runtime env.
+const pool = new Proxy({} as Pool, {
+  get(_target, property) {
+    const instance = getPool();
+    const value = Reflect.get(instance, property, instance);
+    return typeof value === "function" ? value.bind(instance) : value;
+  },
+});
+
+function createDb() {
+  return drizzle(getPool(), { schema, casing: "snake_case" });
+}
+let instance: ReturnType<typeof createDb> | undefined;
+export const db = new Proxy({} as ReturnType<typeof createDb>, {
+  get(_target, property) {
+    instance ??= createDb();
+    const value = Reflect.get(instance, property, instance);
+    return typeof value === "function" ? value.bind(instance) : value;
+  },
+});
 export { pool, schema };
 export type Db = typeof db;
 export type DbTransaction = Parameters<Parameters<Db["transaction"]>[0]>[0];

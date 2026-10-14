@@ -14,13 +14,18 @@
  * map is being dragged; the database is still the authority on submit.
  */
 export type MunicipalFeature = {
-  properties: { id: string; name: string };
+  /** `label` is a point inside the polygon, where its name is drawn. */
+  properties: { id: string; name: string; label?: [number, number] };
   geometry:
     | { type: "Polygon"; coordinates: number[][][] }
     | { type: "MultiPolygon"; coordinates: number[][][][] };
 };
 
-export type MunicipalBoundaries = { features: MunicipalFeature[] };
+export type MunicipalBoundaries = {
+  features: MunicipalFeature[];
+  /** The country minus the province, for dimming what is not ours. */
+  outside?: MunicipalFeature["geometry"] | null;
+};
 
 export type Position = { lng: number; lat: number };
 
@@ -106,6 +111,9 @@ export function municipalityAt(
   );
 
   return match
-    ? { state: "inside", municipality: match.properties }
+    ? {
+        state: "inside",
+        municipality: { id: match.properties.id, name: match.properties.name },
+      }
     : { state: "outside", municipality: null };
 }

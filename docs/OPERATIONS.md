@@ -20,6 +20,33 @@ the variable and what was wrong with it. Compare against `.env.example`.
 If the environment is fine, the next likeliest cause is Postgres refusing
 connections — check `DATABASE_URL` and that the database container is healthy.
 
+## A sign-in method is missing
+
+On a production server, phone sign-in only appears when Twilio is configured
+(`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`), and email sign-in
+only when `RESEND_API_KEY` is set. The app says which is off at boot:
+
+```bash
+docker compose --env-file .env -f infra/docker-compose.yml --profile full logs app | grep '\[boot\]'
+```
+
+This is on purpose. The alternative — writing the code to the log — would let
+anyone who can read the log sign in as anyone. `AUTH_LOG_DELIVERY=1` restores
+the log route for a demo server with invented users only.
+
+## Photo uploads fail
+
+The phone uploads straight to storage, so the browser has to reach it:
+
+1. Option B (SeaweedFS): `S3_ENDPOINT` must be the public `https://storage.<domain>`
+   from `STORAGE_ADDRESS`, not `http://storage:9000`. `STORAGE_CORS_ORIGIN` must be
+   the app's origin (or `*`).
+2. Option A (R2/S3): the bucket's CORS rules must allow `PUT` from the app's
+   origin.
+3. An upload that reached storage but is refused when attached was checked and
+   rejected: larger than 8 MB, or not really a JPEG, PNG or WebP. The object is
+   deleted; the person sees the upload error and can try another photo.
+
 ## Migrations
 
 ```bash
@@ -84,9 +111,10 @@ select name, state, output from pgboss.job
 failed. Re-running the job overwrites the same row — the upsert is keyed on
 (municipality, week) — so there is no cleanup step first.
 
-**The PDF button does nothing.** Expected unless Chromium is installed in the
-worker image; the report itself is unaffected and the page still prints from a
-browser. See the `worker` stage in `infra/Dockerfile` to turn it on.
+**A weekly report has no PDF.** The worker draws PDFs itself with `pdf-lib`
+from the report's frozen figures; no browser is involved. A missing PDF means
+the upload to object storage failed, so check the worker log for an S3 error
+and the `S3_*` values in `.env`. Re-running the job regenerates it.
 
 ## Secrets
 
@@ -100,4 +128,25 @@ provider to revoke that specific key; other keys keep working.
 ## Planned
 
 - Log aggregation and error tracking (Sentry, pino).
-- Backup and restore, with a tested restore.
+- External uptime and backlog alerting on the recipient’s monitoring service.
+
+Backup and restore are described in `DEPLOYMENT.md`, section 11.
+
+## Readiness and retained work
+
+`/api/health` checks the web process. `/api/ready` checks schema availability,
+object storage and a worker heartbeat no older than two minutes. Alert on 503.
+The worker drains `job_outbox` every five seconds; inspect unprocessed rows,
+`attempts` and `next_attempt_at` when notification delivery is delayed.
+Failed work remains durable and retries with backoff. External delivery is at
+least once: a crash after provider acceptance can deliver a message twice.
+
+Identity decisions attempt document deletion immediately. Hourly cleanup
+retries failed deletions and expires requests waiting longer than 30 days.
+`documents_purged_at` only records successful deletion of all objects.
+Backups may retain earlier evidence until their own retention expires.
+
+The intended domain is `rutacibao.com`. Domain purchase, DNS, private VPS,
+production providers, encrypted disk volumes, off-host backups and monitoring
+are the recipient’s resources. Rehearse the supplied Compose stack and restore
+procedure on an isolated server before accepting real personal data.

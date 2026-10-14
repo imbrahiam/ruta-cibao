@@ -10,11 +10,11 @@ import { SiteNav } from "@/components/shell/site-nav";
  */
 export default function AppLayout({ children }: LayoutProps<"/[locale]">) {
   return (
-    <div className="flex min-h-dvh flex-col bg-background pb-20 md:pb-0">
+    <div className="flex min-h-dvh flex-col bg-background pb-(--mobile-nav-height) md:pb-0">
       <AppHeader />
       <main
         id="contenido"
-        className="mx-auto w-full max-w-6xl flex-1 px-5 py-10 md:py-14"
+        className="mx-auto w-full max-w-6xl flex-1 px-5 pt-6 pb-12 sm:pt-10 md:py-14"
       >
         {children}
       </main>

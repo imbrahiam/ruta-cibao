@@ -3,9 +3,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, HardDriveDownload, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { publicEnv } from "@/lib/env.public";
+import { supportsVectorMap } from "@/lib/map/render-support";
 import {
   basemapSizeBytes,
   basemapStorageSupported,
@@ -26,8 +28,13 @@ import {
 export function OfflineBasemap() {
   const t = useTranslations("map.offlineBasemap");
   const queryClient = useQueryClient();
+  const [vectorSupported, setVectorSupported] = useState(false);
+  useEffect(() => {
+    if (publicEnv.NEXT_PUBLIC_MAP_RENDERER === "maplibre")
+      setVectorSupported(supportsVectorMap());
+  }, []);
   const url =
-    publicEnv.NEXT_PUBLIC_MAP_RENDERER === "maplibre"
+    publicEnv.NEXT_PUBLIC_MAP_RENDERER === "maplibre" && vectorSupported
       ? storableBasemapUrl(publicEnv.NEXT_PUBLIC_BASEMAP_PMTILES_URL)
       : undefined;
   const supported = basemapStorageSupported();

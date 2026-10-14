@@ -1,28 +1,28 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { MessagesSquare, Plus, Users } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { Plus, Users } from "lucide-react";
+import { useFormatter, useNow, useTranslations } from "next-intl";
 import { parseAsString, useQueryState } from "nuqs";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { OpenConsultationDrawer } from "@/components/consultations/open-consultation-drawer";
 import { StatusBadge } from "@/components/consultations/status-badge";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { groupByRecency } from "@/components/ui-patterns/date-groups";
+import { EmptyState } from "@/components/ui-patterns/empty-state";
 import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { Spinner } from "@/components/ui/spinner";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Link } from "@/i18n/navigation";
+  FilterPill,
+  FilterPillRow,
+} from "@/components/ui-patterns/filter-pill";
+import {
+  ListRow,
+  ListRowSkeleton,
+  RowPictogram,
+} from "@/components/ui-patterns/list-row";
+import { Segmented } from "@/components/ui-patterns/segmented";
 import { categoryIcon } from "@/lib/map/category-icons";
 import { orpc } from "@/lib/orpc";
-import { cn } from "@/lib/utils";
 
 /**
  * Every case the province has open, and the ones you opened.
@@ -32,12 +32,18 @@ import { cn } from "@/lib/utils";
  * should see those four first, and an ayuntamiento answering in public answers
  * to more than the one person who wrote in.
  *
+ * A ruled list grouped by how recent, because a case is something you look up
+ * rather than choose by its picture: the topic's pictogram, the resident's own
+ * words, the town and age, and where it stands at the edge.
+ *
  * The filters live in the URL, like the map's, so a link to "las consultas de
- * agua sin responder" is a link somebody can send.
+ * agua" is a link somebody can send.
  */
 export function ConsultationList() {
   const t = useTranslations("consultations");
+  const groupT = useTranslations("lists");
   const format = useFormatter();
+  const now = useNow({ updateInterval: 60_000 });
   const { viewer } = useAuth();
 
   const [scope, setScope] = useQueryState(
@@ -64,175 +70,166 @@ export function ConsultationList() {
       (municipality) => municipality.id === viewer?.municipalityId,
     ) ?? null;
 
+  const mine = scope === "mios";
   const query = useQuery(
     orpc.consultations.browse.queryOptions({
-      input: { mine: scope === "mios", category, limit: 24 },
+      input: { mine, category, limit: 24 },
     }),
   );
 
   const items = query.data?.items ?? [];
-  const mine = scope === "mios";
+  const groups = groupByRecency(items, (item) => item.createdAt, now);
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h1 className="font-semibold text-2xl tracking-tight">
-              {t("title")}
-            </h1>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              {t("intro")}
-            </p>
-          </div>
-
-          <Button className="h-11" onClick={() => setOpening(true)}>
-            <Plus className="size-4" aria-hidden />
-            {t("open")}
-          </Button>
-        </div>
+    <div className="mx-auto flex max-w-3xl flex-col gap-5">
+      <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
+        <h1 className="page-title">{t("title")}</h1>
+        <Button
+          className="h-11 rounded-full px-5"
+          onClick={() => setOpening(true)}
+        >
+          <Plus className="size-4" aria-hidden />
+          {t("open")}
+        </Button>
       </header>
 
       {viewer && viewer.kind !== "anonymous" && (
-        <Tabs value={scope} onValueChange={(value) => void setScope(value)}>
-          <TabsList className="w-full rounded-full p-1 sm:w-auto">
-            <TabsTrigger value="todos" className="h-9 rounded-full">
-              {t("all")}
-            </TabsTrigger>
-            <TabsTrigger value="mios" className="h-9 rounded-full">
-              {t("mine")}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <Segmented
+          className="sm:max-w-xs"
+          label={t("scope")}
+          value={mine ? "mios" : "todos"}
+          onChange={(value) => void setScope(value || null)}
+          options={[
+            { value: "todos", label: t("all") },
+            { value: "mios", label: t("mine") },
+          ]}
+        />
       )}
 
-      {/* The taxonomy as chips rather than a select: there are four of them,
-          they are the fastest way to narrow a list on a phone, and a chip shows
-          what is on without being opened. */}
-      <fieldset
-        className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-        aria-label={t("filterCategory")}
-      >
-        <button
-          type="button"
-          aria-pressed={category === ""}
+      {/* The taxonomy as pills rather than a select: there are a handful,
+          they are the fastest way to narrow a list on a phone, and a pill
+          shows what is on without being opened. */}
+      <FilterPillRow label={t("filterCategory")}>
+        <FilterPill
+          active={category === ""}
           onClick={() => void setCategory(null)}
-          className={cn(
-            "flex h-10 shrink-0 items-center rounded-full border px-4 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            category === ""
-              ? "border-primary bg-primary text-primary-foreground"
-              : "bg-background hover:bg-secondary",
-          )}
         >
-          {t("all")}
-        </button>
+          {t("allTopics")}
+        </FilterPill>
         {categories.map((option) => {
           const Icon = categoryIcon(option.icon);
           const active = category === option.id;
-
           return (
-            <button
+            <FilterPill
               key={option.id}
-              type="button"
-              aria-pressed={active}
+              active={active}
               onClick={() => void setCategory(active ? null : option.id)}
-              className={cn(
-                "flex h-10 shrink-0 items-center gap-2 rounded-full border px-4 font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "bg-background hover:bg-secondary",
-              )}
             >
               <Icon
-                className="size-4"
-                style={{ color: active ? undefined : option.color }}
+                className="size-[18px]"
+                style={active ? undefined : { color: option.color }}
+                aria-hidden
               />
               {option.name}
-            </button>
+            </FilterPill>
           );
         })}
-      </fieldset>
+      </FilterPillRow>
 
-      {query.isPending && (
-        <p
-          className="flex items-center justify-center gap-2 py-10 text-muted-foreground text-sm"
-          role="status"
-        >
-          <Spinner className="size-4" /> {t("loading")}
-        </p>
-      )}
-
-      {query.isError && (
-        <p role="alert" className="text-destructive text-sm">
-          {t("loadError")}
-        </p>
-      )}
-
-      {!query.isPending && items.length === 0 && (
-        <Empty className="py-12">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <MessagesSquare />
-            </EmptyMedia>
-            <EmptyTitle>{mine ? t("emptyMine") : t("empty")}</EmptyTitle>
-            <EmptyDescription>
-              {mine ? t("emptyMineHint") : t("emptyHint")}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      )}
-
-      <ul className="flex flex-col gap-4">
-        {items.map((item) => {
-          const Icon = categoryIcon(item.categoryIcon);
-
-          return (
-            <li key={item.id}>
-              <Link
-                href={`/consultas/${item.slug}`}
-                className="block rounded-2xl border bg-card p-5 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      {query.isPending ? (
+        <ListRowSkeleton label={t("loading")} />
+      ) : query.isError ? (
+        <EmptyState
+          illustration="cases"
+          title={t("loadError")}
+          action={
+            <Button
+              className="rounded-full px-6"
+              onClick={() => void query.refetch()}
+            >
+              {t("retry")}
+            </Button>
+          }
+        />
+      ) : items.length === 0 ? (
+        <EmptyState
+          illustration="cases"
+          title={
+            mine ? t("emptyMine") : category ? t("emptyTopic") : t("empty")
+          }
+          action={
+            category ? (
+              <Button
+                variant="outline"
+                className="rounded-full px-6"
+                onClick={() => void setCategory(null)}
               >
-                <article className="flex flex-col gap-3">
-                  <div className="flex items-start gap-3">
-                    <span
-                      className="flex size-10 shrink-0 items-center justify-center rounded-full"
-                      style={{
-                        backgroundColor: `${item.categoryColor}1f`,
-                        color: item.categoryColor,
-                      }}
-                    >
-                      <Icon className="size-5" />
-                    </span>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <h2 className="text-pretty font-medium leading-snug">
-                        {item.title}
-                      </h2>
-                      <p className="text-muted-foreground text-xs">
-                        {item.categoryName} · {item.municipalityName} ·{" "}
-                        {format.relativeTime(new Date(item.createdAt))}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={item.status} />
-                    <Badge variant="secondary" className="tabular-nums">
-                      <Users className="size-3.5" aria-hidden />
-                      {item.supportCount}
-                    </Badge>
-                    {item.responseCount > 0 && (
-                      <Badge variant="outline" className="tabular-nums">
-                        <MessagesSquare className="size-3.5" aria-hidden />
-                        {item.responseCount}
-                      </Badge>
-                    )}
-                  </div>
-                </article>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+                {t("allTopics")}
+              </Button>
+            ) : (
+              <Button
+                className="rounded-full px-6"
+                onClick={() => setOpening(true)}
+              >
+                <Plus className="size-4" aria-hidden />
+                {t("open")}
+              </Button>
+            )
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-6">
+          {groups.map((group) => (
+            <section key={group.key} aria-labelledby={`grupo-${group.key}`}>
+              <h2
+                id={`grupo-${group.key}`}
+                className="border-border border-b pb-2 font-semibold text-muted-foreground text-sm"
+              >
+                {groupT(group.key)}
+              </h2>
+              <ul className="ruled">
+                {group.items.map((item) => (
+                  <li key={item.id}>
+                    <ListRow
+                      href={`/consultas/${item.slug}`}
+                      headingLevel={3}
+                      leading={
+                        <RowPictogram
+                          icon={categoryIcon(item.categoryIcon)}
+                          color={item.categoryColor}
+                        />
+                      }
+                      title={item.title}
+                      meta={`${item.municipalityName} · ${format.relativeTime(new Date(item.createdAt), now)}`}
+                      badge={
+                        <span className="flex items-center gap-3">
+                          <StatusBadge status={item.status} />
+                          {item.supportCount > 0 && (
+                            <span
+                              className="flex items-center gap-1 text-muted-foreground text-sm tabular-nums"
+                              title={t("support.count", {
+                                count: item.supportCount,
+                              })}
+                            >
+                              <Users className="size-4" aria-hidden />
+                              <span className="sr-only">
+                                {t("support.count", {
+                                  count: item.supportCount,
+                                })}
+                              </span>
+                              <span aria-hidden>{item.supportCount}</span>
+                            </span>
+                          )}
+                        </span>
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
+      )}
 
       <OpenConsultationDrawer
         municipalityName={home?.name ?? null}

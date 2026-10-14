@@ -10,6 +10,7 @@ export * from "./catalog";
 export * from "./consultations";
 export * from "./geography";
 export * from "./members";
+export * from "./passport";
 export * from "./places";
 export * from "./platform";
 export * from "./realtime";

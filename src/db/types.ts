@@ -1,4 +1,30 @@
 import { customType } from "drizzle-orm/pg-core";
+import { decryptSensitive, encryptSensitive } from "@/lib/crypto";
+
+/**
+ * Text that is encrypted at rest and plain everywhere else.
+ *
+ * For personal data the app has to read back — the name the civil registry
+ * holds for a cédula. Encryption happens on the way into the driver and
+ * decryption on the way out, so every query, seed and script that touches the
+ * column gets it right without remembering to. The price is that the column
+ * cannot be searched or sorted by value; nothing needs to.
+ *
+ * A value without the ciphertext prefix is a row written before the column
+ * was encrypted. It is read as-is so a development database keeps working,
+ * and `scripts/encrypt-legacy-names.ts` rewrites it.
+ */
+export const encryptedText = customType<{ data: string; driverData: string }>({
+  dataType() {
+    return "text";
+  },
+  toDriver(value) {
+    return encryptSensitive(value);
+  },
+  fromDriver(value) {
+    return value.startsWith("v1:") ? decryptSensitive(value) : value;
+  },
+});
 
 /**
  * PostGIS columns that carry their SRID.
@@ -123,27 +149,3 @@ export const multiPolygon = customType<{ data: string; driverData: string }>({
     return value;
   },
 });
-
-/**
- * A sentence embedding.
- *
- * Drizzle ships a `vector()` type, but it takes the dimension count as a bare
- * number at every call site — and a column declared 384 wide while the model
- * emits 768 fails at insert time, in production, with a message about arrays.
- * Declaring it once here means the dimension has one source of truth.
- *
- * pgvector's wire format is a bracketed list, which is what `toDriver` writes
- * and what `fromDriver` is handed back.
- */
-export const embedding = (dimensions: number) =>
-  customType<{ data: number[]; driverData: string }>({
-    dataType() {
-      return `vector(${dimensions})`;
-    },
-    toDriver(value) {
-      return `[${value.join(",")}]`;
-    },
-    fromDriver(value) {
-      return JSON.parse(value) as number[];
-    },
-  });

@@ -56,7 +56,7 @@
     "zoomForMore": "Acerca el mapa para ver más registros.",
     "safetyHint": "Comprueba el clima, el acceso y el estado del camino antes de salir. El trazado es un aporte comunitario, no una garantía de acceso.",
     "eyebrow": "A pie, con calma y en comunidad",
-    "title": "Rutas para descubrir el Cibao",
+    "title": "Rutas para descubrir la provincia",
     "intro": "Explora recorridos ecológicos, culturales y de aventura. Consulta el trazado y prepara tu salida antes de partir.",
     "create": "Trazar una ruta",
     "signIn": "Entrar para aportar",
@@ -100,7 +100,7 @@
     "pending": "Pendientes de revisión",
     "allDifficulties": "Todas las dificultades",
     "loading": "Cargando rutas…",
-    "empty": "No hay rutas en esta selección",
+    "empty": "No hay rutas en esta selección.",
     "emptyHint": "Puedes cambiar los filtros o compartir un recorrido que conozcas.",
     "retry": "Reintentar",
     "status": {
@@ -121,13 +121,18 @@
     "mapTitle": "Rutas y casos",
     "showRoutes": "Rutas de ecoturismo",
     "showCases": "Casos ciudadanos",
+    "showRoutesHint": "Senderos y recorridos para visitar la provincia.",
+    "showCasesHint": "Problemas que los vecinos reportaron al ayuntamiento.",
+    "seeAllRoutes": "Ver todas las rutas",
+    "seeAllCases": "Ver todos los casos",
     "viewCase": "Ver caso y seguimiento",
     "newCase": "Reportar un problema aquí",
     "details": "Detalles de la ruta",
     "close": "Cerrar",
     "mapEmpty": "No hay registros en esta vista",
     "mapError": "No se pudo cargar esta capa. Intenta de nuevo.",
-    "caseLocation": "Ubicación del caso (opcional)"
+    "caseLocation": "Ubicación del caso (opcional)",
+    "pendingShort": "Por revisar"
   },
   "app": {
     "name": "Ruta Cibao",
@@ -142,65 +147,74 @@
     "goHome": "Ir al inicio"
   },
   "landing": {
-    "region": "Provincia Santiago Rodríguez · Cibao",
-    "headline": "El mapa de tu provincia, <highlight>hecho por su gente</highlight>.",
-    "subhead": "Encuentra un río para el domingo, un servicio que necesitas o ese lugar que solo conoce tu gente.",
+    "region": "Santiago Rodríguez",
+    "question": "¿Qué necesitas hoy?",
+    "photoAlt": "La presa de Monción entre montañas verdes",
+    "photoCaption": "Presa de Monción",
+    "illustration": "Imagen ilustrativa",
+    "search": "Buscar un lugar",
+    "searchPlaceholder": "Un río, un colmado…",
+    "searchSubmit": "Buscar",
+    "tasks": "Tareas rápidas",
     "openMap": "Abrir el mapa",
-    "signIn": "Entrar",
-    "apiDocs": "Documentación de la API",
-    "stats": {
-      "places": "lugares",
-      "municipalities": "municipios",
-      "categories": "categorías"
+    "report": "Reportar un problema",
+    "notice": {
+      "label": "Aviso de tránsito",
+      "title": "{category} en {municipality}",
+      "more": "{count, plural, one {y # vía más} other {y # vías más}}",
+      "action": "Ver en el mapa",
+      "dismiss": "Cerrar el aviso",
+      "since": "Desde las {time}"
+    },
+    "numbers": {
+      "title": "La provincia, en números",
+      "places": "{count, plural, one {lugar en el mapa} other {lugares en el mapa}}",
+      "routes": "{count, plural, one {ruta ecoturística} other {rutas ecoturísticas}}",
+      "resolved": "{count, plural, one {aviso de vía resuelto este mes} other {avisos de vía resueltos este mes}}"
+    },
+    "territory": {
+      "eyebrow": "El territorio",
+      "title": "Tres municipios, un mapa.",
+      "mapLabel": "Sabaneta, Monción y Villa Los Almácigos. Abrir el mapa.",
+      "reports": "Avisos en las vías",
+      "open": "Abiertos",
+      "resolvedWeek": "Resueltos esta semana",
+      "action": "Abrir el mapa"
     },
     "features": {
-      "find": {
-        "title": "Encuentra",
-        "body": "Busca por categoría o municipio y abre las indicaciones en tu app de mapas."
+      "title": "Lo que puedes hacer",
+      "places": {
+        "title": "Encuentra un lugar",
+        "body": "Ríos, parques, clínicas y oficinas de los tres municipios."
       },
-      "add": {
-        "title": "Aporta",
-        "body": "¿Falta algo? Fija el punto en el mapa y descríbelo. Un moderador de tu municipio lo revisa antes de publicarlo."
+      "traffic": {
+        "title": "Avisa de una vía cerrada",
+        "body": "Un hoyo, una inundación o un derrumbe, marcado en el mapa."
       },
-      "verify": {
-        "title": "Verifica",
-        "body": "Confirma lo que sigue ahí o avisa si cambió. Tu aporte ayuda a mantener el mapa al día."
+      "business": {
+        "title": "Pon tu negocio en el mapa",
+        "body": "Tu teléfono y tu horario, revisados por el ayuntamiento."
+      },
+      "consultations": {
+        "title": "Escríbele al ayuntamiento",
+        "body": "Agua, calles, basura o alumbrado. Sigue la respuesta."
+      },
+      "moderation": {
+        "title": "Revisa lo que llega",
+        "body": "Los funcionarios aprueban cada aporte antes de publicarlo."
+      },
+      "reports": {
+        "title": "Lee el informe semanal",
+        "body": "Lo que pasó cada semana, municipio por municipio."
       }
     },
-    "title": "Lo mejor del Cibao empieza cerca.",
-    "discoverLabel": "Para tu próxima salida",
-    "landscapeAlt": "Ilustración del paisaje de la presa de Monción",
-    "illustration": "Imagen ilustrativa",
-    "landscapeEyebrow": "SANTIAGO RODRÍGUEZ",
-    "landscapeTitle": "Un poquito más allá.",
-    "landscapeBody": "Ríos, montañas y lugares con historia. Encuentra tu próxima parada.",
-    "communityLabel": "Hecho por su gente",
-    "communityTitle": "Ese lugar que tú conoces merece estar aquí.",
-    "communityBody": "Añádelo al mapa. El equipo de tu municipio revisa cada lugar antes de publicarlo.",
-    "communityAction": "Añadir un lugar",
-    "noAccount": "Sin registro",
-    "findTitle": "¿Qué necesitas hoy?",
-    "findBody": "Busca por nombre, categoría o municipio. Todo en un mismo lugar.",
-    "search": "Buscar",
-    "searchPlaceholder": "Prueba con «parque»",
-    "trustTitle": "Información que cuidamos.",
-    "trustBody": "Los aportes pasan por moderación. Si algo cambió, puedes avisarnos desde el lugar.",
-    "trustFootnote": "Revisado con la comunidad",
-    "installTitle": "Llévalo contigo.",
-    "installBody": "Añade Ruta Cibao a tu pantalla de inicio. Un toque y estás aquí.",
-    "installAction": "Cómo instalar la app",
-    "featuredEyebrow": "EN EL MAPA",
-    "featuredTitle": "Un buen punto de partida.",
-    "seeAll": "Ver todos",
-    "howEyebrow": "ASÍ DE SENCILLO",
-    "howTitle": "Un mapa que hacemos juntos.",
-    "howBody": "Empieza por explorar. Cuando conozcas un lugar que falta o veas algo que cambió, compártelo con tu comunidad.",
-    "howLink": "Cómo funciona",
-    "howNote": "Explora sin crear una cuenta. Entra cuando quieras aportar.",
-    "stepActions": {
-      "find": "Explorar lugares",
-      "add": "Añadir un lugar",
-      "verify": "Ver el mapa"
+    "places": {
+      "title": "Para visitar",
+      "seeAll": "Ver todo",
+      "previous": "Lugares anteriores",
+      "next": "Más lugares",
+      "imageAlt": "Foto de {name}",
+      "empty": "Todavía no hay lugares publicados."
     }
   },
   "onboarding": {
@@ -219,16 +233,20 @@
     "cedula": {
       "label": "Cédula",
       "placeholder": "001-1234567-8",
-      "help": "Solo consultamos tu nombre en la JCE. Tu cédula se guarda cifrada y nunca se muestra.",
+      "help": "Tu cédula se guarda cifrada y nunca se muestra.",
+      "nameLabel": "Tu nombre y apellido",
+      "namePlaceholder": "Como aparece en tu cédula",
+      "checkDigit": "Ese número no parece correcto. Revísalo con tu cédula en la mano.",
+      "confirmNumber": "Está bien escrito, continuar",
       "municipality": "Municipio",
       "submit": "Verificar",
       "verified": "Listo, {name}. Ya eres residente verificado.",
-      "pending": "La JCE no responde ahora. Guardamos tu solicitud. Puedes seguir explorando y volver aquí para consultar tu estado.",
-      "rejected": "No encontramos esa cédula en la JCE. Revisa los números e intenta de nuevo.",
+      "pending": "El registro todavía no ha respondido. Si tu cédula quedó guardada, puedes continuar con las fotos mientras esperamos.",
+      "rejected": "Esa cédula y ese nombre no coinciden con la JCE. Revisa ambos e intenta de nuevo.",
       "taken": "Esa cédula ya está registrada en otra cuenta.",
       "checking": "Consultando la JCE…",
-      "title": "Verifica tu cédula",
-      "intro": "Comprobamos que tu cédula existe y registramos el municipio que indiques.",
+      "title": "Cédula y municipio",
+      "intro": "Primero confirmamos tu cédula con la JCE. Después envías dos fotos para que tu municipio te verifique.",
       "loadingStatus": "Revisando tu estado…",
       "municipalityPlaceholder": "Elige tu municipio",
       "municipalityHelp": "Elige el municipio donde vives.",
@@ -252,17 +270,16 @@
           "title": "Para qué sirve",
           "body": "Para que una cédula sea una sola cuenta y un solo voto en las consultas. Sin eso, cualquiera podría inflar una votación con cuentas falsas."
         }
-      }
+      },
+      "matched": "Encontramos tu cédula. Ahora envía las fotos para que tu municipio confirme tu identidad y residencia.",
+      "inReview": "Tus fotos están con el municipio. Te avisaremos cuando haya una decisión."
     },
     "alreadyHaveAccount": "Ya tengo cuenta",
     "saving": "Guardando tu elección…",
     "saveError": "No pudimos guardar tu elección. Inténtalo de nuevo.",
     "back": "Volver al mapa",
-    "privacyNote": "Tu cédula nunca se muestra públicamente.",
-    "stepLabel": "UN PASO A LA VEZ",
     "shellTitle": "Un lugar para tu gente.",
-    "shellBody": "Descubre lo que hay cerca y ayuda a que más personas lo encuentren.",
-    "optional": "Puedes explorar sin crear una cuenta."
+    "shellBody": "Descubre lo que hay cerca y ayuda a que más personas lo encuentren."
   },
   "auth": {
     "signIn": "Entrar",
@@ -271,13 +288,13 @@
     "magicLink": "Enviarme un enlace",
     "magicLinkSent": "Te enviamos un enlace a {email}. Ábrelo desde este mismo teléfono.",
     "passkey": "Entrar con biometría",
-    "intro": "Entra con tu celular o tu correo. Sin contraseñas.",
     "or": "o",
     "sending": "Enviando…",
-    "magicLinkHelp": "Te llega un enlace que expira en poco tiempo. Ábrelo desde este mismo teléfono.",
+    "magicLinkHelp": "Ábrelo desde este mismo teléfono.",
     "error": "No pudimos enviar el enlace. Revisa el correo e intenta de nuevo.",
     "passkeyNotFound": "No encontramos una llave de acceso en este dispositivo.",
     "passkeyNotFoundHint": "Si es tu primera vez, entra con tu correo aquí abajo. Después puedes activar la llave desde tu cuenta y entrar con la huella la próxima vez.",
+    "unavailable": "El inicio de sesión no está disponible en este momento. Inténtalo más tarde o contacta al ayuntamiento.",
     "checkingSession": "Revisando tu sesión…",
     "method": {
       "label": "Cómo quieres entrar",
@@ -287,7 +304,7 @@
     "phone": {
       "label": "Tu celular",
       "placeholder": "809-555-1234",
-      "help": "Te enviamos un código por mensaje de texto. No te llamamos ni compartimos tu número.",
+      "help": "Te enviaremos un código por mensaje de texto.",
       "send": "Enviarme el código",
       "sending": "Enviando…",
       "invalid": "Escribe un celular dominicano de 10 dígitos: 809, 829 u 849.",
@@ -312,7 +329,8 @@
   },
   "validation": {
     "cedula": {
-      "format": "La cédula debe tener 11 dígitos."
+      "format": "La cédula debe tener 11 dígitos.",
+      "name": "Escribe tu nombre y al menos un apellido."
     },
     "required": "Este campo es obligatorio."
   },
@@ -331,12 +349,18 @@
     "consultationAnswered": "El ayuntamiento respondió tu caso: {title}",
     "consultationStatusChanged": "Tu caso «{title}» pasó a {status}",
     "trafficNearby": "Reporte de tránsito cerca de ti: {description}",
-    "cedulaVerified": "Ya eres residente verificado, {name}",
+    "cedulaVerified": "{name}, tu identidad y residencia están verificadas. Ya puedes usar los permisos de residente.",
     "cedulaPending": "Seguimos intentando verificar tu cédula. Te avisamos al terminar.",
+    "cedulaHoldLapsed": "Tu cédula dejó de estar reservada porque no enviaste las fotos a tiempo. Puedes volver a empezar cuando quieras.",
+    "cedulaNameMismatch": "La JCE respondió, pero el nombre no coincide con esa cédula. Revisa los datos y vuelve a intentarlo.",
     "businessClaimApproved": "Aprobaron tu solicitud sobre {name}",
     "reportReady": "Ya está el informe semanal de {scope}",
     "businessClaimRejected": "No aprobaron tu solicitud sobre {name}. Toca para ver por qué.",
-    "trafficRemoved": "Quitamos del mapa tu reporte de {description}."
+    "trafficRemoved": "Quitamos del mapa tu reporte de {description}.",
+    "identityRejected": "Tu municipio revisó la solicitud. Consulta qué debes corregir y vuelve a enviar las fotos.",
+    "identitySubmitted": "Tu solicitud de identidad y residencia está con el municipio.",
+    "cedulaMatched": "El registro confirmó tu cédula. Completa las fotos para que tu municipio revise tu solicitud.",
+    "identityExpired": "Tu solicitud cumplió 30 días sin una decisión. Las fotos se eliminaron; puedes enviar una nueva solicitud."
   },
   "shell": {
     "account": "Mi cuenta",
@@ -433,7 +457,9 @@
         "checkingAccount": "Revisando tu cuenta…",
         "accountUnavailable": "No pudimos revisar tu cuenta. Comprueba la conexión e intenta de nuevo."
       },
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "expand": "Ver más detalles",
+      "collapse": "Ver menos"
     },
     "addPlace": {
       "title": "Añadir un lugar",
@@ -494,10 +520,16 @@
       "googlePlaces": "Lugares de Google",
       "googleUnavailable": "Los resultados de Google no están disponibles ahora mismo.",
       "addresses": "Direcciones",
-      "askAiTitle": "Pregúntale al mapa",
-      "askAiHint": "Describe lo que necesitas en tus palabras",
       "noResults": "Nada encontrado para «{term}»",
-      "noResultsHint": "Prueba con menos palabras. Si el lugar no está en el mapa, puedes agregarlo tú."
+      "noResultsHint": "Prueba con menos palabras. Si el lugar no está en el mapa, puedes agregarlo tú.",
+      "searchAddress": "Buscar «{term}» como dirección",
+      "searchAddressHint": "Calles, sectores y parajes de la provincia",
+      "noAddresses": "No encontramos esa dirección en la provincia.",
+      "recent": "Recientes",
+      "clearRecent": "Borrar",
+      "suggestions": "Buscar por tipo",
+      "clear": "Borrar lo escrito",
+      "close": "Cerrar búsqueda"
     },
     "traffic": {
       "label": "Tránsito de Google",
@@ -586,7 +618,6 @@
       "report": "Reportar",
       "addPlace": "Agregar",
       "moderation": "Moderar",
-      "assistant": "Preguntar",
       "explore": "Explorar",
       "consultations": "Consultas"
     },
@@ -608,6 +639,7 @@
     },
     "actions": {
       "locate": "Centrar en mi ubicación",
+      "contribute": "Aportar",
       "share": "Compartir esta vista",
       "addPlace": "Añadir un lugar",
       "here": "Estás aquí",
@@ -661,6 +693,12 @@
         "minor": "Hay algo, no impide el paso",
         "cleared": "Ya se resolvió, vía libre"
       }
+    },
+    "accessibility": {
+      "title": "Mapa de Santiago Rodríguez",
+      "zoomIn": "Acercar el mapa",
+      "zoomOut": "Alejar el mapa",
+      "attribution": "Ver créditos del mapa"
     }
   },
   "moderation": {
@@ -731,27 +769,9 @@
     "emptyConsultationsHint": "Cuando un vecino abra un caso, aparecerá aquí.",
     "emptyTraffic": "Nada en la vía ahora mismo",
     "emptyTrafficHint": "Los reportes de tránsito activos aparecen aquí por si hay que retirar alguno.",
-    "reports": "Informes"
-  },
-  "assistant": {
-    "title": "Pregúntale al mapa",
-    "subtitle": "Busca por lo que necesitas, no por el nombre exacto.",
-    "placeholder": "¿Qué estás buscando?",
-    "send": "Enviar",
-    "newChat": "Nueva conversación",
-    "searching": "Buscando en el mapa…",
-    "writing": "Escribiendo la respuesta…",
-    "failed": "No pudimos responder ahora. Inténtalo de nuevo.",
-    "grounding": "Solo responde con lugares que están en el mapa",
-    "photoAlt": "Foto de {name}",
-    "emptyTitle": "Pregunta con tus palabras",
-    "emptyHint": "Entiende lo que quieres decir, no solo lo que escribes. Prueba con una de estas:",
-    "suggestions": {
-      "water": "¿Dónde puedo conseguir agua potable?",
-      "health": "Necesito atención médica cerca",
-      "eat": "¿Dónde comer algo por aquí?",
-      "nature": "Un río o un lugar para pasar el día"
-    }
+    "reports": "Informes",
+    "identity": "Verificar residentes",
+    "identityHint": "Revisa las fotos de identidad y residencia."
   },
   "navigation": {
     "routes": "Rutas",
@@ -771,25 +791,31 @@
     "title": "Un lugar para cada plan.",
     "intro": "Naturaleza, servicios y rincones que vale la pena conocer.",
     "search": "Buscar un lugar",
-    "searchPlaceholder": "Un río, una farmacia, un parque…",
+    "searchPlaceholder": "Río, farmacia, parque…",
     "category": "Tipo de lugar",
     "municipality": "Municipio",
-    "allCategories": "Todas las categorías",
+    "allCategories": "Todo",
     "allMunicipalities": "Toda la provincia",
     "viewMap": "Ver en el mapa",
     "count": "{count, plural, one {# lugar} other {# lugares}}",
     "loading": "Buscando lugares…",
     "error": "No pudimos cargar los lugares. Comprueba tu conexión e inténtalo de nuevo.",
     "retry": "Intentar de nuevo",
-    "empty": "No encontramos lugares",
+    "empty": "No hay lugares con estos filtros.",
     "emptyHint": "Prueba otra búsqueda o cambia los filtros. Si conoces un lugar que falta, puedes añadirlo al mapa.",
     "clear": "Limpiar filtros",
     "addPlace": "Añadir un lugar",
-    "previous": "Página anterior",
-    "next": "Página siguiente",
+    "previous": "Anterior",
+    "next": "Siguiente",
     "page": "{page} de {pages}",
     "imageAlt": "Imagen ilustrativa de {name}",
-    "illustration": "Imagen ilustrativa"
+    "illustration": "Imagen ilustrativa",
+    "mapShort": "Mapa",
+    "view": "Ver como",
+    "viewGrid": "Fotos",
+    "viewList": "Lista",
+    "emptyAll": "Todavía no hay lugares publicados.",
+    "pagination": "Páginas de lugares"
   },
   "install": {
     "eyebrow": "SIEMPRE A MANO",
@@ -801,7 +827,7 @@
     "unavailable": "Usa el menú de tu navegador para instalar la app o crear un acceso directo.",
     "iosTitle": "En iPhone o iPad",
     "iosStep1": "Abre esta página en Safari.",
-    "iosStep2": "Toca Compartir en la barra del navegador.",
+    "iosStep2": "Toca Compartir; si no aparece en la barra, búscalo en Más (•••).",
     "iosStep3": "Selecciona Añadir a pantalla de inicio y confirma.",
     "otherTitle": "En Android o computadora",
     "otherStep1": "Abre el menú del navegador.",
@@ -833,24 +859,24 @@
   "account": {
     "eyebrow": "TU ESPACIO",
     "title": "Mi cuenta",
-    "anonymousTitle": "Conoce el Cibao. Aporta cuando quieras.",
+    "anonymousTitle": "Entra para guardar lugares, coleccionar sellos y seguir tus aportes.",
     "anonymousBody": "Puedes explorar sin registrarte. Entra para guardar lugares, añadir fotos y seguir tus aportes.",
     "signIn": "Entrar o crear una cuenta",
     "explore": "Seguir explorando",
     "contributions": "Mis aportes",
     "contributionsHint": "Consulta el estado de tus lugares, fotos y correcciones.",
-    "saved": "Mis lugares guardados",
+    "saved": "Lugares guardados",
     "savedHint": "Los lugares a los que quieres volver.",
     "avisosHint": "Avisos sobre tus aportes y el tránsito.",
-    "verification": "Verifica tu cédula",
-    "verificationHint": "Confirma tu identidad para aportar tu ubicación con GPS.",
-    "verified": "Cédula verificada",
+    "verification": "Verificar identidad y residencia",
+    "verificationHint": "Consulta tu cédula y envía las fotos que revisará tu municipio.",
+    "verified": "Identidad y residencia verificadas",
     "passkey": "Acceso con biometría",
     "passkeyHint": "Actívala en este dispositivo y la próxima vez entras sin pedir un código nuevo.",
     "visitor": "Cuenta de visitante",
-    "install": "Instalar Ruta Cibao",
+    "install": "Instalar la app",
     "installHint": "Un acceso directo desde tu pantalla de inicio.",
-    "privacy": "Tus datos y tu privacidad",
+    "privacy": "Privacidad y datos",
     "privacyHint": "Conoce qué guardamos y para qué.",
     "moderation": "Panel de moderación",
     "moderationHint": "Revisa los aportes de tu comunidad.",
@@ -858,7 +884,7 @@
     "error": "No pudimos cargar tu cuenta.",
     "retry": "Intentar de nuevo",
     "signOut": "Cerrar sesión",
-    "passkeyActive": "Activada",
+    "passkeyActive": "Activada en este teléfono",
     "passkeyActiveHint": "Ya puedes entrar con tu huella o tu cara en este dispositivo.",
     "push": "Avisos en este dispositivo",
     "pushHint": "Recibe un aviso cuando respondan tu caso, aprueben un aporte o haya tránsito cerca — aunque no tengas la app abierta.",
@@ -866,7 +892,19 @@
     "pushDeniedHint": "Bloqueaste los avisos para este sitio. Puedes volver a permitirlos desde la configuración del navegador.",
     "pushOn": "Activar avisos",
     "pushOff": "Apagar avisos",
-    "pushWorking": "Un momento…"
+    "pushWorking": "Un momento…",
+    "verificationDocuments": "Completar las fotos",
+    "verificationDocumentsHint": "Tu cédula está registrada. Envía las fotos para que tu municipio pueda revisarlas.",
+    "verificationReview": "Solicitud en revisión",
+    "verificationReviewHint": "Consulta el estado de tu verificación de identidad y residencia.",
+    "passport": "Mi pasaporte",
+    "passportHint": "Los sellos de tus visitas a Santiago Rodríguez.",
+    "activity": "Tu actividad",
+    "device": "Este teléfono",
+    "more": "Más",
+    "pushShort": "Te avisamos cuando respondan o haya tránsito cerca.",
+    "pushOnShort": "Activados",
+    "passkeyShort": "Entra con tu huella o tu cara."
   },
   "contributions": {
     "eyebrow": "LO QUE HAS COMPARTIDO",
@@ -874,7 +912,7 @@
     "intro": "Cada aporte ayuda a que alguien encuentre lo que necesita. Aquí puedes seguir su revisión.",
     "add": "Añadir un lugar",
     "loading": "Buscando tus aportes…",
-    "empty": "Tu primer aporte empieza aquí",
+    "empty": "Todavía no has aportado nada.",
     "emptyHint": "Añade un lugar, comparte una foto, avisa de un problema en la vía o abre un caso con tu ayuntamiento.",
     "error": "No pudimos cargar tus aportes.",
     "retry": "Intentar de nuevo",
@@ -892,10 +930,10 @@
     "archived": "Archivado",
     "all": "Todos",
     "pendingTab": "En revisión",
-    "signIn": "Entra para ver tus aportes",
+    "signIn": "Entra para ver tus aportes.",
     "signInHint": "El historial es privado y está vinculado a tu cuenta.",
     "recent": "Se muestran hasta 100 aportes de cada tipo.",
-    "pendingEmpty": "Todo al día. No hay aportes en revisión.",
+    "pendingEmpty": "No tienes aportes en revisión.",
     "traffic": "Tránsito",
     "consultation": "Consulta",
     "claim": "Negocio",
@@ -905,14 +943,17 @@
     "removed": "Retirado",
     "in_review": "En revisión",
     "answered": "Respondido",
-    "approved": "Aprobado"
+    "approved": "Aprobado",
+    "signInAction": "Entrar",
+    "filter": "Qué aportes ver",
+    "openStatus": "Recibido"
   },
   "privacy": {
     "eyebrow": "TUS DATOS",
     "title": "Privacidad, con palabras claras.",
     "intro": "Ruta Cibao usa tu información para mantener tu cuenta y revisar tus aportes a la provincia.",
     "identityTitle": "La cédula se guarda cifrada",
-    "identityBody": "El número se cifra antes de guardarlo. No aparece en el mapa ni en la API pública. La consulta confirma que una cédula existe; por sí sola no demuestra quién la está usando ni dónde vive.",
+    "identityBody": "La cédula y las fotos de verificación se guardan cifradas. Solo el personal autorizado puede revisar las fotos, y cada consulta queda registrada. Se eliminan después de la decisión o al cumplirse 30 días de una solicitud pendiente. La consulta del registro confirma que la cédula existe; el municipio revisa los documentos antes de aprobar tu identidad y residencia.",
     "accountTitle": "Cuenta y lugares guardados",
     "accountBody": "Tu teléfono o correo permiten iniciar sesión. Tus lugares guardados y tu historial de aportes son privados. Los lugares y fotografías aprobados se muestran en el mapa.",
     "locationTitle": "Tú decides si compartes tu ubicación",
@@ -921,7 +962,9 @@
     "deviceBody": "Las acciones pendientes se guardan localmente para reintentarlas con tu cuenta. No borres los datos del navegador si todavía tienes aportes por enviar.",
     "providersTitle": "Servicios externos",
     "providersBody": "Según la configuración, el mapa, el envío de códigos, el correo y las fotos pueden usar proveedores externos. El enlace Cómo llegar abre la aplicación de mapas que elijas.",
-    "back": "Volver a explorar"
+    "back": "Volver a explorar",
+    "passportTitle": "Tus visitas son privadas",
+    "passportBody": "El pasaporte conserva un sello por lugar y la fecha de tu visita en tu cuenta. El identificador del lugar se guarda cifrado. Para registrar un sello comprobamos que la ubicación que envía tu teléfono esté cerca del lugar; no conservamos esas coordenadas ni hacemos seguimiento. Los sellos son recuerdos personales, no certificados de presencia ni pruebas de identidad."
   },
   "recovery": {
     "title": "No pudimos abrir esta página",
@@ -941,9 +984,9 @@
     "intro": "Casos que vecinos abrieron y las respuestas del ayuntamiento. Todo es público.",
     "open": "Abrir un caso",
     "loading": "Cargando los casos…",
-    "empty": "Todavía no hay casos",
+    "empty": "Todavía no hay casos.",
     "emptyHint": "Cuando alguien abra un caso sobre el agua, las calles o la basura, aparecerá aquí.",
-    "emptyMine": "No has abierto ningún caso",
+    "emptyMine": "No has abierto ningún caso.",
     "emptyMineHint": "Si algo de tu barrio necesita atención del ayuntamiento, cuéntalo aquí.",
     "loadError": "No pudimos cargar los casos. Revisa la conexión.",
     "notFound": "Ese caso no existe o fue retirado.",
@@ -958,14 +1001,14 @@
     "more": "Ver más casos",
     "count": "{count, plural, one {# caso} other {# casos}}",
     "status": {
-      "open": "esperando respuesta",
+      "open": "recibido",
       "in_review": "en revisión",
       "answered": "respondido",
       "resolved": "resuelto",
       "rejected": "no procede"
     },
     "statusLabel": {
-      "open": "Esperando respuesta",
+      "open": "Recibido",
       "in_review": "En revisión",
       "answered": "Respondido",
       "resolved": "Resuelto",
@@ -984,7 +1027,7 @@
     },
     "responses": {
       "title": "Respuestas del ayuntamiento",
-      "empty": "El ayuntamiento todavía no ha respondido.",
+      "empty": "El ayuntamiento todavía no ha respondido. Te avisamos cuando lo haga.",
       "emptyHint": "Te avisamos apenas respondan. No hace falta que vuelvas a revisar.",
       "byOffice": "Ayuntamiento",
       "author": "{name}, del ayuntamiento"
@@ -1026,7 +1069,13 @@
       "sent": "Respuesta enviada. Le avisamos a quien abrió el caso.",
       "failed": "No pudimos enviar la respuesta. Inténtalo de nuevo.",
       "statusHint": "«En revisión» avisa que lo están viendo. «Respondido» avisa que hay una respuesta que leer."
-    }
+    },
+    "scope": "Qué casos ver",
+    "allTopics": "Todos los temas",
+    "emptyTopic": "No hay casos con este tema.",
+    "retry": "Intentar de nuevo",
+    "viewOnMap": "Ver en el mapa",
+    "timeline": "Seguimiento"
   },
   "business": {
     "claim": "Este negocio es mío",
@@ -1127,20 +1176,149 @@
   },
   "footer": {
     "label": "Enlaces del pie de página",
-    "blurb": "Los lugares, caminos e historias de Santiago Rodríguez. Un mapa abierto, hecho por su gente.",
-    "region": "Desde Santiago Rodríguez, para todos.",
-    "openMap": "Abrir el mapa",
-    "sections": {
-      "explore": "Explorar",
-      "contribute": "Aportar",
-      "build": "Proyecto"
-    },
-    "addPlace": "Añadir un lugar",
-    "verify": "Verificar mi cédula",
-    "spec": "Especificación OpenAPI",
-    "credits": "{app} · Datos de calles © colaboradores de OpenStreetMap (ODbL). Límites municipales © geoBoundaries (CC-BY 4.0).",
+    "reports": "Informes",
+    "contest": "Hecho para TechEmprende SR Conecta 2026 (FUNDESER)",
+    "region": "Santiago Rodríguez, República Dominicana",
+    "dataCredits": "Datos de calles © colaboradores de OpenStreetMap (ODbL). Límites municipales © geoBoundaries (CC BY 4.0).",
     "osm": "OpenStreetMap",
-    "source": "Código fuente",
-    "boundaries": "geoBoundaries"
+    "boundaries": "geoBoundaries",
+    "spec": "Especificación OpenAPI"
+  },
+  "identity": {
+    "title": "Verifica tu identidad y residencia",
+    "intro": "Primero consultamos tu cédula. Después, tu municipio revisa las fotos para confirmar que eres tú y que resides allí.",
+    "steps": {
+      "cedula": "1. Cédula y municipio",
+      "documents": "2. Fotos",
+      "review": "3. Revisión",
+      "verified": "Verificación completada"
+    },
+    "registryName": "Nombre en el registro",
+    "municipality": "Municipio de residencia",
+    "registryPending": "El registro todavía no ha respondido. Puedes enviar las fotos mientras esperamos; el municipio podrá aprobarlas cuando tengamos el resultado.",
+    "documentsTitle": "Envía las fotos para revisión",
+    "documentsHint": "Usa fotos claras, sin reflejos y con las cuatro esquinas del documento visibles. No se publican en el mapa.",
+    "front": "Frente de tu cédula",
+    "frontHint": "El número, nombre y foto deben leerse con claridad.",
+    "selfie": "Foto tuya sosteniendo la cédula",
+    "selfieHint": "Colócala junto a tu cara para que ambas se vean bien.",
+    "residence": "Comprobante de residencia (opcional)",
+    "residenceHint": "Puedes añadir una factura de servicio o una carta de tu junta de vecinos que confirme dónde resides.",
+    "fileHint": "JPG, PNG o WebP. Máximo 8 MB por foto.",
+    "privacy": "Las fotos se guardan cifradas y solo el personal autorizado de tu municipio puede consultarlas. Se eliminan después de la decisión; si tu solicitud queda pendiente, se conservan por un máximo de 30 días.",
+    "consent": "Confirmo que estos documentos son míos y autorizo su revisión para verificar mi identidad y residencia.",
+    "send": "Enviar para revisión",
+    "sending": "Enviando las fotos…",
+    "submitted": "Tu solicitud está con el municipio.",
+    "reviewTitle": "Tu municipio está revisando la solicitud",
+    "reviewHint": "Te avisaremos cuando haya una decisión. Mientras tanto, puedes seguir explorando y usando tu cuenta de visitante.",
+    "submittedAt": "Enviada el {date}",
+    "rejectedTitle": "Necesitamos que corrijas las fotos",
+    "rejectedHint": "Revisa el motivo y vuelve a enviarlas.",
+    "restart": "La cédula o el municipio no son correctos",
+    "restartConfirm": "Cambiar cédula o municipio",
+    "restartHint": "Se borrará la cédula de esta solicitud. Tendrás que completar el primer paso de nuevo.",
+    "cancel": "Cancelar",
+    "continue": "Seguir explorando",
+    "verified": "Tu identidad y residencia están verificadas.",
+    "loadError": "No pudimos consultar tu solicitud.",
+    "retry": "Intentar de nuevo",
+    "errors": {
+      "invalid_file": "La foto no es válida o supera los 8 MB. Usa JPG, PNG o WebP.",
+      "missing_file": "Añade el frente de tu cédula y la foto tuya sosteniéndola.",
+      "too_many": "Has enviado varias solicitudes hoy. Inténtalo mañana.",
+      "unauthorized": "Tu sesión venció. Vuelve a entrar antes de enviar las fotos.",
+      "already_submitted": "Ya tienes una solicitud en revisión.",
+      "cedula_required": "Completa el paso de la cédula antes de enviar las fotos.",
+      "generic": "No pudimos enviar la solicitud. Tus archivos siguen aquí; puedes intentarlo de nuevo."
+    },
+    "reasons": {
+      "unreadable": "La foto no se puede leer",
+      "mismatch": "Los documentos no coinciden con la persona o con el registro",
+      "not_resident": "No se pudo confirmar la residencia en el municipio",
+      "incomplete": "Faltan datos o documentos",
+      "other": "Otro motivo"
+    },
+    "desk": {
+      "title": "Verificar residentes",
+      "intro": "Compara el registro con la cédula y la persona que la sostiene. Confirma también la residencia antes de aprobar.",
+      "pending": "Pendientes",
+      "decided": "Decididas",
+      "empty": "No hay solicitudes pendientes",
+      "emptyDecided": "Todavía no hay decisiones",
+      "loading": "Cargando solicitudes…",
+      "error": "No pudimos cargar las solicitudes.",
+      "showDocuments": "Consultar fotos privadas",
+      "hideDocuments": "Cerrar fotos",
+      "documentError": "No pudimos abrir las fotos. Puede que ya se hayan eliminado o que tu sesión haya vencido.",
+      "documentsDeleted": "Las fotos ya se eliminaron.",
+      "registryPending": "Falta la respuesta del registro. Puedes revisar las fotos, pero aún no aprobar.",
+      "checklist": "Antes de aprobar: el nombre y número deben coincidir con el registro, la cara con la cédula y la residencia con el municipio indicado.",
+      "approve": "Aprobar identidad y residencia",
+      "approveConfirm": "Confirmar aprobación",
+      "approveHint": "La persona obtendrá los permisos de residente verificado.",
+      "reject": "Pedir corrección",
+      "rejectConfirm": "Enviar decisión",
+      "reason": "Motivo",
+      "note": "Indicaciones para la persona (opcional)",
+      "noteHint": "Explica cómo corregirlo. No incluyas el número de cédula ni otros datos sensibles.",
+      "notePlaceholder": "Explica qué necesita corregir…",
+      "approved": "Solicitud aprobada",
+      "rejected": "Se enviaron las indicaciones",
+      "pendingStatus": "En revisión",
+      "approvedStatus": "Aprobada",
+      "rejectedStatus": "Rechazada",
+      "previousRejections": "Solicitudes anteriores rechazadas: {count}",
+      "failed": "No pudimos guardar la decisión. Actualiza la lista antes de intentarlo de nuevo.",
+      "registry_pending": "Espera la respuesta del registro antes de aprobar.",
+      "not_pending": "Otra persona ya decidió esta solicitud. La lista se actualizará.",
+      "residenceMissing": "No se adjuntó comprobante adicional de residencia.",
+      "back": "Volver a moderación",
+      "retry": "Actualizar lista"
+    }
+  },
+  "passport": {
+    "eyebrow": "Conoce nuestra provincia",
+    "title": "Pasaporte de Santiago Rodríguez",
+    "shortTitle": "Tu pasaporte turístico",
+    "intro": "Cada lugar tiene una historia. Recorre Santiago Rodríguez y guarda un sello de los lugares que visitas.",
+    "count": "{count, plural, =0 {Tu próximo recuerdo empieza aquí} one {# lugar visitado} other {# lugares visitados}}",
+    "privateHint": "Tus sellos son privados y se guardan en tu cuenta. No necesitas verificar una cédula para coleccionarlos.",
+    "welcomeTitle": "Un pasaporte para tus recuerdos",
+    "welcomeBody": "Entra a tu cuenta, abre un lugar en el mapa y registra tu visita cuando estés allí. Un lugar, un sello.",
+    "signIn": "Entrar para coleccionar sellos",
+    "emptyTitle": "Visita un lugar y regístralo para ganar tu primer sello.",
+    "emptyBody": "Abre un lugar en el mapa y toca «Registrar mi visita» cuando estés cerca. Tu teléfono comprobará la ubicación.",
+    "explore": "Ver lugares en el mapa",
+    "open": "Ver mi pasaporte",
+    "visitHint": "Registra tu visita a menos de 150 metros del lugar. Usamos la ubicación solo para esta comprobación; no guardamos tus coordenadas.",
+    "collect": "Registrar mi visita",
+    "checking": "Comprobando ubicación…",
+    "success": "¡Un nuevo sello para tu pasaporte!",
+    "already": "Este lugar ya tiene un sello en tu pasaporte.",
+    "collectedOn": "Visitado el {date}",
+    "tooFar": "Todavía estás lejos. Acércate a menos de 150 metros del lugar y vuelve a intentar.",
+    "inaccurate": "La ubicación no es suficientemente precisa. Busca un espacio abierto y vuelve a intentar.",
+    "stale": "La ubicación ya no está actualizada. Vuelve a intentar para obtener una lectura nueva.",
+    "error": "No pudimos cargar o registrar tus sellos. Revisa tu conexión y vuelve a intentar.",
+    "retry": "Reintentar",
+    "loading": "Cargando tu pasaporte…",
+    "unavailablePlace": "Lugar no disponible",
+    "viewPlace": "Ver lugar en el mapa",
+    "pagination": "Páginas de tu pasaporte",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "page": "{page} de {pages}",
+    "signInTitle": "Entra para coleccionar sellos.",
+    "progress": "de {total, plural, one {# lugar} other {# lugares}} visitados",
+    "cancellation": "SANTIAGO RODRÍGUEZ · {date} ·",
+    "stampLabel": "{name}, visitado el {date}",
+    "slotLabel": "{name}, por visitar",
+    "pageLabel": "Sellos"
+  },
+  "lists": {
+    "thisWeek": "Esta semana",
+    "thisMonth": "Este mes",
+    "earlier": "Antes"
   }
 }

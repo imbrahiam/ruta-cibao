@@ -85,7 +85,13 @@ export type CitizenMapProps = {
   /** Google's own listings. Renderers without them ignore this. */
   googlePlaces?: boolean;
   /** Where the person is, once they have asked to be found. */
-  myLocation?: { lng: number; lat: number } | null;
+  myLocation?: { lng: number; lat: number; accuracyMeters?: number } | null;
+  /**
+   * Filled in by the renderer with what the map's own controls need, so the
+   * zoom buttons can live in the same stack as "where am I" instead of in
+   * each SDK's differently-drawn corner widget.
+   */
+  controllerRef?: React.RefObject<MapController | null>;
   /** While true, the viewport's centre is choosing a new place. */
   pickingLocation?: boolean;
   /**
@@ -135,3 +141,6 @@ export type CitizenMapProps = {
   onMovingChange?: (moving: boolean) => void;
   onSelect: (place: PlaceSelection) => void;
 };
+
+/** What the floating controls may ask of whichever renderer is drawing. */
+export type MapController = { zoomBy: (delta: 1 | -1) => void };

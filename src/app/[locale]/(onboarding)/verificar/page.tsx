@@ -2,16 +2,19 @@ import { asc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
-import { CedulaForm } from "@/components/onboarding/cedula-form";
-import {
-  VerificationStatus,
-  VerificationStatusFallback,
-} from "@/components/onboarding/verification-status";
-import { BlurFade } from "@/components/ui/blur-fade";
+import { VerificationFlow } from "@/components/onboarding/verification-flow";
+import { VerificationStatusFallback } from "@/components/onboarding/verification-status";
 import { db } from "@/db";
 import { municipalities } from "@/db/schema";
+import { requireMember } from "@/modules/access/permissions";
 import { safeCallbackPath } from "@/modules/access/route-policy";
 import { getServerViewer, requirePageMember } from "@/modules/access/server";
+import { verificationStatus } from "@/modules/identity/status";
+
+export async function generateMetadata() {
+  const t = await getTranslations("identity");
+  return { title: t("title") };
+}
 
 /**
  * The municipality list changes about once a decade, so it is cached. The
@@ -33,31 +36,14 @@ async function ProtectedVerifyPage({ next }: { next: string }) {
   const viewer = await getServerViewer();
   if (viewer.kind === "citizen") redirect(next);
 
-  const t = await getTranslations("onboarding.cedula");
   const list = await loadMunicipalities();
-
+  const status = await verificationStatus(requireMember(viewer));
   return (
-    <>
-      <BlurFade delay={0.05} inView>
-        <header className="flex flex-col gap-2">
-          <h1 className="font-semibold text-2xl tracking-tight">
-            {t("title")}
-          </h1>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            {t("intro")}
-          </p>
-        </header>
-      </BlurFade>
-
-      {/* This second read is deduplicated by the request-scoped viewer cache. */}
-      <Suspense fallback={<VerificationStatusFallback />}>
-        <VerificationStatus />
-      </Suspense>
-
-      <BlurFade delay={0.1} inView>
-        <CedulaForm municipalities={list} next={next} />
-      </BlurFade>
-    </>
+    <VerificationFlow
+      initialStatus={status}
+      municipalities={list}
+      next={next}
+    />
   );
 }
 

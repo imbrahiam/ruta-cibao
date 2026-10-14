@@ -30,12 +30,8 @@ export function PendingSubmissions() {
   return (
     <div className="mx-auto max-w-2xl">
       <CloudUpload className="mb-5 size-8 text-primary" aria-hidden />
-      <h1 className="text-3xl font-semibold tracking-tight">
-        {t("pendingTitle")}
-      </h1>
-      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-        {t("pendingHint")}
-      </p>
+      <h1 className="page-title">{t("pendingTitle")}</h1>
+      <p className="page-lede mt-4">{t("pendingHint")}</p>
       {!viewer?.userId ? (
         <div className="surface-card mt-8 p-6">
           <p className="text-sm text-muted-foreground">{t("needsAccount")}</p>

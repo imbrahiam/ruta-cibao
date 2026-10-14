@@ -35,11 +35,7 @@ async function Reports() {
             {moderation("noAccessHint")}
           </p>
         </div>
-        <Button
-          className="h-11"
-          nativeButton={false}
-          render={<Link href="/mapa" />}
-        >
+        <Button nativeButton={false} render={<Link href="/mapa" />}>
           {moderation("backToMap")}
         </Button>
       </div>
@@ -49,10 +45,8 @@ async function Reports() {
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-2">
-        <h1 className="font-semibold text-2xl tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          {t("intro")}
-        </p>
+        <h1 className="page-title">{t("title")}</h1>
+        <p className="page-lede">{t("intro")}</p>
       </header>
 
       <ReportList />

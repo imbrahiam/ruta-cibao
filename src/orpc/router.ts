@@ -5,10 +5,12 @@ import { businessesRouter } from "./routers/businesses";
 import { catalogRouter } from "./routers/catalog";
 import { citizenRouter } from "./routers/citizen";
 import { consultationsRouter } from "./routers/consultations";
+import { identityRouter } from "./routers/identity";
 import { meRouter } from "./routers/me";
 import { moderationRouter } from "./routers/moderation";
 import { municipalitiesRouter } from "./routers/municipalities";
 import { notificationsRouter } from "./routers/notifications";
+import { passportRouter } from "./routers/passport";
 import { placesRouter } from "./routers/places";
 import { reportsRouter } from "./routers/reports";
 import { routesRouter } from "./routers/routes";
@@ -33,9 +35,11 @@ export const router = {
   me: meRouter,
   municipalities: municipalitiesRouter,
   citizen: citizenRouter,
+  identity: identityRouter,
   moderation: moderationRouter,
   notifications: notificationsRouter,
   places: placesRouter,
+  passport: passportRouter,
   traffic: trafficRouter,
   consultations: consultationsRouter,
   businesses: businessesRouter,

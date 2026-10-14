@@ -12,17 +12,15 @@ import { orpc } from "@/lib/orpc";
 import { cn } from "@/lib/utils";
 
 const floating =
-  "rounded-full border bg-background/95 shadow-md backdrop-blur-sm";
+  "rounded-full border border-black/[0.07] bg-card shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)]";
 
 /**
  * The account control on a phone: one avatar, nothing else.
  *
- * Saved places, notifications and the assistant used to hang below it as
- * their own floating circles, competing with search, the category chips and
- * the map itself for space. They are secondary actions — they now live where
- * secondary actions belong: saved and notifications on the "Mi cuenta" screen
- * (one tap away in the bottom bar), the assistant inside the account menu and
- * as a suggestion in search. The avatar keeps a badge while anything is
+ * Saved places and notifications used to hang below it as their own floating
+ * circles, competing with search, the category chips and the map itself for
+ * space. They are secondary actions, so they live on the "Mi cuenta" screen,
+ * one tap away in the bottom bar. The avatar keeps a badge while anything is
  * unread, so the signal survives without spending a permanent button on it.
  */
 export function MapAccountCluster() {

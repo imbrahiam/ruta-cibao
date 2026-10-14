@@ -3,34 +3,52 @@
 import type { Feature, LineString } from "geojson";
 import {
   addProtocol,
+  type ExpressionSpecification,
+  getVersion,
   Map as MapLibreMap,
   Marker as MapLibreMarker,
   type MapMouseEvent,
-  NavigationControl,
   removeProtocol,
+  setWorkerUrl,
 } from "maplibre-gl";
+import { useTranslations } from "next-intl";
 import { Protocol } from "pmtiles";
 import { useEffect, useRef, useState } from "react";
+import { useBoundaries } from "@/hooks/use-boundaries";
 import { publicEnv } from "@/lib/env.public";
 import {
   COUNTRY_BOUNDS,
-  DEFAULT_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
+  PLACE_LABEL_ZOOM,
   PLACES_SOURCE_ID,
   PLACES_TILE_URL,
-  PROVINCE_CENTER,
+  PROVINCE_BOUNDS,
 } from "@/lib/map/config";
 import {
   CLUSTERS_LAYER_ID,
+  CLUSTERS_SINGLE_LAYER_ID,
   categoryFilter,
   clusterLayers,
+  FOCUSED_BASEMAP_LABELS,
   INTERACTIVE_LAYER_IDS,
+  PLACES_LAYER_ID,
+  pinImage,
   placesLayers,
+  provinceLabelColor,
+  provinceLayers,
+  provinceSources,
 } from "@/lib/map/layers";
+import { locationFeatures } from "@/lib/map/location";
 import { markerPin, markerSize } from "@/lib/map/marker-pin";
+import { mapPalette } from "@/lib/map/palette";
 import { buildMapStyle } from "@/lib/map/style";
-import { mapOverlays } from "./overlay-features";
+import { installPinResolver } from "./maplibre-pins";
+import {
+  mapOverlays,
+  OVERLAY_COMPACT_CLASS,
+  overlayChip,
+} from "./overlay-features";
 import type { CitizenMapProps } from "./types";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -49,6 +67,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
  * seam a React Native build comes in at: MapLibre Native reads the same style
  * JSON and the same tile URLs, and only this file is replaced.
  */
+const LOCATION_SOURCE_ID = "my-location";
+
 function resolveBasemap() {
   if (publicEnv.NEXT_PUBLIC_BASEMAP_PMTILES_URL) {
     return {
@@ -77,13 +97,23 @@ export function CitizenMap({
   categoryIds,
   flyTo,
   searchMarker,
+  myLocation = null,
+  controllerRef,
   pickingLocation = false,
   onViewportChange,
   onMovingChange,
   onSelect,
 }: CitizenMapProps) {
+  const t = useTranslations("map.accessibility");
+  const localeRef = useRef({
+    "Map.Title": t("title"),
+    "NavigationControl.ZoomIn": t("zoomIn"),
+    "NavigationControl.ZoomOut": t("zoomOut"),
+    "AttributionControl.ToggleAttribution": t("attribution"),
+  });
   const container = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const { data: boundaries } = useBoundaries();
   const pointRef = useRef(onMapPoint);
   pointRef.current = onMapPoint;
   const map = useRef<MapLibreMap | null>(null);
@@ -102,6 +132,10 @@ export function CitizenMap({
   useEffect(() => {
     if (!container.current || map.current) return;
 
+    // The bundled worker URL does not survive Turbopack; this copy does.
+    // See `scripts/vendor-maplibre.ts`.
+    setWorkerUrl(`/vendor/maplibre/${getVersion()}/maplibre-gl-worker.mjs`);
+
     const basemap = resolveBasemap();
 
     // A PMTiles archive is one file read by range request, which MapLibre only
@@ -112,26 +146,41 @@ export function CitizenMap({
 
     const instance = new MapLibreMap({
       container: container.current,
+      locale: localeRef.current,
+      // High-density phones otherwise shade nearly seven pixels per CSS pixel.
+      // Two keeps labels crisp while reducing the GPU fill and buffer cost.
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       style: buildMapStyle(basemap, window.location.origin),
-      center: [PROVINCE_CENTER.longitude, PROVINCE_CENTER.latitude],
-      zoom: DEFAULT_ZOOM,
+      // Opens on the province itself, framed clear of the search bar and
+      // chips above and the tab bar below, whatever the screen's shape.
+      bounds: PROVINCE_BOUNDS,
+      fitBoundsOptions: {
+        padding: { top: 132, bottom: 72, left: 24, right: 24 },
+      },
       minZoom: MIN_ZOOM,
       maxBounds: COUNTRY_BOUNDS,
       maxZoom: MAX_ZOOM,
+      // The credit opens expanded and folds into an (i) on the first drag —
+      // MapLibre's own behaviour — or after five seconds, below. Both are the
+      // collapse triggers the OSMF attribution guideline (2021) lists; the
+      // licence stays one tap away, which is what ODbL requires of us.
       attributionControl: { compact: true },
+      // Labels settle in half the stock 300 ms, so a pinch does not leave
+      // names swimming in and out behind the thumb.
+      fadeDuration: 150,
       // The province is flat enough that tilting adds nothing and costs a
       // gesture people trigger by accident with two thumbs.
       pitchWithRotate: false,
       dragRotate: false,
     });
 
-    // Zoom only. Location has one control — `MapActions` — shared by every
-    // renderer, so a second geolocate button here would be two targets for
-    // the same action in the same corner.
-    instance.addControl(
-      new NavigationControl({ showCompass: false }),
-      "bottom-right",
-    );
+    installPinResolver(instance);
+
+    const foldCredit = window.setTimeout(() => {
+      container.current
+        ?.querySelector(".maplibregl-compact-show")
+        ?.classList.remove("maplibregl-compact-show");
+    }, 5000);
 
     instance.on("load", () => {
       instance.addSource(PLACES_SOURCE_ID, {
@@ -197,6 +246,18 @@ export function CitizenMap({
       );
     });
 
+    // Traffic chips shrink to dots until street level — see `overlayChip`.
+    const compactOverlays = () => {
+      instance
+        .getContainer()
+        .classList.toggle(
+          OVERLAY_COMPACT_CLASS,
+          instance.getZoom() < PLACE_LABEL_ZOOM,
+        );
+    };
+    compactOverlays();
+    instance.on("zoomend", compactOverlays);
+
     instance.on("movestart", () => onMovingChangeRef.current?.(true));
     instance.on("moveend", () => {
       const center = instance.getCenter();
@@ -239,6 +300,7 @@ export function CitizenMap({
     });
 
     return () => {
+      window.clearTimeout(foldCredit);
       instance.remove();
       map.current = null;
       removeProtocol("pmtiles");
@@ -246,31 +308,120 @@ export function CitizenMap({
   }, []);
 
   // Redraw the markers when the selection changes, rather than rebuilding the
-  // map: only the paint properties depend on it.
+  // map: only the selection-dependent properties change.
   useEffect(() => {
     const instance = map.current;
-    if (!instance?.isStyleLoaded()) return;
+    if (!ready || !instance) return;
 
     for (const layer of placesLayers(selectedId)) {
-      if (!instance.getLayer(layer.id) || layer.type !== "circle") continue;
-      const paint = layer.paint ?? {};
-      for (const [property, value] of Object.entries(paint)) {
-        instance.setPaintProperty(layer.id, property as never, value as never);
+      if (!instance.getLayer(layer.id)) continue;
+      if (layer.type === "symbol" && layer.id === PLACES_LAYER_ID) {
+        for (const [property, value] of Object.entries(layer.layout ?? {})) {
+          instance.setLayoutProperty(
+            layer.id,
+            property as never,
+            value as never,
+          );
+        }
+      }
+      if (layer.type === "circle") {
+        for (const [property, value] of Object.entries(layer.paint ?? {})) {
+          instance.setPaintProperty(
+            layer.id,
+            property as never,
+            value as never,
+          );
+        }
       }
     }
-  }, [selectedId]);
+    if (instance.getLayer(CLUSTERS_SINGLE_LAYER_ID)) {
+      instance.setLayoutProperty(
+        CLUSTERS_SINGLE_LAYER_ID,
+        "icon-image",
+        pinImage(selectedId),
+      );
+    }
+  }, [selectedId, ready]);
+
+  // The province outline arrives on its own request, after the map is up; it
+  // goes in beneath the pins so it never covers a place.
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || !boundaries?.features.length) return;
+    const sources = provinceSources(boundaries);
+    for (const [id, source] of Object.entries(sources)) {
+      if (!instance.getSource(id)) instance.addSource(id, source);
+    }
+    for (const layer of provinceLayers()) {
+      if (!instance.getLayer(layer.id)) {
+        instance.addLayer(layer, CLUSTERS_LAYER_ID);
+      }
+    }
+    for (const id of FOCUSED_BASEMAP_LABELS) {
+      if (!instance.getLayer(id)) continue;
+      const inside = instance.getPaintProperty(id, "text-color");
+      instance.setPaintProperty(
+        id,
+        "text-color",
+        provinceLabelColor(
+          boundaries,
+          typeof inside === "string" ? inside : mapPalette.label,
+        ),
+      );
+    }
+  }, [boundaries, ready]);
 
   useEffect(() => {
     const instance = map.current;
-    if (!instance?.isStyleLoaded()) return;
+    if (!ready || !instance) return;
 
+    for (const layer of clusterLayers(categoryIds)) {
+      if (!instance.getLayer(layer.id)) continue;
+      instance.setFilter(
+        layer.id,
+        "filter" in layer ? (layer.filter ?? null) : null,
+      );
+      if (layer.type === "symbol") {
+        instance.setLayoutProperty(
+          layer.id,
+          "text-field",
+          layer.layout?.["text-field"],
+        );
+      }
+      if (layer.type === "circle") {
+        instance.setPaintProperty(
+          layer.id,
+          "circle-radius",
+          layer.paint?.["circle-radius"],
+        );
+        instance.setPaintProperty(
+          layer.id,
+          "circle-color",
+          layer.paint?.["circle-color"],
+        );
+      }
+    }
     const filter = categoryFilter(categoryIds);
     for (const layer of placesLayers(null)) {
       if (instance.getLayer(layer.id)) {
         instance.setFilter(layer.id, filter ?? null);
       }
     }
-  }, [categoryIds]);
+  }, [categoryIds, ready]);
+
+  // Zoom is drawn by `MapActions`, in one stack with "where am I", rather
+  // than as this SDK's own widget — which looked like another product's
+  // control beside ours. The renderer only lends it the verb.
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || !controllerRef) return;
+    controllerRef.current = {
+      zoomBy: (delta) => (delta > 0 ? instance.zoomIn() : instance.zoomOut()),
+    };
+    return () => {
+      controllerRef.current = null;
+    };
+  }, [ready, controllerRef]);
 
   useEffect(() => {
     if (!flyTo || !ready) return;
@@ -288,7 +439,7 @@ export function CitizenMap({
 
   useEffect(() => {
     const instance = map.current;
-    if (!ready || !instance?.isStyleLoaded()) return;
+    if (!ready || !instance) return;
     const overlays = mapOverlays({
       communityFeatures,
       onSelectCommunity,
@@ -332,25 +483,58 @@ export function CitizenMap({
     };
     instance.on("click", "community-lines", clickLine);
     const markers: MapLibreMarker[] = [];
+    const chips: { button: HTMLButtonElement; marker: MapLibreMarker }[] = [];
     for (const overlay of overlays) {
       if (!overlay.point || !overlay.label) continue;
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = overlay.label;
-      button.className =
-        "max-w-44 truncate rounded-full border-2 bg-background px-3 py-2 text-xs font-semibold shadow-sm";
-      button.style.borderColor = overlay.color;
+      const button = overlayChip(overlay);
       button.addEventListener("click", (event) => {
         event.stopPropagation();
         if (!pickingLocation) overlay.select?.();
       });
-      markers.push(
-        new MapLibreMarker({ element: button })
-          .setLngLat([overlay.point.lng, overlay.point.lat])
-          .addTo(instance),
-      );
+      // MapLibre owns the transform of the marker's element, so the chip
+      // sits inside a wrapper it can move on its own — see `badgeOnClusters`.
+      const wrapper = document.createElement("div");
+      wrapper.append(button);
+      const marker = new MapLibreMarker({ element: wrapper })
+        .setLngLat([overlay.point.lng, overlay.point.lat])
+        .addTo(instance);
+      markers.push(marker);
+      chips.push({ button, marker });
     }
+    // A traffic dot on top of a town's cluster hid the cluster's count, and
+    // the two read as one target. Where they meet, the dot moves to the
+    // cluster's upper-right edge, as a badge on it; anywhere else it stays on
+    // its own point. Street zoom has no clusters, so this never moves a chip.
+    const badgeOnClusters = () => {
+      for (const { button, marker } of chips) {
+        const point = instance.project(marker.getLngLat());
+        const cluster = instance.getLayer(CLUSTERS_LAYER_ID)
+          ? instance.queryRenderedFeatures(
+              [
+                [point.x - 20, point.y - 20],
+                [point.x + 20, point.y + 20],
+              ],
+              { layers: [CLUSTERS_LAYER_ID] },
+            )[0]
+          : undefined;
+        if (cluster?.geometry.type !== "Point") {
+          button.style.transform = "";
+          continue;
+        }
+        const [lng, lat] = cluster.geometry.coordinates as [number, number];
+        const centre = instance.project({ lng, lat });
+        const count = Number(cluster.properties?.count ?? 1);
+        // The radius the cluster layer draws, from its own interpolation.
+        const radius =
+          14 + ((Math.min(Math.sqrt(count), 10) - 1) / 9) * (30 - 14);
+        const edge = radius * 0.72;
+        button.style.transform = `translate(${centre.x + edge - point.x}px, ${centre.y - edge - point.y}px)`;
+      }
+    };
+    badgeOnClusters();
+    instance.on("idle", badgeOnClusters);
     return () => {
+      instance.off("idle", badgeOnClusters);
       instance.off("click", "community-lines", clickLine);
       for (const marker of markers) marker.remove();
       if (instance.getLayer("community-lines"))
@@ -370,6 +554,65 @@ export function CitizenMap({
     hoverPath,
     pickingLocation,
   ]);
+
+  // The "you are here" dot: a GL layer rather than a DOM marker, so it moves
+  // with the map on the same frame instead of trailing it during a pinch.
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || !myLocation) return;
+    instance.addSource(LOCATION_SOURCE_ID, {
+      type: "geojson",
+      data: locationFeatures(myLocation),
+    });
+    const isPart = (part: string): ExpressionSpecification => [
+      "==",
+      ["get", "part"],
+      part,
+    ];
+    instance.addLayer({
+      id: "my-location-accuracy",
+      type: "fill",
+      source: LOCATION_SOURCE_ID,
+      filter: isPart("accuracy"),
+      paint: { "fill-color": mapPalette.location, "fill-opacity": 0.12 },
+    });
+    instance.addLayer({
+      id: "my-location-halo",
+      type: "circle",
+      source: LOCATION_SOURCE_ID,
+      filter: isPart("dot"),
+      paint: {
+        "circle-radius": 15,
+        "circle-color": mapPalette.location,
+        "circle-opacity": 0.18,
+      },
+    });
+    instance.addLayer({
+      id: "my-location-dot",
+      type: "circle",
+      source: LOCATION_SOURCE_ID,
+      filter: isPart("dot"),
+      paint: {
+        "circle-radius": 7,
+        "circle-color": mapPalette.location,
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2.5,
+        "circle-pitch-alignment": "map",
+      },
+    });
+    return () => {
+      for (const id of [
+        "my-location-dot",
+        "my-location-halo",
+        "my-location-accuracy",
+      ]) {
+        if (instance.getLayer(id)) instance.removeLayer(id);
+      }
+      if (instance.getSource(LOCATION_SOURCE_ID)) {
+        instance.removeSource(LOCATION_SOURCE_ID);
+      }
+    };
+  }, [myLocation, ready]);
 
   useEffect(() => {
     const instance = map.current;
@@ -399,5 +642,8 @@ export function CitizenMap({
     if (canvas) canvas.style.cursor = pickingLocation ? "grab" : "";
   }, [pickingLocation]);
 
-  return <div ref={container} className="absolute inset-0" />;
+  // `h-full w-full`, not `absolute inset-0`: MapLibre's stylesheet sets
+  // `.maplibregl-map { position: relative }` outside any cascade layer, which
+  // beats Tailwind's layered utilities and left the map zero pixels tall.
+  return <div ref={container} className="h-full w-full" />;
 }

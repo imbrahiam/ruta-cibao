@@ -22,6 +22,20 @@ const revision =
 const route = createSerwistRoute({
   swSrc: "src/app/sw.ts",
   additionalPrecacheEntries: [{ url: "/offline", revision }],
+  // The precache is what every phone downloads in the background on its first
+  // visit, on whatever plan it is on. Serwist's default takes all of
+  // `public/`, which put the map's 769 label glyph files (~13 MB) in it —
+  // the bulk of a 15 MB install, paid even with a renderer that never asks for
+  // them. Map assets are cached as they are used instead (see `sw.ts`), and
+  // the basemap only when the person saves it.
+  globIgnores: [
+    // Serwist's own default, which passing a list replaces.
+    "**/node_modules/**/*",
+    "public/fonts/**",
+    "public/sprites/**",
+    "public/basemap/**",
+    "public/places/**",
+  ],
   useNativeEsbuild: true,
 });
 

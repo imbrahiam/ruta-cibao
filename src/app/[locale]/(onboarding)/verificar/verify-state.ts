@@ -6,7 +6,17 @@
  * only export async functions — a plain object export fails the build.
  */
 export type VerifyState = {
-  status: "idle" | "verified" | "pending" | "rejected" | "taken" | "invalid";
+  status:
+    | "idle"
+    | "verified"
+    | "matched"
+    | "in_review"
+    | "pending"
+    | "rejected"
+    | "taken"
+    | "check_digit"
+    | "invalid"
+    | "invalid_name";
   message: string | null;
 };
 

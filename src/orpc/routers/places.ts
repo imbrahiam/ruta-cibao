@@ -10,7 +10,7 @@ import {
   savedPlaces,
 } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
-import { geocode } from "@/lib/geocode";
+import { geocode, isGeocodingEnabled } from "@/lib/geocode";
 import {
   browsePlacesInput,
   browsePlacesOutput,
@@ -290,14 +290,25 @@ export const placesRouter = {
         summary: "Search places and addresses",
       }),
     )
-    .input(z.object({ query: z.string().min(2).max(120) }))
+    .input(
+      z.object({
+        query: z.string().min(2).max(120),
+        // Off while typing. The geocoder behind addresses is a shared public
+        // service that forbids autocomplete, so it is asked only when the
+        // person submits — see `@/lib/geocode`.
+        addresses: z.boolean().default(false),
+      }),
+    )
     .output(
       z.object({
+        /** Whether asking for addresses can return anything at all. */
+        geocoder: z.boolean(),
         places: z.array(
           z.object({
             slug: z.string(),
             name: z.string(),
             categoryName: z.string(),
+            categoryIcon: z.string(),
             color: z.string(),
             municipalityName: z.string(),
             lng: z.number(),
@@ -318,6 +329,7 @@ export const placesRouter = {
       const term = input.query.trim();
       const normalised = sql`unaccent(lower(${term}))`;
       const target = sql`unaccent(lower(${places.name}))`;
+      const categoryTarget = sql`unaccent(lower(${categories.name}))`;
 
       const [matched, addresses] = await Promise.all([
         context.db
@@ -325,6 +337,7 @@ export const placesRouter = {
             slug: places.slug,
             name: places.name,
             categoryName: categories.name,
+            categoryIcon: categories.icon,
             color: categories.color,
             municipalityName: municipalities.name,
             location: places.location,
@@ -338,24 +351,30 @@ export const placesRouter = {
           .where(
             and(
               eq(places.status, "published"),
-              sql`(${target} like ${normalised} || '%' or word_similarity(${normalised}, ${target}) > 0.45)`,
+              // The category too: someone looking for care types "salud"
+              // or "clínica", not the hospital's name, and a resident who
+              // wants lunch types "comedor".
+              sql`(${target} like ${normalised} || '%' or word_similarity(${normalised}, ${target}) > 0.45 or ${categoryTarget} like ${normalised} || '%')`,
             ),
           )
-          // Prefix matches ahead of fuzzy ones, then by how close the fuzzy is.
+          // Name prefix first, then fuzzy name matches by closeness, then
+          // places that only matched by category.
           .orderBy(
             sql`(${target} like ${normalised} || '%') desc`,
             sql`word_similarity(${normalised}, ${target}) desc`,
           )
           .limit(8),
 
-        geocode(term, 5),
+        input.addresses ? geocode(term, 5) : Promise.resolve([]),
       ]);
 
       return {
+        geocoder: isGeocodingEnabled(),
         places: matched.map((row) => ({
           slug: row.slug,
           name: row.name,
           categoryName: row.categoryName,
+          categoryIcon: row.categoryIcon,
           color: row.color,
           municipalityName: row.municipalityName,
           lng: row.location.x,

@@ -47,7 +47,7 @@ export type PushPayload = {
   tag?: string;
 };
 
-/** Sends to every device a person has registered. Never throws. */
+/** Sends to every registered device; transient failures trigger an outbox retry. */
 export async function sendPushToUser(
   userId: string,
   payload: PushPayload,
@@ -90,10 +90,7 @@ export async function sendPushToUser(
 
   const failed = results.filter((result) => result.status === "rejected");
   if (failed.length > 0) {
-    console.error(
-      `push delivery failed for ${failed.length} of ${subscriptions.length} endpoints`,
-      failed[0],
-    );
+    throw new Error(`Push delivery incomplete for ${failed.length} endpoints`);
   }
 
   return results.length - failed.length;

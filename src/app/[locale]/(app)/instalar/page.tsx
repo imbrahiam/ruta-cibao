@@ -14,15 +14,9 @@ export default async function InstallPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <header className="mx-auto mb-10 max-w-xl text-center">
-        <p className="mb-4 text-xs font-medium text-muted-foreground">
-          {t("eyebrow")}
-        </p>
-        <h1 className="text-balance text-4xl font-semibold leading-tight tracking-tight">
-          {t("title")}
-        </h1>
-        <p className="mt-4 text-pretty text-sm leading-relaxed text-muted-foreground">
-          {t("intro")}
-        </p>
+        <p className="page-eyebrow mb-4">{t("eyebrow")}</p>
+        <h1 className="page-title">{t("title")}</h1>
+        <p className="page-lede mt-4">{t("intro")}</p>
       </header>
       <InstallApp />
       <div className="mt-6 grid gap-6 sm:grid-cols-2">

@@ -71,6 +71,22 @@ const serwist = new Serwist({
         ],
       }),
     },
+    // The map's label glyphs and icon sprite, kept as they are used. Each
+    // glyph file covers 256 characters of one weight, so the handful Spanish
+    // needs fill in within the first minute of looking at the map — and stay,
+    // which is what keeps labels on a saved offline map. Never precached:
+    // the whole set is ~13 MB, nearly all of it scripts this province does
+    // not write in.
+    {
+      matcher: ({ sameOrigin, url }) =>
+        sameOrigin &&
+        (url.pathname.startsWith("/fonts/") ||
+          url.pathname.startsWith("/sprites/")),
+      handler: new CacheFirst({
+        cacheName: "ruta-cibao-map-assets-v1",
+        plugins: [new ExpirationPlugin({ maxEntries: 200 })],
+      }),
+    },
     // The province basemap, once the person has chosen to save it. The
     // renderer reads the file by byte range; a saved copy is the whole file,
     // and the plugin cuts each range out of it. Until it is saved nothing is

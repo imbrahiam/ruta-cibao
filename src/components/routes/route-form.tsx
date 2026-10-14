@@ -75,7 +75,6 @@ export function RouteForm({ onDone }: { onDone: () => void }) {
             minLength={5}
             maxLength={120}
             required
-            className="h-11"
           />
         </div>
         <div className="space-y-2">
@@ -116,7 +115,6 @@ export function RouteForm({ onDone }: { onDone: () => void }) {
             min={5}
             max={10080}
             required
-            className="h-11"
           />
         </div>
       </div>
@@ -161,7 +159,6 @@ export function RouteForm({ onDone }: { onDone: () => void }) {
       )}
       <Button
         type="submit"
-        className="h-11"
         disabled={submit.isPending || categories.isPending || points.length < 2}
       >
         {t(submit.isPending ? "sending" : "submit")}

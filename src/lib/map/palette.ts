@@ -5,47 +5,58 @@
  * the sRGB values of the tokens in `globals.css` — converted, not eyeballed, so
  * the map and the interface around it are literally the same greys.
  *
- * The result is the deliberately quiet basemap that ride-hailing apps
- * popularised: white land, barely-there roads, water as a cool grey, almost no
- * labels. The point is that the map is a backdrop. What the citizens of the
- * province put on it — a report, a route, a business — has to be the only thing
- * with colour, and that only works if everything underneath stays out of the
- * way.
+ * Calm, but not colourless: the land, water and mountains are recognisable at
+ * a glance, the way people know them from the maps on their phones, while
+ * staying light enough that what citizens put on the map — a report, a route,
+ * a business — is still the most saturated thing on screen.
  *
  * Plain data, no React and no DOM, so React Native can hand the same style to
  * MapLibre Native unchanged.
  */
 export const mapPalette = {
   /**
-   * The ground is a light grey and the roads on it are white — not the other
-   * way round.
-   *
-   * The first attempt used --background for both, which is how the interface
-   * treats a surface, and the map came out invisible: white roads on white
-   * land, separated by a hairline that is under a pixel wide at province zoom.
-   * Ride-hailing maps read the way they do because the ground recedes and the
-   * road network is the bright thing drawn on top of it.
+   * A near-neutral ground, a touch warm so it never reads as a blank page.
+   * Tonal on purpose — Uber, Google since its 2023 palette, and every
+   * map-first product converge on the same rule: the basemap is a quiet
+   * monochrome, and what people put on it is the only colour on screen.
    */
-  /** --secondary / --muted */
-  land: "#f4f4f4",
-  landAlt: "#ededed",
-  /** --border, for hairlines and boundaries */
-  line: "#dcdcdc",
-  /** --muted-foreground */
-  lineStrong: "#737373",
-  /** --foreground */
-  label: "#0a0a0a",
-  /** --primary */
+  land: "#f4f3f0",
+  landAlt: "#eeede9",
+  line: "#d9d7d1",
+  lineStrong: "#6b6b6b",
+  label: "#3c4043",
+  /** Towns and villages beyond the province, stepped back a tone. */
+  labelMuted: "#9aa0a6",
   ink: "#171717",
-  /** A cool neutral rather than a saturated blue, to stay in the same family. */
-  water: "#dbe3e8",
-  waterLabel: "#8a9299",
-  /** --background: the network, bright against the ground. */
+  /** Pale, slightly cool water: recognisable at a glance, never loud. */
+  water: "#c4dcee",
+  waterLabel: "#5b87ad",
   road: "#ffffff",
-  roadCasing: "#e2e2e2",
-  building: "#e8e8e8",
-  green: "#e9eee9",
+  roadCasing: "#e1dfda",
+  roadLabel: "#80868b",
+  /**
+   * National highways (RD-1, RD-18) keep a hint of amber — the one colour a
+   * driver here already reads as "main road", which a low-literacy reader
+   * should not have to learn — but desaturated, so it sits under the pins.
+   */
+  highway: "#fdebbd",
+  highwayCasing: "#ecd394",
+  building: "#e8e6e1",
+  /**
+   * Parks and woodland, barely tinted. The cordillera is most of this
+   * province; at full strength it turned the whole south into one green
+   * slab that fought every pin over it.
+   */
+  green: "#e5eedf",
+  forest: "#e2ebdb",
+  farmland: "#f0f0ea",
   labelHalo: "#ffffff",
+  /** The province's outline and names: the app's primary green. */
+  province: "#1f4d3f",
+  /** Laid over the rest of the country, at low opacity, to dim it. */
+  outside: "#8c8a83",
+  /** The "you are here" dot — the blue every phone map has taught people. */
+  location: "#1a73e8",
 } as const;
 
 export type MapPalette = typeof mapPalette;

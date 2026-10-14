@@ -17,8 +17,14 @@
  *     an exception: it degrades onboarding to "verification pending" instead of
  *     blocking a citizen from using the app.
  */
+
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { db } from "@/db";
+import { registryLookups } from "@/db/schema";
+import { decryptSensitive, encryptSensitive, hashLookup } from "@/lib/crypto";
 import { env } from "@/lib/env";
+import { consumeRollingRateLimit } from "@/lib/rate-limit";
 
 /**
  * The single definition of what a cédula is.
@@ -126,6 +132,71 @@ async function lookupMock(cedula: Cedula): Promise<JceLookup> {
   return { status: "found", cedula, fullName: "JUAN ANTONIO PEREZ MARTINEZ" };
 }
 
-export function lookupCedula(cedula: Cedula): Promise<JceLookup> {
-  return env.JCE_USE_MOCK ? lookupMock(cedula) : lookupLive(cedula);
+export async function lookupCedula(cedula: Cedula): Promise<JceLookup> {
+  if (env.JCE_USE_MOCK) return lookupMock(cedula);
+  const key = hashLookup("registry-cedula", cedula);
+  const reservation = await db.transaction(
+    async (tx): Promise<JceLookup | null> => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`,
+      );
+      const [cached] = await tx
+        .select()
+        .from(registryLookups)
+        .where(eq(registryLookups.key, key))
+        .limit(1);
+      if (cached?.status === "not_found")
+        return { status: "not_found", cedula };
+      if (cached?.status === "found" && cached.nameCiphertext)
+        return {
+          status: "found",
+          cedula,
+          fullName: decryptSensitive(cached.nameCiphertext),
+        };
+      if (cached && Date.now() - cached.resolvedAt.getTime() < 60_000) {
+        return {
+          status: "unavailable",
+          cedula,
+          reason: "lookup already reserved",
+          retryAfter: new Date(cached.resolvedAt.getTime() + 60_000),
+        };
+      }
+      const budget = await consumeRollingRateLimit(
+        "all",
+        { scope: "jce-global", limit: 47, windowMs: 3_600_000 },
+        tx,
+      );
+      if (!budget.allowed)
+        return {
+          status: "unavailable",
+          cedula,
+          reason: "platform quota reserved",
+          retryAfter: new Date(Date.now() + budget.retryAfterSeconds * 1000),
+        };
+      await tx
+        .insert(registryLookups)
+        .values({ key, status: "pending" })
+        .onConflictDoUpdate({
+          target: registryLookups.key,
+          set: { status: "pending", resolvedAt: new Date() },
+        });
+      return null;
+    },
+  );
+  if (reservation) return reservation;
+  // Commit the quota reservation before the network call. A later domain
+  // rollback must never refund a lookup already spent at the upstream.
+  const result = await lookupLive(cedula);
+  if (result.status !== "unavailable") {
+    await db
+      .update(registryLookups)
+      .set({
+        status: result.status,
+        nameCiphertext:
+          result.status === "found" ? encryptSensitive(result.fullName) : null,
+        resolvedAt: new Date(),
+      })
+      .where(eq(registryLookups.key, key));
+  }
+  return result;
 }

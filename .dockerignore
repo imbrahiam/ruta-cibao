@@ -17,3 +17,16 @@ minio-data
 postgres-data
 *.md
 !README.md
+
+backups
+storage-data
+.agents
+.claude
+.codex
+.tooling
+tests
+coverage
+*.log
+*.tsbuildinfo
+.DS_Store
+scripts/verify-*.ts

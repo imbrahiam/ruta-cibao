@@ -19,9 +19,12 @@
  *   bun run worker
  */
 
+import { db } from "@/db";
+import { workerHeartbeats } from "@/db/schema";
 import { serverEnv } from "@/lib/env";
 import { getBoss } from "@/lib/jobs/boss";
 import { handlers } from "@/lib/jobs/handlers";
+import { drainOutbox } from "@/lib/jobs/outbox";
 import {
   type JobPayloads,
   QUEUES,
@@ -95,10 +98,34 @@ async function main() {
     timezone: SCHEDULE_TIMEZONE,
   });
 
+  let draining = false;
+  const tick = async () => {
+    if (draining) return;
+    draining = true;
+    try {
+      await db
+        .insert(workerHeartbeats)
+        .values({ id: "worker", updatedAt: new Date() })
+        .onConflictDoUpdate({
+          target: workerHeartbeats.id,
+          set: { updatedAt: new Date() },
+        });
+      await drainOutbox();
+    } catch (error) {
+      console.error("outbox processing failed; pending jobs will retry", error);
+    } finally {
+      draining = false;
+    }
+  };
+  await tick();
+  const outboxTimer = setInterval(() => void tick(), 5_000);
+
   // A container gets SIGTERM on deploy. Stopping gracefully lets a job that is
   // halfway through finish rather than being retried from the start.
   const stop = async (signal: string) => {
     console.info(`worker stopping on ${signal}`);
+    clearInterval(outboxTimer);
+    while (draining) await new Promise((resolve) => setTimeout(resolve, 100));
     await boss.stop({ graceful: true, timeout: 30_000 });
     process.exit(0);
   };

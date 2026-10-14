@@ -10,16 +10,19 @@ export default async function PrivacyPage() {
   const t = await getTranslations("privacy");
   return (
     <article className="mx-auto max-w-2xl">
-      <p className="mb-4 text-xs font-medium text-muted-foreground">
-        {t("eyebrow")}
-      </p>
-      <h1 className="text-4xl font-semibold tracking-tight">{t("title")}</h1>
-      <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-        {t("intro")}
-      </p>
+      <p className="page-eyebrow mb-4">{t("eyebrow")}</p>
+      <h1 className="page-title">{t("title")}</h1>
+      <p className="page-lede mt-4">{t("intro")}</p>
       <div className="my-10 space-y-8">
         {(
-          ["identity", "account", "location", "device", "providers"] as const
+          [
+            "identity",
+            "account",
+            "location",
+            "passport",
+            "device",
+            "providers",
+          ] as const
         ).map((key) => (
           <section key={key}>
             <h2 className="text-lg font-medium">{t(`${key}Title`)}</h2>

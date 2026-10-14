@@ -139,19 +139,19 @@ export async function openConsultation(
         tx,
       );
 
+      await publishRealtimeEvent(
+        {
+          channel: CONSULTATIONS_CHANNEL,
+          municipalityId,
+          subjectType: "consultation",
+          subjectId: created.id,
+          action: "created",
+        },
+        tx,
+      );
       return { ...created, municipalityId };
     },
   });
-
-  if (!outcome.replayed) {
-    await publishRealtimeEvent({
-      channel: CONSULTATIONS_CHANNEL,
-      municipalityId: outcome.result.municipalityId,
-      subjectType: "consultation",
-      subjectId: outcome.result.id,
-      action: "created",
-    });
-  }
 
   return {
     id: outcome.result.id,
@@ -172,59 +172,64 @@ export async function supportConsultation(
   viewer: CitizenViewer,
   input: SupportConsultationInput,
 ) {
-  const [consultation] = await db
-    .select({
-      id: consultations.id,
-      status: consultations.status,
-      municipalityId: consultations.municipalityId,
-    })
-    .from(consultations)
-    .where(eq(consultations.id, input.consultationId))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    const [consultation] = await tx
+      .select({
+        id: consultations.id,
+        status: consultations.status,
+        municipalityId: consultations.municipalityId,
+      })
+      .from(consultations)
+      .where(eq(consultations.id, input.consultationId))
+      .limit(1);
 
-  if (!consultation) throw new ConsultationError("not_found");
-  // A resolved or rejected case is a closed conversation. Letting support
-  // accumulate on it would only produce a number nobody will ever act on.
-  if (
-    consultation.status === "resolved" ||
-    consultation.status === "rejected"
-  ) {
-    throw new ConsultationError("closed");
-  }
+    if (!consultation) throw new ConsultationError("not_found");
+    // A resolved or rejected case is a closed conversation. Letting support
+    // accumulate on it would only produce a number nobody will ever act on.
+    if (
+      consultation.status === "resolved" ||
+      consultation.status === "rejected"
+    ) {
+      throw new ConsultationError("closed");
+    }
 
-  if (input.supported) {
-    await db
-      .insert(consultationVotes)
-      .values({ consultationId: consultation.id, userId: viewer.userId })
-      .onConflictDoNothing();
-  } else {
-    await db
-      .delete(consultationVotes)
-      .where(
-        and(
-          eq(consultationVotes.consultationId, consultation.id),
-          eq(consultationVotes.userId, viewer.userId),
-        ),
-      );
-  }
+    if (input.supported) {
+      await tx
+        .insert(consultationVotes)
+        .values({ consultationId: consultation.id, userId: viewer.userId })
+        .onConflictDoNothing();
+    } else {
+      await tx
+        .delete(consultationVotes)
+        .where(
+          and(
+            eq(consultationVotes.consultationId, consultation.id),
+            eq(consultationVotes.userId, viewer.userId),
+          ),
+        );
+    }
 
-  await recordAudit({
-    actorUserId: viewer.userId,
-    action: input.supported
-      ? "consultation.supported"
-      : "consultation.support_withdrawn",
-    subjectType: "consultation",
-    subjectId: consultation.id,
-    municipalityId: consultation.municipalityId,
+    await recordAudit(
+      {
+        actorUserId: viewer.userId,
+        action: input.supported
+          ? "consultation.supported"
+          : "consultation.support_withdrawn",
+        subjectType: "consultation",
+        subjectId: consultation.id,
+        municipalityId: consultation.municipalityId,
+      },
+      tx,
+    );
+
+    const [counted] = await tx
+      .select({ supportCount: sql<number>`count(*)::int` })
+      .from(consultationVotes)
+      .where(eq(consultationVotes.consultationId, consultation.id));
+
+    return {
+      supported: input.supported,
+      supportCount: counted?.supportCount ?? 0,
+    };
   });
-
-  const [counted] = await db
-    .select({ supportCount: sql<number>`count(*)::int` })
-    .from(consultationVotes)
-    .where(eq(consultationVotes.consultationId, consultation.id));
-
-  return {
-    supported: input.supported,
-    supportCount: counted?.supportCount ?? 0,
-  };
 }

@@ -67,3 +67,13 @@ mock on unless you are specifically testing that path.
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+### Map data
+
+- Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright)
+  contributors, under the ODbL. The map shows this credit behind its (i)
+  button, which is what the licence requires.
+- Basemap tiles and style from [Protomaps](https://protomaps.com) (style CC0,
+  code BSD-3).
+- Municipal boundaries © [geoBoundaries](https://www.geoboundaries.org)
+  (gbOpen, CC BY 4.0).

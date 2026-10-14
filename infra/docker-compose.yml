@@ -1,7 +1,7 @@
 # Local stack and VPS deployment target.
 #
 #   docker compose -f infra/docker-compose.yml up -d
-#       Postgres and MinIO only — what `bun run dev` on the host needs.
+#       Postgres and object storage only — what `bun run dev` on the host needs.
 #
 #   docker compose -f infra/docker-compose.yml --profile full up -d
 #       The whole thing behind Caddy, the way the VPS runs it.
@@ -35,23 +35,70 @@ services:
       timeout: 5s
       retries: 10
 
-  minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+  # Object storage for photos and PDFs: SeaweedFS speaking the S3 API.
+  #
+  # Not MinIO, which this file used until its images stopped being published —
+  # `minio/minio` and `quay.io/minio/minio` both refuse anonymous pulls now, so
+  # a fresh server could not have started the stack at all. SeaweedFS is
+  # Apache-2.0, maintained, and implements the parts of S3 the app uses:
+  # presigned PUT and GET, HEAD, ranged reads and bucket CORS.
+  #
+  # One identity, the app's: the same S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY
+  # the app signs with, so there is a single credential to rotate. The config
+  # file is written on start from those two values and never touches the disk
+  # volume.
+  storage:
+    image: chrislusf/seaweedfs:4.48
     restart: unless-stopped
-    command: server /data --console-address ":9001"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        printf '{"identities":[{"name":"app","credentials":[{"accessKey":"%s","secretKey":"%s"}],"actions":["Admin","Read","Write","List","Tagging"]}]}'
+        "$$S3_ACCESS_KEY_ID" "$$S3_SECRET_ACCESS_KEY" > /tmp/s3.json &&
+        exec /entrypoint.sh server -dir=/data -s3 -s3.port=9000
+        -s3.config=/tmp/s3.json -volume.max=0 -master.volumeSizeLimitMB=1024
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-minioadmin}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-minioadmin}
     ports:
       - "127.0.0.1:9000:9000"
-      - "127.0.0.1:9001:9001"
     volumes:
-      - minio-data:/data
+      - storage-data:/data
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:9000/healthz"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
+      start_period: 15s
+
+  # One-shot: creates the bucket, private, and allows the app's origin to
+  # upload to it. Harmless when the deployment stores objects elsewhere (R2,
+  # S3): it only touches the local store, which then simply goes unused.
+  # Re-running it is a no-op apart from re-applying the CORS rule.
+  storage-init:
+    profiles: ["full"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile
+      target: storage-init
+    restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-minioadmin}
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+      AWS_ENDPOINT_URL: http://storage:9000
+      S3_BUCKET: ${S3_BUCKET:-ruta-cibao}
+      # Phones upload straight to storage, so the browser's origin has to be
+      # allowed. `*` keeps development on a LAN address working; a deployment
+      # sets its own https origin.
+      CORS_ORIGIN: ${STORAGE_CORS_ORIGIN:-*}
+    depends_on:
+      storage:
+        condition: service_healthy
 
   # One-shot: creates the extensions and applies pending migrations, then exits.
   # Re-running it on an up-to-date database is a no-op.
@@ -62,8 +109,14 @@ services:
       dockerfile: infra/Dockerfile
       target: migrator
     restart: "no"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-ruta}:${POSTGRES_PASSWORD:-ruta}@postgres:5432/${POSTGRES_DB:-ruta_cibao}
+      # So `seed-demo.ts` refuses to run here, as it should on a server.
+      NODE_ENV: production
     env_file: [../.env]
     depends_on:
       postgres:
@@ -80,34 +133,46 @@ services:
       # documented command passes `--env-file .env`.
       args:
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-        NEXT_PUBLIC_MAP_RENDERER: ${NEXT_PUBLIC_MAP_RENDERER:-google}
+        NEXT_PUBLIC_MAP_RENDERER: ${NEXT_PUBLIC_MAP_RENDERER:-maplibre}
         NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
         NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ${NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID:-}
+        NEXT_PUBLIC_RASTER_TILE_URL: ${NEXT_PUBLIC_RASTER_TILE_URL:-}
+        NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION: ${NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION:-}
         NEXT_PUBLIC_MAPTILER_KEY: ${NEXT_PUBLIC_MAPTILER_KEY:-}
         NEXT_PUBLIC_BASEMAP_PMTILES_URL: ${NEXT_PUBLIC_BASEMAP_PMTILES_URL:-}
         NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${NEXT_PUBLIC_VAPID_PUBLIC_KEY:-}
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-ruta}:${POSTGRES_PASSWORD:-ruta}@postgres:5432/${POSTGRES_DB:-ruta_cibao}
+      # Pinned here because `environment` beats `env_file`: a `.env` copied
+      # from `.env.example` says `development`, which turned the service worker
+      # off and wrote sign-in codes to the log on a production server.
+      NODE_ENV: production
     env_file: [../.env]
     expose:
       - "3000"
     depends_on:
+      # Not just "Postgres is up": the schema has to exist before the first
+      # request, or a fresh deployment answers its first visitors with 500s.
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
-      minio:
+      storage:
         condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
     read_only: true
     tmpfs:
       - /tmp
+      - /app/.next/cache:uid=1001,gid=1001,mode=0755
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
 
-  # The background worker. Its own container because a weekly PDF render holds
-  # a headless browser for tens of seconds, which has no business inside the
-  # process serving map tiles — and because the app can be scaled to several
-  # instances without three of them racing the same cron.
+  # The background worker. Its own container so a slow job never shares a
+  # process with the one serving map tiles — and so the app can be scaled to
+  # several instances without three of them racing the same cron.
   #
   # It owns the pg-boss schema: it is the only service that migrates it, which
   # is what stops a rolling deploy running two migrations at once.
@@ -120,15 +185,20 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-ruta}:${POSTGRES_PASSWORD:-ruta}@postgres:5432/${POSTGRES_DB:-ruta_cibao}
-      # The worker renders the report page over HTTP, so it needs to be able to
-      # reach the app by its service name rather than by the public origin.
-      APP_URL: http://app:3000
+      # APP_URL comes from `.env` unchanged: it is the public origin, and the
+      # links in the emails this worker sends have to be ones a resident can
+      # open. PDFs are drawn with pdf-lib, so nothing here calls the app.
+      NODE_ENV: production
     env_file: [../.env]
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
-      minio:
+      storage:
         condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
     read_only: true
     tmpfs:
       - /tmp
@@ -146,6 +216,9 @@ services:
     environment:
       # Set to your domain on the VPS; localhost keeps TLS off in development.
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      # The public address of the self-hosted object store, when photos are
+      # stored there. Unused (and harmless) with R2 or S3.
+      STORAGE_ADDRESS: ${STORAGE_ADDRESS:-storage.localhost}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -153,8 +226,22 @@ services:
     depends_on:
       - app
 
+  # Maintenance CLI uses the same local S3 credentials as storage-init.
+  storage-tools:
+    profiles: ["maintenance"]
+    image: amazon/aws-cli:2.37.9
+    entrypoint: ["/bin/sh", "-c"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-minioadmin}
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+      AWS_ENDPOINT_URL: http://storage:9000
+      S3_BUCKET: ${S3_BUCKET:-ruta-cibao}
+    volumes:
+      - ${BACKUP_MOUNT:-../backups}:/backups
+
 volumes:
   postgres-data:
-  minio-data:
+  storage-data:
   caddy-data:
   caddy-config:

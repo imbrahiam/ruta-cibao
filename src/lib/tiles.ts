@@ -127,6 +127,11 @@ async function clustersTile({
       select
         ST_Transform(places.location, 3857) as mercator_point,
         categories.color,
+        categories.icon,
+        places.id,
+        places.slug,
+        places.name,
+        places.category_id as category,
         ST_SnapToGrid(
           ST_Transform(places.location, 3857),
           (ST_XMax(bounds.mercator) - ST_XMin(bounds.mercator)) / ${CLUSTER_GRID_DIVISIONS}
@@ -136,6 +141,16 @@ async function clustersTile({
       cross join bounds
       where places.status = 'published'
         and places.location && bounds.geographic
+    ),
+    category_counts as (
+      select cell, category, count(*)::int as count
+      from snapped
+      group by cell, category
+    ),
+    cell_counts as (
+      select cell, jsonb_object_agg('count:' || category, count) as category_counts
+      from category_counts
+      group by cell
     ),
     tile_rows as (
       select
@@ -147,10 +162,19 @@ async function clustersTile({
           true
         ) as geom,
         count(*)::int as count,
-        mode() within group (order by snapped.color) as color
+        mode() within group (order by snapped.color) as color,
+        -- A cell of one is drawn as that place's own pin and opens on a tap,
+        -- so it carries what a point tile would. Null on every larger cell.
+        case when count(*) = 1 then min(snapped.icon::text) end as icon,
+        case when count(*) = 1 then min(snapped.id::text) end as id,
+        case when count(*) = 1 then min(snapped.slug) end as slug,
+        case when count(*) = 1 then min(snapped.name) end as name,
+        case when count(*) = 1 then min(snapped.category::text) end as category,
+        cell_counts.category_counts
       from snapped
+      join cell_counts on cell_counts.cell = snapped.cell
       cross join bounds
-      group by snapped.cell, bounds.mercator
+      group by snapped.cell, bounds.mercator, cell_counts.category_counts
     )
     select ST_AsMVT(tile_rows, 'clusters', ${EXTENT}, 'geom') as tile from tile_rows
   `);

@@ -17,10 +17,12 @@ produced from it.
 | Queue sent with the app closed (Background Sync) | Yes | No — sent on next open |
 | Province basemap stored on the device | Yes, MapLibre renderer only | Yes, MapLibre renderer only |
 
-Two pieces are deliberately renderer-dependent. Google's and CARTO's terms
+Two pieces are deliberately renderer-dependent. Google's terms and the OSM standard tile usage policy
 forbid storing their tiles, so the *Mapa sin señal* row in the layers panel only
 appears when `NEXT_PUBLIC_MAP_RENDERER=maplibre` and
-`NEXT_PUBLIC_BASEMAP_PMTILES_URL` points at a file this origin serves. Saving it
+`NEXT_PUBLIC_BASEMAP_PMTILES_URL` points at a file this origin serves, and
+hardware WebGL is available. Software rendering falls back to online raster
+tiles, so the offline-download row is hidden on that device. Saving it
 stores the whole PMTiles file in Cache Storage; the service worker then answers
 the renderer's byte-range requests from that copy.
 
@@ -43,7 +45,9 @@ it: `PROVINCE_BOUNDS` still decides where a place or a report may be filed.
 - `src/app/sw.ts` — the service worker: offline shell, push, the `sync` handler
   that replays the queue, the basemap cache with range support.
 - `src/components/offline/install-splash.tsx` — the install offer on the map: a
-  full screen, from the second visit on, once Chrome fires
+  dismissible card, shown only after the person has done something useful
+  (sent or queued a report, saved a place — `src/lib/install-moment.ts`), once
+  Chrome fires
   `beforeinstallprompt` or on iOS, where it carries the Share-sheet steps.
   Dismissing snoozes it 30 days.
 - `src/hooks/use-device.ts` — phone or tablet according to the user agent, not

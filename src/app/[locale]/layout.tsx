@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 import { OfflineIndicator } from "@/components/offline/offline-indicator";
 import { ServiceWorker } from "@/components/offline/service-worker";
 import { Providers } from "@/components/providers";
-import { Toaster } from "@/components/ui/sonner";
+import { AppToaster } from "@/components/shell/app-toaster";
 import { formats, TIME_ZONE } from "@/i18n/config";
 import { type Locale, routing } from "@/i18n/routing";
 import "../globals.css";
@@ -23,6 +24,19 @@ const sans = Geist({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
+});
+
+/**
+ * The display face: headlines and the wordmark, nothing you read at length or
+ * tap. A warm serif with optical sizes, after land-book's serif wordmark —
+ * Geist stays the voice of the interface, so legibility for people who read
+ * slowly is untouched.
+ */
+const display = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  axes: ["SOFT", "opsz"],
 });
 
 const mono = Geist_Mono({
@@ -97,7 +111,10 @@ export default async function LocaleLayout({
   const [messages, now] = await Promise.all([loadMessages(locale), shellNow()]);
 
   return (
-    <html lang={locale} className={`${sans.variable} ${mono.variable}`}>
+    <html
+      lang={locale}
+      className={`${sans.variable} ${mono.variable} ${display.variable}`}
+    >
       <body>
         <NextIntlClientProvider
           locale={locale}
@@ -109,8 +126,12 @@ export default async function LocaleLayout({
           <ServiceWorker>
             <Providers>
               {children}
-              <OfflineIndicator />
-              <Toaster position="top-center" />
+              {/* Reads the path to step aside on the map, which is a runtime
+                  read: outside a boundary it would hold back the shell. */}
+              <Suspense fallback={null}>
+                <OfflineIndicator />
+              </Suspense>
+              <AppToaster />
             </Providers>
           </ServiceWorker>
         </NextIntlClientProvider>

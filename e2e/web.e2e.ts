@@ -7,7 +7,7 @@ test("landing renders, has no horizontal overflow, and opens discovery", async (
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Lo mejor del Cibao empieza cerca." }),
+    page.getByRole("heading", { name: "¿Qué necesitas hoy?" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Ayuntamiento de Villa Los Almácigos" }),
@@ -17,7 +17,7 @@ test("landing renders, has no horizontal overflow, and opens discovery", async (
       () => document.documentElement.scrollWidth <= window.innerWidth,
     ),
   ).toBe(true);
-  await page.getByRole("link", { name: "Ver todos", exact: true }).click();
+  await page.getByRole("link", { name: "Ver todo", exact: true }).click();
   await expect(page).toHaveURL(/\/explorar$/);
   expect(errors).toEqual([]);
 });

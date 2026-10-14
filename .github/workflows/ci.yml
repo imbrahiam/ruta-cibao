@@ -23,6 +23,12 @@ jobs:
       # CI never calls the real registry: the lookup quota is 50/hour globally.
       JCE_API_KEY: unused-in-ci
       JCE_USE_MOCK: "1"
+      APP_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+      JOBS_ENABLED: "0"
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY_ID: ci-test
+      S3_SECRET_ACCESS_KEY: ci-test-secret
+      S3_BUCKET: ci-test
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -55,26 +61,62 @@ jobs:
         run: bun run lint
 
       - name: Unit tests
-        run: bun test
+        run: bun test tests
 
       - name: Migrations apply cleanly
         run: bun run db:migrate
 
+      - name: Database integration guarantees
+        run: RUN_DB_TESTS=1 bun test tests/production.integration.test.ts
+
       - name: Migrations are up to date with the schema
         run: |
           bun run db:generate
-          if ! git diff --quiet -- drizzle; then
+          if [ -n "$(git status --porcelain -- drizzle)" ]; then
             echo "::error::drizzle/ is out of date. Run 'bun run db:generate' and commit the result."
             git diff --stat -- drizzle
             exit 1
           fi
 
+      - name: Start isolated object storage
+        run: |
+          printf '%s' '{"identities":[{"name":"ci","credentials":[{"accessKey":"ci-test","secretKey":"ci-test-secret"}],"actions":["Admin","Read","Write","List"]}]}' > /tmp/ci-s3.json
+          docker run -d --name storage -p 9000:9000 \
+            -v /tmp/ci-s3.json:/etc/ci-s3.json:ro \
+            chrislusf/seaweedfs:4.48 server -dir=/data -s3 -s3.port=9000 \
+            -s3.config=/etc/ci-s3.json -volume.max=0
+          for _ in $(seq 1 60); do
+            curl -fsS http://localhost:9000/healthz && break
+            sleep 2
+          done
+          bun -e 'import {S3Client,CreateBucketCommand} from "@aws-sdk/client-s3"; const client=new S3Client({endpoint:process.env.S3_ENDPOINT,region:"us-east-1",forcePathStyle:true,credentials:{accessKeyId:process.env.S3_ACCESS_KEY_ID,secretAccessKey:process.env.S3_SECRET_ACCESS_KEY}}); await client.send(new CreateBucketCommand({Bucket:process.env.S3_BUCKET}));'
+
+      - name: Encrypted evidence lifecycle
+        run: RUN_STORAGE_TESTS=1 bun test tests/identity-storage.integration.test.ts
+
       - name: Build
         run: bun run build
 
+      - name: Browser smoke checks on desktop and mobile
+        env:
+          AUTH_LOG_DELIVERY: "1"
+          E2E_IDENTITY_TESTS: "1"
+        run: |
+          bunx playwright install --with-deps chromium
+          bun run start > /tmp/app.log 2>&1 &
+          for _ in $(seq 1 30); do
+            curl -fsS http://localhost:3000/api/ready && break
+            sleep 2
+          done
+          bunx playwright test e2e/web.e2e.ts e2e/identity.e2e.ts --grep 'installation|account and|sign in validates|resident submits evidence'
+
+
   docker:
-    name: Image builds and passes droast
+    name: Docker ${{ matrix.target }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [runner, worker, migrator, storage-init]
     steps:
       - uses: actions/checkout@v5
 
@@ -88,6 +130,22 @@ jobs:
         with:
           context: .
           file: infra/Dockerfile
+          target: ${{ matrix.target }}
           push: false
+          load: true
+          tags: ruta-cibao:ci-${{ matrix.target }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Enforce runtime image size budget
+        env:
+          IMAGE_TARGET: ${{ matrix.target }}
+        run: |
+          case "$IMAGE_TARGET" in
+            runner) max_bytes=629145600 ;;
+            worker) max_bytes=314572800 ;;
+            migrator|storage-init) max_bytes=209715200 ;;
+          esac
+          image_bytes=$(docker image inspect "ruta-cibao:ci-$IMAGE_TARGET" --format '{{.Size}}')
+          echo "$IMAGE_TARGET: $image_bytes bytes; budget: $max_bytes"
+          test "$image_bytes" -le "$max_bytes"

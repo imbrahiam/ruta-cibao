@@ -171,7 +171,6 @@ export function OpenConsultationDrawer({
                 <Input
                   id="case-title"
                   name="title"
-                  className="h-11"
                   placeholder={t("subjectPlaceholder")}
                   minLength={8}
                   maxLength={120}

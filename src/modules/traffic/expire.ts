@@ -19,42 +19,50 @@ import { TRAFFIC_CHANNEL } from "./report-traffic";
  * through, converges on the same result and publishes nothing twice.
  */
 export async function expireTrafficReports(now = new Date()): Promise<number> {
-  const expired = await db
-    .update(trafficReports)
-    .set({ status: "expired", resolvedAt: now })
-    .where(
-      and(
-        eq(trafficReports.status, "active"),
-        sql`${trafficReports.expiresAt} <= ${now}`,
-      ),
-    )
-    .returning({
-      id: trafficReports.id,
-      municipalityId: trafficReports.municipalityId,
-      location: trafficReports.location,
-    });
+  return db.transaction(async (tx) => {
+    const expired = await tx
+      .update(trafficReports)
+      .set({ status: "expired", resolvedAt: now })
+      .where(
+        and(
+          eq(trafficReports.status, "active"),
+          sql`${trafficReports.expiresAt} <= ${now}`,
+        ),
+      )
+      .returning({
+        id: trafficReports.id,
+        municipalityId: trafficReports.municipalityId,
+        location: trafficReports.location,
+      });
 
-  for (const report of expired) {
-    await publishRealtimeEvent({
-      channel: TRAFFIC_CHANNEL,
-      municipalityId: report.municipalityId,
-      subjectType: "traffic_report",
-      subjectId: report.id,
-      action: "deleted",
-      payload: { reason: "expired" },
-      location: report.location,
-    });
+    for (const report of expired) {
+      await publishRealtimeEvent(
+        {
+          channel: TRAFFIC_CHANNEL,
+          municipalityId: report.municipalityId,
+          subjectType: "traffic_report",
+          subjectId: report.id,
+          action: "deleted",
+          payload: { reason: "expired" },
+          location: report.location,
+        },
+        tx,
+      );
 
-    // No actor: nobody decided this, the clock did. A null `actorUserId` is
-    // what the trail uses to say so.
-    await recordAudit({
-      actorUserId: null,
-      action: "traffic.expired",
-      subjectType: "traffic_report",
-      subjectId: report.id,
-      municipalityId: report.municipalityId,
-    });
-  }
+      // No actor: nobody decided this, the clock did. A null `actorUserId` is
+      // what the trail uses to say so.
+      await recordAudit(
+        {
+          actorUserId: null,
+          action: "traffic.expired",
+          subjectType: "traffic_report",
+          subjectId: report.id,
+          municipalityId: report.municipalityId,
+        },
+        tx,
+      );
+    }
 
-  return expired.length;
+    return expired.length;
+  });
 }

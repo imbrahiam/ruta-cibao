@@ -37,7 +37,7 @@ export type LocationProblem =
   | "timeout";
 
 export type PositionResult =
-  | { ok: true; position: Position; accuracyMeters: number }
+  | { ok: true; position: Position; accuracyMeters: number; capturedAt: number }
   | { ok: false; problem: LocationProblem };
 
 /** How long a fix is worth reusing before asking the device again. */
@@ -87,6 +87,7 @@ export function requestPosition(
       ok: true,
       position: cached.position,
       accuracyMeters: cached.accuracyMeters,
+      capturedAt: cached.at,
     });
   }
 
@@ -100,9 +101,14 @@ export function requestPosition(
         cached = {
           position,
           accuracyMeters: fix.coords.accuracy,
-          at: Date.now(),
+          at: fix.timestamp,
         };
-        resolve({ ok: true, position, accuracyMeters: fix.coords.accuracy });
+        resolve({
+          ok: true,
+          position,
+          accuracyMeters: fix.coords.accuracy,
+          capturedAt: fix.timestamp,
+        });
       },
       (error) => resolve({ ok: false, problem: classify(error) }),
       options,

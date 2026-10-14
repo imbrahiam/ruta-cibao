@@ -99,22 +99,24 @@ test("landing steps and footer fit and expose useful destinations", async ({
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: "Lo mejor del Cibao empieza cerca." }),
+    page.getByRole("heading", { name: "¿Qué necesitas hoy?" }),
   ).toBeVisible();
   await page.screenshot({
     path: `/tmp/ruta-landing-${testInfo.project.name}.png`,
     animations: "disabled",
     scale: "css",
   });
-  const how = page.getByRole("region", { name: "Un mapa que hacemos juntos." });
-  await how.evaluate((element) => element.scrollIntoView({ block: "start" }));
-  await expect(how.getByRole("listitem")).toHaveCount(3);
+  const features = page.getByRole("region", { name: "Lo que puedes hacer" });
+  await features.evaluate((element) =>
+    element.scrollIntoView({ block: "start" }),
+  );
+  await expect(features.getByRole("listitem")).toHaveCount(6);
   await expect(
-    how.getByRole("link", { name: "Explorar lugares" }),
+    features.getByRole("link", { name: /Encuentra un lugar/ }),
   ).toHaveAttribute("href", "/explorar");
   await expect(
-    how.getByRole("link", { name: "Añadir un lugar" }),
-  ).toHaveAttribute("href", "/mapa?agregar=true");
+    features.getByRole("link", { name: /Escríbele al ayuntamiento/ }),
+  ).toHaveAttribute("href", "/consultas");
   await page.screenshot({
     path: `/tmp/ruta-how-${testInfo.project.name}.png`,
     animations: "disabled",

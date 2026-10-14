@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 import { db } from "@/db";
 import { municipalities } from "@/db/schema";
+import { COUNTRY_BOUNDS } from "@/lib/map/config";
 
 /**
  * The province, as it actually is.
@@ -33,18 +34,44 @@ async function collection() {
       id: municipalities.id,
       name: municipalities.name,
       geometry: sql<string>`ST_AsGeoJSON(${municipalities.boundary})`,
+      // Inside the polygon by construction, unlike a centroid — a horseshoe
+      // municipality's centroid can land in its neighbour.
+      label: sql<string>`ST_AsGeoJSON(ST_PointOnSurface(${municipalities.boundary}))`,
     })
     .from(municipalities)
     .where(isNotNull(municipalities.boundary));
+
+  // Everything in the country that is not the province, so the map can dim it
+  // and the three municipalities read as the subject rather than a region of
+  // a general-purpose map.
+  const [west, south, east, north] = COUNTRY_BOUNDS;
+  const [outside] = rows.length
+    ? await db
+        .select({
+          geometry: sql<string>`ST_AsGeoJSON(ST_Difference(
+            ST_MakeEnvelope(${west}, ${south}, ${east}, ${north}, 4326),
+            ST_Union(${municipalities.boundary})
+          ), 5)`,
+        })
+        .from(municipalities)
+        .where(isNotNull(municipalities.boundary))
+    : [];
 
   return {
     type: "FeatureCollection" as const,
     features: rows.map((row) => ({
       type: "Feature" as const,
       id: row.id,
-      properties: { id: row.id, name: row.name },
+      properties: {
+        id: row.id,
+        name: row.name,
+        label: (JSON.parse(row.label) as { coordinates: [number, number] })
+          .coordinates,
+      },
       geometry: JSON.parse(row.geometry) as unknown,
     })),
+    // A GeoJSON foreign member: readers that do not know it ignore it.
+    outside: outside ? (JSON.parse(outside.geometry) as unknown) : null,
   };
 }
 

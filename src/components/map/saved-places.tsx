@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/empty";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link } from "@/i18n/navigation";
+import { markInstallMoment } from "@/lib/install-moment";
 import { categoryIcon } from "@/lib/map/category-icons";
 import { orpc } from "@/lib/orpc";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,9 @@ export function useToggleSaved(placeId: string) {
         );
       }
       return { previous };
+    },
+    onSuccess: (_result, next) => {
+      if (next) markInstallMoment();
     },
     onError: (_error, _next, context) => {
       queryClient.setQueryData(

@@ -14,11 +14,19 @@ import { createHmac } from "node:crypto";
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadBucketCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { env } from "@/lib/env";
+
+export async function checkStorage(): Promise<void> {
+  await s3().send(new HeadBucketCommand({ Bucket: env.S3_BUCKET }), {
+    abortSignal: AbortSignal.timeout(5000),
+  });
+}
 
 let client: S3Client | undefined;
 
@@ -26,8 +34,15 @@ function s3(): S3Client {
   client ??= new S3Client({
     endpoint: env.S3_ENDPOINT,
     region: env.S3_REGION,
-    // MinIO addresses buckets as a path segment; AWS and R2 use a subdomain.
+    // The self-hosted store addresses buckets as a path segment; AWS and R2
+    // use a subdomain.
     forcePathStyle: env.S3_FORCE_PATH_STYLE,
+    // Checksums only where an operation requires one. The SDK's default
+    // ("when supported") writes a CRC32 of the *empty* body into every
+    // presigned PUT URL, so the photo a browser then sends fails with
+    // BadDigest — on any S3 implementation, AWS included.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
     credentials: {
       accessKeyId: env.S3_ACCESS_KEY_ID,
       secretAccessKey: env.S3_SECRET_ACCESS_KEY,
@@ -44,6 +59,7 @@ const READ_URL_TTL_SECONDS = 3600;
 export function createUploadUrl(
   key: string,
   contentType: string,
+  sizeBytes?: number,
 ): Promise<string> {
   return getSignedUrl(
     s3(),
@@ -51,6 +67,7 @@ export function createUploadUrl(
       Bucket: env.S3_BUCKET,
       Key: key,
       ContentType: contentType,
+      ContentLength: sizeBytes,
     }),
     { expiresIn: UPLOAD_URL_TTL_SECONDS },
   );
@@ -87,6 +104,57 @@ export async function putObject(
       ContentType: contentType,
     }),
   );
+}
+
+/**
+ * What storage actually holds at a key, or null if nothing is there.
+ *
+ * A presigned PUT fixes where a client may write and the declared content
+ * type, but not how many bytes or which bytes. So anything that was uploaded
+ * straight from a browser is looked at here before the app records it.
+ */
+export async function statObject(
+  key: string,
+): Promise<{ size: number; contentType: string | null } | null> {
+  try {
+    const head = await s3().send(
+      new HeadObjectCommand({ Bucket: env.S3_BUCKET, Key: key }),
+    );
+    return {
+      size: head.ContentLength ?? 0,
+      contentType: head.ContentType ?? null,
+    };
+  } catch (error) {
+    const status = (error as { $metadata?: { httpStatusCode?: number } })
+      .$metadata?.httpStatusCode;
+    if (status === 404 || (error as { name?: string }).name === "NotFound") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/** A whole object, for the few the server reads back itself. */
+export async function getObjectBytes(key: string): Promise<Uint8Array> {
+  const response = await s3().send(
+    new GetObjectCommand({ Bucket: env.S3_BUCKET, Key: key }),
+  );
+  return (await response.Body?.transformToByteArray()) ?? new Uint8Array();
+}
+
+/** The first bytes of an object — enough to recognise a file format. */
+export async function readObjectHead(
+  key: string,
+  bytes: number,
+): Promise<Uint8Array> {
+  const response = await s3().send(
+    new GetObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: key,
+      Range: `bytes=0-${bytes - 1}`,
+    }),
+  );
+  return (await response.Body?.transformToByteArray()) ?? new Uint8Array();
 }
 
 export async function deleteObject(key: string): Promise<void> {

@@ -1,19 +1,26 @@
 "use client";
 
 import type * as LeafletTypes from "leaflet";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { useBoundaries } from "@/hooks/use-boundaries";
+import { publicEnv } from "@/lib/env.public";
 import { RASTER_BASEMAP } from "@/lib/map/basemap";
 import {
   COUNTRY_BOUNDS,
-  DEFAULT_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
   PLACE_LABEL_ZOOM,
-  PROVINCE_CENTER,
+  PROVINCE_BOUNDS,
 } from "@/lib/map/config";
+import { MIN_ACCURACY_RING_M } from "@/lib/map/location";
 import { labelInk, markerPin, markerSize } from "@/lib/map/marker-pin";
 import { mapPalette } from "@/lib/map/palette";
-import { mapOverlays } from "./overlay-features";
+import {
+  mapOverlays,
+  OVERLAY_COMPACT_CLASS,
+  overlayChip,
+} from "./overlay-features";
 import type { CitizenMapProps } from "./types";
 
 /** The properties every feature from `/api/places/geojson` carries. */
@@ -61,19 +68,29 @@ export function CitizenMap({
   categoryIds,
   flyTo,
   searchMarker,
+  myLocation = null,
+  controllerRef,
   pickingLocation = false,
   onViewportChange,
   onMovingChange,
   onSelect,
 }: CitizenMapProps) {
+  const t = useTranslations("map.place");
+  const mapT = useTranslations("map.accessibility");
+  const labels = useRef({
+    title: mapT("title"),
+    zoomIn: mapT("zoomIn"),
+    zoomOut: mapT("zoomOut"),
+  });
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<LeafletTypes.Map | null>(null);
   const layer = useRef<LeafletTypes.GeoJSON | null>(null);
   const searchLayer = useRef<LeafletTypes.Marker | null>(null);
   const leaflet = useRef<typeof LeafletTypes | null>(null);
 
-  const [failed, setFailed] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
+  const { data: boundaries } = useBoundaries();
   const pointRef = useRef(onMapPoint);
   pointRef.current = onMapPoint;
 
@@ -102,8 +119,6 @@ export function CitizenMap({
       leaflet.current = L;
 
       const instance = L.map(container.current, {
-        center: [PROVINCE_CENTER.latitude, PROVINCE_CENTER.longitude],
-        zoom: DEFAULT_ZOOM,
         minZoom: MIN_ZOOM,
         maxZoom: MAX_ZOOM,
         // This is a provincial platform: panning to Santo Domingo to find an
@@ -114,16 +129,26 @@ export function CitizenMap({
         ),
         maxBoundsViscosity: 0.8,
         zoomControl: false,
-        attributionControl: true,
+        attributionControl: false,
       });
 
-      L.tileLayer(RASTER_BASEMAP.url, {
-        attribution: RASTER_BASEMAP.attribution,
-        subdomains: RASTER_BASEMAP.subdomains,
+      instance.fitBounds(
+        [
+          [PROVINCE_BOUNDS[1], PROVINCE_BOUNDS[0]],
+          [PROVINCE_BOUNDS[3], PROVINCE_BOUNDS[2]],
+        ],
+        { paddingTopLeft: [24, 132], paddingBottomRight: [24, 72] },
+      );
+      L.tileLayer(publicEnv.NEXT_PUBLIC_RASTER_TILE_URL ?? RASTER_BASEMAP.url, {
+        attribution:
+          publicEnv.NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION ??
+          RASTER_BASEMAP.attribution,
         maxZoom: RASTER_BASEMAP.maxZoom,
       }).addTo(instance);
 
-      L.control.zoom({ position: "bottomright" }).addTo(instance);
+      instance.getContainer().setAttribute("role", "region");
+      instance.getContainer().setAttribute("aria-label", labels.current.title);
+      L.control.attribution({ prefix: false }).addTo(instance);
 
       // A tap on empty ground closes whatever was open, which is what people
       // expect from a map and saves them hunting for a close button.
@@ -138,12 +163,9 @@ export function CitizenMap({
       // on every pinch, and rebuilding fifty of them each time is work the
       // stylesheet does for free.
       const showLabels = () => {
-        instance
-          .getContainer()
-          .classList.toggle(
-            "map-labels-hidden",
-            instance.getZoom() < PLACE_LABEL_ZOOM,
-          );
+        const far = instance.getZoom() < PLACE_LABEL_ZOOM;
+        instance.getContainer().classList.toggle("map-labels-hidden", far);
+        instance.getContainer().classList.toggle(OVERLAY_COMPACT_CLASS, far);
       };
       showLabels();
       instance.on("zoomend", showLabels);
@@ -166,7 +188,6 @@ export function CitizenMap({
       });
 
       map.current = instance;
-      setReady(true);
       const initialCenter = instance.getCenter();
       onViewportChangeRef.current?.({
         lng: initialCenter.lng,
@@ -188,6 +209,8 @@ export function CitizenMap({
 
             const size = markerSize(isSelected);
             return L.marker(latlng, {
+              title: properties?.name ?? labels.current.title,
+              alt: properties?.name ?? labels.current.title,
               icon: L.icon({
                 iconUrl: markerPin(
                   properties?.color || mapPalette.ink,
@@ -233,15 +256,15 @@ export function CitizenMap({
             });
           },
         }).addTo(instance);
+        setReady(true);
       } catch (error) {
         console.error("could not load places", error);
-        if (!cancelled)
-          setFailed(error instanceof Error ? error.message : "unknown error");
+        if (!cancelled) setReady(true);
+        if (!cancelled) setFailed(true);
       }
     })().catch((error) => {
       console.error("could not start the map", error);
-      if (!cancelled)
-        setFailed(error instanceof Error ? error.message : "unknown error");
+      if (!cancelled) setFailed(true);
     });
 
     return () => {
@@ -255,7 +278,7 @@ export function CitizenMap({
   /** Redraws the markers, rather than rebuilding the layer. */
   useEffect(() => {
     const L = leaflet.current;
-    if (!L || !layer.current) return;
+    if (!ready || !L || !layer.current) return;
 
     layer.current.eachLayer((marker) => {
       const properties = propertiesOf(
@@ -274,7 +297,7 @@ export function CitizenMap({
         }),
       );
     });
-  }, [selectedId]);
+  }, [selectedId, ready]);
 
   /**
    * Shows only the chosen categories.
@@ -285,7 +308,7 @@ export function CitizenMap({
   useEffect(() => {
     const L = leaflet.current;
     const instance = map.current;
-    if (!L || !instance || !layer.current) return;
+    if (!ready || !L || !instance || !layer.current) return;
 
     layer.current.eachLayer((marker) => {
       const properties = propertiesOf(
@@ -301,7 +324,121 @@ export function CitizenMap({
         element.style.display = visible ? "" : "none";
       }
     });
-  }, [categoryIds]);
+  }, [categoryIds, ready]);
+
+  /**
+   * The province, as the MapLibre renderer draws it: the rest of the country
+   * dimmed, the municipalities dashed inside a solid outline, and their names
+   * until street level. Paths go in the overlay pane, beneath every marker.
+   */
+  useEffect(() => {
+    const L = leaflet.current;
+    const instance = map.current;
+    if (!ready || !L || !instance || !boundaries?.features.length) return;
+    const group = L.layerGroup().addTo(instance);
+    const line = { color: mapPalette.province, interactive: false };
+    if (boundaries.outside) {
+      L.geoJSON(boundaries.outside, {
+        style: {
+          ...line,
+          weight: 2,
+          opacity: 0.75,
+          fillColor: mapPalette.outside,
+          fillOpacity: 0.32,
+        },
+        interactive: false,
+      }).addTo(group);
+    }
+    for (const feature of boundaries.features) {
+      L.geoJSON(feature.geometry, {
+        style: {
+          ...line,
+          weight: 1,
+          opacity: 0.45,
+          dashArray: "6 4",
+          fill: false,
+        },
+        interactive: false,
+      }).addTo(group);
+      const at = feature.properties.label;
+      if (at) {
+        L.tooltip({
+          permanent: true,
+          direction: "center",
+          className: "map-province-tooltip",
+          interactive: false,
+        })
+          .setLatLng([at[1], at[0]])
+          .setContent(feature.properties.name)
+          .addTo(group);
+      }
+    }
+    const fade = () => {
+      instance
+        .getContainer()
+        .classList.toggle(
+          "map-province-labels-hidden",
+          instance.getZoom() >= 12,
+        );
+    };
+    fade();
+    instance.on("zoomend", fade);
+    return () => {
+      instance.off("zoomend", fade);
+      group.remove();
+    };
+  }, [boundaries, ready]);
+
+  /** The "you are here" dot, with its accuracy ring — see `locationFeatures`. */
+  useEffect(() => {
+    const L = leaflet.current;
+    const instance = map.current;
+    if (!ready || !L || !instance || !myLocation) return;
+    const at: LeafletTypes.LatLngTuple = [myLocation.lat, myLocation.lng];
+    const group = L.layerGroup().addTo(instance);
+    const color = mapPalette.location;
+    if ((myLocation.accuracyMeters ?? 0) > MIN_ACCURACY_RING_M) {
+      L.circle(at, {
+        radius: myLocation.accuracyMeters,
+        stroke: false,
+        fillColor: color,
+        fillOpacity: 0.12,
+        interactive: false,
+      }).addTo(group);
+    }
+    L.circleMarker(at, {
+      radius: 15,
+      stroke: false,
+      fillColor: color,
+      fillOpacity: 0.18,
+      interactive: false,
+    }).addTo(group);
+    L.circleMarker(at, {
+      radius: 7,
+      color: "#ffffff",
+      weight: 2.5,
+      fillColor: color,
+      fillOpacity: 1,
+      interactive: false,
+    }).addTo(group);
+    return () => {
+      group.remove();
+    };
+  }, [myLocation, ready]);
+
+  // Zoom is drawn by `MapActions`, in one stack with "where am I", rather
+  // than as this SDK's own widget — which looked like another product's
+  // control beside ours. The renderer only lends it the verb.
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || !controllerRef) return;
+    controllerRef.current = {
+      zoomBy: (delta) => (delta > 0 ? instance.zoomIn() : instance.zoomOut()),
+    };
+    return () => {
+      controllerRef.current = null;
+    };
+  }, [ready, controllerRef]);
 
   useEffect(() => {
     if (!flyTo || !ready) return;
@@ -356,14 +493,13 @@ export function CitizenMap({
           .addTo(group);
       }
       if (overlay.point && overlay.label) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = overlay.label;
-        button.className =
-          "max-w-44 truncate rounded-full border-2 bg-background px-3 py-2 text-xs font-semibold shadow-sm";
-        button.style.borderColor = overlay.color;
+        const button = overlayChip(overlay);
         L.marker([overlay.point.lat, overlay.point.lng], {
-          icon: L.divIcon({ html: button, className: "", iconSize: [150, 40] }),
+          icon: L.divIcon({
+            html: button,
+            className: "map-overlay-icon",
+            iconSize: [150, 40],
+          }),
           title: overlay.label,
         })
           .on("click", (event) => {
@@ -417,13 +553,13 @@ export function CitizenMap({
 
   return (
     <>
-      <div ref={container} className="absolute inset-0" />
+      <div ref={container} className="isolate h-full w-full" />
       {failed && (
         <p
           role="status"
           className="absolute inset-x-4 bottom-24 z-30 rounded-lg bg-destructive/10 p-3 text-destructive text-sm"
         >
-          {failed}
+          {t("loadError")}
         </p>
       )}
     </>

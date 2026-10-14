@@ -14,3 +14,11 @@
 
 	reverse_proxy app:3000
 }
+
+# The self-hosted object store, for deployments that keep photos on this server.
+# Phones upload to it directly with presigned URLs, so it needs a public HTTPS
+# address of its own; the Host header passes through unchanged, which is what
+# keeps those signatures valid. With R2 or S3 this block is never reached.
+{$STORAGE_ADDRESS} {
+	reverse_proxy storage:9000
+}

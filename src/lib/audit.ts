@@ -5,9 +5,8 @@
  * approved this, and when" long after the fact, and the trail is also what
  * makes moderation decisions contestable rather than opaque.
  *
- * Writing is deliberately forgiving: a failure to record an audit row is
- * logged, not thrown. Losing the record of an approval is bad; refusing the
- * approval because the record failed is worse.
+ * Audit failures propagate. Callers pass their transaction so the domain
+ * mutation and its evidence either commit together or roll back together.
  */
 import { type Db, type DbTransaction, db } from "@/db";
 import { auditEvents } from "@/db/schema";
@@ -30,20 +29,13 @@ export async function recordAudit(
   input: AuditInput,
   executor: Db | DbTransaction = db,
 ): Promise<void> {
-  try {
-    await executor.insert(auditEvents).values({
-      actorUserId: input.actorUserId ?? null,
-      action: input.action,
-      subjectType: input.subjectType,
-      subjectId: input.subjectId ?? null,
-      municipalityId: input.municipalityId ?? null,
-      metadata: input.metadata ?? {},
-      ipHash: input.ip ? hashLookup("audit-ip", input.ip) : null,
-    });
-  } catch (error) {
-    console.error("failed to record audit event", {
-      action: input.action,
-      error,
-    });
-  }
+  await executor.insert(auditEvents).values({
+    actorUserId: input.actorUserId ?? null,
+    action: input.action,
+    subjectType: input.subjectType,
+    subjectId: input.subjectId ?? null,
+    municipalityId: input.municipalityId ?? null,
+    metadata: input.metadata ?? {},
+    ipHash: input.ip ? hashLookup("audit-ip", input.ip) : null,
+  });
 }

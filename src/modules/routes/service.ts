@@ -193,7 +193,7 @@ export async function decideRoute(
   viewer: ModeratorViewer,
   input: DecideRouteInput,
 ) {
-  const outcome = await withIdempotency({
+  await withIdempotency({
     key: input.requestId,
     userId: viewer.userId,
     request: input,
@@ -224,28 +224,32 @@ export async function decideRoute(
         },
         tx,
       );
+      await publishRealtimeEvent(
+        {
+          channel: "routes",
+          municipalityId: route.municipalityId,
+          subjectType: "route",
+          subjectId: route.id,
+          action: "updated",
+        },
+        tx,
+      );
+      if (route.submittedByUserId)
+        await notify(
+          {
+            userId: route.submittedByUserId,
+            messageKey: "notifications.routeReviewed",
+            href: `/rutas?ver=mias&ruta=${input.id}`,
+            channels: { push: true, email: false },
+          },
+          tx,
+        );
       return {
         userId: route.submittedByUserId,
         municipalityId: route.municipalityId,
       };
     },
   });
-  if (!outcome.replayed) {
-    await publishRealtimeEvent({
-      channel: "routes",
-      municipalityId: outcome.result.municipalityId,
-      subjectType: "route",
-      subjectId: input.id,
-      action: "updated",
-    });
-    if (outcome.result.userId)
-      await notify({
-        userId: outcome.result.userId,
-        messageKey: "notifications.routeReviewed",
-        params: {},
-        href: `/rutas?ver=mias&ruta=${input.id}`,
-        channels: { push: true, email: false },
-      });
-  }
+
   return { status: input.status };
 }

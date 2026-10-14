@@ -9,7 +9,6 @@ import {
   ClipboardList,
   IdCard,
   LogOut,
-  MessageCircleQuestionMark,
   User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -17,7 +16,6 @@ import { useTranslations } from "next-intl";
 import type * as React from "react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ASSISTANT_OPEN_EVENT } from "@/components/assistant/assistant-panel";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -210,7 +208,6 @@ export function UserMenu({
   const t = useTranslations("shell");
   const savedT = useTranslations("map.saved");
   const notificationsT = useTranslations("notifications");
-  const assistantT = useTranslations("assistant");
   const router = useRouter();
   const queryClient = useQueryClient();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -230,15 +227,6 @@ export function UserMenu({
     queryClient.clear();
     setDrawerOpen(false);
     router.refresh();
-  }
-
-  function openAssistant() {
-    // The search suggestions hand over the same way: fold the drawer away
-    // first, then let the assistant open on top of a settled screen.
-    setDrawerOpen(false);
-    window.setTimeout(() => {
-      window.dispatchEvent(new CustomEvent(ASSISTANT_OPEN_EVENT));
-    }, 150);
   }
 
   const closeDrawer = () => setDrawerOpen(false);
@@ -297,12 +285,6 @@ export function UserMenu({
               >
                 {notificationsLabel}
               </DrawerRow>
-              <DrawerAction
-                icon={MessageCircleQuestionMark}
-                onClick={openAssistant}
-              >
-                {assistantT("title")}
-              </DrawerAction>
 
               {/* The one action a visitor most likely wants, surfaced rather
                   than buried in a settings page they would have to go looking
@@ -381,14 +363,6 @@ export function UserMenu({
             >
               <Bell className="size-4" aria-hidden />
               {notificationsLabel}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => {
-                window.dispatchEvent(new CustomEvent(ASSISTANT_OPEN_EVENT));
-              }}
-            >
-              <MessageCircleQuestionMark className="size-4" aria-hidden />
-              {assistantT("title")}
             </DropdownMenuItem>
 
             {/* The one action a visitor most likely wants, surfaced rather than

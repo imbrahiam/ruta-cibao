@@ -9,9 +9,10 @@
  *   bun run scripts/grant-staff.ts <phone|email|userId> moderator
  *   bun run scripts/grant-staff.ts <phone|email|userId> none
  */
-import { eq, or } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { memberProfiles, user } from "@/db/schema";
+import { recordAudit } from "@/lib/audit";
 import { normalizePhone } from "@/lib/phone";
 
 const [identifier, role = "moderator"] = process.argv.slice(2);
@@ -43,37 +44,77 @@ const [account] = await db
   .limit(1);
 
 if (!account) {
-  console.error(`no account matches "${identifier}"`);
+  console.error("No account matches the supplied identifier");
   process.exit(1);
 }
 
-const [profile] = await db
-  .update(memberProfiles)
-  .set({ staffRole: role })
-  .where(eq(memberProfiles.userId, account.id))
-  .returning({
-    displayName: memberProfiles.displayName,
-    tier: memberProfiles.tier,
-    cedulaStatus: memberProfiles.cedulaStatus,
-    staffRole: memberProfiles.staffRole,
-    municipalityId: memberProfiles.municipalityId,
-  });
-
-if (!profile) {
-  console.error(`account ${account.id} has no member profile`);
-  process.exit(1);
-}
-
-console.info(
-  `${profile.displayName} is now "${profile.staffRole}" (${profile.municipalityId ?? "no municipality"})`,
-);
-
-// Moderating requires a verified cédula, so say so rather than letting them
-// discover it as a 403 on a page that looked available.
-if (role !== "none" && profile.cedulaStatus !== "verified") {
-  console.warn(
-    `warning: cedula status is "${profile.cedulaStatus}". The moderation desk stays closed until it is "verified".`,
+const bootstrap = process.argv.includes("--bootstrap-verified-in-person");
+await db.transaction(async (tx) => {
+  await tx.execute(
+    sql`select pg_advisory_xact_lock(hashtextextended('staff-bootstrap', 0))`,
   );
-}
+  const [profile] = await tx
+    .select()
+    .from(memberProfiles)
+    .where(eq(memberProfiles.userId, account.id))
+    .limit(1)
+    .for("update");
+  if (!profile) throw new Error("Member profile missing");
+  if (bootstrap) {
+    if (role !== "admin")
+      throw new Error("Bootstrap is only for the first administrator");
+    const [existing] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(memberProfiles)
+      .where(
+        sql`${memberProfiles.staffRole} = 'admin' and ${memberProfiles.cedulaStatus} = 'verified'`,
+      );
+    if ((existing?.count ?? 0) > 0)
+      throw new Error(
+        "An administrator already exists; use the document review flow",
+      );
+    if (
+      !profile.verifiedFullName ||
+      !profile.cedulaCiphertext ||
+      !profile.municipalityId ||
+      profile.cedulaStatus !== "matched"
+    )
+      throw new Error(
+        "Bootstrap requires a matched registry lookup and municipality, with no open review",
+      );
+    // The explicit flag attests that the institution checked this person
+    // in person. Shell access alone never silently bypasses document review.
+    await tx
+      .update(memberProfiles)
+      .set({
+        tier: "citizen",
+        cedulaStatus: "verified",
+        verifiedAt: new Date(),
+        staffRole: "admin",
+      })
+      .where(eq(memberProfiles.userId, account.id));
+  } else {
+    if (
+      role !== "none" &&
+      (profile.cedulaStatus !== "verified" || profile.tier !== "citizen")
+    )
+      throw new Error("Verify the resident before granting a staff role");
+    await tx
+      .update(memberProfiles)
+      .set({ staffRole: role })
+      .where(eq(memberProfiles.userId, account.id));
+  }
+  await recordAudit(
+    {
+      action: bootstrap ? "staff.bootstrapped_in_person" : "staff.role_changed",
+      subjectType: "member_profile",
+      subjectId: profile.id,
+      municipalityId: profile.municipalityId,
+      metadata: { role, source: "operator_cli" },
+    },
+    tx,
+  );
+});
+console.info("Staff role updated", { userId: account.id, role, bootstrap });
 
 process.exit(0);

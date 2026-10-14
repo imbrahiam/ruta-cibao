@@ -8,12 +8,9 @@ export function OfflineRecovery() {
   const t = useTranslations("offline");
   return (
     <div className="flex flex-wrap justify-center gap-3">
-      <Button className="h-11" onClick={() => window.location.reload()}>
-        {t("reload")}
-      </Button>
+      <Button onClick={() => window.location.reload()}>{t("reload")}</Button>
       <Button
         variant="outline"
-        className="h-11"
         nativeButton={false}
         render={<Link href="/mapa" />}
       >

@@ -13,10 +13,15 @@
  * decided by the service that queued it.
  */
 
+import { db } from "@/db";
 import { clearExpiredIdempotencyKeys } from "@/lib/idempotency";
 import { clearExpiredRateLimits } from "@/lib/rate-limit";
 import { clearExpiredRealtimeEvents } from "@/lib/realtime";
 import { retryPendingVerifications } from "@/modules/citizen/retry-pending";
+import { cleanupIdentityDocuments } from "@/modules/identity/cleanup";
+import { discardIdentityUploads } from "@/modules/identity/submit";
+import { deliverNotification } from "@/modules/notifications/notify";
+import { cleanupPhotoUploads } from "@/modules/places/photos";
 import { renderWeeklyReportPdf } from "@/modules/reports/render-pdf";
 import { buildWeeklyReports } from "@/modules/reports/weekly";
 import { expireTrafficReports } from "@/modules/traffic/expire";
@@ -28,6 +33,7 @@ type Handlers = {
 };
 
 const handlers: Handlers = {
+  [QUEUES.identityDiscardUploads]: (input) => discardIdentityUploads(input),
   [QUEUES.trafficNotifyNearby]: ({ reportId }) =>
     notifyNearbyOfTraffic(reportId),
 
@@ -47,15 +53,25 @@ const handlers: Handlers = {
    * schedules to explain in the runbook for no operational difference.
    */
   [QUEUES.platformCleanup]: async () => {
-    const [realtime, idempotency, rateLimits] = await Promise.all([
-      clearExpiredRealtimeEvents(),
-      clearExpiredIdempotencyKeys(),
-      clearExpiredRateLimits(),
-    ]);
-    return { realtime, idempotency, rateLimits };
+    const [realtime, idempotency, rateLimits, identityDocuments, photoUploads] =
+      await Promise.all([
+        clearExpiredRealtimeEvents(),
+        clearExpiredIdempotencyKeys(),
+        clearExpiredRateLimits(),
+        cleanupIdentityDocuments(),
+        cleanupPhotoUploads(db),
+      ]);
+    return {
+      realtime,
+      idempotency,
+      rateLimits,
+      identityDocuments,
+      photoUploads,
+    };
   },
 
   [QUEUES.cedulaRetry]: () => retryPendingVerifications(),
+  [QUEUES.notificationDeliver]: (input) => deliverNotification(input),
 };
 
 export function runJob<Q extends QueueName>(
