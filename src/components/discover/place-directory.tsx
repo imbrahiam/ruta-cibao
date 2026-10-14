@@ -157,12 +157,11 @@ export function PlaceDirectory() {
                       })
                     }
                     icon={
-                      <span
-                        className="flex size-11 items-center justify-center rounded-full bg-background"
+                      <Icon
+                        className="size-7"
                         style={{ color: item.color }}
-                      >
-                        <Icon className="size-6" aria-hidden />
-                      </span>
+                        aria-hidden
+                      />
                     }
                     label={item.name}
                   />

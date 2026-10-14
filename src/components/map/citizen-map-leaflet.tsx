@@ -269,6 +269,7 @@ export function CitizenMap({
 
     return () => {
       cancelled = true;
+      setReady(false);
       map.current?.remove();
       map.current = null;
       layer.current = null;

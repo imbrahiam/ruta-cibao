@@ -19,9 +19,9 @@ export async function Hero() {
   const t = await getTranslations("landing");
 
   return (
-    <section aria-labelledby="hero-title" className="px-3 pt-2 sm:px-5 md:pt-4">
+    <section aria-labelledby="hero-title" className="px-4 pt-2 sm:px-5 md:pt-4">
       <div className="mx-auto max-w-7xl">
-        <div className="relative isolate flex h-[min(62svh,30rem)] min-h-[22rem] flex-col items-center justify-center overflow-hidden rounded-[1.75rem] bg-[#4f6b5b] px-6 text-center text-white md:h-[34rem] md:rounded-[2rem]">
+        <div className="relative isolate flex h-[min(52svh,26rem)] min-h-[20rem] flex-col items-center justify-center overflow-hidden rounded-[1.75rem] bg-[#4f6b5b] px-6 text-center text-white md:h-[34rem] md:rounded-[2rem]">
           <Image
             src="/places/presa-moncion.webp"
             alt={t("photoAlt")}

@@ -59,7 +59,7 @@ export function PlacesScroller({
 
   return (
     <div>
-      <div className="mb-5 flex items-end justify-between gap-4 px-5 md:mb-7 md:px-0">
+      <div className="mb-5 flex items-end justify-between gap-4 px-4 sm:px-5 md:mb-7 md:px-0">
         {heading}
         <div className="hidden shrink-0 gap-2 md:flex">
           <button
@@ -86,7 +86,7 @@ export function PlacesScroller({
       </div>
       <ul
         ref={track}
-        className="landing-track flex snap-x snap-mandatory scroll-px-5 gap-4 overflow-x-auto px-5 pb-2 md:scroll-px-0 md:gap-5 md:px-0"
+        className="landing-track flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-2 sm:scroll-px-5 sm:px-5 md:scroll-px-0 md:gap-5 md:px-0"
       >
         {children}
       </ul>

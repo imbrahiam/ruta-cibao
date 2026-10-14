@@ -301,6 +301,11 @@ export function CitizenMap({
 
     return () => {
       window.clearTimeout(foldCredit);
+      // A remount (Fast Refresh, StrictMode's double effect) builds a new map
+      // whose style has not loaded; carrying `ready` over from the old one let
+      // the effects below call addSource on it and throw "Style is not done
+      // loading".
+      setReady(false);
       instance.remove();
       map.current = null;
       removeProtocol("pmtiles");

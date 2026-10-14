@@ -59,7 +59,7 @@ function NumbersFrame({
   return (
     <section
       aria-labelledby="numbers-title"
-      className="mx-auto mt-14 max-w-6xl px-5 md:mt-24"
+      className="mx-auto mt-12 max-w-6xl px-4 sm:px-5 md:mt-24"
     >
       <h2 id="numbers-title" className="page-eyebrow mb-3 md:mb-8">
         {title}
