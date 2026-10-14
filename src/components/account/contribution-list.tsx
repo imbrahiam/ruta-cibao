@@ -1,190 +1,216 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowUpRight, ClipboardList, MapPinPlus } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import {
+  Camera,
+  MapPin,
+  MapPinPlus,
+  MessagesSquare,
+  PencilLine,
+  Store,
+  TriangleAlert,
+} from "lucide-react";
+import { useFormatter, useNow, useTranslations } from "next-intl";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
-import { ListSkeleton } from "@/components/shell/list-skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { groupByRecency } from "@/components/ui-patterns/date-groups";
+import { EmptyState } from "@/components/ui-patterns/empty-state";
+import {
+  ListRow,
+  ListRowSkeleton,
+  RowPictogram,
+} from "@/components/ui-patterns/list-row";
+import { Segmented } from "@/components/ui-patterns/segmented";
+import { StatusBadge, statusTone } from "@/components/ui-patterns/status-badge";
 import { Link } from "@/i18n/navigation";
-import { orpc } from "@/lib/orpc";
-import { cn } from "@/lib/utils";
+import { type client, orpc } from "@/lib/orpc";
 
-/** Waiting on somebody else. */
-const WAITING = new Set(["pending", "draft", "open", "in_review", "active"]);
-/** Finished, and finished well. */
-const SETTLED = new Set([
-  "published",
-  "resolved",
-  "approved",
-  "answered",
-  "cleared",
-]);
-/** Finished, and not in the contributor's favour. */
-const REFUSED = new Set(["rejected", "dismissed", "removed"]);
+type Contribution = Awaited<
+  ReturnType<typeof client.places.contributions>
+>[number];
 
+/** One pictogram per kind of contribution, so the list scans by shape. */
+const KIND_ICON: Record<Contribution["kind"], typeof MapPin> = {
+  place: MapPin,
+  report: PencilLine,
+  photo: Camera,
+  traffic: TriangleAlert,
+  consultation: MessagesSquare,
+  claim: Store,
+};
+
+/**
+ * Everything you have put into the map, and where each thing stands.
+ *
+ * The "my requests" screen every civic reporting app has, and the reason to
+ * come back: a ruled list, newest first, grouped by how recent. Each row is
+ * the kind of thing (as a pictogram and a word), your own words for it, how
+ * long ago, and the state in the same five tones the cases use.
+ */
 export function ContributionList() {
   const t = useTranslations("contributions");
+  const groupT = useTranslations("lists");
   const format = useFormatter();
+  const now = useNow({ updateInterval: 60_000 });
   const { viewer, isLoading } = useAuth();
   const member = Boolean(viewer && viewer.kind !== "anonymous");
   const [pendingOnly, setPendingOnly] = useState(false);
   const query = useQuery(
     orpc.places.contributions.queryOptions({ enabled: member }),
   );
-  const items = query.data?.filter(
-    (item) => !pendingOnly || item.status === "pending",
-  );
+  const items =
+    query.data?.filter((item) => !pendingOnly || item.status === "pending") ??
+    [];
+  const groups = groupByRecency(items, (item) => item.createdAt, now);
+
   return (
     <div className="mx-auto max-w-3xl">
-      <header className="mb-8">
-        <p className="page-eyebrow mb-3">{t("eyebrow")}</p>
+      <header className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <h1 className="page-title">{t("title")}</h1>
-        <p className="page-lede mt-3">{t("intro")}</p>
-      </header>
-      {isLoading ? (
-        <ListSkeleton label={t("loading")} />
-      ) : !member ? (
-        <section className="surface-card flex flex-col items-center px-6 py-14 text-center">
-          <span className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-accent text-primary">
-            <ClipboardList className="size-6" aria-hidden />
-          </span>
-          <h2 className="font-semibold text-xl tracking-tight">
-            {t("signIn")}
-          </h2>
-          <p className="mt-2 mb-6 max-w-sm text-pretty text-muted-foreground text-sm leading-relaxed">
-            {t("signInHint")}
-          </p>
+        {member && (
           <Button
-            className="h-11 rounded-full px-6"
+            variant="outline"
+            className="h-11 rounded-full px-5"
             nativeButton={false}
-            render={<Link href="/entrar?callbackUrl=%2Faportes" />}
+            render={<Link href="/mapa?agregar=true" />}
           >
-            {t("signIn")}
+            <MapPinPlus className="size-[18px]" aria-hidden />
+            {t("add")}
           </Button>
-        </section>
+        )}
+      </header>
+
+      {isLoading ? (
+        <ListRowSkeleton label={t("loading")} />
+      ) : !member ? (
+        <EmptyState
+          illustration="contributions"
+          title={t("signIn")}
+          action={
+            <Button
+              className="h-11 rounded-full px-6"
+              nativeButton={false}
+              render={<Link href="/entrar?callbackUrl=%2Faportes" />}
+            >
+              {t("signInAction")}
+            </Button>
+          }
+        />
       ) : (
         <>
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div className="flex gap-1 rounded-full bg-muted p-1">
-              <Button
-                variant="ghost"
-                aria-pressed={!pendingOnly}
-                className={cn(
-                  "rounded-full px-4 hover:bg-foreground/10",
-                  !pendingOnly && "bg-background shadow-sm hover:bg-background",
-                )}
-                onClick={() => setPendingOnly(false)}
-              >
-                {t("all")}
-              </Button>
-              <Button
-                variant="ghost"
-                aria-pressed={pendingOnly}
-                className={cn(
-                  "rounded-full px-4 hover:bg-foreground/10",
-                  pendingOnly && "bg-background shadow-sm hover:bg-background",
-                )}
-                onClick={() => setPendingOnly(true)}
-              >
-                {t("pendingTab")}
-              </Button>
-            </div>
-            <Button
-              variant="outline"
-              className="h-11 rounded-full px-4"
-              nativeButton={false}
-              render={<Link href="/mapa?agregar=true" />}
-            >
-              <MapPinPlus aria-hidden />
-              {t("add")}
-            </Button>
-          </div>
+          <Segmented
+            className="mb-5 sm:max-w-xs"
+            label={t("filter")}
+            value={pendingOnly ? "pending" : "all"}
+            onChange={(value) => setPendingOnly(value === "pending")}
+            options={[
+              { value: "all", label: t("all") },
+              { value: "pending", label: t("pendingTab") },
+            ]}
+          />
           {query.isPending ? (
-            <ListSkeleton label={t("loading")} />
+            <ListRowSkeleton label={t("loading")} />
           ) : query.isError ? (
-            <div role="alert" className="surface-card p-8 text-center">
-              <p className="mb-4">{t("error")}</p>
-              <Button onClick={() => void query.refetch()}>{t("retry")}</Button>
-            </div>
-          ) : items?.length === 0 ? (
-            <section className="surface-card flex flex-col items-center px-6 py-14 text-center">
-              <span className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-accent text-primary">
-                <ClipboardList className="size-6" aria-hidden />
-              </span>
-              <h2 className="font-semibold text-xl tracking-tight">
-                {pendingOnly ? t("pendingEmpty") : t("empty")}
-              </h2>
-              <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                {t("emptyHint")}
-              </p>
-            </section>
-          ) : (
-            <ul className="space-y-3">
-              {items?.map((item) => (
-                <li
-                  key={`${item.kind}-${item.id}`}
-                  className="surface-card p-5 sm:p-6"
+            <EmptyState
+              illustration="contributions"
+              title={t("error")}
+              action={
+                <Button
+                  className="rounded-full px-6"
+                  onClick={() => void query.refetch()}
                 >
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <p className="text-xs text-muted-foreground">
-                      {t(item.kind)} ·{" "}
-                      {format.dateTime(item.createdAt, {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </p>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "rounded-full px-2.5 py-1",
-                        // Three tones over fifteen states: waiting, done,
-                        // turned down. The word is the signal; the colour only
-                        // groups it, which is what keeps the badge readable
-                        // without relying on colour to say anything.
-                        WAITING.has(item.status) &&
-                          "bg-amber-50 text-amber-800",
-                        SETTLED.has(item.status) &&
-                          "bg-emerald-50 text-emerald-800",
-                        REFUSED.has(item.status) && "bg-red-50 text-red-800",
-                      )}
-                    >
-                      {t(item.status)}
-                    </Badge>
-                  </div>
-                  <h2 className="text-pretty font-semibold text-lg leading-snug tracking-tight">
-                    {item.name}
+                  {t("retry")}
+                </Button>
+              }
+            />
+          ) : items.length === 0 ? (
+            pendingOnly ? (
+              <EmptyState
+                illustration="contributions"
+                title={t("pendingEmpty")}
+                action={
+                  <Button
+                    variant="outline"
+                    className="rounded-full px-6"
+                    onClick={() => setPendingOnly(false)}
+                  >
+                    {t("all")}
+                  </Button>
+                }
+              />
+            ) : (
+              <EmptyState
+                illustration="contributions"
+                title={t("empty")}
+                action={
+                  <Button
+                    className="rounded-full px-6"
+                    nativeButton={false}
+                    render={<Link href="/mapa?agregar=true" />}
+                  >
+                    {t("add")}
+                  </Button>
+                }
+              />
+            )
+          ) : (
+            <div className="flex flex-col gap-6">
+              {groups.map((group) => (
+                <section
+                  key={group.key}
+                  aria-labelledby={`aportes-${group.key}`}
+                >
+                  <h2
+                    id={`aportes-${group.key}`}
+                    className="border-border border-b pb-2 font-semibold text-muted-foreground text-sm"
+                  >
+                    {groupT(group.key)}
                   </h2>
-                  {item.note && (
-                    <div className="mt-4 rounded-xl bg-muted p-4">
-                      <h3 className="text-xs font-medium">{t("note")}</h3>
-                      <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed">
-                        {item.note}
-                      </p>
-                    </div>
-                  )}
-                  {/* Where a contribution lives depends on what it is, so the
-                      service says. A row with nowhere to go — a place still in
-                      review, a traffic report that has lapsed — gets no link
-                      rather than one that lands on "eso no existe". */}
-                  {item.href && (
-                    <Link
-                      href={item.href}
-                      className="mt-4 inline-flex min-h-10 items-center gap-2 text-sm font-medium text-primary"
-                    >
-                      {t("open")}
-                      <ArrowUpRight className="size-4" aria-hidden />
-                    </Link>
-                  )}
-                </li>
+                  <ul className="ruled">
+                    {group.items.map((item) => (
+                      <li key={`${item.kind}-${item.id}`}>
+                        {/* Where a contribution lives depends on what it is,
+                            so the service says. A row with nowhere to go — a
+                            place still in review, a traffic report that has
+                            lapsed — is not a link rather than one that lands
+                            on "eso no existe". */}
+                        <ListRow
+                          href={item.href ?? undefined}
+                          headingLevel={3}
+                          leading={<RowPictogram icon={KIND_ICON[item.kind]} />}
+                          title={item.name}
+                          meta={`${t(item.kind)} · ${format.relativeTime(item.createdAt, now)}`}
+                          badge={
+                            <StatusBadge
+                              tone={statusTone(item.status)}
+                              label={t(
+                                item.status === "open"
+                                  ? "openStatus"
+                                  : item.status,
+                              )}
+                            />
+                          }
+                          trailing={item.href ? undefined : null}
+                          detail={
+                            item.note ? (
+                              <p className="mt-2.5 border-border border-l-2 pl-3 text-[15px] text-muted-foreground leading-relaxed">
+                                <span className="font-medium text-foreground">
+                                  {t("note")}:
+                                </span>{" "}
+                                <span className="whitespace-pre-wrap">
+                                  {item.note}
+                                </span>
+                              </p>
+                            ) : undefined
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
-          )}
-          {query.data && query.data.length > 0 && (
-            <p className="mt-6 text-xs text-muted-foreground">{t("recent")}</p>
+            </div>
           )}
         </>
       )}
