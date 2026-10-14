@@ -146,65 +146,74 @@
     "goHome": "Ir al inicio"
   },
   "landing": {
-    "region": "Provincia Santiago Rodríguez · Cibao",
-    "headline": "El mapa de tu provincia, <highlight>hecho por su gente</highlight>.",
-    "subhead": "Encuentra un río para el domingo, un servicio que necesitas o ese lugar que solo conoce tu gente.",
+    "region": "Santiago Rodríguez",
+    "question": "¿Qué necesitas hoy?",
+    "photoAlt": "La presa de Monción entre montañas verdes",
+    "photoCaption": "Presa de Monción",
+    "illustration": "Imagen ilustrativa",
+    "search": "Buscar un lugar",
+    "searchPlaceholder": "Un río, un colmado…",
+    "searchSubmit": "Buscar",
+    "tasks": "Tareas rápidas",
     "openMap": "Abrir el mapa",
-    "signIn": "Entrar",
-    "apiDocs": "Documentación de la API",
-    "stats": {
-      "places": "lugares",
-      "municipalities": "municipios",
-      "categories": "categorías"
+    "report": "Reportar un problema",
+    "notice": {
+      "label": "Aviso de tránsito",
+      "title": "{category} en {municipality}",
+      "more": "{count, plural, one {y # vía más} other {y # vías más}}",
+      "action": "Ver en el mapa",
+      "dismiss": "Cerrar el aviso",
+      "since": "Desde las {time}"
+    },
+    "numbers": {
+      "title": "La provincia, en números",
+      "places": "{count, plural, one {lugar en el mapa} other {lugares en el mapa}}",
+      "routes": "{count, plural, one {ruta ecoturística} other {rutas ecoturísticas}}",
+      "resolved": "{count, plural, one {aviso de vía resuelto este mes} other {avisos de vía resueltos este mes}}"
+    },
+    "territory": {
+      "eyebrow": "El territorio",
+      "title": "Tres municipios, un mapa.",
+      "mapLabel": "Sabaneta, Monción y Villa Los Almácigos. Abrir el mapa.",
+      "reports": "Avisos en las vías",
+      "open": "Abiertos",
+      "resolvedWeek": "Resueltos esta semana",
+      "action": "Abrir el mapa"
     },
     "features": {
-      "find": {
-        "title": "Encuentra",
-        "body": "Busca por categoría o municipio y abre las indicaciones en tu app de mapas."
+      "title": "Lo que puedes hacer",
+      "places": {
+        "title": "Encuentra un lugar",
+        "body": "Ríos, parques, clínicas y oficinas de los tres municipios."
       },
-      "add": {
-        "title": "Aporta",
-        "body": "¿Falta algo? Fija el punto en el mapa y descríbelo. Un moderador de tu municipio lo revisa antes de publicarlo."
+      "traffic": {
+        "title": "Avisa de una vía cerrada",
+        "body": "Un hoyo, una inundación o un derrumbe, marcado en el mapa."
       },
-      "verify": {
-        "title": "Verifica",
-        "body": "Confirma lo que sigue ahí o avisa si cambió. Tu aporte ayuda a mantener el mapa al día."
+      "business": {
+        "title": "Pon tu negocio en el mapa",
+        "body": "Tu teléfono y tu horario, revisados por el ayuntamiento."
+      },
+      "consultations": {
+        "title": "Escríbele al ayuntamiento",
+        "body": "Agua, calles, basura o alumbrado. Sigue la respuesta."
+      },
+      "moderation": {
+        "title": "Revisa lo que llega",
+        "body": "Los funcionarios aprueban cada aporte antes de publicarlo."
+      },
+      "reports": {
+        "title": "Lee el informe semanal",
+        "body": "Lo que pasó cada semana, municipio por municipio."
       }
     },
-    "title": "Lo mejor del Cibao empieza cerca.",
-    "discoverLabel": "Para tu próxima salida",
-    "landscapeAlt": "Ilustración del paisaje de la presa de Monción",
-    "illustration": "Imagen ilustrativa",
-    "landscapeEyebrow": "SANTIAGO RODRÍGUEZ",
-    "landscapeTitle": "Un poquito más allá.",
-    "landscapeBody": "Ríos, montañas y lugares con historia. Encuentra tu próxima parada.",
-    "communityLabel": "Hecho por su gente",
-    "communityTitle": "Ese lugar que tú conoces merece estar aquí.",
-    "communityBody": "Añádelo al mapa. El equipo de tu municipio revisa cada lugar antes de publicarlo.",
-    "communityAction": "Añadir un lugar",
-    "noAccount": "Sin registro",
-    "findTitle": "¿Qué necesitas hoy?",
-    "findBody": "Busca por nombre, categoría o municipio. Todo en un mismo lugar.",
-    "search": "Buscar",
-    "searchPlaceholder": "Prueba con «parque»",
-    "trustTitle": "Información que cuidamos.",
-    "trustBody": "Los aportes pasan por moderación. Si algo cambió, puedes avisarnos desde el lugar.",
-    "trustFootnote": "Revisado con la comunidad",
-    "installTitle": "Llévalo contigo.",
-    "installBody": "Añade Ruta Cibao a tu pantalla de inicio. Un toque y estás aquí.",
-    "installAction": "Cómo instalar la app",
-    "featuredEyebrow": "EN EL MAPA",
-    "featuredTitle": "Un buen punto de partida.",
-    "seeAll": "Ver todos",
-    "howEyebrow": "ASÍ DE SENCILLO",
-    "howTitle": "Un mapa que hacemos juntos.",
-    "howBody": "Empieza por explorar. Cuando conozcas un lugar que falta o veas algo que cambió, compártelo con tu comunidad.",
-    "howLink": "Cómo funciona",
-    "howNote": "Explora sin crear una cuenta. Entra cuando quieras aportar.",
-    "stepActions": {
-      "find": "Explorar lugares",
-      "add": "Añadir un lugar",
-      "verify": "Ver el mapa"
+    "places": {
+      "title": "Para visitar",
+      "seeAll": "Ver todo",
+      "previous": "Lugares anteriores",
+      "next": "Más lugares",
+      "imageAlt": "Foto de {name}",
+      "empty": "Todavía no hay lugares publicados."
     }
   },
   "onboarding": {
@@ -1144,21 +1153,15 @@
   },
   "footer": {
     "label": "Enlaces del pie de página",
-    "blurb": "Los lugares, caminos e historias de Santiago Rodríguez. Un mapa abierto, hecho por su gente.",
-    "region": "Desde Santiago Rodríguez, para todos.",
-    "openMap": "Abrir el mapa",
-    "sections": {
-      "explore": "Explorar",
-      "contribute": "Aportar",
-      "build": "Proyecto"
-    },
-    "addPlace": "Añadir un lugar",
-    "verify": "Verificar mi cédula",
-    "spec": "Especificación OpenAPI",
-    "credits": "{app} · Datos de calles © colaboradores de OpenStreetMap (ODbL). Límites municipales © geoBoundaries (CC-BY 4.0).",
+    "online": "En línea · datos al día",
+    "offline": "Sin conexión — viendo datos guardados",
+    "reports": "Informes",
+    "contest": "Hecho para TechEmprende SR Conecta 2026 (FUNDESER)",
+    "region": "Santiago Rodríguez, República Dominicana",
+    "dataCredits": "Datos de calles © colaboradores de OpenStreetMap (ODbL). Límites municipales © geoBoundaries (CC BY 4.0).",
     "osm": "OpenStreetMap",
-    "source": "Código fuente",
-    "boundaries": "geoBoundaries"
+    "boundaries": "geoBoundaries",
+    "spec": "Especificación OpenAPI"
   },
   "identity": {
     "title": "Verifica tu identidad y residencia",
