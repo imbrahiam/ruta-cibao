@@ -98,23 +98,26 @@
 }
 
 :root {
-  --background: oklch(0.989 0.002 100);
-  --foreground: oklch(0.24 0.012 160);
+  /* Warm greys from land-book (#f7f6f5 page, #f0efed tiles, #e6e6e3 rules,
+   * #1d1c1c ink) — see docs/DESIGN-LANGUAGE.md. Muted text is darker than
+   * land-book's #868584, which is 3.4:1; this one clears 5:1 for AA. */
+  --background: oklch(0.974 0.0017 67.8);
+  --foreground: oklch(0.228 0.0015 17.3);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.012 160);
+  --card-foreground: oklch(0.228 0.0015 17.3);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.012 160);
+  --popover-foreground: oklch(0.228 0.0015 17.3);
   --primary: oklch(0.36 0.055 164);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.965 0.004 160);
-  --secondary-foreground: oklch(0.24 0.012 160);
-  --muted: oklch(0.965 0.004 160);
-  --muted-foreground: oklch(0.49 0.008 160);
+  --secondary: oklch(0.952 0.0029 84.6);
+  --secondary-foreground: oklch(0.228 0.0015 17.3);
+  --muted: oklch(0.952 0.0029 84.6);
+  --muted-foreground: oklch(0.524 0.0048 91.5);
   --accent: oklch(0.955 0.012 160);
   --accent-foreground: oklch(0.3 0.04 164);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.915 0.006 160);
-  --input: oklch(0.89 0.008 160);
+  --border: oklch(0.924 0.004 106.5);
+  --input: oklch(0.891 0.0042 91.5);
   /*
    * The focus ring, in the brand's green and dark enough to read.
    *
