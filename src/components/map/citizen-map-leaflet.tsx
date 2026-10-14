@@ -3,6 +3,7 @@
 import type * as LeafletTypes from "leaflet";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { useBoundaries } from "@/hooks/use-boundaries";
 import { publicEnv } from "@/lib/env.public";
 import { RASTER_BASEMAP } from "@/lib/map/basemap";
 import {
@@ -14,7 +15,11 @@ import {
 } from "@/lib/map/config";
 import { labelInk, markerPin, markerSize } from "@/lib/map/marker-pin";
 import { mapPalette } from "@/lib/map/palette";
-import { mapOverlays } from "./overlay-features";
+import {
+  mapOverlays,
+  OVERLAY_COMPACT_CLASS,
+  overlayChip,
+} from "./overlay-features";
 import type { CitizenMapProps } from "./types";
 
 /** The properties every feature from `/api/places/geojson` carries. */
@@ -82,6 +87,7 @@ export function CitizenMap({
 
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
+  const { data: boundaries } = useBoundaries();
   const pointRef = useRef(onMapPoint);
   pointRef.current = onMapPoint;
 
@@ -162,12 +168,9 @@ export function CitizenMap({
       // on every pinch, and rebuilding fifty of them each time is work the
       // stylesheet does for free.
       const showLabels = () => {
-        instance
-          .getContainer()
-          .classList.toggle(
-            "map-labels-hidden",
-            instance.getZoom() < PLACE_LABEL_ZOOM,
-          );
+        const far = instance.getZoom() < PLACE_LABEL_ZOOM;
+        instance.getContainer().classList.toggle("map-labels-hidden", far);
+        instance.getContainer().classList.toggle(OVERLAY_COMPACT_CLASS, far);
       };
       showLabels();
       instance.on("zoomend", showLabels);
@@ -328,6 +331,69 @@ export function CitizenMap({
     });
   }, [categoryIds, ready]);
 
+  /**
+   * The province, as the MapLibre renderer draws it: the rest of the country
+   * dimmed, the municipalities dashed inside a solid outline, and their names
+   * until street level. Paths go in the overlay pane, beneath every marker.
+   */
+  useEffect(() => {
+    const L = leaflet.current;
+    const instance = map.current;
+    if (!ready || !L || !instance || !boundaries?.features.length) return;
+    const group = L.layerGroup().addTo(instance);
+    const line = { color: mapPalette.province, interactive: false };
+    if (boundaries.outside) {
+      L.geoJSON(boundaries.outside, {
+        style: {
+          ...line,
+          weight: 2,
+          opacity: 0.75,
+          fillColor: mapPalette.outside,
+          fillOpacity: 0.32,
+        },
+        interactive: false,
+      }).addTo(group);
+    }
+    for (const feature of boundaries.features) {
+      L.geoJSON(feature.geometry, {
+        style: {
+          ...line,
+          weight: 1,
+          opacity: 0.45,
+          dashArray: "6 4",
+          fill: false,
+        },
+        interactive: false,
+      }).addTo(group);
+      const at = feature.properties.label;
+      if (at) {
+        L.tooltip({
+          permanent: true,
+          direction: "center",
+          className: "map-province-tooltip",
+          interactive: false,
+        })
+          .setLatLng([at[1], at[0]])
+          .setContent(feature.properties.name)
+          .addTo(group);
+      }
+    }
+    const fade = () => {
+      instance
+        .getContainer()
+        .classList.toggle(
+          "map-province-labels-hidden",
+          instance.getZoom() >= 12,
+        );
+    };
+    fade();
+    instance.on("zoomend", fade);
+    return () => {
+      instance.off("zoomend", fade);
+      group.remove();
+    };
+  }, [boundaries, ready]);
+
   useEffect(() => {
     if (!flyTo || !ready) return;
     // `setView`, not `flyTo`: the zoom-out-and-back arc is disorienting on a
@@ -381,14 +447,13 @@ export function CitizenMap({
           .addTo(group);
       }
       if (overlay.point && overlay.label) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = overlay.label;
-        button.className =
-          "max-w-44 truncate rounded-full border-2 bg-background px-3 py-2 text-xs font-semibold shadow-sm";
-        button.style.borderColor = overlay.color;
+        const button = overlayChip(overlay);
         L.marker([overlay.point.lat, overlay.point.lng], {
-          icon: L.divIcon({ html: button, className: "", iconSize: [150, 40] }),
+          icon: L.divIcon({
+            html: button,
+            className: "map-overlay-icon",
+            iconSize: [150, 40],
+          }),
           title: overlay.label,
         })
           .on("click", (event) => {

@@ -10,6 +10,7 @@
  *   bunx playwright install chromium        # once
  *   bun run screenshots                     # against http://localhost:3000
  *   SCREENSHOT_BASE_URL=https://staging.example.do bun run screenshots
+ *   SCREENSHOT_CHANNEL=chrome bun run screenshots   # the vector map, via GPU
  *
  * Writes `public/screenshots/*.png`. `src/app/manifest.ts` lists whichever of
  * them exist at build time, so the next build carries them.
@@ -32,7 +33,12 @@ const SHOTS = [
 
 mkdirSync(OUT, { recursive: true });
 
-const browser = await chromium.launch();
+// Playwright's bundled headless shell renders WebGL in software, which the app
+// answers by falling back to the raster map — not the map an installed phone
+// shows. `SCREENSHOT_CHANNEL=chrome` drives the installed Chrome, with its GPU.
+const browser = await chromium.launch({
+  channel: process.env.SCREENSHOT_CHANNEL,
+});
 const context = await browser.newContext({
   viewport: VIEWPORT,
   deviceScaleFactor: SCALE,

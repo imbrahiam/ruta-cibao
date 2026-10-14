@@ -20,6 +20,20 @@ The working tree includes substantial earlier work: preserve it.
 | 4 | Installation and the tourist passport are directly accessible from the map's overflow menu. Android native installation and home-screen launch without browser chrome were verified. | `map-actions.tsx`, existing install provider and standalone manifest |
 | 4 | Tourist passport: one private stamp per published place, available to tourists and residents; page at `/pasaporte`, entry from account and place sheet. | `src/modules/passport/`, `src/components/passport/`, `src/orpc/routers/passport.ts` |
 
+## Map polish — 2026-10-14
+
+| Outcome | Implementation |
+| --- | --- |
+| The province is outlined, municipalities dashed and named, the rest of the country dimmed until street level — on MapLibre and the Leaflet fallback. | `provinceLayers()` in `src/lib/map/layers.ts`; boundaries route sends label points and the outside mask |
+| A cluster cell holding one place is drawn as that place's pin and opens on the first tap. | `src/lib/tiles.ts`, `CLUSTERS_SINGLE_LAYER_ID` |
+| Traffic chips are dots below street zoom, so they stop covering pins; Leaflet chips are centred on their point (they were offset left). | `overlayChip()` in `overlay-features.ts`, `globals.css` |
+| MapLibre no longer drops overlays, selection highlight or category filters that arrive while tiles load (`isStyleLoaded()` is false whenever any source is loading). | `citizen-map-maplibre.tsx` |
+| Basemap POIs hidden; overflow "+" is primary-filled and clears the desktop zoom buttons. | `style.ts`, `map-actions.tsx` |
+| Seeded places and municipality centres are OSM positions (Nominatim, 2026-10-14). | `scripts/seed.ts`, `scripts/seed-demo.ts` |
+
+Run `bun run db:boundaries` on any database that has no municipal polygons;
+without them the outline and names do not draw.
+
 ## Passport rules and privacy
 
 The user confirmed a tourist passport with stamps for visiting places.
@@ -79,7 +93,7 @@ Priority is engineering impact: 5 blocks release, 1 is optional polish.
 | 4 | Mobile performance measurement | Compare cold/warm production loads on a mid-range physical Android over Slow 4G; record bytes, time until map usable and gesture responsiveness. Emulator SwiftShader results do not establish physical-device FPS. |
 | 4 | Catalogue and passport field QA | Try denied/coarse GPS on physical phones, long place names, account switch, no signal and subsequent recovery. Passport stamps require a live server; there is no offline stamp queue. |
 | 3 | Ecotourism route content | Await the routes the user will provide. Existing submission/moderation/directory support is present; do not fabricate official routes or distances. Validate the supplied paths and municipality ownership before publishing. |
-| 2 | Rich PWA install screenshots | Capture staging `/mapa`, `/explorar`, `/consultas`, then rebuild so the manifest includes them. Use anonymous public content. |
+| 2 | Recapture PWA screenshots on staging | Local captures are committed (`SCREENSHOT_CHANNEL=chrome bun run screenshots` against a production build). Recapture against staging once it carries real content, then rebuild. |
 | 1 | Optional passport expansion | Municipality milestones, share cards or prize programmes require separately agreed requirements and review of visit verification. Current stamps stay private. |
 
 ## SMS and iOS

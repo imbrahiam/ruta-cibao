@@ -56,3 +56,26 @@ export function mapOverlays(
     });
   return overlays;
 }
+
+/**
+ * The chip a labelled overlay is drawn as, shared by the DOM-marker renderers.
+ *
+ * Full width only at street zoom. Further out a container class
+ * (`map-overlays-compact`, see `globals.css`) shrinks it to a dot in the
+ * report's colour: three "Hoyo en la vía" pills across the province covered
+ * the pins and the town names they were meant to sit beside. The label stays
+ * as the accessible name, and the dot keeps a thumb-sized tap area.
+ */
+export function overlayChip(overlay: MapOverlay): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.textContent = overlay.label ?? "";
+  button.setAttribute("aria-label", overlay.label ?? "");
+  button.className =
+    "map-overlay-chip max-w-44 truncate rounded-full border-2 bg-background px-3 py-2 text-xs font-semibold shadow-sm";
+  button.style.setProperty("--chip-color", overlay.color);
+  return button;
+}
+
+/** Below this zoom, overlay chips are drawn as dots. */
+export const OVERLAY_COMPACT_CLASS = "map-overlays-compact";

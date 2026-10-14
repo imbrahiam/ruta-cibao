@@ -20,6 +20,7 @@ import {
   COUNTRY_BOUNDS,
   MAX_ZOOM,
   MIN_ZOOM,
+  PLACE_LABEL_ZOOM,
   PLACES_SOURCE_ID,
   PLACES_TILE_URL,
   PROVINCE_BOUNDS,
@@ -39,7 +40,11 @@ import {
 import { markerPin, markerSize } from "@/lib/map/marker-pin";
 import { buildMapStyle } from "@/lib/map/style";
 import { installPinResolver } from "./maplibre-pins";
-import { mapOverlays } from "./overlay-features";
+import {
+  mapOverlays,
+  OVERLAY_COMPACT_CLASS,
+  overlayChip,
+} from "./overlay-features";
 import type { CitizenMapProps } from "./types";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -232,6 +237,18 @@ export function CitizenMap({
       );
     });
 
+    // Traffic chips shrink to dots until street level — see `overlayChip`.
+    const compactOverlays = () => {
+      instance
+        .getContainer()
+        .classList.toggle(
+          OVERLAY_COMPACT_CLASS,
+          instance.getZoom() < PLACE_LABEL_ZOOM,
+        );
+    };
+    compactOverlays();
+    instance.on("zoomend", compactOverlays);
+
     instance.on("movestart", () => onMovingChangeRef.current?.(true));
     instance.on("moveend", () => {
       const center = instance.getCenter();
@@ -284,7 +301,7 @@ export function CitizenMap({
   // map: only the selection-dependent properties change.
   useEffect(() => {
     const instance = map.current;
-    if (!ready || !instance?.isStyleLoaded()) return;
+    if (!ready || !instance) return;
 
     for (const layer of placesLayers(selectedId)) {
       if (!instance.getLayer(layer.id)) continue;
@@ -334,7 +351,7 @@ export function CitizenMap({
 
   useEffect(() => {
     const instance = map.current;
-    if (!ready || !instance?.isStyleLoaded()) return;
+    if (!ready || !instance) return;
 
     for (const layer of clusterLayers(categoryIds)) {
       if (!instance.getLayer(layer.id)) continue;
@@ -386,7 +403,7 @@ export function CitizenMap({
 
   useEffect(() => {
     const instance = map.current;
-    if (!ready || !instance?.isStyleLoaded()) return;
+    if (!ready || !instance) return;
     const overlays = mapOverlays({
       communityFeatures,
       onSelectCommunity,
@@ -432,12 +449,7 @@ export function CitizenMap({
     const markers: MapLibreMarker[] = [];
     for (const overlay of overlays) {
       if (!overlay.point || !overlay.label) continue;
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = overlay.label;
-      button.className =
-        "max-w-44 truncate rounded-full border-2 bg-background px-3 py-2 text-xs font-semibold shadow-sm";
-      button.style.borderColor = overlay.color;
+      const button = overlayChip(overlay);
       button.addEventListener("click", (event) => {
         event.stopPropagation();
         if (!pickingLocation) overlay.select?.();
