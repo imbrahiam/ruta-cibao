@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Footprints, MessagesSquare } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { parseAsBoolean, parseAsString, useQueryState } from "nuqs";
 import { useEffect } from "react";
@@ -12,11 +13,11 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { Toggle } from "@/components/ui/toggle";
 import { useRealtime } from "@/hooks/use-realtime";
 import { Link } from "@/i18n/navigation";
 import { orpc } from "@/lib/orpc";
 import type { CommunityFeature } from "@/modules/routes/map-features";
+import { LayerRow } from "./layer-row";
 import type { CitizenMapProps } from "./types";
 
 export function useCommunityMap(
@@ -116,43 +117,45 @@ export function useCommunityMap(
       void setCaseSlug(feature.kind === "consultation" ? feature.id : null);
     },
     controls: (
-      <div className="space-y-2 px-4 py-3">
-        <Toggle
-          className="h-12 w-full justify-start"
-          pressed={routes}
-          onPressedChange={(value) => void setRoutes(value)}
+      <div className="flex flex-col gap-1 px-4">
+        <LayerRow
+          icon={Footprints}
+          title={t("showRoutes")}
+          hint={t("showRoutesHint")}
+          checked={routes}
+          onCheckedChange={(value) => void setRoutes(value)}
         >
-          {t("showRoutes")}
-        </Toggle>
-        <Toggle
-          className="h-12 w-full justify-start"
-          pressed={cases}
-          onPressedChange={(value) => void setCases(value)}
+          <Link
+            href="/rutas"
+            className="text-primary text-sm underline-offset-4 hover:underline"
+          >
+            {t("seeAllRoutes")}
+          </Link>
+        </LayerRow>
+        <LayerRow
+          icon={MessagesSquare}
+          title={t("showCases")}
+          hint={t("showCasesHint")}
+          checked={cases}
+          onCheckedChange={(value) => void setCases(value)}
         >
-          {t("showCases")}
-        </Toggle>
+          <Link
+            href="/consultas"
+            className="text-primary text-sm underline-offset-4 hover:underline"
+          >
+            {t("seeAllCases")}
+          </Link>
+        </LayerRow>
         {query.isError && (
-          <p role="alert" className="text-sm">
+          <p role="alert" className="px-3 text-sm">
             {t("mapError")}
           </p>
         )}
-        {query.data?.truncated && <p className="text-sm">{t("zoomForMore")}</p>}
-        <Button
-          nativeButton={false}
-          render={<Link href="/rutas" />}
-          variant="outline"
-          className="h-11 w-full"
-        >
-          {t("title")}
-        </Button>
-        <Button
-          nativeButton={false}
-          render={<Link href="/consultas" />}
-          variant="outline"
-          className="h-11 w-full"
-        >
-          {t("showCases")}
-        </Button>
+        {query.data?.truncated && (
+          <p className="px-3 text-muted-foreground text-sm">
+            {t("zoomForMore")}
+          </p>
+        )}
       </div>
     ),
     panel: (

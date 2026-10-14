@@ -25,11 +25,11 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Toggle } from "@/components/ui/toggle";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { publicEnv } from "@/lib/env.public";
 import { TRAFFIC_COLORS, type TrafficTone } from "@/lib/map/traffic-colors";
 import { VIEW_MODES, type ViewMode } from "@/lib/map/view-mode";
+import { LayerRow } from "./layer-row";
 
 /**
  * What the colours on a reported road mean, in words.
@@ -199,25 +199,14 @@ export function MapLayers({
               {/* First in the list, because it is the layer this map is for. The
               one below it is Google's, and the two answer different halves of
               the same question. */}
-              <Toggle
-                pressed={alerts}
-                onPressedChange={onAlertsChange}
-                className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-2 text-left whitespace-normal"
+              <LayerRow
+                icon={TriangleAlert}
+                title={alertsCopy("label")}
+                hint={alertsCopy("hint")}
+                checked={alerts}
+                onCheckedChange={onAlertsChange}
               >
-                <TriangleAlert
-                  className="size-5 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-base">{alertsCopy("label")}</span>
-                  <span className="block text-muted-foreground text-xs leading-snug">
-                    {alertsCopy("hint")}
-                  </span>
-                </span>
-              </Toggle>
-
-              {alerts && (
-                <ul className="flex flex-col gap-1.5 px-3 pt-1 pb-2">
+                <ul className="flex flex-col gap-1.5">
                   {LEGEND.map((tone) => (
                     <li
                       key={tone}
@@ -232,47 +221,24 @@ export function MapLayers({
                     </li>
                   ))}
                 </ul>
-              )}
+              </LayerRow>
 
               {googleRenderer && (
                 <>
-                  <Toggle
-                    pressed={traffic}
-                    onPressedChange={onTrafficChange}
-                    className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-2 text-left whitespace-normal"
-                  >
-                    <TrafficCone
-                      className="size-5 shrink-0 text-muted-foreground"
-                      aria-hidden
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-base">
-                        {trafficCopy("label")}
-                      </span>
-                      <span className="block text-muted-foreground text-xs leading-snug">
-                        {trafficCopy("hint")}
-                      </span>
-                    </span>
-                  </Toggle>
-
-                  <Toggle
-                    pressed={googlePlaces}
-                    onPressedChange={onGooglePlacesChange}
-                    className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-2 text-left whitespace-normal"
-                  >
-                    <Store
-                      className="size-5 shrink-0 text-muted-foreground"
-                      aria-hidden
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-base">
-                        {placesCopy("label")}
-                      </span>
-                      <span className="block text-muted-foreground text-xs leading-snug">
-                        {placesCopy("hint")}
-                      </span>
-                    </span>
-                  </Toggle>
+                  <LayerRow
+                    icon={TrafficCone}
+                    title={trafficCopy("label")}
+                    hint={trafficCopy("hint")}
+                    checked={traffic}
+                    onCheckedChange={onTrafficChange}
+                  />
+                  <LayerRow
+                    icon={Store}
+                    title={placesCopy("label")}
+                    hint={placesCopy("hint")}
+                    checked={googlePlaces}
+                    onCheckedChange={onGooglePlacesChange}
+                  />
                 </>
               )}
               <OfflineBasemap />
