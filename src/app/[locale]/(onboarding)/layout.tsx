@@ -11,7 +11,7 @@ export default async function OnboardingLayout({
   const t = await getTranslations("onboarding");
   return (
     <div className="flex min-h-dvh flex-col bg-background">
-      <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-5 md:h-20">
+      <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-6 md:h-20">
         <Brand />
         <Link
           href="/mapa"
@@ -23,7 +23,7 @@ export default async function OnboardingLayout({
       </header>
       <main
         id="contenido"
-        className="mx-auto grid w-full max-w-6xl flex-1 items-start gap-14 px-5 pt-6 pb-10 lg:items-center sm:py-8 lg:grid-cols-2 lg:py-14"
+        className="mx-auto grid w-full max-w-6xl flex-1 items-start gap-14 px-6 pt-6 pb-10 lg:items-center sm:py-8 lg:grid-cols-2 lg:py-14"
       >
         <PhotoPanel
           title={t("shellTitle")}

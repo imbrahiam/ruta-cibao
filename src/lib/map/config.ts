@@ -46,7 +46,8 @@ export const CIBAO_BOUNDS: Bounds = [-71.9, 18.95, -69.85, 19.95];
 /**
  * The province, as a box drawn around its real polygons.
  *
- * Measured from the geoBoundaries import rather than estimated — the estimate
+ * Measured from the boundary import (ONE via OCHA COD-AB) rather than
+ * estimated — the estimate
  * that stood here reached 25 km into Valverde on the east and cut the western
  * edge of Sabaneta off on the west, which is how a citizen standing on
  * Dominican ground near the border was told they were outside the province.
@@ -55,7 +56,7 @@ export const CIBAO_BOUNDS: Bounds = [-71.9, 18.95, -69.85, 19.95];
  * authority is `ST_Contains` against the polygons themselves; a box cannot
  * describe a border that follows a river.
  */
-export const PROVINCE_BOUNDS: Bounds = [-71.5075, 19.162, -71.0631, 19.5624];
+export const PROVINCE_BOUNDS: Bounds = [-71.5197, 19.1684, -71.072, 19.5699];
 
 /**
  * Close enough to tell one street from the next.

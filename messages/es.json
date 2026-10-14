@@ -148,9 +148,8 @@
   },
   "landing": {
     "region": "Santiago Rodríguez",
-    "question": "¿Qué necesitas hoy?",
+    "question": "¿Qué buscas hoy?",
     "photoAlt": "La presa de Monción entre montañas verdes",
-    "photoCaption": "Presa de Monción",
     "illustration": "Imagen ilustrativa",
     "search": "Buscar un lugar",
     "searchPlaceholder": "Un río, un colmado…",
@@ -640,6 +639,13 @@
     "actions": {
       "locate": "Centrar en mi ubicación",
       "contribute": "Aportar",
+      "sheetTitle": "¿Qué quieres hacer?",
+      "close": "Cerrar",
+      "addPlaceHint": "Algo que todavía no está en el mapa.",
+      "reportTrafficHint": "Un hoyo, una vía cerrada o una inundación.",
+      "shareHint": "Envía lo que estás viendo.",
+      "passportHint": "Tus sellos de los lugares que visitaste.",
+      "installHint": "Tenla en tu pantalla de inicio.",
       "share": "Compartir esta vista",
       "addPlace": "Añadir un lugar",
       "here": "Estás aquí",
@@ -1179,9 +1185,9 @@
     "reports": "Informes",
     "contest": "Hecho para TechEmprende SR Conecta 2026 (FUNDESER)",
     "region": "Santiago Rodríguez, República Dominicana",
-    "dataCredits": "Datos de calles © colaboradores de OpenStreetMap (ODbL). Límites municipales © geoBoundaries (CC BY 4.0).",
+    "dataCredits": "Datos de calles © colaboradores de OpenStreetMap (ODbL). Límites municipales: Oficina Nacional de Estadística (ONE), vía OCHA (CC BY-IGO).",
     "osm": "OpenStreetMap",
-    "boundaries": "geoBoundaries",
+    "boundaries": "ONE · OCHA",
     "spec": "Especificación OpenAPI"
   },
   "identity": {

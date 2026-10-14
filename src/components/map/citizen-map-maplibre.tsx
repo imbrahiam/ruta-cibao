@@ -2,6 +2,7 @@
 
 import type { Feature, LineString } from "geojson";
 import {
+  AttributionControl,
   addProtocol,
   type ExpressionSpecification,
   getVersion,
@@ -164,7 +165,9 @@ export function CitizenMap({
       // MapLibre's own behaviour — or after five seconds, below. Both are the
       // collapse triggers the OSMF attribution guideline (2021) lists; the
       // licence stays one tap away, which is what ODbL requires of us.
-      attributionControl: { compact: true },
+      // Added below in the bottom-left corner, under "Capas" — where Google
+      // keeps its own mark — so it never sits beside "Aportar".
+      attributionControl: false,
       // Labels settle in half the stock 300 ms, so a pinch does not leave
       // names swimming in and out behind the thumb.
       fadeDuration: 150,
@@ -175,6 +178,11 @@ export function CitizenMap({
     });
 
     installPinResolver(instance);
+
+    instance.addControl(
+      new AttributionControl({ compact: true }),
+      "bottom-left",
+    );
 
     const foldCredit = window.setTimeout(() => {
       container.current

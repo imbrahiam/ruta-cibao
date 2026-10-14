@@ -52,7 +52,7 @@ export function NoticeBar({
   };
 
   return (
-    <aside aria-label={t("label")} className="px-4 pt-2 sm:px-5 md:pt-3">
+    <aside aria-label={t("label")} className="px-6 pt-2 md:pt-3">
       <div className="mx-auto flex max-w-7xl items-stretch gap-1 rounded-2xl bg-[#fde9d2] text-[#5a2a06]">
         <Link
           href={`/mapa?reporte=${encodeURIComponent(reportIds[0] ?? "")}`}

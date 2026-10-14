@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ChevronRight,
   Download,
   LocateFixed,
   MapPinPlus,
@@ -9,17 +10,21 @@ import {
   Share2,
   Stamp,
   TrafficCone,
+  X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useInstall } from "@/components/offline/install-provider";
+import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Spinner } from "@/components/ui/spinner";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link } from "@/i18n/navigation";
@@ -57,14 +62,14 @@ const SURFACE =
   "border border-black/[0.07] bg-card shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)]";
 
 const CELL =
-  "flex size-12 items-center justify-center text-foreground transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset active:bg-secondary";
+  "flex size-11 items-center justify-center text-foreground transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset active:bg-secondary";
 
 /**
  * The way in to contributing: a labelled green button, not a bare "+". A "+"
  * alone asks the reader to guess between zoom, add and more; the word answers.
  */
 const PRIMARY =
-  "flex h-12 items-center gap-2 rounded-[16px] border border-transparent bg-primary pr-4 pl-3.5 font-semibold text-[15px] text-primary-foreground shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)] transition-[background-color,transform] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98] data-popup-open:bg-foreground";
+  "flex h-11 items-center gap-1.5 rounded-[14px] border border-transparent bg-primary pr-3.5 pl-3 font-semibold text-sm text-primary-foreground shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)] transition-[background-color,transform] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98] data-popup-open:bg-foreground";
 
 export function MapActions({
   onLocate,
@@ -97,6 +102,7 @@ export function MapActions({
   const locationCopy = useTranslations("location");
   const moreT = useTranslations("map.place");
   const [locating, setLocating] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   function locate() {
@@ -131,11 +137,12 @@ export function MapActions({
   }
 
   return (
-    // `right` respects the swipe-bar edge on notched phones; `bottom-14`
-    // clears the attribution (i) below the stack.
+    // `right` respects the swipe-bar edge on notched phones. Reversed, so
+    // "Aportar" — first in reading order — sits at the bottom, on the same
+    // baseline as "Capas" opposite it, with "where am I" and zoom above.
     <div
       className={cn(
-        "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-14 z-20 flex flex-col items-end gap-2.5 transition-opacity duration-200",
+        "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-10 z-20 flex flex-col-reverse items-end gap-2.5 transition-opacity duration-200",
         // On a phone the sheet covers the corner, so the column steps out;
         // on a desktop it steps left of the 26rem panel and stays usable.
         concealed &&
@@ -143,78 +150,91 @@ export function MapActions({
       )}
       inert={concealed && !isDesktop}
     >
-      {/* The shared menu component rather than a hand-built one: focus moves
-          in on open, arrow keys and typeahead walk it, Escape and an outside
-          tap close it and hand focus back — the same behaviour as the place
-          sheet's "…" menu, and one menu style across the app. */}
-      <DropdownMenu>
-        <DropdownMenuTrigger
-          render={<button type="button" className={PRIMARY} />}
-        >
-          <Plus className="size-5" strokeWidth={2.5} aria-hidden />
+      {/* A sheet, not a menu sprung from the button: the actions are rows a
+          thumb can hit, each with a line saying what it does, in the same
+          drawer the Capas sheet uses — one way of opening things on the map. */}
+      <Drawer
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        showSwipeHandle={!isDesktop}
+        swipeDirection={isDesktop ? "right" : "down"}
+      >
+        <DrawerTrigger render={<button type="button" className={PRIMARY} />}>
+          <Plus className="size-4" strokeWidth={2.5} aria-hidden />
           {t("contribute")}
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          side="left"
-          align="end"
-          sideOffset={10}
-          className="w-60 rounded-2xl p-1.5 shadow-xl"
-        >
-          <DropdownMenuItem
-            onClick={onAddPlace}
-            className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
-          >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
-              <MapPinPlus className="size-4" aria-hidden />
-            </span>
-            {t("addPlace")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={onReportTraffic}
-            className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
-          >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
-              <TrafficCone className="size-4" aria-hidden />
-            </span>
-            {t("reportTraffic")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => void share()}
-            className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
-          >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
-              <Share2 className="size-4" aria-hidden />
-            </span>
-            {t("share")}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            nativeButton={false}
-            render={<Link href="/pasaporte" />}
-            className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
-          >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
-              <Stamp className="size-4" aria-hidden />
-            </span>
-            {passportT("open")}
-          </DropdownMenuItem>
-          {!installed && (
-            <DropdownMenuItem
-              nativeButton={false}
-              render={<Link href="/instalar" />}
-              className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader className="flex-row items-center justify-between gap-4 text-left">
+            <DrawerTitle className="font-display font-medium text-2xl">
+              {t("sheetTitle")}
+            </DrawerTitle>
+            <DrawerClose
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-11 shrink-0 rounded-full"
+                  aria-label={t("close")}
+                />
+              }
             >
-              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
-                <Download className="size-4" aria-hidden />
-              </span>
-              {installT("action")}
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+              <X className="size-5" aria-hidden />
+            </DrawerClose>
+          </DrawerHeader>
+          <ul className="ruled px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <ActionRow
+              icon={MapPinPlus}
+              tone="bg-accent text-primary"
+              title={t("addPlace")}
+              hint={t("addPlaceHint")}
+              onClick={() => {
+                setSheetOpen(false);
+                onAddPlace();
+              }}
+            />
+            <ActionRow
+              icon={TrafficCone}
+              tone="bg-amber-100 text-amber-800"
+              title={t("reportTraffic")}
+              hint={t("reportTrafficHint")}
+              onClick={() => {
+                setSheetOpen(false);
+                onReportTraffic();
+              }}
+            />
+            <ActionRow
+              icon={Share2}
+              tone="bg-muted text-foreground"
+              title={t("share")}
+              hint={t("shareHint")}
+              onClick={() => {
+                setSheetOpen(false);
+                void share();
+              }}
+            />
+            <ActionRow
+              icon={Stamp}
+              tone="bg-accent text-primary"
+              title={passportT("open")}
+              hint={t("passportHint")}
+              href="/pasaporte"
+            />
+            {!installed && (
+              <ActionRow
+                icon={Download}
+                tone="bg-accent text-primary"
+                title={installT("action")}
+                hint={t("installHint")}
+                href="/instalar"
+              />
+            )}
+          </ul>
+        </DrawerContent>
+      </Drawer>
 
       <div
         className={cn(
-          "flex flex-col divide-y divide-black/[0.07] overflow-hidden rounded-[16px]",
+          "flex flex-col divide-y divide-black/[0.07] overflow-hidden rounded-[14px]",
           SURFACE,
         )}
       >
@@ -258,5 +278,62 @@ export function MapActions({
         )}
       </div>
     </div>
+  );
+}
+
+/** One action in the sheet: a tinted icon, what it is, and one line of what it does. */
+function ActionRow({
+  icon: Icon,
+  tone,
+  title,
+  hint,
+  onClick,
+  href,
+}: {
+  icon: typeof Plus;
+  tone: string;
+  title: string;
+  hint: string;
+  onClick?: () => void;
+  href?: string;
+}) {
+  const body = (
+    <>
+      <span
+        className={cn(
+          "flex size-11 shrink-0 items-center justify-center rounded-[12px]",
+          tone,
+        )}
+      >
+        <Icon className="size-5" aria-hidden />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold text-[17px] leading-snug">
+          {title}
+        </span>
+        <span className="block text-muted-foreground text-sm leading-snug">
+          {hint}
+        </span>
+      </span>
+      <ChevronRight
+        className="size-5 shrink-0 text-muted-foreground"
+        aria-hidden
+      />
+    </>
+  );
+  const row =
+    "flex min-h-[4.5rem] w-full items-center gap-3.5 py-3 text-left transition-colors hover:bg-secondary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset active:bg-secondary";
+  return (
+    <li>
+      {href ? (
+        <Link href={href} className={row}>
+          {body}
+        </Link>
+      ) : (
+        <button type="button" onClick={onClick} className={row}>
+          {body}
+        </button>
+      )}
+    </li>
   );
 }

@@ -201,7 +201,9 @@ const PLACES = [
     imageUrl: "/places/presa-moncion.webp",
     categoryId: "parque",
     municipalityId: "moncion",
-    location: { x: -71.119, y: 19.4057 },
+    // 100 m inside Monción: the official boundary runs along the river
+    // through the dam wall, and the wall itself sits 2 m outside it.
+    location: { x: -71.1197, y: 19.4063 },
   },
   {
     slug: "parque-central-sabaneta",

@@ -24,7 +24,7 @@ export async function FeatureRows() {
   return (
     <section
       aria-labelledby="features-title"
-      className="mx-auto mt-12 max-w-6xl px-4 sm:px-5 md:mt-24"
+      className="mx-auto mt-12 max-w-6xl px-6 md:mt-24"
     >
       <h2 id="features-title" className="section-title mb-4 md:mb-8">
         {t("title")}

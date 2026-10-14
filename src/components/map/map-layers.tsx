@@ -110,9 +110,9 @@ export function MapLayers({
             // The same soft square as the controls on the right, with its
             // word: "Capas" is short enough to keep on a phone too, and an
             // unlabelled map icon read as "open the map" to first-time users.
-            className="absolute bottom-6 left-[max(0.75rem,env(safe-area-inset-left))] z-20 flex h-12 items-center gap-2 rounded-[16px] border border-black/[0.07] bg-card pr-4 pl-3.5 font-medium text-[15px] shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)] transition-[background-color,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] md:left-4"
+            className="absolute bottom-10 left-[max(0.75rem,env(safe-area-inset-left))] z-20 flex h-11 items-center gap-1.5 rounded-[14px] border border-black/[0.07] bg-card pr-3.5 pl-3 font-semibold text-sm shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)] transition-[background-color,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] md:left-4"
           >
-            <ActiveIcon className="size-5" aria-hidden />
+            <ActiveIcon className="size-4" aria-hidden />
             {t("short")}
           </button>
         }

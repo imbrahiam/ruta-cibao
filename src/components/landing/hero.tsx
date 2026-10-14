@@ -19,7 +19,7 @@ export async function Hero() {
   const t = await getTranslations("landing");
 
   return (
-    <section aria-labelledby="hero-title" className="px-4 pt-2 sm:px-5 md:pt-4">
+    <section aria-labelledby="hero-title" className="px-6 pt-2 md:pt-4">
       <div className="mx-auto max-w-7xl">
         <div className="relative isolate flex h-[min(52svh,26rem)] min-h-[20rem] flex-col items-center justify-center overflow-hidden rounded-[1.75rem] bg-[#4f6b5b] px-6 text-center text-white md:h-[34rem] md:rounded-[2rem]">
           <Image
@@ -42,13 +42,10 @@ export async function Hero() {
           </p>
           <h1
             id="hero-title"
-            className="display-title max-w-[12ch] text-white md:max-w-none [text-shadow:0_1px_24px_rgb(0_0_0/.25)]"
+            className="display-title text-white [text-shadow:0_1px_24px_rgb(0_0_0/.25)]"
           >
             {t("question")}
           </h1>
-          <p className="absolute top-4 right-4 rounded-full bg-black/45 px-3 py-1.5 font-medium text-[13px] text-white md:top-5 md:right-5">
-            {t("photoCaption")} · {t("illustration")}
-          </p>
         </div>
 
         <div className="relative z-10 mx-auto -mt-7 max-w-2xl px-3 md:-mt-8">

@@ -75,5 +75,7 @@ MIT — see [LICENSE](LICENSE).
   button, which is what the licence requires.
 - Basemap tiles and style from [Protomaps](https://protomaps.com) (style CC0,
   code BSD-3).
-- Municipal boundaries © [geoBoundaries](https://www.geoboundaries.org)
-  (gbOpen, CC BY 4.0).
+- Municipal boundaries: Oficina Nacional de Estadística, via
+  [OCHA COD-AB](https://data.humdata.org/dataset/cod-ab-dom) (CC BY-IGO).
+  Pinned in `data/boundaries/`; checked against OpenStreetMap and ONE's
+  published areas.
