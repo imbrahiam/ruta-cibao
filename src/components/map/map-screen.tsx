@@ -732,6 +732,9 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
           className={cn(
             "pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] transition-opacity duration-200 md:flex-row md:flex-wrap md:items-center",
             pickingLocation && "pointer-events-none opacity-0",
+            // The desktop sheet is a 26rem panel on the right; the chips stop
+            // short of it instead of running underneath.
+            (slug !== null || selectedTraffic !== null) && "md:pr-[27.5rem]",
           )}
           aria-hidden={pickingLocation}
         >

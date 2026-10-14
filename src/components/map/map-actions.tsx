@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { Link } from "@/i18n/navigation";
 import { type LocationProblem, requestPosition } from "@/lib/geolocation";
 import { shareUrl } from "@/lib/share";
@@ -86,6 +87,7 @@ export function MapActions({
   const locationCopy = useTranslations("location");
   const moreT = useTranslations("map.place");
   const [locating, setLocating] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   function locate() {
     setLocating(true);
@@ -125,9 +127,12 @@ export function MapActions({
     <div
       className={cn(
         "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2.5 transition-opacity duration-200 pointer-fine:bottom-40",
-        concealed && "max-md:pointer-events-none max-md:opacity-0",
+        // On a phone the sheet covers the corner, so the column steps out;
+        // on a desktop it steps left of the 26rem panel and stays usable.
+        concealed &&
+          "max-md:pointer-events-none max-md:opacity-0 md:right-[27.5rem]",
       )}
-      inert={concealed}
+      inert={concealed && !isDesktop}
     >
       {/* The shared menu component rather than a hand-built one: focus moves
           in on open, arrow keys and typeahead walk it, Escape and an outside

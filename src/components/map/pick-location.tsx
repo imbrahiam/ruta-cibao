@@ -460,16 +460,17 @@ export function PickLocation({
                       )}
             </p>
             <p className="mt-0.5 truncate text-muted-foreground text-xs">
-              {markingStreet && street ? (
-                trafficCopy("streetLength", { meters: street.lengthMeters })
-              ) : (
-                <>
-                  {municipality ? `${municipality.name} · ` : ""}
-                  <span className="font-mono">
-                    {aim.lat.toFixed(5)}, {aim.lng.toFixed(5)}
-                  </span>
-                </>
-              )}
+              {markingStreet && street
+                ? trafficCopy("streetLength", { meters: street.lengthMeters })
+                : // The municipality is the answer a resident can check at a
+                  // glance. Five-decimal coordinates are not: they read as noise
+                  // to most people here, and only stand in while the boundaries
+                  // have not loaded.
+                  (municipality?.name ?? (
+                    <span className="font-mono">
+                      {aim.lat.toFixed(5)}, {aim.lng.toFixed(5)}
+                    </span>
+                  ))}
             </p>
           </div>
 
