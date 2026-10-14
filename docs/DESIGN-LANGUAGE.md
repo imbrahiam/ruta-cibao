@@ -12,6 +12,32 @@ parks, maps and mobile app UI, and weighed against who uses this app: rural
 residents and visitors, many older, many on cheap Android phones over slow
 data, reading Spanish with varying confidence.
 
+## The overall reference: land-book
+
+The owner chose land-book.com as the closest model for the whole product: a
+curated directory you browse by category, search and filter — which is what
+Explorar and the map are. What it contributes:
+
+- **Palette.** Warm greys, not white: page `#f7f6f5`, soft tiles `#f0efed`,
+  hairlines `#e6e6e3`, ink `#1d1c1c`, and one muted green accent. (land-book's
+  grey text, `#868584`, is 3.4:1 — ours is darker to pass AA.) The accent stays
+  the brand's forest green `#1f4d3f`; land-book's teal `#017c6e` also passes AA
+  and is a one-token swap if the owner prefers it.
+- **No shadows on the page.** Surfaces separate by tone (`bg-secondary` tiles on
+  the page ground) and hairlines, never by drop shadow. Shadows are only for
+  what floats over the map.
+- **Navigation.** Pill nav; the active item is a soft grey pill with a small
+  dot under it.
+- **Search** as a centred pill, the most prominent control after the title.
+- **Category tiles.** Large soft-grey rounded tiles (16 px radius), a picture
+  inside, the label underneath; the active one gets the same dot.
+- **Filter chips** in soft grey pills, the active one filled with ink.
+- **A photo-card grid** for things you choose by looking (places, routes), with
+  the title under the image rather than over it.
+
+park.photos is a second reference the owner liked: calm, muted, photography
+first, one pill call to action.
+
 ## References that shaped it
 
 | Reference | What we take |
@@ -57,10 +83,11 @@ family keeps one voice and saves a download on slow data.
 | Big number | `.stat-number` | 40 → 56 px, tabular |
 
 **Shape.** Rounded pills for buttons and chips (44 px minimum height, 48 px on
-the landing). Cards only for things you choose between with a photo (a place,
-a route); everything you look something up in is a ruled list. Hairline rules
-(`.ruled > * + *`) instead of boxes. Shadows only on things floating over the
-map.
+the landing). Photo cards in a grid for things you choose by looking (a place,
+a route), title under the image; everything you look something up in (cases,
+reports, settings) is a ruled list. Soft tiles (`bg-secondary`, 16 px radius)
+group things; hairline rules (`.ruled > * + *`) separate rows. No drop shadows
+on the page — only on things floating over the map.
 
 **Status.** Always icon + word + colour, never colour alone:
 Recibido (grey, circle) · En revisión (amber, half circle) · En proceso (blue,
