@@ -8,6 +8,7 @@
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
+  --font-display: var(--font-display);
   --color-highlight: var(--highlight);
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -216,7 +217,7 @@
    * between products.
    */
   .page-title {
-    @apply text-balance font-semibold text-[1.875rem] leading-[1.1] tracking-[-0.03em] sm:text-4xl;
+    @apply text-balance font-display font-medium text-[2rem] leading-[1.08] tracking-[-0.015em] sm:text-4xl;
   }
 
   .page-eyebrow {
@@ -225,11 +226,11 @@
 
   /* The landing hero's headline. See docs/DESIGN-LANGUAGE.md for the scale. */
   .display-title {
-    @apply text-balance font-bold text-[2.5rem] leading-[1.02] tracking-[-0.035em] sm:text-6xl lg:text-7xl;
+    @apply text-balance font-display font-medium text-[2.625rem] leading-[1.02] tracking-[-0.02em] sm:text-6xl lg:text-7xl;
   }
 
   .section-title {
-    @apply text-balance font-semibold text-[1.375rem] leading-tight tracking-[-0.02em] sm:text-[1.75rem];
+    @apply text-balance font-display font-medium text-[1.5rem] leading-tight tracking-[-0.01em] sm:text-[1.75rem];
   }
 
   /* A count that is the point of its block: places, routes, reports. */
@@ -243,6 +244,13 @@
   }
 
   /* A list ruled with hairlines instead of boxed into cards. */
+  /* Fraunces' soft, warm cut for every headline and the wordmark. */
+  .font-display {
+    font-variation-settings:
+      "SOFT" 50,
+      "opsz" 72;
+  }
+
   .ruled > * + * {
     @apply border-border border-t;
   }

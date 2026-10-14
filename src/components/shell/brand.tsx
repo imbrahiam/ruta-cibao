@@ -12,7 +12,9 @@ export function Brand() {
       <span className="flex size-8 items-center justify-center rounded-[10px] bg-primary text-primary-foreground">
         <MapPin className="size-[18px]" aria-hidden />
       </span>
-      <span>{t("name")}</span>
+      <span className="font-display font-medium text-[1.1875rem] tracking-[-0.01em]">
+        {t("name")}
+      </span>
     </Link>
   );
 }

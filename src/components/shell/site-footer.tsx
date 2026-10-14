@@ -1,6 +1,5 @@
 import { ArrowUpRight, MapPin } from "lucide-react";
 import { getTranslations } from "next-intl/server";
-import { ConnectionStatus } from "@/components/landing/connection-status";
 import { Link } from "@/i18n/navigation";
 
 type FooterLink = { label: string; href: string; document?: boolean };
@@ -47,11 +46,10 @@ export async function SiteFooter() {
               <span className="flex size-12 items-center justify-center rounded-2xl bg-white text-[#1a4236] md:size-14">
                 <MapPin className="size-6 md:size-7" aria-hidden />
               </span>
-              <span className="font-bold text-[2.5rem] leading-none tracking-[-0.04em] md:text-6xl">
+              <span className="font-display font-medium text-[2.75rem] leading-none tracking-[-0.02em] md:text-6xl">
                 {app("name")}
               </span>
             </Link>
-            <ConnectionStatus />
           </div>
 
           <nav aria-label={t("label")} className="md:max-w-md">

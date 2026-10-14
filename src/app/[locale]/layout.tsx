@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Fraunces, Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
@@ -24,6 +24,19 @@ const sans = Geist({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
+});
+
+/**
+ * The display face: headlines and the wordmark, nothing you read at length or
+ * tap. A warm serif with optical sizes, after land-book's serif wordmark —
+ * Geist stays the voice of the interface, so legibility for people who read
+ * slowly is untouched.
+ */
+const display = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  axes: ["SOFT", "opsz"],
 });
 
 const mono = Geist_Mono({
@@ -98,7 +111,10 @@ export default async function LocaleLayout({
   const [messages, now] = await Promise.all([loadMessages(locale), shellNow()]);
 
   return (
-    <html lang={locale} className={`${sans.variable} ${mono.variable}`}>
+    <html
+      lang={locale}
+      className={`${sans.variable} ${mono.variable} ${display.variable}`}
+    >
       <body>
         <NextIntlClientProvider
           locale={locale}
