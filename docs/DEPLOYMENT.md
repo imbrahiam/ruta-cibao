@@ -343,7 +343,7 @@ S3_FORCE_PATH_STYLE=0
 
 # --- Map -----------------------------------------------------------------
 NEXT_PUBLIC_MAP_RENDERER=maplibre
-NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/santiago-rodriguez.pmtiles
+NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/republica-dominicana.pmtiles
 
 # --- Address search ------------------------------------------------------
 # "nominatim" uses OpenStreetMap's public geocoder within its usage policy

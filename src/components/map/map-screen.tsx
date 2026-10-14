@@ -22,7 +22,11 @@ import { PickLocation } from "@/components/map/pick-location";
 import { PEEK_SNAP, PlaceDrawer } from "@/components/map/place-drawer";
 import { ReportTrafficDrawer } from "@/components/map/report-traffic-drawer";
 import { TrafficDrawer } from "@/components/map/traffic-drawer";
-import type { CitizenMapProps, PlaceSelection } from "@/components/map/types";
+import type {
+  CitizenMapProps,
+  MapController,
+  PlaceSelection,
+} from "@/components/map/types";
 import { useCommunityMap } from "@/components/map/use-community-map";
 import { InstallSplash } from "@/components/offline/install-splash";
 import { OfflineIndicator } from "@/components/offline/offline-indicator";
@@ -267,6 +271,7 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
    * all. The URL keeps its job as an *entry point* below.
    */
   const [pickingLocation, setPickingLocation] = useState(false);
+  const mapController = useRef<MapController | null>(null);
   const [pickPurpose, setPickPurpose] = useState<PickPurpose>("place");
   /**
    * Whether a traffic report covers the street or one point of it.
@@ -671,6 +676,7 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
           }}
           googlePlaces={googlePlaces}
           myLocation={myLocation}
+          controllerRef={mapController}
           pickingLocation={pickingLocation}
           draftPath={draftPath ?? newTraffic?.street?.path ?? null}
           draftAnchor={choosingStreet && tapped ? tapped : null}
@@ -786,6 +792,7 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
           <>
             <MapActions
               concealed={slug !== null || selectedTraffic !== null}
+              onZoom={(delta) => mapController.current?.zoomBy(delta)}
               onAddPlace={() => startPicking("place")}
               onReportTraffic={() => startPicking("traffic")}
               onLocate={(position, accuracyMeters) => {

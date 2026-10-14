@@ -75,8 +75,21 @@ function TrafficLayer({ enabled }: { enabled: boolean }) {
 }
 
 /** Moves the map when a search result asks it to, without remounting it. */
-function MapController({ flyTo }: { flyTo: CitizenMapProps["flyTo"] }) {
+function MapController({
+  flyTo,
+  controllerRef,
+}: {
+  flyTo: CitizenMapProps["flyTo"];
+  controllerRef?: CitizenMapProps["controllerRef"];
+}) {
   const map = useMap(MAP_ID);
+
+  useEffect(() => {
+    if (!map || !controllerRef) return;
+    controllerRef.current = {
+      zoomBy: (delta) => map.setZoom((map.getZoom() ?? DEFAULT_ZOOM) + delta),
+    };
+  }, [map, controllerRef]);
 
   useEffect(() => {
     if (!map || !flyTo) return;
@@ -124,6 +137,7 @@ export function CitizenMapGoogle({
   viewMode = DEFAULT_VIEW_MODE,
   googlePlaces = false,
   myLocation = null,
+  controllerRef,
   pickingLocation = false,
   draftPath = null,
   draftAnchor = null,
@@ -200,7 +214,6 @@ export function CitizenMapGoogle({
       // `google-marker.tsx`.
       styles={googleMapStyle(googlePlaces)}
       disableDefaultUI
-      zoomControl
       gestureHandling="greedy"
       clickableIcons={false}
       onIdle={(event) => {
@@ -450,7 +463,7 @@ export function CitizenMapGoogle({
       )}
 
       <TrafficLayer enabled={traffic} />
-      <MapController flyTo={flyTo} />
+      <MapController flyTo={flyTo} controllerRef={controllerRef} />
     </GoogleMap>
   );
 }

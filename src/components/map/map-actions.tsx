@@ -4,6 +4,7 @@ import {
   Download,
   LocateFixed,
   MapPinPlus,
+  Minus,
   Plus,
   Share2,
   Stamp,
@@ -43,27 +44,34 @@ import { cn } from "@/lib/utils";
  * map nobody believes.
  */
 /**
- * The floating controls' one shape: a 48px soft square (16px radius) in the
- * page's white, a hairline and one soft shadow — the login screen's language
- * (its logo tile, its inputs) brought onto the map. Circles, a square zoom
- * pair and a pill used to share one corner; now every control over the map is
- * the same object at the same width, so the column reads as one instrument.
+ * The floating controls, as one instrument.
+ *
+ * Every control over the map shares a surface: white, a 16px radius, a
+ * hairline and the same soft shadow — the login screen's tile and input
+ * language brought onto the map. "Where am I" and zoom are cells of a single
+ * stack divided by hairlines, the way Apple and Google group them, rather
+ * than three separately drawn objects; "Aportar" sits above it in the brand
+ * green, same height, same radius, same shadow.
  */
-const FLOATING =
-  "flex size-12 items-center justify-center rounded-[16px] border border-black/[0.06] bg-background text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_14px_-4px_rgb(0_0_0/0.16)] transition-[background-color,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95";
+const SURFACE =
+  "border border-black/[0.07] bg-card shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)]";
+
+const CELL =
+  "flex size-12 items-center justify-center text-foreground transition-colors hover:bg-secondary focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset active:bg-secondary";
 
 /**
  * The way in to contributing: a labelled green button, not a bare "+". A "+"
  * alone asks the reader to guess between zoom, add and more; the word answers.
  */
-const FLOATING_PRIMARY =
-  "flex h-12 items-center gap-2 rounded-[16px] bg-primary pr-4 pl-3.5 font-semibold text-[15px] text-primary-foreground shadow-[0_1px_2px_rgb(0_0_0/0.1),0_6px_16px_-6px_rgb(31_77_63/0.55)] transition-[background-color,transform] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-95 data-popup-open:bg-foreground";
+const PRIMARY =
+  "flex h-12 items-center gap-2 rounded-[16px] border border-transparent bg-primary pr-4 pl-3.5 font-semibold text-[15px] text-primary-foreground shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)] transition-[background-color,transform] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98] data-popup-open:bg-foreground";
 
 export function MapActions({
   onLocate,
   onAddPlace,
   onReportTraffic,
   concealed = false,
+  onZoom,
 }: {
   onLocate: (
     position: { lng: number; lat: number },
@@ -78,8 +86,11 @@ export function MapActions({
    * its own actions; the column returns when it closes.
    */
   concealed?: boolean;
+  /** Zoom in or out; the buttons show only where there is a mouse. */
+  onZoom?: (delta: 1 | -1) => void;
 }) {
   const t = useTranslations("map.actions");
+  const a11y = useTranslations("map.accessibility");
   const installT = useTranslations("install");
   const passportT = useTranslations("passport");
   const { installed } = useInstall();
@@ -120,12 +131,11 @@ export function MapActions({
   }
 
   return (
-    // `right` respects the swipe-bar edge on notched phones. `bottom-28`
-    // clears the attribution; with a mouse the renderer adds zoom buttons in
-    // the same corner, so the column sits higher to stay clear of them.
+    // `right` respects the swipe-bar edge on notched phones; `bottom-14`
+    // clears the attribution (i) below the stack.
     <div
       className={cn(
-        "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2.5 transition-opacity duration-200 pointer-fine:bottom-38",
+        "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-14 z-20 flex flex-col items-end gap-2.5 transition-opacity duration-200",
         // On a phone the sheet covers the corner, so the column steps out;
         // on a desktop it steps left of the 26rem panel and stays usable.
         concealed &&
@@ -139,7 +149,7 @@ export function MapActions({
           sheet's "…" menu, and one menu style across the app. */}
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={<button type="button" className={FLOATING_PRIMARY} />}
+          render={<button type="button" className={PRIMARY} />}
         >
           <Plus className="size-5" strokeWidth={2.5} aria-hidden />
           {t("contribute")}
@@ -202,20 +212,51 @@ export function MapActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <button
-        type="button"
-        onClick={locate}
-        aria-label={t("locate")}
-        title={t("locate")}
-        aria-busy={locating}
-        className={FLOATING}
-      >
-        {locating ? (
-          <Spinner className="size-5" />
-        ) : (
-          <LocateFixed className="size-5 text-primary" aria-hidden />
+      <div
+        className={cn(
+          "flex flex-col divide-y divide-black/[0.07] overflow-hidden rounded-[16px]",
+          SURFACE,
         )}
-      </button>
+      >
+        <button
+          type="button"
+          onClick={locate}
+          aria-label={t("locate")}
+          title={t("locate")}
+          aria-busy={locating}
+          className={CELL}
+        >
+          {locating ? (
+            <Spinner className="size-5" />
+          ) : (
+            <LocateFixed className="size-5 text-primary" aria-hidden />
+          )}
+        </button>
+        {/* With a mouse only: on a touchscreen the pinch is the zoom, and
+            two more buttons would be clutter in the thumb's corner. */}
+        {onZoom && (
+          <>
+            <button
+              type="button"
+              onClick={() => onZoom(1)}
+              aria-label={a11y("zoomIn")}
+              title={a11y("zoomIn")}
+              className={cn(CELL, "hidden pointer-fine:flex")}
+            >
+              <Plus className="size-5" aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={() => onZoom(-1)}
+              aria-label={a11y("zoomOut")}
+              title={a11y("zoomOut")}
+              className={cn(CELL, "hidden pointer-fine:flex")}
+            >
+              <Minus className="size-5" aria-hidden />
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

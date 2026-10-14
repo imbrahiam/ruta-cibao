@@ -13,6 +13,7 @@ import {
 import { useFormatter, useNow, useTranslations } from "next-intl";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
+import { SignInPrompt } from "@/components/shell/sign-in-prompt";
 import { Button } from "@/components/ui/button";
 import { groupByRecency } from "@/components/ui-patterns/date-groups";
 import { EmptyState } from "@/components/ui-patterns/empty-state";
@@ -51,6 +52,7 @@ const KIND_ICON: Record<Contribution["kind"], typeof MapPin> = {
 export function ContributionList() {
   const t = useTranslations("contributions");
   const groupT = useTranslations("lists");
+  const onboardingT = useTranslations("onboarding");
   const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
   const { viewer, isLoading } = useAuth();
@@ -84,18 +86,12 @@ export function ContributionList() {
       {isLoading ? (
         <ListRowSkeleton label={t("loading")} />
       ) : !member ? (
-        <EmptyState
-          illustration="contributions"
+        <SignInPrompt
+          photo="/places/ayuntamiento-almacigos.webp"
+          photoTitle={onboardingT("shellTitle")}
           title={t("signIn")}
-          action={
-            <Button
-              className="h-11 rounded-full px-6"
-              nativeButton={false}
-              render={<Link href="/entrar?callbackUrl=%2Faportes" />}
-            >
-              {t("signInAction")}
-            </Button>
-          }
+          action={t("signInAction")}
+          href="/entrar?callbackUrl=%2Faportes"
         />
       ) : (
         <>

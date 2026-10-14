@@ -107,7 +107,7 @@ async function RailAccount({
 
   const floating =
     layout === "floating"
-      ? "rounded-full border border-black/5 bg-background shadow-[0_2px_10px_-2px_rgb(0_0_0/0.18)]"
+      ? "rounded-full border border-black/[0.07] bg-card shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)]"
       : "";
 
   if (viewer.kind === "anonymous") {

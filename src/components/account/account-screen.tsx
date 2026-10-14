@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-context";
 import { SavedPlaces } from "@/components/map/saved-places";
 import { NotificationBell } from "@/components/notifications/notification-bell";
+import { SignInPrompt } from "@/components/shell/sign-in-prompt";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui-patterns/empty-state";
@@ -130,6 +131,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 export function AccountScreen() {
   const t = useTranslations("account");
   const shellT = useTranslations("shell");
+  const onboardingT = useTranslations("onboarding");
   const notificationsT = useTranslations("notifications");
   const { viewer, isLoading, isUnavailable } = useAuth();
   const [pending, setPending] = useState(false);
@@ -350,19 +352,11 @@ export function AccountScreen() {
           </div>
         </div>
       ) : (
-        <EmptyState
-          className="mt-6"
-          illustration="account"
+        <SignInPrompt
+          photoTitle={onboardingT("shellTitle")}
           title={t("anonymousTitle")}
-          action={
-            <Button
-              className="h-11 rounded-full px-6"
-              nativeButton={false}
-              render={<Link href="/entrar?callbackUrl=%2Fcuenta" />}
-            >
-              {t("signIn")}
-            </Button>
-          }
+          action={t("signIn")}
+          href="/entrar?callbackUrl=%2Fcuenta"
         />
       )}
 

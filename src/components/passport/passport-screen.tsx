@@ -10,6 +10,7 @@ import {
   PassportStamp,
   type StampPlace,
 } from "@/components/passport/passport-stamp";
+import { SignInPrompt } from "@/components/shell/sign-in-prompt";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui-patterns/empty-state";
@@ -31,6 +32,7 @@ const PLACES_LIMIT = 48;
  */
 export function PassportScreen() {
   const t = useTranslations("passport");
+  const onboardingT = useTranslations("onboarding");
   const { viewer, isLoading, isUnavailable } = useAuth();
   const [offset, setOffset] = useState(0);
   const signedIn = viewer !== undefined && viewer.kind !== "anonymous";
@@ -93,20 +95,15 @@ export function PassportScreen() {
           {loading ? (
             <Skeleton aria-hidden className="mb-6 h-14 w-48" />
           ) : !signedIn ? (
-            <EmptyState
-              className="mb-6"
-              illustration="stamps"
-              title={t("signInTitle")}
-              action={
-                <Button
-                  className="h-11 rounded-full px-6"
-                  nativeButton={false}
-                  render={<Link href="/entrar?callbackUrl=%2Fpasaporte" />}
-                >
-                  {t("signIn")}
-                </Button>
-              }
-            />
+            <div className="mb-10">
+              <SignInPrompt
+                photo="/places/presa-moncion.webp"
+                photoTitle={onboardingT("shellTitle")}
+                title={t("signInTitle")}
+                action={t("signIn")}
+                href="/entrar?callbackUrl=%2Fpasaporte"
+              />
+            </div>
           ) : total === 0 ? (
             <EmptyState
               className="mb-6"

@@ -69,6 +69,7 @@ export function CitizenMap({
   flyTo,
   searchMarker,
   myLocation = null,
+  controllerRef,
   pickingLocation = false,
   onViewportChange,
   onMovingChange,
@@ -148,14 +149,6 @@ export function CitizenMap({
       instance.getContainer().setAttribute("role", "region");
       instance.getContainer().setAttribute("aria-label", labels.current.title);
       L.control.attribution({ prefix: false }).addTo(instance);
-      if (window.matchMedia("(pointer: fine)").matches)
-        L.control
-          .zoom({
-            position: "bottomright",
-            zoomInTitle: labels.current.zoomIn,
-            zoomOutTitle: labels.current.zoomOut,
-          })
-          .addTo(instance);
 
       // A tap on empty ground closes whatever was open, which is what people
       // expect from a map and saves them hunting for a close button.
@@ -432,6 +425,20 @@ export function CitizenMap({
       group.remove();
     };
   }, [myLocation, ready]);
+
+  // Zoom is drawn by `MapActions`, in one stack with "where am I", rather
+  // than as this SDK's own widget — which looked like another product's
+  // control beside ours. The renderer only lends it the verb.
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || !controllerRef) return;
+    controllerRef.current = {
+      zoomBy: (delta) => (delta > 0 ? instance.zoomIn() : instance.zoomOut()),
+    };
+    return () => {
+      controllerRef.current = null;
+    };
+  }, [ready, controllerRef]);
 
   useEffect(() => {
     if (!flyTo || !ready) return;

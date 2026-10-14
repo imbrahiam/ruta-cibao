@@ -45,7 +45,7 @@ export function FilterChip({
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
         active
           ? "border-transparent bg-foreground text-background"
-          : "border-black/[0.06] bg-background text-foreground hover:bg-secondary",
+          : "border-black/[0.06] bg-card text-foreground hover:bg-secondary",
       )}
     >
       {children}

@@ -8,7 +8,6 @@ import {
   Map as MapLibreMap,
   Marker as MapLibreMarker,
   type MapMouseEvent,
-  NavigationControl,
   removeProtocol,
   setWorkerUrl,
 } from "maplibre-gl";
@@ -99,6 +98,7 @@ export function CitizenMap({
   flyTo,
   searchMarker,
   myLocation = null,
+  controllerRef,
   pickingLocation = false,
   onViewportChange,
   onMovingChange,
@@ -173,18 +173,6 @@ export function CitizenMap({
       pitchWithRotate: false,
       dragRotate: false,
     });
-
-    // Zoom only. Location has one control — `MapActions` — shared by every
-    // renderer, so a second geolocate button here would be two targets for
-    // the same action in the same corner.
-    // Only where there is a mouse: on a touchscreen a pinch is the zoom, and
-    // a second pair of buttons beside `MapActions` is clutter.
-    if (window.matchMedia("(pointer: fine)").matches) {
-      instance.addControl(
-        new NavigationControl({ showCompass: false }),
-        "bottom-right",
-      );
-    }
 
     installPinResolver(instance);
 
@@ -420,6 +408,20 @@ export function CitizenMap({
       }
     }
   }, [categoryIds, ready]);
+
+  // Zoom is drawn by `MapActions`, in one stack with "where am I", rather
+  // than as this SDK's own widget — which looked like another product's
+  // control beside ours. The renderer only lends it the verb.
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || !controllerRef) return;
+    controllerRef.current = {
+      zoomBy: (delta) => (delta > 0 ? instance.zoomIn() : instance.zoomOut()),
+    };
+    return () => {
+      controllerRef.current = null;
+    };
+  }, [ready, controllerRef]);
 
   useEffect(() => {
     if (!flyTo || !ready) return;

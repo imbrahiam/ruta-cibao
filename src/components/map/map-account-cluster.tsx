@@ -12,7 +12,7 @@ import { orpc } from "@/lib/orpc";
 import { cn } from "@/lib/utils";
 
 const floating =
-  "rounded-full border bg-background/95 shadow-md backdrop-blur-sm";
+  "rounded-full border border-black/[0.07] bg-card shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)]";
 
 /**
  * The account control on a phone: one avatar, nothing else.
