@@ -17,14 +17,19 @@ export async function NumbersStrip() {
     getFormatter(),
   ]);
 
-  const stats = [
-    { key: "places", value: pulse.places },
-    { key: "routes", value: pulse.routes },
-    { key: "resolved", value: pulse.resolvedThisMonth },
-  ] as const;
+  // A zero on the landing reads as an empty product, not as a fact about this
+  // month — so a count with nothing in it steps out until it has something.
+  const stats = (
+    [
+      { key: "places", value: pulse.places },
+      { key: "routes", value: pulse.routes },
+      { key: "resolved", value: pulse.resolvedThisMonth },
+    ] as const
+  ).filter(({ value }) => value > 0);
+  if (stats.length === 0) return null;
 
   return (
-    <NumbersFrame title={t("title")}>
+    <NumbersFrame title={t("title")} columns={stats.length}>
       {stats.map(({ key, value }) => (
         <div
           key={key}
@@ -44,9 +49,11 @@ export async function NumbersStrip() {
 
 function NumbersFrame({
   title,
+  columns = 3,
   children,
 }: {
   title: string;
+  columns?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -57,7 +64,14 @@ function NumbersFrame({
       <h2 id="numbers-title" className="page-eyebrow mb-3 md:mb-8">
         {title}
       </h2>
-      <dl className="ruled flex flex-col border-border border-y md:grid md:grid-cols-3 md:border-0 md:[&>*+*]:border-t-0 md:[&>*+*]:border-l">
+      <dl
+        style={
+          {
+            "--numbers-columns": `repeat(${columns}, minmax(0, 1fr))`,
+          } as React.CSSProperties
+        }
+        className="ruled flex flex-col border-border border-y md:grid md:grid-cols-(--numbers-columns) md:border-0 md:[&>*+*]:border-t-0 md:[&>*+*]:border-l"
+      >
         {children}
       </dl>
     </section>
