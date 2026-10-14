@@ -329,6 +329,7 @@ export const placesRouter = {
       const term = input.query.trim();
       const normalised = sql`unaccent(lower(${term}))`;
       const target = sql`unaccent(lower(${places.name}))`;
+      const categoryTarget = sql`unaccent(lower(${categories.name}))`;
 
       const [matched, addresses] = await Promise.all([
         context.db
@@ -350,10 +351,14 @@ export const placesRouter = {
           .where(
             and(
               eq(places.status, "published"),
-              sql`(${target} like ${normalised} || '%' or word_similarity(${normalised}, ${target}) > 0.45)`,
+              // The category too: someone looking for care types "salud"
+              // or "clínica", not the hospital's name, and a resident who
+              // wants lunch types "comedor".
+              sql`(${target} like ${normalised} || '%' or word_similarity(${normalised}, ${target}) > 0.45 or ${categoryTarget} like ${normalised} || '%')`,
             ),
           )
-          // Prefix matches ahead of fuzzy ones, then by how close the fuzzy is.
+          // Name prefix first, then fuzzy name matches by closeness, then
+          // places that only matched by category.
           .orderBy(
             sql`(${target} like ${normalised} || '%') desc`,
             sql`word_similarity(${normalised}, ${target}) desc`,

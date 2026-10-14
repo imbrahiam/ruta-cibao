@@ -166,6 +166,13 @@ export function MapSearch({
   /** The term addresses were last asked for; null until the person submits. */
   const [addressTerm, setAddressTerm] = useState<string | null>(null);
   const [recent, setRecent] = useState<SearchTarget[]>([]);
+  const { data: allCategories } = useQuery({
+    ...orpc.places.categories.queryOptions(),
+    enabled: open,
+  });
+  const categories = allCategories?.filter(
+    (category) => category.kind === "place",
+  );
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedTerm(term), 250);
@@ -309,6 +316,32 @@ export function MapSearch({
         </DrawerHeader>
 
         <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-3 pb-[max(2rem,env(safe-area-inset-bottom))]">
+          {/* Something to tap before anything is typed. A blank box asks
+              people to know what to call what they want; the province's own
+              categories, with their icons, answer that for them — and the
+              search matches on category, so "Salud" finds the hospital. */}
+          {trimmed.length < 2 && categories && categories.length > 0 && (
+            <>
+              <p className={SECTION}>{t("suggestions")}</p>
+              <div className="flex flex-wrap gap-2 px-1 pb-2">
+                {categories.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setTerm(category.name)}
+                    className="flex h-11 items-center gap-2 rounded-full border bg-background px-3.5 font-medium text-[15px] transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <CategoryGlyph
+                      icon={category.icon}
+                      color={labelInk(category.color)}
+                    />
+                    {category.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
           {trimmed.length < 2 && recent.length > 0 && (
             <>
               <div className="flex items-center justify-between pr-1">
