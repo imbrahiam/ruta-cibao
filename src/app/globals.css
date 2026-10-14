@@ -485,3 +485,32 @@
 .leaflet-container .leaflet-control-attribution a {
   color: inherit;
 }
+
+/*
+ * A road alert on the map: the hazard diamond, with a 44px tap area around
+ * its 28px drawing. Slightly smaller below street zoom, where many share the
+ * screen with the clusters.
+ */
+.map-overlay-alert {
+  position: relative;
+  display: block;
+  line-height: 0;
+  transition: transform 150ms ease-out;
+}
+
+.map-overlay-alert::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+.map-overlays-compact .map-overlay-alert img {
+  width: 22px;
+  height: 22px;
+}
+
+.map-overlay-alert:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
