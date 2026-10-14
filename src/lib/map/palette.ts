@@ -14,31 +14,49 @@
  * MapLibre Native unchanged.
  */
 export const mapPalette = {
-  /** Warm off-white ground; roads stay white on it, outlined, not filled grey. */
-  land: "#f6f5f1",
-  landAlt: "#eeece6",
-  line: "#d9d5cc",
+  /**
+   * A near-neutral ground, a touch warm so it never reads as a blank page.
+   * Tonal on purpose — Uber, Google since its 2023 palette, and every
+   * map-first product converge on the same rule: the basemap is a quiet
+   * monochrome, and what people put on it is the only colour on screen.
+   */
+  land: "#f4f3f0",
+  landAlt: "#eeede9",
+  line: "#d9d7d1",
   lineStrong: "#6b6b6b",
-  label: "#1f2933",
+  label: "#3c4043",
+  /** Towns and villages beyond the province, stepped back a tone. */
+  labelMuted: "#9aa0a6",
   ink: "#171717",
-  /** Water reads as water — a soft blue, never the saturated cyan of stock styles. */
-  water: "#b5d6ee",
-  waterLabel: "#4a7ba3",
+  /** Pale, slightly cool water: recognisable at a glance, never loud. */
+  water: "#c4dcee",
+  waterLabel: "#5b87ad",
   road: "#ffffff",
-  roadCasing: "#dcd8cf",
-  /** National highways (RD-1, RD-18): a pale amber, the colour drivers already read as "main road". */
-  highway: "#fbe3a2",
-  highwayCasing: "#e5c46b",
-  building: "#e7e4dd",
-  /** Parks and woodland. The cordillera is most of this province, so it is visibly green. */
-  green: "#d9ead2",
-  forest: "#cfe4c6",
-  farmland: "#edf0e0",
+  roadCasing: "#e1dfda",
+  roadLabel: "#80868b",
+  /**
+   * National highways (RD-1, RD-18) keep a hint of amber — the one colour a
+   * driver here already reads as "main road", which a low-literacy reader
+   * should not have to learn — but desaturated, so it sits under the pins.
+   */
+  highway: "#fdebbd",
+  highwayCasing: "#ecd394",
+  building: "#e8e6e1",
+  /**
+   * Parks and woodland, barely tinted. The cordillera is most of this
+   * province; at full strength it turned the whole south into one green
+   * slab that fought every pin over it.
+   */
+  green: "#e5eedf",
+  forest: "#e2ebdb",
+  farmland: "#f0f0ea",
   labelHalo: "#ffffff",
   /** The province's outline and names: the app's primary green. */
   province: "#1f4d3f",
   /** Laid over the rest of the country, at low opacity, to dim it. */
   outside: "#8c8a83",
+  /** The "you are here" dot — the blue every phone map has taught people. */
+  location: "#1a73e8",
 } as const;
 
 export type MapPalette = typeof mapPalette;

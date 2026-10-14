@@ -89,9 +89,10 @@ export function clusterLayers(
       maxzoom: CLUSTER_MAX_ZOOM + 1,
       filter,
       paint: {
-        "circle-color": categoryIds.length
-          ? mapPalette.ink
-          : ["coalesce", ["get", "color"], mapPalette.ink],
+        // One colour for every cluster, as Google and Apple draw them. Tinting
+        // by the commonest category read as a claim — a red "3" looked like
+        // three hospitals — and put five competing colours on the overview.
+        "circle-color": mapPalette.province,
         // Square-root scaling, so a cluster of a hundred is not twenty-five
         // times the area of a cluster of four.
         "circle-radius": [
@@ -103,9 +104,8 @@ export function clusterLayers(
           10,
           30,
         ],
-        "circle-stroke-color": mapPalette.land,
-        "circle-stroke-width": 2,
-        "circle-opacity": 0.92,
+        "circle-stroke-color": mapPalette.labelHalo,
+        "circle-stroke-width": 2.5,
       },
     },
     {
@@ -117,11 +117,11 @@ export function clusterLayers(
       filter,
       layout: {
         "text-field": ["to-string", count],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": 13,
+        "text-font": ["Noto Sans Medium"],
+        "text-size": 14,
         "text-allow-overlap": true,
       },
-      paint: { "text-color": mapPalette.land },
+      paint: { "text-color": mapPalette.labelHalo },
     },
     {
       // A bubble reading "1" asks for a tap to reveal what a pin would have
@@ -367,4 +367,31 @@ export function categoryFilter(
 ): ExpressionSpecification | null {
   if (categoryIds.length === 0) return null;
   return ["in", ["get", "category"], ["literal", categoryIds]];
+}
+
+/**
+ * Basemap labels that step back outside the province.
+ *
+ * Guayubín and Santiago de la Cruz are useful for orientation and noise for
+ * everything else. `within` tests each label against the province's own
+ * polygons, so the names inside keep full weight and the rest go grey —
+ * the same hierarchy the dimmed mask gives the ground.
+ */
+export const FOCUSED_BASEMAP_LABELS = ["places_locality", "places_subplace"];
+
+export function provinceLabelColor(
+  boundaries: MunicipalBoundaries,
+  inside: string,
+): ExpressionSpecification {
+  const polygons = boundaries.features.flatMap((feature) =>
+    feature.geometry.type === "MultiPolygon"
+      ? feature.geometry.coordinates
+      : [feature.geometry.coordinates],
+  );
+  return [
+    "case",
+    ["within", { type: "MultiPolygon", coordinates: polygons }],
+    inside,
+    mapPalette.labelMuted,
+  ] as ExpressionSpecification;
 }

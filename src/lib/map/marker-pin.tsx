@@ -204,6 +204,13 @@ function dataUri(svg: string): string {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+/**
+ * How much larger the open place's marker is drawn. At 1.14 the difference was
+ * invisible beside its neighbours and people lost which pin the sheet was
+ * about; Google and Apple both grow the chosen marker by roughly half.
+ */
+const SELECTED_SCALE = 1.45;
+
 export function markerPin(
   color: string,
   icon: string | undefined,
@@ -213,7 +220,7 @@ export function markerPin(
   const hit = cache.get(key);
   if (hit) return hit;
 
-  const scale = selected ? 1.14 : 1;
+  const scale = selected ? SELECTED_SCALE : 1;
   const { groundShadow, glyph, rim } = PIN_GEOMETRY;
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PIN_GEOMETRY.width * scale}" height="${PIN_GEOMETRY.height * scale}" viewBox="${PIN_GEOMETRY.viewBox}">
@@ -239,7 +246,7 @@ export function markerPin(
 
 /** Anchor and size, so the pin's point sits on the coordinate. */
 export function markerSize(selected: boolean) {
-  const scale = selected ? 1.14 : 1;
+  const scale = selected ? SELECTED_SCALE : 1;
   return {
     width: PIN_GEOMETRY.width * scale,
     height: PIN_GEOMETRY.height * scale,
@@ -269,7 +276,7 @@ export function alertPin(
   const hit = cache.get(key);
   if (hit) return hit;
 
-  const scale = selected ? 1.14 : 1;
+  const scale = selected ? SELECTED_SCALE : 1;
   const size = ALERT_GEOMETRY.size * scale;
   const { rim } = PIN_GEOMETRY;
 
@@ -295,7 +302,7 @@ export function alertPin(
 
 /** Size for an alert marker, which sits centred on its coordinate. */
 export function alertSize(selected: boolean) {
-  const scale = selected ? 1.14 : 1;
+  const scale = selected ? SELECTED_SCALE : 1;
   return {
     width: ALERT_GEOMETRY.size * scale,
     height: ALERT_GEOMETRY.size * scale,

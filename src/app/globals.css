@@ -431,3 +431,57 @@
   align-items: center;
   justify-content: center;
 }
+
+/*
+ * The map credit, as quiet as the licence allows: a 24px (i) that opens to a
+ * single line. See the comment on `attributionControl` in the MapLibre map.
+ */
+.maplibregl-ctrl.maplibregl-ctrl-attrib {
+  font-size: 11px;
+  line-height: 24px;
+  color: #5f6368;
+  background: rgb(255 255 255 / 0.85);
+  backdrop-filter: blur(6px);
+}
+
+.maplibregl-ctrl.maplibregl-ctrl-attrib a {
+  color: inherit;
+}
+
+.maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact {
+  min-height: 24px;
+  padding: 0 28px 0 8px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+}
+
+.maplibregl-ctrl.maplibregl-ctrl-attrib.maplibregl-compact:not(
+  .maplibregl-compact-show
+) {
+  padding: 0;
+  width: 24px;
+  background: rgb(255 255 255 / 0.7);
+}
+
+.maplibregl-ctrl.maplibregl-ctrl-attrib .maplibregl-ctrl-attrib-button {
+  width: 24px;
+  height: 24px;
+  opacity: 0.55;
+  background-size: 18px;
+  background-position: center;
+}
+
+/* The Leaflet fallback's credit, in the same quiet register as MapLibre's. */
+.leaflet-container .leaflet-control-attribution {
+  padding: 0 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  line-height: 20px;
+  color: #5f6368;
+  background: rgb(255 255 255 / 0.75);
+  backdrop-filter: blur(6px);
+}
+
+.leaflet-container .leaflet-control-attribution a {
+  color: inherit;
+}

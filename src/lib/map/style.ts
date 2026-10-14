@@ -69,42 +69,81 @@ function roadWidth(scale: number): ExpressionSpecification {
  * screen.
  */
 function protomapsFlavor(): Flavor {
+  const p = mapPalette;
   return {
     ...namedFlavor("light"),
-    background: mapPalette.land,
-    earth: mapPalette.land,
-    water: mapPalette.water,
-    buildings: mapPalette.building,
-    park_a: mapPalette.green,
-    park_b: mapPalette.green,
-    wood_a: mapPalette.green,
-    wood_b: mapPalette.green,
-    scrub_a: mapPalette.green,
-    scrub_b: mapPalette.green,
-    school: mapPalette.landAlt,
-    hospital: mapPalette.landAlt,
-    industrial: mapPalette.landAlt,
-    pedestrian: mapPalette.landAlt,
-    highway: mapPalette.highway,
-    highway_casing_early: mapPalette.highwayCasing,
-    highway_casing_late: mapPalette.highwayCasing,
-    bridges_highway: mapPalette.highway,
-    bridges_highway_casing: mapPalette.highwayCasing,
-    major: mapPalette.road,
-    major_casing_early: mapPalette.roadCasing,
-    major_casing_late: mapPalette.roadCasing,
-    minor_casing: mapPalette.roadCasing,
-    city_label: mapPalette.label,
-    subplace_label: "#5b6470",
-    ocean_label: mapPalette.waterLabel,
+    background: p.land,
+    earth: p.land,
+    water: p.water,
+    buildings: p.building,
+    park_a: p.green,
+    park_b: p.green,
+    wood_a: p.forest,
+    wood_b: p.forest,
+    scrub_a: p.green,
+    scrub_b: p.green,
+    school: p.landAlt,
+    hospital: p.landAlt,
+    industrial: p.landAlt,
+    pedestrian: p.landAlt,
+    aerodrome: p.landAlt,
+    sand: p.landAlt,
+    beach: p.landAlt,
+    zoo: p.green,
+    military: p.landAlt,
+    pier: p.landAlt,
+    // Every road is white on a hairline, the class carried by width rather
+    // than by colour; only highways keep a tint.
+    other: p.road,
+    minor_service: p.road,
+    minor_a: p.road,
+    minor_b: p.road,
+    link: p.road,
+    major: p.road,
+    highway: p.highway,
+    minor_service_casing: p.roadCasing,
+    minor_casing: p.roadCasing,
+    link_casing: p.roadCasing,
+    major_casing_early: p.roadCasing,
+    major_casing_late: p.roadCasing,
+    highway_casing_early: p.highwayCasing,
+    highway_casing_late: p.highwayCasing,
+    bridges_other: p.road,
+    bridges_minor: p.road,
+    bridges_link: p.road,
+    bridges_major: p.road,
+    bridges_highway: p.highway,
+    bridges_other_casing: p.roadCasing,
+    bridges_minor_casing: p.roadCasing,
+    bridges_link_casing: p.roadCasing,
+    bridges_major_casing: p.roadCasing,
+    bridges_highway_casing: p.highwayCasing,
+    railway: p.line,
+    boundaries: "#b9b6ae",
+    // White halos everywhere: the stock grey halo reads as a smudge on a
+    // light ground.
+    roads_label_minor: p.roadLabel,
+    roads_label_minor_halo: p.labelHalo,
+    roads_label_major: p.roadLabel,
+    roads_label_major_halo: p.labelHalo,
+    address_label: p.roadLabel,
+    address_label_halo: p.labelHalo,
+    city_label: p.label,
+    city_label_halo: p.labelHalo,
+    subplace_label: "#70757a",
+    subplace_label_halo: p.labelHalo,
+    state_label: p.labelMuted,
+    state_label_halo: p.labelHalo,
+    country_label: p.labelMuted,
+    ocean_label: p.waterLabel,
     landcover: {
       glacier: "#ffffff",
-      forest: mapPalette.forest,
-      grassland: mapPalette.green,
-      scrub: mapPalette.green,
-      farmland: mapPalette.farmland,
-      barren: mapPalette.landAlt,
-      urban_area: mapPalette.landAlt,
+      forest: p.forest,
+      grassland: p.green,
+      scrub: p.green,
+      farmland: p.farmland,
+      barren: p.landAlt,
+      urban_area: p.landAlt,
     },
   };
 }
@@ -194,6 +233,51 @@ function openMapTilesLayers(): LayerSpecification[] {
 }
 
 /**
+ * Adjustments to individual Protomaps layers that a flavor cannot express.
+ *
+ * - Rivers: the stock width reaches 12 px at street zoom, which drew the
+ *   Yaguajal through Sabaneta as a blue band heavier than the avenue beside
+ *   it and easy to mistake for a boundary.
+ * - Labels: Medium rather than Regular for towns and neighbourhoods, and a
+ *   wider halo, so names hold up on a phone in the sun — the condition Uber
+ *   and Google tune for, and the one this province's users are in.
+ */
+function refineProtomapsLayer(layer: LayerSpecification): LayerSpecification {
+  if (layer.id === "water_river" && layer.type === "line") {
+    return {
+      ...layer,
+      paint: {
+        ...layer.paint,
+        "line-width": [
+          "interpolate",
+          ["exponential", 1.6],
+          ["zoom"],
+          9,
+          0,
+          10,
+          0.6,
+          14,
+          2,
+          18,
+          6,
+        ],
+      },
+    };
+  }
+  if (
+    (layer.id === "places_locality" || layer.id === "places_subplace") &&
+    layer.type === "symbol"
+  ) {
+    return {
+      ...layer,
+      layout: { ...layer.layout, "text-font": ["Noto Sans Medium"] },
+      paint: { ...layer.paint, "text-halo-width": 1.5 },
+    };
+  }
+  return layer;
+}
+
+/**
  * @param origin Absolute origin for assets served by this app. MapLibre accepts
  *   a relative URL for glyphs and tiles but rejects one for the sprite —
  *   "Invalid sprite URL, must be absolute" — so it has to be built from
@@ -251,8 +335,11 @@ export function buildMapStyle(
       // The `pmtiles://` protocol is registered by the map component; the file
       // is read by range request, so only the tiles on screen are fetched.
       url: `pmtiles://${basemap.url}`,
+      // OpenStreetMap is the credit ODbL requires. Protomaps asks for one
+      // but does not require it; it is credited in the README instead, so
+      // the (i) on the map carries one line.
       attribution:
-        '<a href="https://protomaps.com">Protomaps</a> © OpenStreetMap',
+        '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>',
       maxzoom: 15,
     };
     // Spanish labels where the data carries them. Without the basemap's own
@@ -261,9 +348,9 @@ export function buildMapStyle(
     // of them can be tapped. The Google renderer hides its POIs for the same
     // reason.
     style.layers.push(
-      ...layers(SOURCE_ID, protomapsFlavor(), { lang: "es" }).filter(
-        (layer) => layer.id !== "pois",
-      ),
+      ...layers(SOURCE_ID, protomapsFlavor(), { lang: "es" })
+        .filter((layer) => layer.id !== "pois")
+        .map(refineProtomapsLayer),
     );
   }
 

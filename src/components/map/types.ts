@@ -85,7 +85,7 @@ export type CitizenMapProps = {
   /** Google's own listings. Renderers without them ignore this. */
   googlePlaces?: boolean;
   /** Where the person is, once they have asked to be found. */
-  myLocation?: { lng: number; lat: number } | null;
+  myLocation?: { lng: number; lat: number; accuracyMeters?: number } | null;
   /** While true, the viewport's centre is choosing a new place. */
   pickingLocation?: boolean;
   /**

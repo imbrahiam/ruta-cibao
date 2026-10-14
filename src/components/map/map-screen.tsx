@@ -256,6 +256,7 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
   const [myLocation, setMyLocation] = useState<{
     lng: number;
     lat: number;
+    accuracyMeters?: number;
   } | null>(null);
   /**
    * Whether the crosshair is out.
@@ -707,6 +708,18 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
           onSelect={handleSelect}
         />
 
+        {/* A soft wash under the search and chips. Over a busy stretch of map
+            the white pills otherwise sit on white roads and labels, and the
+            row loses its edge; ride-hailing and map apps put the same fade
+            under their top bar. Only the top band, and gone while picking. */}
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-x-0 top-0 z-10 h-32 bg-linear-to-b from-background/80 via-background/35 to-transparent transition-opacity duration-200 md:h-24",
+            pickingLocation && "opacity-0",
+          )}
+        />
+
         {/* Search and filters ride over the top of the map rather than above it,
           so the map keeps the full height of the screen. The account avatar
           shares the search row on a phone; the chips below get the full width.
@@ -771,9 +784,9 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
             <MapActions
               onAddPlace={() => startPicking("place")}
               onReportTraffic={() => startPicking("traffic")}
-              onLocate={(position) => {
+              onLocate={(position, accuracyMeters) => {
                 setSearchMarker(null);
-                setMyLocation(position);
+                setMyLocation({ ...position, accuracyMeters });
                 setFlyTo(position);
               }}
             />

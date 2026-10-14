@@ -64,7 +64,10 @@ export function MapActions({
   onAddPlace,
   onReportTraffic,
 }: {
-  onLocate: (position: { lng: number; lat: number }) => void;
+  onLocate: (
+    position: { lng: number; lat: number },
+    accuracyMeters: number,
+  ) => void;
   onAddPlace: () => void;
   onReportTraffic: () => void;
 }) {
@@ -85,7 +88,7 @@ export function MapActions({
       setLocating(false);
 
       if (result.ok) {
-        onLocate(result.position);
+        onLocate(result.position, result.accuracyMeters);
         return;
       }
 

@@ -13,6 +13,7 @@ import {
   PLACE_LABEL_ZOOM,
   PROVINCE_BOUNDS,
 } from "@/lib/map/config";
+import { MIN_ACCURACY_RING_M } from "@/lib/map/location";
 import { labelInk, markerPin, markerSize } from "@/lib/map/marker-pin";
 import { mapPalette } from "@/lib/map/palette";
 import {
@@ -67,6 +68,7 @@ export function CitizenMap({
   categoryIds,
   flyTo,
   searchMarker,
+  myLocation = null,
   pickingLocation = false,
   onViewportChange,
   onMovingChange,
@@ -393,6 +395,43 @@ export function CitizenMap({
       group.remove();
     };
   }, [boundaries, ready]);
+
+  /** The "you are here" dot, with its accuracy ring — see `locationFeatures`. */
+  useEffect(() => {
+    const L = leaflet.current;
+    const instance = map.current;
+    if (!ready || !L || !instance || !myLocation) return;
+    const at: LeafletTypes.LatLngTuple = [myLocation.lat, myLocation.lng];
+    const group = L.layerGroup().addTo(instance);
+    const color = mapPalette.location;
+    if ((myLocation.accuracyMeters ?? 0) > MIN_ACCURACY_RING_M) {
+      L.circle(at, {
+        radius: myLocation.accuracyMeters,
+        stroke: false,
+        fillColor: color,
+        fillOpacity: 0.12,
+        interactive: false,
+      }).addTo(group);
+    }
+    L.circleMarker(at, {
+      radius: 15,
+      stroke: false,
+      fillColor: color,
+      fillOpacity: 0.18,
+      interactive: false,
+    }).addTo(group);
+    L.circleMarker(at, {
+      radius: 7,
+      color: "#ffffff",
+      weight: 2.5,
+      fillColor: color,
+      fillOpacity: 1,
+      interactive: false,
+    }).addTo(group);
+    return () => {
+      group.remove();
+    };
+  }, [myLocation, ready]);
 
   useEffect(() => {
     if (!flyTo || !ready) return;

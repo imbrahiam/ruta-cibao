@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { publicEnv } from "@/lib/env.public";
+import { mapPalette } from "@/lib/map/palette";
 import { supportsVectorMap } from "@/lib/map/render-support";
 import type { CitizenMapProps } from "./types";
 
@@ -58,9 +59,12 @@ export function CitizenMap(props: CitizenMapProps) {
         return (
           <div
             role="status"
-            className="flex h-full items-center justify-center text-muted-foreground text-sm"
+            className="h-full w-full"
+            style={{ backgroundColor: mapPalette.land }}
           >
-            {t("loading")}
+            {/* The ground colour says "map" sooner than a word does, and a
+                word flashing for a frame before the map reads as a glitch. */}
+            <span className="sr-only">{t("loading")}</span>
           </div>
         );
       return vectorSupported ? (

@@ -3,6 +3,7 @@
 import type { Feature, LineString } from "geojson";
 import {
   addProtocol,
+  type ExpressionSpecification,
   getVersion,
   Map as MapLibreMap,
   Marker as MapLibreMarker,
@@ -30,14 +31,18 @@ import {
   CLUSTERS_SINGLE_LAYER_ID,
   categoryFilter,
   clusterLayers,
+  FOCUSED_BASEMAP_LABELS,
   INTERACTIVE_LAYER_IDS,
   PLACES_LAYER_ID,
   pinImage,
   placesLayers,
+  provinceLabelColor,
   provinceLayers,
   provinceSources,
 } from "@/lib/map/layers";
+import { locationFeatures } from "@/lib/map/location";
 import { markerPin, markerSize } from "@/lib/map/marker-pin";
+import { mapPalette } from "@/lib/map/palette";
 import { buildMapStyle } from "@/lib/map/style";
 import { installPinResolver } from "./maplibre-pins";
 import {
@@ -63,6 +68,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
  * seam a React Native build comes in at: MapLibre Native reads the same style
  * JSON and the same tile URLs, and only this file is replaced.
  */
+const LOCATION_SOURCE_ID = "my-location";
+
 function resolveBasemap() {
   if (publicEnv.NEXT_PUBLIC_BASEMAP_PMTILES_URL) {
     return {
@@ -91,6 +98,7 @@ export function CitizenMap({
   categoryIds,
   flyTo,
   searchMarker,
+  myLocation = null,
   pickingLocation = false,
   onViewportChange,
   onMovingChange,
@@ -152,7 +160,14 @@ export function CitizenMap({
       minZoom: MIN_ZOOM,
       maxBounds: COUNTRY_BOUNDS,
       maxZoom: MAX_ZOOM,
+      // The credit opens expanded and folds into an (i) on the first drag —
+      // MapLibre's own behaviour — or after five seconds, below. Both are the
+      // collapse triggers the OSMF attribution guideline (2021) lists; the
+      // licence stays one tap away, which is what ODbL requires of us.
       attributionControl: { compact: true },
+      // Labels settle in half the stock 300 ms, so a pinch does not leave
+      // names swimming in and out behind the thumb.
+      fadeDuration: 150,
       // The province is flat enough that tilting adds nothing and costs a
       // gesture people trigger by accident with two thumbs.
       pitchWithRotate: false,
@@ -172,6 +187,12 @@ export function CitizenMap({
     }
 
     installPinResolver(instance);
+
+    const foldCredit = window.setTimeout(() => {
+      container.current
+        ?.querySelector(".maplibregl-compact-show")
+        ?.classList.remove("maplibregl-compact-show");
+    }, 5000);
 
     instance.on("load", () => {
       instance.addSource(PLACES_SOURCE_ID, {
@@ -291,6 +312,7 @@ export function CitizenMap({
     });
 
     return () => {
+      window.clearTimeout(foldCredit);
       instance.remove();
       map.current = null;
       removeProtocol("pmtiles");
@@ -346,6 +368,18 @@ export function CitizenMap({
       if (!instance.getLayer(layer.id)) {
         instance.addLayer(layer, CLUSTERS_LAYER_ID);
       }
+    }
+    for (const id of FOCUSED_BASEMAP_LABELS) {
+      if (!instance.getLayer(id)) continue;
+      const inside = instance.getPaintProperty(id, "text-color");
+      instance.setPaintProperty(
+        id,
+        "text-color",
+        provinceLabelColor(
+          boundaries,
+          typeof inside === "string" ? inside : mapPalette.label,
+        ),
+      );
     }
   }, [boundaries, ready]);
 
@@ -447,6 +481,7 @@ export function CitizenMap({
     };
     instance.on("click", "community-lines", clickLine);
     const markers: MapLibreMarker[] = [];
+    const chips: { button: HTMLButtonElement; marker: MapLibreMarker }[] = [];
     for (const overlay of overlays) {
       if (!overlay.point || !overlay.label) continue;
       const button = overlayChip(overlay);
@@ -454,13 +489,50 @@ export function CitizenMap({
         event.stopPropagation();
         if (!pickingLocation) overlay.select?.();
       });
-      markers.push(
-        new MapLibreMarker({ element: button })
-          .setLngLat([overlay.point.lng, overlay.point.lat])
-          .addTo(instance),
-      );
+      // MapLibre owns the transform of the marker's element, so the chip
+      // sits inside a wrapper it can move on its own — see `badgeOnClusters`.
+      const wrapper = document.createElement("div");
+      wrapper.append(button);
+      const marker = new MapLibreMarker({ element: wrapper })
+        .setLngLat([overlay.point.lng, overlay.point.lat])
+        .addTo(instance);
+      markers.push(marker);
+      chips.push({ button, marker });
     }
+    // A traffic dot on top of a town's cluster hid the cluster's count, and
+    // the two read as one target. Where they meet, the dot moves to the
+    // cluster's upper-right edge, as a badge on it; anywhere else it stays on
+    // its own point. Street zoom has no clusters, so this never moves a chip.
+    const badgeOnClusters = () => {
+      for (const { button, marker } of chips) {
+        const point = instance.project(marker.getLngLat());
+        const cluster = instance.getLayer(CLUSTERS_LAYER_ID)
+          ? instance.queryRenderedFeatures(
+              [
+                [point.x - 20, point.y - 20],
+                [point.x + 20, point.y + 20],
+              ],
+              { layers: [CLUSTERS_LAYER_ID] },
+            )[0]
+          : undefined;
+        if (!cluster || cluster.geometry.type !== "Point") {
+          button.style.transform = "";
+          continue;
+        }
+        const [lng, lat] = cluster.geometry.coordinates as [number, number];
+        const centre = instance.project({ lng, lat });
+        const count = Number(cluster.properties?.count ?? 1);
+        // The radius the cluster layer draws, from its own interpolation.
+        const radius =
+          14 + ((Math.min(Math.sqrt(count), 10) - 1) / 9) * (30 - 14);
+        const edge = radius * 0.72;
+        button.style.transform = `translate(${centre.x + edge - point.x}px, ${centre.y - edge - point.y}px)`;
+      }
+    };
+    badgeOnClusters();
+    instance.on("idle", badgeOnClusters);
     return () => {
+      instance.off("idle", badgeOnClusters);
       instance.off("click", "community-lines", clickLine);
       for (const marker of markers) marker.remove();
       if (instance.getLayer("community-lines"))
@@ -480,6 +552,65 @@ export function CitizenMap({
     hoverPath,
     pickingLocation,
   ]);
+
+  // The "you are here" dot: a GL layer rather than a DOM marker, so it moves
+  // with the map on the same frame instead of trailing it during a pinch.
+  useEffect(() => {
+    const instance = map.current;
+    if (!ready || !instance || !myLocation) return;
+    instance.addSource(LOCATION_SOURCE_ID, {
+      type: "geojson",
+      data: locationFeatures(myLocation),
+    });
+    const isPart = (part: string): ExpressionSpecification => [
+      "==",
+      ["get", "part"],
+      part,
+    ];
+    instance.addLayer({
+      id: "my-location-accuracy",
+      type: "fill",
+      source: LOCATION_SOURCE_ID,
+      filter: isPart("accuracy"),
+      paint: { "fill-color": mapPalette.location, "fill-opacity": 0.12 },
+    });
+    instance.addLayer({
+      id: "my-location-halo",
+      type: "circle",
+      source: LOCATION_SOURCE_ID,
+      filter: isPart("dot"),
+      paint: {
+        "circle-radius": 15,
+        "circle-color": mapPalette.location,
+        "circle-opacity": 0.18,
+      },
+    });
+    instance.addLayer({
+      id: "my-location-dot",
+      type: "circle",
+      source: LOCATION_SOURCE_ID,
+      filter: isPart("dot"),
+      paint: {
+        "circle-radius": 7,
+        "circle-color": mapPalette.location,
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2.5,
+        "circle-pitch-alignment": "map",
+      },
+    });
+    return () => {
+      for (const id of [
+        "my-location-dot",
+        "my-location-halo",
+        "my-location-accuracy",
+      ]) {
+        if (instance.getLayer(id)) instance.removeLayer(id);
+      }
+      if (instance.getSource(LOCATION_SOURCE_ID)) {
+        instance.removeSource(LOCATION_SOURCE_ID);
+      }
+    };
+  }, [myLocation, ready]);
 
   useEffect(() => {
     const instance = map.current;
