@@ -22,7 +22,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { categoryIcon } from "@/lib/map/category-icons";
 import { PROVINCE_BOUNDS } from "@/lib/map/config";
+import { labelInk } from "@/lib/map/marker-pin";
 import { orpc } from "@/lib/orpc";
 
 export type SearchTarget = {
@@ -371,9 +373,12 @@ export function MapSearch({
                 className="flex size-9 shrink-0 items-center justify-center rounded-full"
                 style={{ backgroundColor: `${place.color}1f` }}
               >
-                <span
-                  className="size-3 rounded-full ring-2 ring-white"
-                  style={{ backgroundColor: place.color }}
+                {/* The category's own icon, as on the chips and the pins: a
+                    fork says "comedor" to someone who has not learned what a
+                    colour stands for. */}
+                <CategoryGlyph
+                  icon={place.categoryIcon}
+                  color={labelInk(place.color)}
                 />
               </span>
               <span className="min-w-0 flex-1">
@@ -503,4 +508,9 @@ export function MapSearch({
       </DrawerContent>
     </Drawer>
   );
+}
+
+function CategoryGlyph({ icon, color }: { icon: string; color: string }) {
+  const Icon = categoryIcon(icon);
+  return <Icon className="size-[18px]" style={{ color }} aria-hidden />;
 }
