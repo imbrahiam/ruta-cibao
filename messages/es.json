@@ -517,6 +517,7 @@
       "noAddresses": "No encontramos esa dirección en la provincia.",
       "recent": "Recientes",
       "clearRecent": "Borrar",
+      "suggestions": "Buscar por tipo",
       "clear": "Borrar lo escrito",
       "close": "Cerrar búsqueda"
     },
