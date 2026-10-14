@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { ListRowSkeleton } from "@/components/ui-patterns/list-row";
 
 /**
  * What a list looks like before it arrives.
@@ -10,29 +10,12 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export function ListSkeleton({
   label,
-  rows = 3,
+  rows = 4,
+  thumb = false,
 }: {
   label: string;
   rows?: number;
+  thumb?: boolean;
 }) {
-  return (
-    <div role="status" className="flex flex-col gap-3">
-      <span className="sr-only">{label}</span>
-      {Array.from({ length: rows }, (_, index) => (
-        <div
-          // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
-          key={index}
-          aria-hidden
-          className="surface-card flex gap-3 p-5"
-        >
-          <Skeleton className="size-10 shrink-0 rounded-full" />
-          <div className="flex-1 space-y-2.5 pt-1">
-            <Skeleton className="h-4 w-4/5" />
-            <Skeleton className="h-3 w-1/2" />
-            <Skeleton className="mt-4 h-5 w-24 rounded-full" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  return <ListRowSkeleton label={label} rows={rows} thumb={thumb} />;
 }

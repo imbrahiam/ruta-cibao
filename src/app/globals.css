@@ -544,3 +544,63 @@
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+/*
+ * Content-page motion. Every keyframe lives inside `no-preference`, so the
+ * default is none, and each starts from a visible state: nothing waits for an
+ * animation to become readable. Transform and opacity only.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  /* The bottom bar's selection pill grows in behind the icon. */
+  .nav-pill {
+    animation: nav-pill 200ms var(--ease-out-soft);
+  }
+
+  /* A passport cancellation mark lands like a rubber stamp, one after another. */
+  .stamp-mark {
+    animation: stamp-mark 240ms var(--ease-out-soft) both;
+    animation-delay: calc(var(--stamp-index, 0) * 60ms + 120ms);
+  }
+
+  @keyframes nav-pill {
+    from {
+      transform: scaleX(0.6);
+      opacity: 0.4;
+    }
+  }
+
+  @keyframes stamp-mark {
+    from {
+      transform: scale(1.18) rotate(-4deg);
+      opacity: 0.35;
+    }
+  }
+}
+
+/*
+ * A postage stamp's perforated edge. A grid of round holes is punched through
+ * the whole tile, then the content box is painted back solid on top of it, so
+ * only the half-circles along the border survive as the perforation.
+ */
+.stamp-perforated {
+  --perf: 9px;
+  padding: calc(var(--perf) / 2);
+  -webkit-mask:
+    radial-gradient(
+      circle,
+      #0000 calc(var(--perf) / 2 - 1px),
+      #000 calc(var(--perf) / 2 - 0.5px)
+    )
+    calc(var(--perf) / -2) calc(var(--perf) / -2) / var(--perf) var(--perf)
+    round,
+    linear-gradient(#000 0 0) content-box;
+  mask:
+    radial-gradient(
+      circle,
+      #0000 calc(var(--perf) / 2 - 1px),
+      #000 calc(var(--perf) / 2 - 0.5px)
+    )
+    calc(var(--perf) / -2) calc(var(--perf) / -2) / var(--perf) var(--perf)
+    round,
+    linear-gradient(#000 0 0) content-box;
+}
