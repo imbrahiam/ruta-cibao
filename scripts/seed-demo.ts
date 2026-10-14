@@ -185,7 +185,7 @@ const TRAFFIC = [
   {
     label: "Hoyo en Villa Los Almácigos",
     category: "hoyo",
-    at: { lng: -71.4415, lat: 19.409 },
+    at: { lng: -71.4392, lat: 19.4107 },
     street: false,
     description: null,
     hoursAgo: 3,

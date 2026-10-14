@@ -515,7 +515,7 @@ export function CitizenMap({
               { layers: [CLUSTERS_LAYER_ID] },
             )[0]
           : undefined;
-        if (!cluster || cluster.geometry.type !== "Point") {
+        if (cluster?.geometry.type !== "Point") {
           button.style.transform = "";
           continue;
         }

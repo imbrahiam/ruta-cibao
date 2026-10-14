@@ -63,6 +63,7 @@ export function MapActions({
   onLocate,
   onAddPlace,
   onReportTraffic,
+  concealed = false,
 }: {
   onLocate: (
     position: { lng: number; lat: number },
@@ -70,6 +71,13 @@ export function MapActions({
   ) => void;
   onAddPlace: () => void;
   onReportTraffic: () => void;
+  /**
+   * A sheet is open over the map. On a phone the column then fades out: the
+   * sheet's peek height varies with the screen, and on a 360 px Android the
+   * "+" ended up half under it — a control that looks broken. The sheet has
+   * its own actions; the column returns when it closes.
+   */
+  concealed?: boolean;
 }) {
   const t = useTranslations("map.actions");
   const installT = useTranslations("install");
@@ -114,7 +122,13 @@ export function MapActions({
     // `right` respects the swipe-bar edge on notched phones. `bottom-28`
     // clears the attribution; with a mouse the renderer adds zoom buttons in
     // the same corner, so the column sits higher to stay clear of them.
-    <div className="absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2.5 pointer-fine:bottom-40">
+    <div
+      className={cn(
+        "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2.5 transition-opacity duration-200 pointer-fine:bottom-40",
+        concealed && "max-md:pointer-events-none max-md:opacity-0",
+      )}
+      inert={concealed}
+    >
       {/* The shared menu component rather than a hand-built one: focus moves
           in on open, arrow keys and typeahead walk it, Escape and an outside
           tap close it and hand focus back — the same behaviour as the place

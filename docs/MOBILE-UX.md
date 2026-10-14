@@ -84,10 +84,14 @@ The user then installed iOS 26.3, and Safari, the installed web-app view,
 native search keyboard and place sheet were verified on iPhone 17 Pro.
 Before release:
 
-- Take a long place name on a 360 px-wide Android and an iPhone SE. Check
-  that the 36% peek still holds the title and "Cómo llegar".
-- Go offline with a queued report and check the map's notice, then reconnect
-  and watch it clear.
+- ~~Take a long place name on a 360 px-wide Android and an iPhone SE.~~
+  Verified in emulation on 2026-10-14 (360×740 and 375×667): the peek holds
+  the two-line title and "Cómo llegar". It also showed the map's "+" half
+  under the sheet; the floating column now fades out while a sheet is open
+  on a phone. Recheck on hardware.
+- ~~Go offline and check the map's notice, then reconnect.~~ Verified in
+  emulation: the amber notice appears under the search row and clears. A
+  *queued report* while offline still needs a real device.
 - Send a traffic report on a phone and check the install card appears after
   the success toast, not over it.
 - Run `bun run screenshots` against staging, then rebuild so the manifest

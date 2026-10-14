@@ -782,6 +782,7 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
         {!pickingLocation && (
           <>
             <MapActions
+              concealed={slug !== null || selectedTraffic !== null}
               onAddPlace={() => startPicking("place")}
               onReportTraffic={() => startPicking("traffic")}
               onLocate={(position, accuracyMeters) => {
