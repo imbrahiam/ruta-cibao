@@ -68,7 +68,7 @@ export function trustState(input: {
 
 /** The tallies for one place, in a single round trip. */
 export async function placeTrust(
-  db: Db,
+  db: Db | DbTransaction,
   placeId: string,
   publishedAt: Date | null,
 ): Promise<PlaceTrust> {
@@ -117,57 +117,63 @@ export async function confirmPlace(
   viewer: MemberViewer,
   input: { placeId: string; verdict: "exists" | "gone" },
 ): Promise<PlaceTrust> {
-  const [place] = await db
-    .select({
-      id: places.id,
-      municipalityId: places.municipalityId,
-      publishedAt: places.publishedAt,
-      createdByUserId: places.createdByUserId,
-    })
-    .from(places)
-    .where(and(eq(places.id, input.placeId), eq(places.status, "published")))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    const [place] = await tx
+      .select({
+        id: places.id,
+        municipalityId: places.municipalityId,
+        publishedAt: places.publishedAt,
+        createdByUserId: places.createdByUserId,
+      })
+      .from(places)
+      .where(and(eq(places.id, input.placeId), eq(places.status, "published")))
+      .limit(1)
+      .for("update");
 
-  if (!place) throw new ConfirmationError("not_found");
-  // Vouching for your own submission is not evidence of anything.
-  if (place.createdByUserId === viewer.userId) {
-    throw new ConfirmationError("own_place");
-  }
+    if (!place) throw new ConfirmationError("not_found");
+    // Vouching for your own submission is not evidence of anything.
+    if (place.createdByUserId === viewer.userId) {
+      throw new ConfirmationError("own_place");
+    }
 
-  const weight = confirmationWeight(viewer);
+    const weight = confirmationWeight(viewer);
 
-  await db
-    .insert(placeConfirmations)
-    .values({
-      placeId: place.id,
-      userId: viewer.userId,
-      verdict: input.verdict,
-      weight,
-    })
-    .onConflictDoUpdate({
-      target: [placeConfirmations.placeId, placeConfirmations.userId],
-      set: { verdict: input.verdict, weight, updatedAt: new Date() },
-    });
+    await tx
+      .insert(placeConfirmations)
+      .values({
+        placeId: place.id,
+        userId: viewer.userId,
+        verdict: input.verdict,
+        weight,
+      })
+      .onConflictDoUpdate({
+        target: [placeConfirmations.placeId, placeConfirmations.userId],
+        set: { verdict: input.verdict, weight, updatedAt: new Date() },
+      });
 
-  await recordAudit({
-    actorUserId: viewer.userId,
-    action: "place.confirmed",
-    subjectType: "place",
-    subjectId: place.id,
-    municipalityId: place.municipalityId,
-    metadata: { verdict: input.verdict },
+    await recordAudit(
+      {
+        actorUserId: viewer.userId,
+        action: "place.confirmed",
+        subjectType: "place",
+        subjectId: place.id,
+        municipalityId: place.municipalityId,
+        metadata: { verdict: input.verdict },
+      },
+      tx,
+    );
+
+    const trust = await placeTrust(tx, place.id, place.publishedAt);
+
+    // Crossing into doubt hands the place to a moderator, once. The community
+    // layer raises the question; a person still answers it, because taking a
+    // clinic off the map is not something a vote total should be able to do.
+    if (trust.state === "doubted") {
+      await raiseDoubtReport(tx, place.id);
+    }
+
+    return trust;
   });
-
-  const trust = await placeTrust(db, place.id, place.publishedAt);
-
-  // Crossing into doubt hands the place to a moderator, once. The community
-  // layer raises the question; a person still answers it, because taking a
-  // clinic off the map is not something a vote total should be able to do.
-  if (trust.state === "doubted") {
-    await raiseDoubtReport(db, place.id);
-  }
-
-  return trust;
 }
 
 async function raiseDoubtReport(

@@ -1,11 +1,12 @@
-import { and, asc, eq, isNotNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { memberProfiles } from "@/db/schema";
+import { identityReviews, memberProfiles } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { decryptSensitive } from "@/lib/crypto";
 import { lookupCedula, parseCedula } from "@/lib/jce";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { notifyVerified } from "./verify-cedula";
+import { notify } from "@/modules/notifications/notify";
+import { namesMatch } from "./registry-match";
 
 /**
  * Finishing the verifications the registry could not answer live.
@@ -24,6 +25,11 @@ import { notifyVerified } from "./verify-cedula";
  * be picked up next time, rather than being marked rejected: "the government
  * service was down" and "this cédula does not exist" are different facts and
  * must not collapse into one.
+ *
+ * A registry answer no longer makes anyone a citizen: it fills in the name
+ * the municipality's reviewer compares the photos against. A person may have
+ * sent those photos while waiting (`in_review` with no name yet), so both
+ * states are picked up here.
  */
 
 /** Oldest first, and few: the live path has first call on the quota. */
@@ -48,12 +54,14 @@ export async function retryPendingVerifications(): Promise<RetryOutcome> {
       userId: memberProfiles.userId,
       profileId: memberProfiles.id,
       municipalityId: memberProfiles.municipalityId,
+      cedulaStatus: memberProfiles.cedulaStatus,
       cedulaCiphertext: memberProfiles.cedulaCiphertext,
     })
     .from(memberProfiles)
     .where(
       and(
-        eq(memberProfiles.cedulaStatus, "pending"),
+        inArray(memberProfiles.cedulaStatus, ["pending", "in_review"]),
+        isNull(memberProfiles.verifiedFullName),
         // A profile parked without a stored cédula has nothing to retry with.
         // It cannot happen through `markPending`, and if it ever does, silently
         // skipping it beats throwing on every run forever.
@@ -102,49 +110,109 @@ export async function retryPendingVerifications(): Promise<RetryOutcome> {
       continue;
     }
 
-    if (lookup.status === "not_found") {
-      await db
-        .update(memberProfiles)
-        .set({ cedulaStatus: "rejected" })
-        .where(eq(memberProfiles.userId, profile.userId));
-
-      await recordAudit({
-        actorUserId: null,
-        action: "member.cedula_rejected",
-        subjectType: "member_profile",
-        subjectId: profile.profileId,
-        metadata: { source: "retry" },
-      });
-
-      outcome.rejected += 1;
-      continue;
-    }
-
-    await db
-      .update(memberProfiles)
-      .set({
-        tier: "citizen",
-        cedulaStatus: "verified",
-        verifiedFullName: lookup.fullName,
-        verifiedAt: new Date(),
-        displayName: lookup.fullName,
-      })
-      .where(eq(memberProfiles.userId, profile.userId));
-
-    await recordAudit({
-      actorUserId: null,
-      action: "member.cedula_verified",
-      subjectType: "member_profile",
-      subjectId: profile.profileId,
-      municipalityId: profile.municipalityId,
-      metadata: { source: "retry" },
-    });
-
-    // This is the case the notification exists for: nobody is watching a
-    // screen, and without a message the resident never learns they can vote.
-    await notifyVerified(profile.userId, lookup.fullName);
-
-    outcome.verified += 1;
+    const applied = await db.transaction(
+      async (tx): Promise<"verified" | "rejected" | null> => {
+        const [current] = await tx
+          .select()
+          .from(memberProfiles)
+          .where(eq(memberProfiles.userId, profile.userId))
+          .limit(1)
+          .for("update");
+        if (
+          !current ||
+          current.cedulaCiphertext !== profile.cedulaCiphertext ||
+          current.verifiedFullName ||
+          !["pending", "in_review"].includes(current.cedulaStatus)
+        )
+          return null;
+        // The same rule the live lookup applies: an unknown number, or a known
+        // one under another name, frees the cédula rather than holding it.
+        const mismatch =
+          lookup.status === "found" &&
+          !namesMatch(current.claimedName ?? "", lookup.fullName);
+        if (lookup.status === "not_found" || mismatch) {
+          await tx
+            .update(memberProfiles)
+            .set({
+              cedulaStatus: "rejected",
+              cedulaCiphertext: null,
+              cedulaBlindIndex: null,
+              cedulaClaimedAt: null,
+              claimedName: null,
+            })
+            .where(eq(memberProfiles.userId, profile.userId));
+          await tx
+            .update(identityReviews)
+            .set({
+              status: "rejected",
+              reason: "mismatch",
+              reviewedAt: new Date(),
+            })
+            .where(
+              and(
+                eq(identityReviews.userId, profile.userId),
+                eq(identityReviews.status, "pending"),
+              ),
+            );
+          await recordAudit(
+            {
+              actorUserId: null,
+              action: mismatch
+                ? "member.cedula_name_mismatch"
+                : "member.cedula_rejected",
+              subjectType: "member_profile",
+              subjectId: profile.profileId,
+              metadata: { source: "retry" },
+            },
+            tx,
+          );
+          await notify(
+            {
+              userId: profile.userId,
+              messageKey: mismatch
+                ? "notifications.cedulaNameMismatch"
+                : "notifications.identityRejected",
+              href: "/verificar",
+              channels: { push: true, email: false },
+            },
+            tx,
+          );
+          return "rejected";
+        }
+        const waitingOnPhotos = current.cedulaStatus === "pending";
+        await tx
+          .update(memberProfiles)
+          .set({
+            verifiedFullName: lookup.fullName,
+            claimedName: null,
+            ...(waitingOnPhotos ? { cedulaStatus: "matched" as const } : {}),
+          })
+          .where(eq(memberProfiles.userId, profile.userId));
+        await recordAudit(
+          {
+            actorUserId: null,
+            action: "member.cedula_matched",
+            subjectType: "member_profile",
+            subjectId: profile.profileId,
+            municipalityId: profile.municipalityId,
+            metadata: { source: "retry" },
+          },
+          tx,
+        );
+        if (waitingOnPhotos)
+          await notify(
+            {
+              userId: profile.userId,
+              messageKey: "notifications.cedulaMatched",
+              href: "/verificar",
+              channels: { push: true, email: false },
+            },
+            tx,
+          );
+        return "verified";
+      },
+    );
+    if (applied) outcome[applied]++;
   }
 
   return outcome;

@@ -15,6 +15,8 @@ function profile(overrides: Partial<MemberProfile> = {}): MemberProfile {
     cedulaStatus: "none",
     residencyDeclaredAt: null,
     verifiedFullName: null,
+    claimedName: null,
+    cedulaClaimedAt: null,
     verifiedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),

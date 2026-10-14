@@ -4,8 +4,9 @@ import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins/admin";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { phoneNumber } from "better-auth/plugins/phone-number";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { memberProfiles } from "@/db/schema";
+import { memberProfiles, verification } from "@/db/schema";
 import { env } from "@/lib/env";
 import { sendEmail } from "@/lib/mail";
 import { formatPhone, normalizePhone } from "@/lib/phone";
@@ -132,6 +133,20 @@ function createAuth() {
         allowedAttempts: 5,
         phoneNumberValidator: (value) => normalizePhone(value) !== null,
         sendOTP: async ({ phoneNumber: to, code }) => {
+          // Keep the normal expiry, attempt limit and single-use verification.
+          if (
+            isDevelopment &&
+            appUrl.hostname === "localhost" &&
+            env.JCE_USE_MOCK &&
+            env.LOCAL_DEMO_OTP &&
+            env.LOCAL_DEMO_PHONES?.split(",").includes(to)
+          ) {
+            await db
+              .update(verification)
+              .set({ value: `${env.LOCAL_DEMO_OTP}:0` })
+              .where(eq(verification.identifier, to));
+            return;
+          }
           await sendSms({
             to,
             body: `Ruta Cibao: tu código es ${code}. Vence en 10 minutos. Si no lo pediste, ignora este mensaje.`,

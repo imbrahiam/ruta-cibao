@@ -1,5 +1,5 @@
 import { and, eq, sql } from "drizzle-orm";
-import type { Db } from "@/db";
+import type { Db, DbTransaction } from "@/db";
 import {
   TRAFFIC_REPORT_TTL_MINUTES,
   trafficConfirmations,
@@ -43,7 +43,7 @@ export type TrafficTally = {
 
 /** The tallies for one report, in a single round trip. */
 export async function trafficTally(
-  executor: Db,
+  executor: Db | DbTransaction,
   reportId: string,
 ): Promise<TrafficTally> {
   const [row] = await executor
@@ -75,95 +75,104 @@ export async function confirmTraffic(
   viewer: MemberViewer,
   input: ConfirmTrafficInput,
 ) {
-  const [report] = await executor
-    .select({
-      id: trafficReports.id,
-      status: trafficReports.status,
-      expiresAt: trafficReports.expiresAt,
-      municipalityId: trafficReports.municipalityId,
-      reportedByUserId: trafficReports.reportedByUserId,
-      location: trafficReports.location,
-    })
-    .from(trafficReports)
-    .where(eq(trafficReports.id, input.reportId))
-    .limit(1);
+  return executor.transaction(async (tx) => {
+    const [report] = await tx
+      .select({
+        id: trafficReports.id,
+        status: trafficReports.status,
+        expiresAt: trafficReports.expiresAt,
+        municipalityId: trafficReports.municipalityId,
+        reportedByUserId: trafficReports.reportedByUserId,
+        location: trafficReports.location,
+      })
+      .from(trafficReports)
+      .where(eq(trafficReports.id, input.reportId))
+      .limit(1)
+      .for("update");
 
-  if (!report) throw new TrafficError("not_found");
-  if (report.status !== "active") throw new TrafficError("already_resolved");
-  // Vouching for your own report is not evidence of anything.
-  if (report.reportedByUserId === viewer.userId) {
-    throw new TrafficError("own_report");
-  }
+    if (!report) throw new TrafficError("not_found");
+    if (report.status !== "active") throw new TrafficError("already_resolved");
+    // Vouching for your own report is not evidence of anything.
+    if (report.reportedByUserId === viewer.userId) {
+      throw new TrafficError("own_report");
+    }
 
-  const weight = confirmationWeight(viewer);
+    const weight = confirmationWeight(viewer);
 
-  await executor
-    .insert(trafficConfirmations)
-    .values({
-      reportId: report.id,
-      userId: viewer.userId,
-      verdict: input.verdict,
-      weight,
-    })
-    .onConflictDoUpdate({
-      target: [trafficConfirmations.reportId, trafficConfirmations.userId],
-      set: { verdict: input.verdict, weight, updatedAt: new Date() },
-    });
+    await tx
+      .insert(trafficConfirmations)
+      .values({
+        reportId: report.id,
+        userId: viewer.userId,
+        verdict: input.verdict,
+        weight,
+      })
+      .onConflictDoUpdate({
+        target: [trafficConfirmations.reportId, trafficConfirmations.userId],
+        set: { verdict: input.verdict, weight, updatedAt: new Date() },
+      });
 
-  const tally = await trafficTally(executor, report.id);
-  const cleared = tally.clearedWeight >= CLEARED_SCORE;
+    const tally = await trafficTally(tx, report.id);
+    const cleared = tally.clearedWeight >= CLEARED_SCORE;
 
-  // Confirming pushes the lapse date out, but only forwards: a report already
-  // good for five hours must not be shortened by somebody agreeing with it.
-  const extended = new Date(Date.now() + EXTENSION_MINUTES * 60 * 1_000);
-  const expiresAt =
-    !cleared && input.verdict === "still" && extended > report.expiresAt
-      ? extended
-      : report.expiresAt;
+    // Confirming pushes the lapse date out, but only forwards: a report already
+    // good for five hours must not be shortened by somebody agreeing with it.
+    const extended = new Date(Date.now() + EXTENSION_MINUTES * 60 * 1_000);
+    const expiresAt =
+      !cleared && input.verdict === "still" && extended > report.expiresAt
+        ? extended
+        : report.expiresAt;
 
-  await executor
-    .update(trafficReports)
-    .set({
-      status: cleared ? "cleared" : "active",
-      expiresAt,
-      resolvedAt: cleared ? new Date() : null,
-      resolvedByUserId: cleared ? viewer.userId : null,
-    })
-    // Guarded on the state we read: two people clearing the same report at once
-    // must not both write the resolution.
-    .where(
-      and(
-        eq(trafficReports.id, report.id),
-        eq(trafficReports.status, "active"),
-      ),
+    await tx
+      .update(trafficReports)
+      .set({
+        status: cleared ? "cleared" : "active",
+        expiresAt,
+        resolvedAt: cleared ? new Date() : null,
+        resolvedByUserId: cleared ? viewer.userId : null,
+      })
+      // Guarded on the state we read: two people clearing the same report at once
+      // must not both write the resolution.
+      .where(
+        and(
+          eq(trafficReports.id, report.id),
+          eq(trafficReports.status, "active"),
+        ),
+      );
+
+    await recordAudit(
+      {
+        actorUserId: viewer.userId,
+        action: cleared ? "traffic.cleared" : "traffic.confirmed",
+        subjectType: "traffic_report",
+        subjectId: report.id,
+        municipalityId: report.municipalityId,
+        metadata: { verdict: input.verdict },
+      },
+      tx,
     );
 
-  await recordAudit({
-    actorUserId: viewer.userId,
-    action: cleared ? "traffic.cleared" : "traffic.confirmed",
-    subjectType: "traffic_report",
-    subjectId: report.id,
-    municipalityId: report.municipalityId,
-    metadata: { verdict: input.verdict },
+    if (cleared) {
+      // The map has to lose the cone as fast as it gained it.
+      await publishRealtimeEvent(
+        {
+          channel: TRAFFIC_CHANNEL,
+          municipalityId: report.municipalityId,
+          subjectType: "traffic_report",
+          subjectId: report.id,
+          action: "deleted",
+          payload: { reason: "cleared" },
+          location: report.location,
+        },
+        tx,
+      );
+    }
+
+    return {
+      status: cleared ? ("cleared" as const) : ("active" as const),
+      stillCount: tally.stillCount,
+      clearedCount: tally.clearedCount,
+      expiresAt: expiresAt.toISOString(),
+    };
   });
-
-  if (cleared) {
-    // The map has to lose the cone as fast as it gained it.
-    await publishRealtimeEvent({
-      channel: TRAFFIC_CHANNEL,
-      municipalityId: report.municipalityId,
-      subjectType: "traffic_report",
-      subjectId: report.id,
-      action: "deleted",
-      payload: { reason: "cleared" },
-      location: report.location,
-    });
-  }
-
-  return {
-    status: cleared ? ("cleared" as const) : ("active" as const),
-    stillCount: tally.stillCount,
-    clearedCount: tally.clearedCount,
-    expiresAt: expiresAt.toISOString(),
-  };
 }

@@ -76,3 +76,10 @@ skills-lock.json
 # glyph packs fetched by `bun run basemap:fonts`
 /public/fonts/
 /public/sprites/
+
+# Local release snapshots
+/backups/
+/storage-data/
+
+# MapLibre worker, copied from node_modules by scripts/vendor-maplibre.ts
+/public/vendor/

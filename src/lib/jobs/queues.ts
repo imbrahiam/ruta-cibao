@@ -23,6 +23,8 @@ export const QUEUES = {
   platformCleanup: "platform.cleanup",
   /** Finish the verifications the civil registry could not answer. */
   cedulaRetry: "cedula.retry",
+  notificationDeliver: "notification.deliver",
+  identityDiscardUploads: "identity.discard-uploads",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -35,6 +37,7 @@ export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
  * back out.
  */
 export type JobPayloads = {
+  [QUEUES.identityDiscardUploads]: { userId: string; reviewId: string };
   [QUEUES.trafficNotifyNearby]: { reportId: string };
   [QUEUES.trafficExpire]: Record<string, never>;
   /** Omit the period to mean "the week that just ended". */
@@ -42,6 +45,11 @@ export type JobPayloads = {
   [QUEUES.reportsRender]: { reportId: string };
   [QUEUES.platformCleanup]: Record<string, never>;
   [QUEUES.cedulaRetry]: Record<string, never>;
+  [QUEUES.notificationDeliver]: {
+    notificationId: string;
+    push: boolean;
+    email: boolean;
+  };
 };
 
 /**

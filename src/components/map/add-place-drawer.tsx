@@ -26,6 +26,7 @@ import { useBoundaries } from "@/hooks/use-boundaries";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useSignInHref } from "@/hooks/use-sign-in-href";
 import { Link } from "@/i18n/navigation";
+import { markInstallMoment } from "@/lib/install-moment";
 import { municipalityAt } from "@/lib/map/boundaries";
 import { enqueue, newIdempotencyKey } from "@/lib/offline/queue";
 import { client, orpc } from "@/lib/orpc";
@@ -116,9 +117,11 @@ export function AddPlaceDrawer({
           labelKey: "map.addPlace.queued",
         });
         toast.success(t("queued"));
+        markInstallMoment();
       } else {
         await client.places.submit(input);
         toast.success(t("sent"));
+        markInstallMoment();
       }
       formElement.reset();
       setCategoryId("");
@@ -215,7 +218,6 @@ export function AddPlaceDrawer({
                           name={field}
                           type={field === "openingHours" ? "text" : "tel"}
                           maxLength={field === "openingHours" ? 240 : 24}
-                          className="h-11"
                         />
                       </div>
                     ),
@@ -258,7 +260,6 @@ export function AddPlaceDrawer({
                 <Input
                   id="place-name"
                   name="name"
-                  className="h-11"
                   placeholder={t("namePlaceholder")}
                   minLength={3}
                   maxLength={100}
@@ -307,7 +308,6 @@ export function AddPlaceDrawer({
                 <Input
                   id="place-address"
                   name="address"
-                  className="h-11"
                   placeholder={t("addressPlaceholder")}
                   maxLength={240}
                 />

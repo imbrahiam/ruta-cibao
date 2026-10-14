@@ -1,22 +1,29 @@
-import { and, asc, eq } from "drizzle-orm";
+import { createHash } from "node:crypto";
+import { and, asc, eq, gt, isNull, lte, sql } from "drizzle-orm";
 import type { Db } from "@/db";
-import { placePhotos, places } from "@/db/schema";
+import { photoUploads, placePhotos, places } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
-import { createUploadUrl, imageUrl } from "@/lib/storage";
+import { env } from "@/lib/env";
+import { normalizePhoto } from "@/lib/image";
+import { consumeRateLimit } from "@/lib/rate-limit";
+import {
+  createUploadUrl,
+  deleteObject,
+  getObjectBytes,
+  imageUrl,
+  putObject,
+  statObject,
+} from "@/lib/storage";
 import type { MemberViewer } from "@/modules/access/viewer";
+import { issuePhotoKey, keyIssuedTo } from "./photo-key";
 
 /**
  * Photographs of a place, taken by whoever was standing in front of it.
  *
- * The file never passes through this server. The browser is handed a URL it may
- * PUT one object to and nothing else, uploads straight to storage, and then
- * tells the app where it landed — which is what keeps a phone camera's output
- * out of a Node process's memory on a small VPS.
- *
- * That trust is bounded on purpose: the key is generated here, so a client
- * cannot choose where it writes; the content type is checked against a short
- * allowlist; and a row only exists once the app has been told about it, so an
- * orphaned object is invisible rather than dangerous.
+ * The browser uploads to a signed temporary key. Attachment fully decodes and
+ * normalizes the image, strips metadata, and writes a separate canonical key.
+ * Reservations bound upload volume and allow abandoned objects to be removed.
+ * Replaying the upload URL cannot change an accepted photograph.
  */
 export const ALLOWED_PHOTO_TYPES = [
   "image/jpeg",
@@ -52,9 +59,17 @@ const EXTENSIONS: Record<string, string> = {
  * presigned URL is a capability, and one whose path a client could influence is
  * a capability to overwrite somebody else's photo.
  */
-function photoKey(placeId: string, contentType: string): string {
-  const extension = EXTENSIONS[contentType] ?? "bin";
-  return `places/${placeId}/${crypto.randomUUID()}.${extension}`;
+function photoKey(
+  placeId: string,
+  userId: string,
+  contentType: string,
+): string {
+  return issuePhotoKey(
+    env.BETTER_AUTH_SECRET,
+    placeId,
+    userId,
+    EXTENSIONS[contentType] ?? "bin",
+  );
 }
 
 export async function requestPhotoUpload(
@@ -69,32 +84,55 @@ export async function requestPhotoUpload(
     throw new PhotoError("invalid");
   }
 
-  const [place] = await db
-    .select({ id: places.id })
-    .from(places)
-    .where(and(eq(places.id, input.placeId), eq(places.status, "published")))
-    .limit(1);
-
-  if (!place) throw new PhotoError("not_found");
-
-  const pending = await db
-    .select({ id: placePhotos.id })
-    .from(placePhotos)
-    .where(
-      and(
-        eq(placePhotos.placeId, place.id),
-        eq(placePhotos.uploadedByUserId, viewer.userId),
-        eq(placePhotos.status, "pending"),
-      ),
+  const storageKey = photoKey(input.placeId, viewer.userId, input.contentType);
+  await db.transaction(async (tx) => {
+    const [place] = await tx
+      .select({ id: places.id })
+      .from(places)
+      .where(and(eq(places.id, input.placeId), eq(places.status, "published")))
+      .limit(1)
+      .for("update");
+    if (!place) throw new PhotoError("not_found");
+    const allowance = await consumeRateLimit(
+      viewer.userId,
+      { scope: "photo-upload", limit: 12, windowMs: 3_600_000 },
+      tx,
     );
-
-  // One in flight at a time per person: a presigned URL that is never used
-  // costs nothing, but a client looping on this one would fill the bucket.
-  if (pending.length >= 3) throw new PhotoError("too_many");
-
-  const storageKey = photoKey(place.id, input.contentType);
-  const uploadUrl = await createUploadUrl(storageKey, input.contentType);
-
+    if (!allowance.allowed) throw new PhotoError("too_many");
+    const [active] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(photoUploads)
+      .where(
+        and(
+          eq(photoUploads.userId, viewer.userId),
+          isNull(photoUploads.finalKey),
+          gt(photoUploads.expiresAt, new Date()),
+        ),
+      );
+    if ((active?.count ?? 0) >= 3) throw new PhotoError("too_many");
+    await tx.insert(photoUploads).values({
+      storageKey,
+      userId: viewer.userId,
+      placeId: place.id,
+      contentType: input.contentType,
+      sizeBytes: input.sizeBytes,
+      expiresAt: new Date(Date.now() + 24 * 3_600_000),
+    });
+    await recordAudit(
+      {
+        actorUserId: viewer.userId,
+        action: "place_photo.upload_reserved",
+        subjectType: "place",
+        subjectId: place.id,
+      },
+      tx,
+    );
+  });
+  const uploadUrl = await createUploadUrl(
+    storageKey,
+    input.contentType,
+    input.sizeBytes,
+  );
   return { uploadUrl, storageKey };
 }
 
@@ -110,56 +148,95 @@ export async function attachPhoto(
   viewer: MemberViewer,
   input: { placeId: string; storageKey: string },
 ): Promise<{ status: "published" | "pending" }> {
-  // The key has to be one this server issued for this place; anything else is
-  // a client naming an object it does not own.
-  if (!input.storageKey.startsWith(`places/${input.placeId}/`)) {
+  // The key has to be one this server issued for this place *to this
+  // person*; anything else is a client naming an object it does not own.
+  if (
+    !keyIssuedTo(
+      env.BETTER_AUTH_SECRET,
+      input.storageKey,
+      input.placeId,
+      viewer.userId,
+    )
+  ) {
     throw new PhotoError("invalid");
   }
 
-  const [place] = await db
-    .select({ id: places.id, municipalityId: places.municipalityId })
-    .from(places)
-    .where(and(eq(places.id, input.placeId), eq(places.status, "published")))
-    .limit(1);
-
-  if (!place) throw new PhotoError("not_found");
-
-  const published = await db
-    .select({ id: placePhotos.id })
-    .from(placePhotos)
-    .where(
-      and(
-        eq(placePhotos.placeId, place.id),
-        eq(placePhotos.status, "published"),
-      ),
-    );
-
-  if (published.length >= MAX_PHOTOS_PER_PLACE) {
-    throw new PhotoError("too_many");
-  }
-
-  const status = viewer.kind === "citizen" ? "published" : "pending";
-
-  await db
-    .insert(placePhotos)
-    .values({
+  return db.transaction(async (tx) => {
+    const [place] = await tx
+      .select({ id: places.id, municipalityId: places.municipalityId })
+      .from(places)
+      .where(and(eq(places.id, input.placeId), eq(places.status, "published")))
+      .limit(1)
+      .for("update");
+    if (!place) throw new PhotoError("not_found");
+    const [upload] = await tx
+      .select()
+      .from(photoUploads)
+      .where(
+        and(
+          eq(photoUploads.storageKey, input.storageKey),
+          eq(photoUploads.userId, viewer.userId),
+          eq(photoUploads.placeId, place.id),
+        ),
+      )
+      .limit(1)
+      .for("update");
+    if (!upload || upload.expiresAt <= new Date())
+      throw new PhotoError("invalid");
+    if (upload.finalKey && upload.status) return { status: upload.status };
+    const [published] = await tx
+      .select({ count: sql<number>`count(*)::int` })
+      .from(placePhotos)
+      .where(
+        and(
+          eq(placePhotos.placeId, place.id),
+          eq(placePhotos.status, "published"),
+        ),
+      );
+    if ((published?.count ?? 0) >= MAX_PHOTOS_PER_PLACE)
+      throw new PhotoError("too_many");
+    const stat = await statObject(input.storageKey);
+    if (
+      !stat ||
+      stat.size !== upload.sizeBytes ||
+      stat.size > MAX_PHOTO_BYTES ||
+      stat.contentType !== upload.contentType
+    )
+      throw new PhotoError("invalid");
+    let normalized: Uint8Array;
+    try {
+      normalized = await normalizePhoto(await getObjectBytes(input.storageKey));
+    } catch {
+      throw new PhotoError("unsupported_type");
+    }
+    // Publish a server-written object. Reusing the presigned PUT can only
+    // change the temporary upload, never an already accepted photograph.
+    const finalKey = canonicalPhotoKey(place.id, input.storageKey);
+    await putObject(finalKey, normalized, "image/webp");
+    const status = viewer.kind === "citizen" ? "published" : "pending";
+    await tx.insert(placePhotos).values({
       placeId: place.id,
       uploadedByUserId: viewer.userId,
-      storageKey: input.storageKey,
+      storageKey: finalKey,
       status,
-    })
-    .onConflictDoNothing();
-
-  await recordAudit({
-    actorUserId: viewer.userId,
-    action: "place_photo.added",
-    subjectType: "place",
-    subjectId: place.id,
-    municipalityId: place.municipalityId,
-    metadata: { status },
+    });
+    await tx
+      .update(photoUploads)
+      .set({ finalKey, status })
+      .where(eq(photoUploads.storageKey, input.storageKey));
+    await recordAudit(
+      {
+        actorUserId: viewer.userId,
+        action: "place_photo.added",
+        subjectType: "place",
+        subjectId: place.id,
+        municipalityId: place.municipalityId,
+        metadata: { status },
+      },
+      tx,
+    );
+    return { status };
   });
-
-  return { status };
 }
 
 /** The published photos of a place, as URLs the browser can render. */
@@ -186,27 +263,50 @@ export async function placePhotoUrls(
   );
 }
 
-/**
- * One photo to stand for the place — the first published one — sized for a
- * thumbnail. The assistant cards use it; a place with no photos gets null
- * rather than a filler, so the card falls back to its category icon.
- */
-export async function placeCoverUrl(
-  db: Db,
-  placeId: string,
-): Promise<string | null> {
-  const [row] = await db
-    .select({ storageKey: placePhotos.storageKey })
-    .from(placePhotos)
-    .where(
-      and(
-        eq(placePhotos.placeId, placeId),
-        eq(placePhotos.status, "published"),
-      ),
-    )
-    .orderBy(asc(placePhotos.createdAt))
-    .limit(1);
+function canonicalPhotoKey(placeId: string, storageKey: string): string {
+  const digest = createHash("sha256").update(storageKey).digest("hex");
+  return `published-photos/${placeId}/${digest}.webp`;
+}
 
-  if (!row) return null;
-  return imageUrl(row.storageKey, { width: 800, height: 800, resize: "fill" });
+/** Temporary uploads expire even when the browser never attaches them. */
+export async function cleanupPhotoUploads(db: Db): Promise<number> {
+  const expired = await db
+    .select()
+    .from(photoUploads)
+    .where(lte(photoUploads.expiresAt, new Date()))
+    .limit(50);
+  let removed = 0;
+  for (const upload of expired) {
+    try {
+      await db.transaction(async (tx) => {
+        const [current] = await tx
+          .select()
+          .from(photoUploads)
+          .where(eq(photoUploads.storageKey, upload.storageKey))
+          .limit(1)
+          .for("update");
+        if (!current || current.expiresAt > new Date()) return;
+        await deleteObject(current.storageKey);
+        if (!current.finalKey)
+          await deleteObject(
+            canonicalPhotoKey(current.placeId, current.storageKey),
+          );
+        await tx
+          .delete(photoUploads)
+          .where(eq(photoUploads.storageKey, upload.storageKey));
+        await recordAudit(
+          {
+            action: "place_photo.upload_expired",
+            subjectType: "place",
+            subjectId: upload.placeId,
+          },
+          tx,
+        );
+      });
+      removed++;
+    } catch {
+      console.error("temporary photo cleanup failed; will retry");
+    }
+  }
+  return removed;
 }

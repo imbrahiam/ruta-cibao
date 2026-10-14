@@ -10,7 +10,7 @@ import {
   savedPlaces,
 } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
-import { geocode } from "@/lib/geocode";
+import { geocode, isGeocodingEnabled } from "@/lib/geocode";
 import {
   browsePlacesInput,
   browsePlacesOutput,
@@ -290,9 +290,19 @@ export const placesRouter = {
         summary: "Search places and addresses",
       }),
     )
-    .input(z.object({ query: z.string().min(2).max(120) }))
+    .input(
+      z.object({
+        query: z.string().min(2).max(120),
+        // Off while typing. The geocoder behind addresses is a shared public
+        // service that forbids autocomplete, so it is asked only when the
+        // person submits — see `@/lib/geocode`.
+        addresses: z.boolean().default(false),
+      }),
+    )
     .output(
       z.object({
+        /** Whether asking for addresses can return anything at all. */
+        geocoder: z.boolean(),
         places: z.array(
           z.object({
             slug: z.string(),
@@ -348,10 +358,11 @@ export const placesRouter = {
           )
           .limit(8),
 
-        geocode(term, 5),
+        input.addresses ? geocode(term, 5) : Promise.resolve([]),
       ]);
 
       return {
+        geocoder: isGeocodingEnabled(),
         places: matched.map((row) => ({
           slug: row.slug,
           name: row.name,

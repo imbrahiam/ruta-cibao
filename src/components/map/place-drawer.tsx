@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Bookmark,
   BookmarkCheck,
+  ChevronDown,
+  ChevronUp,
   Compass,
   Ellipsis,
   Share2,
@@ -19,6 +21,7 @@ import { PlacePhotos } from "@/components/map/place-photos";
 import { PlaceReportForm } from "@/components/map/place-report-form";
 import { PlaceTrust } from "@/components/map/place-trust";
 import { useToggleSaved } from "@/components/map/saved-places";
+import { StampVisit } from "@/components/passport/stamp-visit";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -67,16 +70,29 @@ import { cn } from "@/lib/utils";
 type Preview = { name: string; categoryId?: string } | null;
 
 /**
- * How much of the sheet rests on screen on a phone: half, then almost all of
- * it. Neither ever covers the map.
+ * How much of the sheet rests on screen on a phone.
+ *
+ * Three heights, the way Google and Apple Maps do it. The peek holds the
+ * header and "Cómo llegar" and nothing else — about a third of the screen, so
+ * the pin and the streets around it stay in view. It used to be 55%, which
+ * left a strip of map between the search row and the sheet. The middle shows
+ * the photo and description; the top is everything.
  *
  * The peek is exported because the map has to know it — a pin opened from a
  * link has to land in the strip the sheet leaves visible, and two numbers
  * drifting apart would put it underneath.
  */
-export const PEEK_SNAP = 0.55;
+export const PEEK_SNAP = 0.36;
+const MID_SNAP = 0.62;
 const FULL_SNAP = 0.94;
-const SNAP_POINTS = [PEEK_SNAP, FULL_SNAP];
+const SNAP_POINTS = [PEEK_SNAP, MID_SNAP, FULL_SNAP];
+
+/** Where the expand button goes next: up a step, and from the top back down. */
+function nextSnap(current: number | string | null): number {
+  if (current === PEEK_SNAP) return MID_SNAP;
+  if (current === MID_SNAP) return FULL_SNAP;
+  return PEEK_SNAP;
+}
 
 export function PlaceDrawer({
   slug,
@@ -248,6 +264,7 @@ export function PlaceDrawer({
   }, [placeId, placeSlug, slug, lng, lat, onResolved]);
 
   const expanded = snapPoint === FULL_SNAP;
+  const raised = snapPoint !== PEEK_SNAP;
   // Until the sheet is at its top rest position, dragging inside it should
   // raise it rather than scroll it — Base UI hands a drag to whichever
   // scrollable element is under the finger, so the way to be dragged is to
@@ -288,7 +305,7 @@ export function PlaceDrawer({
         // kind of thing you only forgive an app once. From the peek the same
         // pull does close it, so nothing is trapped: down twice, or a tap on
         // the map.
-        if (next === null && snapPoint === FULL_SNAP) {
+        if (next === null && snapPoint !== PEEK_SNAP) {
           details.cancel();
           swipingToPeek.current = true;
           setSnapPoint(PEEK_SNAP);
@@ -389,17 +406,38 @@ export function PlaceDrawer({
                 )}
               </div>
 
-              {/* On a phone the sheet is dismissed by swiping it away, and the
-                  handle says so. On a desktop there is no swipe to discover. */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="-mr-1 hidden size-9 shrink-0 rounded-full md:inline-flex"
-                aria-label={t("close")}
-                onClick={onClose}
-              >
-                <X className="size-4" aria-hidden />
-              </Button>
+              {/* Swiping is a shortcut, never the only way. WCAG 2.2 (2.5.7)
+                  asks for a single-tap alternative to every drag, and someone
+                  who has never met a bottom sheet does not know the handle
+                  moves — so on a phone the sheet can be raised, lowered and
+                  closed with buttons as well. */}
+              <div className="-mr-1 flex shrink-0 items-center gap-1">
+                {!isDesktop && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-11 rounded-full"
+                    aria-label={expanded ? t("collapse") : t("expand")}
+                    aria-expanded={raised}
+                    onClick={() => setSnapPoint(nextSnap(snapPoint))}
+                  >
+                    {expanded ? (
+                      <ChevronDown className="size-5" aria-hidden />
+                    ) : (
+                      <ChevronUp className="size-5" aria-hidden />
+                    )}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-11 rounded-full bg-muted/70 md:size-9 md:bg-transparent"
+                  aria-label={t("close")}
+                  onClick={onClose}
+                >
+                  <X className="size-5 md:size-4" aria-hidden />
+                </Button>
+              </div>
             </div>
 
             {/* Directions is the primary action; everything else lives behind
@@ -531,6 +569,14 @@ export function PlaceDrawer({
                     there" is a question about it. */}
                 {place && (
                   <BusinessPanel placeId={place.id} placeName={place.name} />
+                )}
+
+                {place && (
+                  <StampVisit
+                    key={place.id}
+                    placeId={place.id}
+                    slug={place.slug}
+                  />
                 )}
 
                 {place && (

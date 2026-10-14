@@ -92,6 +92,7 @@ export async function notifyNearbyOfTraffic(reportId: string): Promise<number> {
     if (!row.userId || row.userId === report.reportedByUserId) continue;
 
     await notify({
+      dedupeKey: `traffic:${report.id}:${row.userId}`,
       userId: row.userId,
       messageKey: "notifications.trafficNearby",
       params: { description },

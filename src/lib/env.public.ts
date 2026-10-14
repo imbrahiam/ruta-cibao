@@ -26,26 +26,27 @@ const publicSchema = z.object({
    */
   NEXT_PUBLIC_BASEMAP_PMTILES_URL: optional,
   NEXT_PUBLIC_MAPTILER_KEY: optional,
+  NEXT_PUBLIC_RASTER_TILE_URL: optional,
+  NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION: optional,
 
   /**
    * Which map renderer to mount.
    *
-   * Three exist side by side because they answer different questions and the
-   * choice is not settled:
+   * Three renderers are available; MapLibre is the default:
    *
-   *   `google`    what is being tested now. Familiar, reliable, and billed per
+   *   `google`    optional. Familiar, reliable, and billed per
    *               map load — a recurring cost the municipality would inherit,
    *               and its terms forbid caching tiles, so no offline map.
-   *   `leaflet`   raster tiles from CARTO. No key, no bill, renders anywhere.
+   *   `leaflet`   online raster tiles. No WebGL required.
    *   `maplibre`  vector tiles from Postgres over a self-hosted PMTiles
    *               basemap. The offline and no-bill story, and the one that
    *               needs the most care to get right.
    *
-   * None is deleted while this is undecided; switching is an env value.
+   * Switching is an explicit deployment setting.
    */
   NEXT_PUBLIC_MAP_RENDERER: z
     .enum(["google", "leaflet", "maplibre"])
-    .default("google"),
+    .default("maplibre"),
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: optional,
 
   /**
@@ -67,6 +68,9 @@ export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_BASEMAP_PMTILES_URL: process.env.NEXT_PUBLIC_BASEMAP_PMTILES_URL,
   NEXT_PUBLIC_MAPTILER_KEY: process.env.NEXT_PUBLIC_MAPTILER_KEY,
+  NEXT_PUBLIC_RASTER_TILE_URL: process.env.NEXT_PUBLIC_RASTER_TILE_URL,
+  NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION:
+    process.env.NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION,
   NEXT_PUBLIC_MAP_RENDERER: process.env.NEXT_PUBLIC_MAP_RENDERER,
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID,

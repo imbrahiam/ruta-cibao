@@ -164,13 +164,15 @@ describe("layer ids", () => {
  */
 describe("RASTER_BASEMAP", () => {
   test("keeps its placeholders", () => {
-    for (const token of ["{z}", "{x}", "{y}", "{s}"]) {
+    for (const token of ["{z}", "{x}", "{y}"]) {
       expect(RASTER_BASEMAP.url).toContain(token);
     }
   });
 
   test("carries the attribution its licence requires", () => {
     expect(RASTER_BASEMAP.attribution).toContain("OpenStreetMap");
-    expect(RASTER_BASEMAP.attribution).toContain("CARTO");
+    expect(RASTER_BASEMAP.url).toBe(
+      "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    );
   });
 });

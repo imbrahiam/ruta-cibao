@@ -1,7 +1,13 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  TriangleAlert,
+  XCircle,
+} from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
@@ -17,6 +23,7 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { useRouter } from "@/i18n/navigation";
 import { CedulaInput } from "./cedula-input";
@@ -59,27 +66,37 @@ const OUTCOME_ICON: Record<
   typeof CheckCircle2
 > = {
   verified: CheckCircle2,
+  matched: CheckCircle2,
+  in_review: Clock,
   pending: Clock,
   rejected: XCircle,
   taken: XCircle,
+  check_digit: TriangleAlert,
   invalid: XCircle,
+  invalid_name: XCircle,
 };
 
 const OUTCOME_TONE: Record<Exclude<VerifyState["status"], "idle">, string> = {
   verified: "text-emerald-600 dark:text-emerald-400",
+  matched: "text-emerald-600 dark:text-emerald-400",
+  in_review: "text-amber-600 dark:text-amber-400",
   pending: "text-amber-600 dark:text-amber-400",
   rejected: "text-destructive",
   taken: "text-destructive",
+  check_digit: "text-amber-700 dark:text-amber-400",
   invalid: "text-destructive",
+  invalid_name: "text-destructive",
 };
 
 export function CedulaForm({
   municipalities,
   next,
+  onProgress,
 }: {
   municipalities: Municipality[];
   /** Where a verified resident continues. Sanitized by the page. */
   next: string;
+  onProgress?: () => Promise<unknown>;
 }) {
   const t = useTranslations("onboarding.cedula");
   const locale = useLocale();
@@ -94,14 +111,22 @@ export function CedulaForm({
   // the form admiring the success message — which is also what left two of
   // them on screen and nowhere to go.
   useEffect(() => {
-    if (state.status !== "verified") return;
-    void queryClient.invalidateQueries().then(() => router.push(next));
-  }, [state.status, next, queryClient, router]);
+    if (!["verified", "matched", "pending", "in_review"].includes(state.status))
+      return;
+    void queryClient.invalidateQueries().then(async () => {
+      if (state.status === "verified") router.push(next);
+      else if (onProgress) await onProgress();
+      else router.refresh();
+    });
+  }, [state.status, next, queryClient, router, onProgress]);
 
   // Narrowed once, so the icon, the tone and the message are known to belong
   // to the same outcome rather than being looked up three separate times.
   const outcome =
-    state.status !== "idle" && state.status !== "invalid" && state.message
+    state.status !== "idle" &&
+    state.status !== "invalid" &&
+    state.status !== "invalid_name" &&
+    state.message
       ? {
           Icon: OUTCOME_ICON[state.status],
           tone: OUTCOME_TONE[state.status],
@@ -119,7 +144,11 @@ export function CedulaForm({
         <CedulaInput
           placeholder={t("placeholder")}
           describedBy="cedula-help"
-          invalid={state.status === "invalid" || state.status === "rejected"}
+          invalid={
+            state.status === "invalid" ||
+            state.status === "rejected" ||
+            state.status === "check_digit"
+          }
         />
         <FieldDescription
           id="cedula-help"
@@ -137,12 +166,48 @@ export function CedulaForm({
         {state.status === "invalid" && <FieldError>{state.message}</FieldError>}
       </Field>
 
+      {/* The registry's name is never shown for a number someone merely
+          typed: the person says who they are, and the platform confirms it. */}
+      <Field>
+        <FieldLabel htmlFor="name">{t("nameLabel")}</FieldLabel>
+        <Input
+          id="name"
+          name="name"
+          autoComplete="name"
+          autoCapitalize="words"
+          required
+          minLength={3}
+          maxLength={120}
+          placeholder={t("namePlaceholder")}
+          aria-invalid={
+            state.status === "invalid_name" || state.status === "rejected"
+          }
+        />
+        {state.status === "invalid_name" && (
+          <FieldError>{state.message}</FieldError>
+        )}
+      </Field>
+
       <Field>
         <FieldLabel htmlFor="municipalityId">{t("municipality")}</FieldLabel>
         <MunicipalityPicker municipalities={municipalities} />
       </Field>
 
       <SubmitButton />
+
+      {state.status === "check_digit" && (
+        // A submit button's own name and value travel with the form, so this
+        // sends the same fields plus the person's word that the number is right.
+        <Button
+          type="submit"
+          name="confirmNumber"
+          value="1"
+          variant="outline"
+          className="-mt-3 w-full"
+        >
+          {t("confirmNumber")}
+        </Button>
+      )}
 
       {outcome && (
         <p

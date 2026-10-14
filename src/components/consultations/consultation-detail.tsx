@@ -220,7 +220,6 @@ export function ConsultationDetail({ slug }: { slug: string }) {
           {isCitizen && !item.isMine && !closed ? (
             <Button
               variant={item.supported ? "default" : "outline"}
-              className="h-11"
               disabled={support.isPending}
               onClick={() => support.mutate(!item.supported)}
             >
@@ -238,7 +237,6 @@ export function ConsultationDetail({ slug }: { slug: string }) {
           ) : !isCitizen ? (
             <Button
               variant="outline"
-              className="h-11"
               nativeButton={false}
               render={<Link href="/verificar" />}
             >
@@ -347,7 +345,7 @@ export function ConsultationDetail({ slug }: { slug: string }) {
               </p>
             </div>
 
-            <Button type="submit" className="h-11" disabled={reply.isPending}>
+            <Button type="submit" disabled={reply.isPending}>
               {reply.isPending ? (
                 <Spinner className="size-4" />
               ) : (

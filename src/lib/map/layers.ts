@@ -11,11 +11,11 @@ import { mapPalette } from "./palette";
 /**
  * The citizen layer.
  *
- * Circles rather than icon sprites: a sprite sheet has to be built, shipped and
- * kept in step with a taxonomy the municipality edits at runtime, whereas a
- * circle takes its colour straight from the tile property the category already
- * carries. The icon appears in the drawer, where there is room for it and where
- * it is read rather than glanced at.
+ * Pins drawn on demand rather than a sprite sheet: a sheet has to be built,
+ * shipped and kept in step with a taxonomy the municipality edits at runtime.
+ * Each pin's image id is built from the colour and icon the tile already
+ * carries, and `installPinResolver` draws the ones the map has not seen yet —
+ * the same shape the Google renderer uses, so the two read as one product.
  *
  * Every place gets the same treatment regardless of category. Ranking them by
  * size or colour weight would be the platform deciding whose report matters
@@ -35,7 +35,25 @@ export const CLUSTERS_COUNT_LAYER_ID = "clusters-count";
  * claim, since the exact mix only matters once you are close enough to see the
  * individual markers anyway.
  */
-export function clusterLayers(): LayerSpecification[] {
+export function clusterLayers(
+  categoryIds: string[] = [],
+): LayerSpecification[] {
+  const selectedCategories = [...new Set(categoryIds)];
+  const count: ExpressionSpecification =
+    selectedCategories.length === 0
+      ? ["get", "count"]
+      : [
+          "+",
+          0,
+          ...selectedCategories.map(
+            (id): ExpressionSpecification => [
+              "coalesce",
+              ["get", `count:${id}`],
+              0,
+            ],
+          ),
+        ];
+  const filter: ExpressionSpecification = [">", count, 0];
   return [
     {
       id: CLUSTERS_LAYER_ID,
@@ -43,14 +61,17 @@ export function clusterLayers(): LayerSpecification[] {
       source: PLACES_SOURCE_ID,
       "source-layer": CLUSTERS_SOURCE_LAYER,
       maxzoom: CLUSTER_MAX_ZOOM + 1,
+      filter,
       paint: {
-        "circle-color": ["coalesce", ["get", "color"], mapPalette.ink],
+        "circle-color": categoryIds.length
+          ? mapPalette.ink
+          : ["coalesce", ["get", "color"], mapPalette.ink],
         // Square-root scaling, so a cluster of a hundred is not twenty-five
         // times the area of a cluster of four.
         "circle-radius": [
           "interpolate",
           ["linear"],
-          ["sqrt", ["get", "count"]],
+          ["sqrt", count],
           1,
           14,
           10,
@@ -67,8 +88,9 @@ export function clusterLayers(): LayerSpecification[] {
       source: PLACES_SOURCE_ID,
       "source-layer": CLUSTERS_SOURCE_LAYER,
       maxzoom: CLUSTER_MAX_ZOOM + 1,
+      filter,
       layout: {
-        "text-field": ["to-string", ["get", "count"]],
+        "text-field": ["to-string", count],
         "text-font": ["Noto Sans Regular"],
         "text-size": 13,
         "text-allow-overlap": true,
@@ -98,26 +120,27 @@ export function placesLayers(selectedId: string | null): LayerSpecification[] {
     },
     {
       id: PLACES_LAYER_ID,
-      type: "circle",
+      type: "symbol",
       source: PLACES_SOURCE_ID,
       "source-layer": PLACES_SOURCE_LAYER,
-      paint: {
-        "circle-color": ["coalesce", ["get", "color"], mapPalette.ink],
-        "circle-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          9,
-          ["case", isSelected, 7, 4],
-          16,
-          ["case", isSelected, 14, 9],
+      layout: {
+        "icon-image": [
+          "concat",
+          "pin|",
+          ["coalesce", ["get", "color"], mapPalette.ink],
+          "|",
+          ["coalesce", ["get", "icon"], ""],
+          "|",
+          ["case", isSelected, "1", "0"],
         ],
-        // A white ring is what separates a marker from the road beneath it on a
-        // map this pale, and it thickens on the selected one instead of
-        // recolouring it — colour already means category.
-        "circle-stroke-color": mapPalette.land,
-        "circle-stroke-width": ["case", isSelected, 3.5, 1.5],
-        "circle-opacity": 1,
+        "icon-anchor": "bottom",
+        // Every pin stays: hiding one because it collides with another would
+        // be the map deciding which neighbour's place matters more.
+        "icon-allow-overlap": true,
+        "icon-ignore-placement": true,
+        // The selected pin is drawn last, on top of its neighbours.
+        "symbol-sort-key": ["case", isSelected, 1, 0],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], 9, 0.75, 13, 1],
       },
     },
     {
@@ -132,7 +155,7 @@ export function placesLayers(selectedId: string | null): LayerSpecification[] {
         "text-field": ["get", "name"],
         "text-font": ["Noto Sans Regular"],
         "text-size": 12,
-        "text-offset": [0, 1.2],
+        "text-offset": [0, 0.3],
         "text-anchor": "top",
         "text-max-width": 9,
         "text-optional": true,

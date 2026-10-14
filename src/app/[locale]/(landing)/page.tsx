@@ -81,7 +81,7 @@ export default async function Landing() {
                 <p className="mb-2 text-xs font-medium uppercase tracking-[.14em] text-white/80">
                   {t("landscapeEyebrow")}
                 </p>
-                <h2 className="text-3xl font-medium tracking-tight md:text-4xl">
+                <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
                   {t("landscapeTitle")}
                 </h2>
                 <p className="mt-2 max-w-sm text-sm leading-relaxed text-white/85">
@@ -104,7 +104,7 @@ export default async function Landing() {
               <MapPinPlus className="size-5" aria-hidden />
             </span>
             <div>
-              <h2 className="text-balance text-3xl font-medium leading-tight tracking-tight">
+              <h2 className="text-balance text-3xl font-semibold leading-tight tracking-tight">
                 {t("communityTitle")}
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-white/75">
@@ -130,7 +130,7 @@ export default async function Landing() {
             </span>
           </div>
           <div>
-            <h2 className="text-xl font-medium tracking-tight">
+            <h2 className="text-xl font-semibold tracking-tight">
               {t("findTitle")}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -163,7 +163,7 @@ export default async function Landing() {
         <Card className="surface-card gap-5 p-6 ring-0 md:p-7">
           <ShieldCheck className="size-5 text-primary" aria-hidden />
           <div>
-            <h2 className="text-xl font-medium tracking-tight">
+            <h2 className="text-xl font-semibold tracking-tight">
               {t("trustTitle")}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -185,7 +185,7 @@ export default async function Landing() {
             <ArrowRight className="size-4 text-[#3e5d72]" aria-hidden />
           </div>
           <div>
-            <h2 className="text-xl font-medium tracking-tight">
+            <h2 className="text-xl font-semibold tracking-tight">
               {t("installTitle")}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-[#486173]">

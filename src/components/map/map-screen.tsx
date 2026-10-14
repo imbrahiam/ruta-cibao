@@ -25,6 +25,7 @@ import { TrafficDrawer } from "@/components/map/traffic-drawer";
 import type { CitizenMapProps, PlaceSelection } from "@/components/map/types";
 import { useCommunityMap } from "@/components/map/use-community-map";
 import { InstallSplash } from "@/components/offline/install-splash";
+import { OfflineIndicator } from "@/components/offline/offline-indicator";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useRealtime } from "@/hooks/use-realtime";
 import { useViewPreferences } from "@/hooks/use-view-preferences";
@@ -283,6 +284,13 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
   const [pickingRequested, setPickingRequested] = useQueryState(
     "agregar",
     parseAsBoolean.withDefault(false).withOptions({ shallow: true }),
+  );
+  // `?reportar=transito` is the same kind of request for a traffic report —
+  // what the home-screen shortcut opens, so the most urgent thing the app does
+  // is one long-press away from the icon.
+  const [reportRequested, setReportRequested] = useQueryState(
+    "reportar",
+    parseAsString.withOptions({ shallow: true }),
   );
   const [mapMoving, setMapMoving] = useState(false);
   const [newPlace, setNewPlace] = useState<{
@@ -633,6 +641,12 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
     startPicking("place");
   }, [pickingRequested, setPickingRequested, startPicking]);
 
+  useEffect(() => {
+    if (reportRequested !== "transito") return;
+    void setReportRequested(null);
+    startPicking("traffic");
+  }, [reportRequested, setReportRequested, startPicking]);
+
   return (
     <MapProvider>
       <div ref={frameRef} className="absolute inset-0">
@@ -703,7 +717,7 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
         <div
           ref={overlayRef}
           className={cn(
-            "pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] transition-opacity duration-200 md:flex-row md:items-center",
+            "pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-col gap-2 p-3 pt-[max(0.75rem,env(safe-area-inset-top))] pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] transition-opacity duration-200 md:flex-row md:flex-wrap md:items-center",
             pickingLocation && "pointer-events-none opacity-0",
           )}
           aria-hidden={pickingLocation}
@@ -743,6 +757,12 @@ export function MapScreen({ account }: { account?: React.ReactNode }) {
                 }
               />
             </div>
+          </div>
+
+          {/* Under the search row, where someone looks when the map stops
+              loading. Renders nothing while the connection is fine. */}
+          <div className="flex md:basis-full">
+            <OfflineIndicator placement="map" />
           </div>
         </div>
 

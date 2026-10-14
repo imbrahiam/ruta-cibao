@@ -21,6 +21,7 @@ import { useBoundaries } from "@/hooks/use-boundaries";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useSignInHref } from "@/hooks/use-sign-in-href";
 import { Link } from "@/i18n/navigation";
+import { markInstallMoment } from "@/lib/install-moment";
 import { municipalityAt } from "@/lib/map/boundaries";
 import { categoryIcon } from "@/lib/map/category-icons";
 import { readableOn } from "@/lib/map/marker-pin";
@@ -121,9 +122,11 @@ export function ReportTrafficDrawer({
           labelKey: "map.traffic.queued",
         });
         toast.success(t("queued"));
+        markInstallMoment();
       } else {
         await client.traffic.report(input);
         toast.success(t("sent"));
+        markInstallMoment();
       }
 
       formElement.reset();

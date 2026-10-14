@@ -5,6 +5,8 @@ import { SignInForm } from "@/components/onboarding/sign-in-form";
 import { BlurFade } from "@/components/ui/blur-fade";
 import { Spinner } from "@/components/ui/spinner";
 import { env } from "@/lib/env";
+import { canDeliverEmail } from "@/lib/mail";
+import { canDeliverSms } from "@/lib/sms";
 import { safeCallbackPath } from "@/modules/access/route-policy";
 import { getServerViewer } from "@/modules/access/server";
 
@@ -22,20 +24,17 @@ async function SignInContent({
   return (
     <>
       <BlurFade delay={0.05} inView>
-        <header className="flex flex-col gap-2">
-          <h1 className="font-semibold text-2xl tracking-tight">
-            {t("signIn")}
-          </h1>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            {t("intro")}
-          </p>
-        </header>
+        <h1 className="page-title">{t("signIn")}</h1>
       </BlurFade>
 
       <BlurFade delay={0.1} inView>
         <SignInForm
           callbackURL={callbackURL}
           googleEnabled={Boolean(env.GOOGLE_CLIENT_ID)}
+          methods={[
+            ...(canDeliverSms() ? (["phone"] as const) : []),
+            ...(canDeliverEmail() ? (["email"] as const) : []),
+          ]}
         />
       </BlurFade>
     </>

@@ -127,6 +127,7 @@ async function clustersTile({
       select
         ST_Transform(places.location, 3857) as mercator_point,
         categories.color,
+        places.category_id as category,
         ST_SnapToGrid(
           ST_Transform(places.location, 3857),
           (ST_XMax(bounds.mercator) - ST_XMin(bounds.mercator)) / ${CLUSTER_GRID_DIVISIONS}
@@ -136,6 +137,16 @@ async function clustersTile({
       cross join bounds
       where places.status = 'published'
         and places.location && bounds.geographic
+    ),
+    category_counts as (
+      select cell, category, count(*)::int as count
+      from snapped
+      group by cell, category
+    ),
+    cell_counts as (
+      select cell, jsonb_object_agg('count:' || category, count) as category_counts
+      from category_counts
+      group by cell
     ),
     tile_rows as (
       select
@@ -147,10 +158,12 @@ async function clustersTile({
           true
         ) as geom,
         count(*)::int as count,
-        mode() within group (order by snapped.color) as color
+        mode() within group (order by snapped.color) as color,
+        cell_counts.category_counts
       from snapped
+      join cell_counts on cell_counts.cell = snapped.cell
       cross join bounds
-      group by snapped.cell, bounds.mercator
+      group by snapped.cell, bounds.mercator, cell_counts.category_counts
     )
     select ST_AsMVT(tile_rows, 'clusters', ${EXTENT}, 'geom') as tile from tile_rows
   `);

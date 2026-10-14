@@ -11,6 +11,7 @@ import {
   LogOut,
   ShieldCheck,
   Smartphone,
+  Stamp,
   UserRound,
 } from "lucide-react";
 import Image from "next/image";
@@ -157,15 +158,19 @@ export function AccountScreen() {
       </div>
     );
   const member = viewer && viewer.kind !== "anonymous";
+  const verificationKey =
+    member && viewer.cedulaStatus === "in_review"
+      ? "verificationReview"
+      : member &&
+          (viewer.cedulaStatus === "matched" ||
+            viewer.cedulaStatus === "pending")
+        ? "verificationDocuments"
+        : "verification";
   return (
     <div className="mx-auto max-w-3xl">
-      <p className="mb-3 text-xs font-medium text-muted-foreground">
-        {t("eyebrow")}
-      </p>
-      <h1 className="mb-8 text-4xl font-semibold tracking-tight">
-        {t("title")}
-      </h1>
-      <section className="surface-card mb-6 flex flex-col gap-5 p-7 sm:flex-row sm:items-center">
+      <p className="page-eyebrow mb-3">{t("eyebrow")}</p>
+      <h1 className="page-title mb-8">{t("title")}</h1>
+      <section className="surface-card mb-6 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-7">
         {member && viewer.image ? (
           <span className="relative size-14 shrink-0 overflow-hidden rounded-2xl">
             <Image
@@ -184,7 +189,7 @@ export function AccountScreen() {
           </span>
         )}
         <div className="flex-1">
-          <h2 className="text-xl font-medium tracking-tight">
+          <h2 className="font-semibold text-xl tracking-tight">
             {member ? viewer.displayName : t("anonymousTitle")}
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -209,12 +214,13 @@ export function AccountScreen() {
         {(
           [
             { key: "contributions", href: "/aportes", icon: ClipboardList },
+            { key: "passport", href: "/pasaporte", icon: Stamp },
             { key: "install", href: "/instalar", icon: Smartphone },
             { key: "privacy", href: "/privacidad", icon: ShieldCheck },
             ...(member && viewer.kind === "visitor"
               ? [
                   {
-                    key: "verification" as const,
+                    key: verificationKey,
                     href: "/verificar",
                     icon: Fingerprint,
                   },
@@ -234,17 +240,19 @@ export function AccountScreen() {
           <Link
             key={key}
             href={href}
-            className="surface-card flex items-start gap-4 p-6 transition-colors hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-4"
+            className="surface-card group flex items-start gap-4 p-5 transition-[box-shadow,transform] duration-200 hover:shadow-[0_12px_32px_-16px_rgb(0_0_0/0.3)] focus-visible:outline-2 focus-visible:outline-offset-4 motion-safe:hover:-translate-y-0.5 sm:p-6"
           >
-            <Icon className="mt-1 size-5 shrink-0 text-primary" aria-hidden />
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent text-primary">
+              <Icon className="size-5" aria-hidden />
+            </span>
             <div className="flex-1">
-              <h2 className="font-medium">{t(key)}</h2>
+              <h2 className="font-semibold tracking-tight">{t(key)}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                 {t(`${key}Hint`)}
               </p>
             </div>
             <ArrowUpRight
-              className="size-4 text-muted-foreground"
+              className="size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
               aria-hidden
             />
           </Link>
@@ -256,10 +264,12 @@ export function AccountScreen() {
                 to one short line so both cards keep the same compact height. */}
             <section
               id="avisos"
-              className="surface-card flex scroll-mt-24 items-center gap-4 p-6"
+              className="surface-card flex scroll-mt-24 items-center gap-4 p-5 sm:p-6"
             >
               <div className="flex-1">
-                <h2 className="font-medium">{notificationsT("title")}</h2>
+                <h2 className="font-semibold tracking-tight">
+                  {notificationsT("title")}
+                </h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {t("avisosHint")}
                 </p>
@@ -274,10 +284,10 @@ export function AccountScreen() {
             </section>
             <section
               id="guardados"
-              className="surface-card flex scroll-mt-24 items-center gap-4 p-6"
+              className="surface-card flex scroll-mt-24 items-center gap-4 p-5 sm:p-6"
             >
               <div className="flex-1">
-                <h2 className="font-medium">{t("saved")}</h2>
+                <h2 className="font-semibold tracking-tight">{t("saved")}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {t("savedHint")}
                 </p>
@@ -296,7 +306,7 @@ export function AccountScreen() {
       {/* Nothing at all until the list has answered: offering to set up
           something already set up is worse than a moment with no card. */}
       {member && passkeySupport === "available" && passkeys.isSuccess && (
-        <section className="surface-card mt-4 flex flex-col gap-4 p-6 sm:flex-row sm:items-center">
+        <section className="surface-card mt-4 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
           {hasPasskey ? (
             <BadgeCheck
               className="size-5 shrink-0 text-emerald-600"
@@ -306,7 +316,7 @@ export function AccountScreen() {
             <Fingerprint className="size-5 shrink-0 text-primary" aria-hidden />
           )}
           <div className="flex-1">
-            <h2 className="font-medium">{t("passkey")}</h2>
+            <h2 className="font-semibold tracking-tight">{t("passkey")}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               {hasPasskey ? t("passkeyActiveHint") : t("passkeyHint")}
             </p>
@@ -331,7 +341,7 @@ export function AccountScreen() {
           settings list: both are things this browser can do that the account
           alone cannot, and both are meaningless on somebody else's phone. */}
       {member && push.state !== "unknown" && push.state !== "unsupported" && (
-        <section className="surface-card mt-4 flex flex-col gap-4 p-6 sm:flex-row sm:items-center">
+        <section className="surface-card mt-4 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6">
           {push.state === "on" ? (
             <Bell className="size-5 shrink-0 text-primary" aria-hidden />
           ) : (
@@ -341,7 +351,7 @@ export function AccountScreen() {
             />
           )}
           <div className="flex-1">
-            <h2 className="font-medium">{t("push")}</h2>
+            <h2 className="font-semibold tracking-tight">{t("push")}</h2>
             <p className="mt-2 text-muted-foreground text-sm leading-relaxed">
               {t(
                 push.state === "denied"

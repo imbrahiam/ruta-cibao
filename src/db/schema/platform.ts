@@ -139,3 +139,49 @@ export const pushSubscriptions = pgTable(
 
 export type AuditEvent = typeof auditEvents.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+
+/** Individual reservations for limits that must hold across rolling windows. */
+export const rollingRateLimits = pgTable(
+  "rolling_rate_limits",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    key: text().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index("rolling_rate_limits_key_time_idx").on(table.key, table.createdAt),
+    index("rolling_rate_limits_expiry_idx").on(table.expiresAt),
+  ],
+);
+
+/** Resolved registry answers are encrypted and never looked up again. */
+export const registryLookups = pgTable("registry_lookups", {
+  key: text().primaryKey(),
+  status: text().$type<"pending" | "found" | "not_found">().notNull(),
+  nameCiphertext: text(),
+  resolvedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Domain transactions write jobs here before they commit. */
+export const jobOutbox = pgTable(
+  "job_outbox",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    queue: text().notNull(),
+    data: jsonb().$type<Record<string, unknown>>().notNull(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    processedAt: timestamp({ withTimezone: true }),
+    attempts: integer().notNull().default(0),
+    nextAttemptAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("job_outbox_pending_idx").on(table.processedAt, table.createdAt),
+  ],
+);
+
+/** The worker updates one row; readiness can detect a stopped worker. */
+export const workerHeartbeats = pgTable("worker_heartbeats", {
+  id: text().primaryKey(),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});

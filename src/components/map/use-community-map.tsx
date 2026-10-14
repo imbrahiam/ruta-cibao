@@ -209,7 +209,6 @@ export function useCommunityMap(
                 <Button
                   nativeButton={false}
                   render={<Link href={`/consultas/${caseSlug}`} />}
-                  className="h-11"
                 >
                   {t("viewCase")}
                 </Button>
@@ -217,7 +216,6 @@ export function useCommunityMap(
             )}
             <Button
               variant="outline"
-              className="h-11"
               onClick={() => {
                 void setRouteId(null);
                 void setCaseSlug(null);

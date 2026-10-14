@@ -400,7 +400,7 @@ export function PickLocation({
         </span>
       </div>
 
-      <div className="absolute inset-x-0 bottom-0 z-30 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 z-30 p-3 md:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {/* Kept short on purpose: everything below the crosshair is map the
             person cannot see, and the shaded street is drawn there. */}
         <div className="mx-auto flex max-h-[42dvh] max-w-md flex-col gap-2.5 overflow-y-auto rounded-3xl border bg-background/97 p-3 shadow-2xl backdrop-blur-sm md:max-h-[65dvh] md:gap-3.5 md:p-4">

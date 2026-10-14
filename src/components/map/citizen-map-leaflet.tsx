@@ -1,15 +1,16 @@
 "use client";
 
 import type * as LeafletTypes from "leaflet";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
+import { publicEnv } from "@/lib/env.public";
 import { RASTER_BASEMAP } from "@/lib/map/basemap";
 import {
   COUNTRY_BOUNDS,
-  DEFAULT_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
   PLACE_LABEL_ZOOM,
-  PROVINCE_CENTER,
+  PROVINCE_BOUNDS,
 } from "@/lib/map/config";
 import { labelInk, markerPin, markerSize } from "@/lib/map/marker-pin";
 import { mapPalette } from "@/lib/map/palette";
@@ -66,13 +67,20 @@ export function CitizenMap({
   onMovingChange,
   onSelect,
 }: CitizenMapProps) {
+  const t = useTranslations("map.place");
+  const mapT = useTranslations("map.accessibility");
+  const labels = useRef({
+    title: mapT("title"),
+    zoomIn: mapT("zoomIn"),
+    zoomOut: mapT("zoomOut"),
+  });
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<LeafletTypes.Map | null>(null);
   const layer = useRef<LeafletTypes.GeoJSON | null>(null);
   const searchLayer = useRef<LeafletTypes.Marker | null>(null);
   const leaflet = useRef<typeof LeafletTypes | null>(null);
 
-  const [failed, setFailed] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const pointRef = useRef(onMapPoint);
   pointRef.current = onMapPoint;
@@ -102,8 +110,6 @@ export function CitizenMap({
       leaflet.current = L;
 
       const instance = L.map(container.current, {
-        center: [PROVINCE_CENTER.latitude, PROVINCE_CENTER.longitude],
-        zoom: DEFAULT_ZOOM,
         minZoom: MIN_ZOOM,
         maxZoom: MAX_ZOOM,
         // This is a provincial platform: panning to Santo Domingo to find an
@@ -114,16 +120,34 @@ export function CitizenMap({
         ),
         maxBoundsViscosity: 0.8,
         zoomControl: false,
-        attributionControl: true,
+        attributionControl: false,
       });
 
-      L.tileLayer(RASTER_BASEMAP.url, {
-        attribution: RASTER_BASEMAP.attribution,
-        subdomains: RASTER_BASEMAP.subdomains,
+      instance.fitBounds(
+        [
+          [PROVINCE_BOUNDS[1], PROVINCE_BOUNDS[0]],
+          [PROVINCE_BOUNDS[3], PROVINCE_BOUNDS[2]],
+        ],
+        { paddingTopLeft: [24, 132], paddingBottomRight: [24, 72] },
+      );
+      L.tileLayer(publicEnv.NEXT_PUBLIC_RASTER_TILE_URL ?? RASTER_BASEMAP.url, {
+        attribution:
+          publicEnv.NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION ??
+          RASTER_BASEMAP.attribution,
         maxZoom: RASTER_BASEMAP.maxZoom,
       }).addTo(instance);
 
-      L.control.zoom({ position: "bottomright" }).addTo(instance);
+      instance.getContainer().setAttribute("role", "region");
+      instance.getContainer().setAttribute("aria-label", labels.current.title);
+      L.control.attribution({ prefix: false }).addTo(instance);
+      if (window.matchMedia("(pointer: fine)").matches)
+        L.control
+          .zoom({
+            position: "bottomright",
+            zoomInTitle: labels.current.zoomIn,
+            zoomOutTitle: labels.current.zoomOut,
+          })
+          .addTo(instance);
 
       // A tap on empty ground closes whatever was open, which is what people
       // expect from a map and saves them hunting for a close button.
@@ -166,7 +190,6 @@ export function CitizenMap({
       });
 
       map.current = instance;
-      setReady(true);
       const initialCenter = instance.getCenter();
       onViewportChangeRef.current?.({
         lng: initialCenter.lng,
@@ -188,6 +211,8 @@ export function CitizenMap({
 
             const size = markerSize(isSelected);
             return L.marker(latlng, {
+              title: properties?.name ?? labels.current.title,
+              alt: properties?.name ?? labels.current.title,
               icon: L.icon({
                 iconUrl: markerPin(
                   properties?.color || mapPalette.ink,
@@ -233,15 +258,15 @@ export function CitizenMap({
             });
           },
         }).addTo(instance);
+        setReady(true);
       } catch (error) {
         console.error("could not load places", error);
-        if (!cancelled)
-          setFailed(error instanceof Error ? error.message : "unknown error");
+        if (!cancelled) setReady(true);
+        if (!cancelled) setFailed(true);
       }
     })().catch((error) => {
       console.error("could not start the map", error);
-      if (!cancelled)
-        setFailed(error instanceof Error ? error.message : "unknown error");
+      if (!cancelled) setFailed(true);
     });
 
     return () => {
@@ -255,7 +280,7 @@ export function CitizenMap({
   /** Redraws the markers, rather than rebuilding the layer. */
   useEffect(() => {
     const L = leaflet.current;
-    if (!L || !layer.current) return;
+    if (!ready || !L || !layer.current) return;
 
     layer.current.eachLayer((marker) => {
       const properties = propertiesOf(
@@ -274,7 +299,7 @@ export function CitizenMap({
         }),
       );
     });
-  }, [selectedId]);
+  }, [selectedId, ready]);
 
   /**
    * Shows only the chosen categories.
@@ -285,7 +310,7 @@ export function CitizenMap({
   useEffect(() => {
     const L = leaflet.current;
     const instance = map.current;
-    if (!L || !instance || !layer.current) return;
+    if (!ready || !L || !instance || !layer.current) return;
 
     layer.current.eachLayer((marker) => {
       const properties = propertiesOf(
@@ -301,7 +326,7 @@ export function CitizenMap({
         element.style.display = visible ? "" : "none";
       }
     });
-  }, [categoryIds]);
+  }, [categoryIds, ready]);
 
   useEffect(() => {
     if (!flyTo || !ready) return;
@@ -417,13 +442,13 @@ export function CitizenMap({
 
   return (
     <>
-      <div ref={container} className="absolute inset-0" />
+      <div ref={container} className="isolate h-full w-full" />
       {failed && (
         <p
           role="status"
           className="absolute inset-x-4 bottom-24 z-30 rounded-lg bg-destructive/10 p-3 text-destructive text-sm"
         >
-          {failed}
+          {t("loadError")}
         </p>
       )}
     </>

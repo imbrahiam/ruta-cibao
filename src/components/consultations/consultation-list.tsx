@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { OpenConsultationDrawer } from "@/components/consultations/open-consultation-drawer";
 import { StatusBadge } from "@/components/consultations/status-badge";
+import { ListSkeleton } from "@/components/shell/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "@/i18n/navigation";
 import { categoryIcon } from "@/lib/map/category-icons";
@@ -77,16 +77,15 @@ export function ConsultationList() {
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h1 className="font-semibold text-2xl tracking-tight">
-              {t("title")}
-            </h1>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              {t("intro")}
-            </p>
+          <div className="space-y-2">
+            <h1 className="page-title">{t("title")}</h1>
+            <p className="page-lede">{t("intro")}</p>
           </div>
 
-          <Button className="h-11" onClick={() => setOpening(true)}>
+          <Button
+            className="h-11 rounded-full px-5 shadow-sm"
+            onClick={() => setOpening(true)}
+          >
             <Plus className="size-4" aria-hidden />
             {t("open")}
           </Button>
@@ -110,7 +109,7 @@ export function ConsultationList() {
           they are the fastest way to narrow a list on a phone, and a chip shows
           what is on without being opened. */}
       <fieldset
-        className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+        className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden"
         aria-label={t("filterCategory")}
       >
         <button
@@ -146,6 +145,7 @@ export function ConsultationList() {
               <Icon
                 className="size-4"
                 style={{ color: active ? undefined : option.color }}
+                aria-hidden
               />
               {option.name}
             </button>
@@ -153,14 +153,7 @@ export function ConsultationList() {
         })}
       </fieldset>
 
-      {query.isPending && (
-        <p
-          className="flex items-center justify-center gap-2 py-10 text-muted-foreground text-sm"
-          role="status"
-        >
-          <Spinner className="size-4" /> {t("loading")}
-        </p>
-      )}
+      {query.isPending && <ListSkeleton label={t("loading")} />}
 
       {query.isError && (
         <p role="alert" className="text-destructive text-sm">
@@ -182,7 +175,7 @@ export function ConsultationList() {
         </Empty>
       )}
 
-      <ul className="flex flex-col gap-4">
+      <ul className="flex flex-col gap-3">
         {items.map((item) => {
           const Icon = categoryIcon(item.categoryIcon);
 
@@ -190,7 +183,7 @@ export function ConsultationList() {
             <li key={item.id}>
               <Link
                 href={`/consultas/${item.slug}`}
-                className="block rounded-2xl border bg-card p-5 transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="surface-card group block p-5 transition-[box-shadow,transform] duration-200 hover:shadow-[0_12px_32px_-16px_rgb(0_0_0/0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-safe:hover:-translate-y-0.5"
               >
                 <article className="flex flex-col gap-3">
                   <div className="flex items-start gap-3">
@@ -201,10 +194,10 @@ export function ConsultationList() {
                         color: item.categoryColor,
                       }}
                     >
-                      <Icon className="size-5" />
+                      <Icon className="size-5" aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1 space-y-1">
-                      <h2 className="text-pretty font-medium leading-snug">
+                      <h2 className="text-pretty font-semibold leading-snug tracking-tight">
                         {item.title}
                       </h2>
                       <p className="text-muted-foreground text-xs">

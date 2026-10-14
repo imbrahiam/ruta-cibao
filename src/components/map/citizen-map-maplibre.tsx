@@ -3,33 +3,37 @@
 import type { Feature, LineString } from "geojson";
 import {
   addProtocol,
+  getVersion,
   Map as MapLibreMap,
   Marker as MapLibreMarker,
   type MapMouseEvent,
   NavigationControl,
   removeProtocol,
+  setWorkerUrl,
 } from "maplibre-gl";
+import { useTranslations } from "next-intl";
 import { Protocol } from "pmtiles";
 import { useEffect, useRef, useState } from "react";
 import { publicEnv } from "@/lib/env.public";
 import {
   COUNTRY_BOUNDS,
-  DEFAULT_ZOOM,
   MAX_ZOOM,
   MIN_ZOOM,
   PLACES_SOURCE_ID,
   PLACES_TILE_URL,
-  PROVINCE_CENTER,
+  PROVINCE_BOUNDS,
 } from "@/lib/map/config";
 import {
   CLUSTERS_LAYER_ID,
   categoryFilter,
   clusterLayers,
   INTERACTIVE_LAYER_IDS,
+  PLACES_LAYER_ID,
   placesLayers,
 } from "@/lib/map/layers";
 import { markerPin, markerSize } from "@/lib/map/marker-pin";
 import { buildMapStyle } from "@/lib/map/style";
+import { installPinResolver } from "./maplibre-pins";
 import { mapOverlays } from "./overlay-features";
 import type { CitizenMapProps } from "./types";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -82,6 +86,13 @@ export function CitizenMap({
   onMovingChange,
   onSelect,
 }: CitizenMapProps) {
+  const t = useTranslations("map.accessibility");
+  const localeRef = useRef({
+    "Map.Title": t("title"),
+    "NavigationControl.ZoomIn": t("zoomIn"),
+    "NavigationControl.ZoomOut": t("zoomOut"),
+    "AttributionControl.ToggleAttribution": t("attribution"),
+  });
   const container = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const pointRef = useRef(onMapPoint);
@@ -102,6 +113,10 @@ export function CitizenMap({
   useEffect(() => {
     if (!container.current || map.current) return;
 
+    // The bundled worker URL does not survive Turbopack; this copy does.
+    // See `scripts/vendor-maplibre.ts`.
+    setWorkerUrl(`/vendor/maplibre/${getVersion()}/maplibre-gl-worker.mjs`);
+
     const basemap = resolveBasemap();
 
     // A PMTiles archive is one file read by range request, which MapLibre only
@@ -112,9 +127,17 @@ export function CitizenMap({
 
     const instance = new MapLibreMap({
       container: container.current,
+      locale: localeRef.current,
+      // High-density phones otherwise shade nearly seven pixels per CSS pixel.
+      // Two keeps labels crisp while reducing the GPU fill and buffer cost.
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       style: buildMapStyle(basemap, window.location.origin),
-      center: [PROVINCE_CENTER.longitude, PROVINCE_CENTER.latitude],
-      zoom: DEFAULT_ZOOM,
+      // Opens on the province itself, framed clear of the search bar and
+      // chips above and the tab bar below, whatever the screen's shape.
+      bounds: PROVINCE_BOUNDS,
+      fitBoundsOptions: {
+        padding: { top: 132, bottom: 72, left: 24, right: 24 },
+      },
       minZoom: MIN_ZOOM,
       maxBounds: COUNTRY_BOUNDS,
       maxZoom: MAX_ZOOM,
@@ -128,10 +151,16 @@ export function CitizenMap({
     // Zoom only. Location has one control — `MapActions` — shared by every
     // renderer, so a second geolocate button here would be two targets for
     // the same action in the same corner.
-    instance.addControl(
-      new NavigationControl({ showCompass: false }),
-      "bottom-right",
-    );
+    // Only where there is a mouse: on a touchscreen a pinch is the zoom, and
+    // a second pair of buttons beside `MapActions` is clutter.
+    if (window.matchMedia("(pointer: fine)").matches) {
+      instance.addControl(
+        new NavigationControl({ showCompass: false }),
+        "bottom-right",
+      );
+    }
+
+    installPinResolver(instance);
 
     instance.on("load", () => {
       instance.addSource(PLACES_SOURCE_ID, {
@@ -246,31 +275,71 @@ export function CitizenMap({
   }, []);
 
   // Redraw the markers when the selection changes, rather than rebuilding the
-  // map: only the paint properties depend on it.
+  // map: only the selection-dependent properties change.
   useEffect(() => {
     const instance = map.current;
-    if (!instance?.isStyleLoaded()) return;
+    if (!ready || !instance?.isStyleLoaded()) return;
 
     for (const layer of placesLayers(selectedId)) {
-      if (!instance.getLayer(layer.id) || layer.type !== "circle") continue;
-      const paint = layer.paint ?? {};
-      for (const [property, value] of Object.entries(paint)) {
-        instance.setPaintProperty(layer.id, property as never, value as never);
+      if (!instance.getLayer(layer.id)) continue;
+      if (layer.type === "symbol" && layer.id === PLACES_LAYER_ID) {
+        for (const [property, value] of Object.entries(layer.layout ?? {})) {
+          instance.setLayoutProperty(
+            layer.id,
+            property as never,
+            value as never,
+          );
+        }
+      }
+      if (layer.type === "circle") {
+        for (const [property, value] of Object.entries(layer.paint ?? {})) {
+          instance.setPaintProperty(
+            layer.id,
+            property as never,
+            value as never,
+          );
+        }
       }
     }
-  }, [selectedId]);
+  }, [selectedId, ready]);
 
   useEffect(() => {
     const instance = map.current;
-    if (!instance?.isStyleLoaded()) return;
+    if (!ready || !instance?.isStyleLoaded()) return;
 
+    for (const layer of clusterLayers(categoryIds)) {
+      if (!instance.getLayer(layer.id)) continue;
+      instance.setFilter(
+        layer.id,
+        "filter" in layer ? (layer.filter ?? null) : null,
+      );
+      if (layer.type === "symbol") {
+        instance.setLayoutProperty(
+          layer.id,
+          "text-field",
+          layer.layout?.["text-field"],
+        );
+      }
+      if (layer.type === "circle") {
+        instance.setPaintProperty(
+          layer.id,
+          "circle-radius",
+          layer.paint?.["circle-radius"],
+        );
+        instance.setPaintProperty(
+          layer.id,
+          "circle-color",
+          layer.paint?.["circle-color"],
+        );
+      }
+    }
     const filter = categoryFilter(categoryIds);
     for (const layer of placesLayers(null)) {
       if (instance.getLayer(layer.id)) {
         instance.setFilter(layer.id, filter ?? null);
       }
     }
-  }, [categoryIds]);
+  }, [categoryIds, ready]);
 
   useEffect(() => {
     if (!flyTo || !ready) return;
@@ -399,5 +468,8 @@ export function CitizenMap({
     if (canvas) canvas.style.cursor = pickingLocation ? "grab" : "";
   }, [pickingLocation]);
 
-  return <div ref={container} className="absolute inset-0" />;
+  // `h-full w-full`, not `absolute inset-0`: MapLibre's stylesheet sets
+  // `.maplibregl-map { position: relative }` outside any cascade layer, which
+  // beats Tailwind's layered utilities and left the map zero pixels tall.
+  return <div ref={container} className="h-full w-full" />;
 }

@@ -5,46 +5,35 @@
  * the sRGB values of the tokens in `globals.css` — converted, not eyeballed, so
  * the map and the interface around it are literally the same greys.
  *
- * The result is the deliberately quiet basemap that ride-hailing apps
- * popularised: white land, barely-there roads, water as a cool grey, almost no
- * labels. The point is that the map is a backdrop. What the citizens of the
- * province put on it — a report, a route, a business — has to be the only thing
- * with colour, and that only works if everything underneath stays out of the
- * way.
+ * Calm, but not colourless: the land, water and mountains are recognisable at
+ * a glance, the way people know them from the maps on their phones, while
+ * staying light enough that what citizens put on the map — a report, a route,
+ * a business — is still the most saturated thing on screen.
  *
  * Plain data, no React and no DOM, so React Native can hand the same style to
  * MapLibre Native unchanged.
  */
 export const mapPalette = {
-  /**
-   * The ground is a light grey and the roads on it are white — not the other
-   * way round.
-   *
-   * The first attempt used --background for both, which is how the interface
-   * treats a surface, and the map came out invisible: white roads on white
-   * land, separated by a hairline that is under a pixel wide at province zoom.
-   * Ride-hailing maps read the way they do because the ground recedes and the
-   * road network is the bright thing drawn on top of it.
-   */
-  /** --secondary / --muted */
-  land: "#f4f4f4",
-  landAlt: "#ededed",
-  /** --border, for hairlines and boundaries */
-  line: "#dcdcdc",
-  /** --muted-foreground */
-  lineStrong: "#737373",
-  /** --foreground */
-  label: "#0a0a0a",
-  /** --primary */
+  /** Warm off-white ground; roads stay white on it, outlined, not filled grey. */
+  land: "#f6f5f1",
+  landAlt: "#eeece6",
+  line: "#d9d5cc",
+  lineStrong: "#6b6b6b",
+  label: "#1f2933",
   ink: "#171717",
-  /** A cool neutral rather than a saturated blue, to stay in the same family. */
-  water: "#dbe3e8",
-  waterLabel: "#8a9299",
-  /** --background: the network, bright against the ground. */
+  /** Water reads as water — a soft blue, never the saturated cyan of stock styles. */
+  water: "#b5d6ee",
+  waterLabel: "#4a7ba3",
   road: "#ffffff",
-  roadCasing: "#e2e2e2",
-  building: "#e8e8e8",
-  green: "#e9eee9",
+  roadCasing: "#dcd8cf",
+  /** National highways (RD-1, RD-18): a pale amber, the colour drivers already read as "main road". */
+  highway: "#fbe3a2",
+  highwayCasing: "#e5c46b",
+  building: "#e7e4dd",
+  /** Parks and woodland. The cordillera is most of this province, so it is visibly green. */
+  green: "#d9ead2",
+  forest: "#cfe4c6",
+  farmland: "#edf0e0",
   labelHalo: "#ffffff",
 } as const;
 

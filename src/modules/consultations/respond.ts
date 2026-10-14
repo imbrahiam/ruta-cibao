@@ -32,7 +32,7 @@ export async function respondToConsultation(
   viewer: ModeratorViewer,
   input: RespondConsultationInput,
 ) {
-  const outcome = await withIdempotency({
+  await withIdempotency({
     key: input.requestId,
     userId: viewer.userId,
     request: input,
@@ -49,7 +49,8 @@ export async function respondToConsultation(
         })
         .from(consultations)
         .where(eq(consultations.id, input.consultationId))
-        .limit(1);
+        .limit(1)
+        .for("update");
 
       if (!consultation) throw new ConsultationError("not_found");
       // Read the row first: the row is what says which ayuntamiento this is.
@@ -95,39 +96,42 @@ export async function respondToConsultation(
         tx,
       );
 
+      await publishRealtimeEvent(
+        {
+          channel: CONSULTATIONS_CHANNEL,
+          municipalityId: consultation.municipalityId,
+          subjectType: "consultation",
+          subjectId: consultation.id,
+          action: "updated",
+          payload: { status: input.statusAfter },
+        },
+        tx,
+      );
+
+      if (consultation.openedByUserId) {
+        await notify(
+          {
+            userId: consultation.openedByUserId,
+            messageKey: isFirstAnswer
+              ? "notifications.consultationAnswered"
+              : "notifications.consultationStatusChanged",
+            params: {
+              title: consultation.title,
+              // The state's name is vocabulary, not data, so the row stores the key
+              // for it rather than the Spanish word — see `keyParam`.
+              status: keyParam(`consultations.status.${input.statusAfter}`),
+            },
+            href: `/consultas/${consultation.slug}`,
+            dedupeKey: `consultation:${input.requestId}`,
+            channels: { push: true, email: true },
+          },
+          tx,
+        );
+      }
+
       return { consultation, isFirstAnswer };
     },
   });
-
-  // Replays skip the side effects: the first attempt already sent them.
-  if (outcome.replayed) return { status: "ok" as const };
-
-  const { consultation, isFirstAnswer } = outcome.result;
-
-  await publishRealtimeEvent({
-    channel: CONSULTATIONS_CHANNEL,
-    municipalityId: consultation.municipalityId,
-    subjectType: "consultation",
-    subjectId: consultation.id,
-    action: "updated",
-    payload: { status: input.statusAfter },
-  });
-
-  if (consultation.openedByUserId) {
-    await notify({
-      userId: consultation.openedByUserId,
-      messageKey: isFirstAnswer
-        ? "notifications.consultationAnswered"
-        : "notifications.consultationStatusChanged",
-      params: {
-        title: consultation.title,
-        // The state's name is vocabulary, not data, so the row stores the key
-        // for it rather than the Spanish word — see `keyParam`.
-        status: keyParam(`consultations.status.${input.statusAfter}`),
-      },
-      href: `/consultas/${consultation.slug}`,
-    });
-  }
 
   return { status: "ok" as const };
 }

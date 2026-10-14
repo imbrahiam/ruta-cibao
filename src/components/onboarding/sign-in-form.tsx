@@ -89,9 +89,16 @@ function GoogleMark() {
 export function SignInForm({
   callbackURL,
   googleEnabled = false,
+  methods = ["phone", "email"],
 }: {
   callbackURL: string;
   googleEnabled?: boolean;
+  /**
+   * The code-based routes this server can actually deliver. A production
+   * server without an SMS provider does not offer the phone, rather than
+   * offering it and failing after the person typed their number.
+   */
+  methods?: readonly Method[];
 }) {
   const t = useTranslations("auth");
   const router = useRouter();
@@ -99,7 +106,7 @@ export function SignInForm({
   const passkeySupport = usePasskeySupport();
   const [isPending, startTransition] = useTransition();
 
-  const [method, setMethod] = useState<Method>("phone");
+  const [method, setMethod] = useState<Method | null>(methods[0] ?? null);
   const [step, setStep] = useState<Step>({ kind: "form" });
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -353,34 +360,45 @@ export function SignInForm({
 
   return (
     <div className="flex flex-col gap-5">
-      <fieldset className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
-        <legend className="sr-only">{t("method.label")}</legend>
-        {(["phone", "email"] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={method === option}
-            onClick={() => {
-              setMethod(option);
-              setError(null);
-            }}
-            className={`flex h-10 items-center justify-center gap-2 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-              method === option
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {option === "phone" ? (
-              <Smartphone className="size-4" aria-hidden />
-            ) : (
-              <Mail className="size-4" aria-hidden />
-            )}
-            {t(`method.${option}`)}
-          </button>
-        ))}
-      </fieldset>
+      {methods.length === 0 && !googleEnabled && !showPasskey && (
+        <p
+          role="status"
+          className="rounded-xl bg-muted p-4 text-muted-foreground text-sm leading-relaxed"
+        >
+          {t("unavailable")}
+        </p>
+      )}
 
-      {method === "phone" ? (
+      {methods.length > 1 && (
+        <fieldset className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1">
+          <legend className="sr-only">{t("method.label")}</legend>
+          {methods.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={method === option}
+              onClick={() => {
+                setMethod(option);
+                setError(null);
+              }}
+              className={`flex h-10 items-center justify-center gap-2 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                method === option
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {option === "phone" ? (
+                <Smartphone className="size-4" aria-hidden />
+              ) : (
+                <Mail className="size-4" aria-hidden />
+              )}
+              {t(`method.${option}`)}
+            </button>
+          ))}
+        </fieldset>
+      )}
+
+      {method === "phone" && (
         <form onSubmit={submitPhone} className="flex flex-col gap-4">
           <Field>
             <FieldLabel htmlFor="telefono">{t("phone.label")}</FieldLabel>
@@ -419,7 +437,9 @@ export function SignInForm({
             )}
           </Button>
         </form>
-      ) : (
+      )}
+
+      {method === "email" && (
         <form onSubmit={submitEmail} className="flex flex-col gap-4">
           <Field>
             <FieldLabel htmlFor="email">{t("email")}</FieldLabel>
@@ -464,11 +484,13 @@ export function SignInForm({
 
       {(googleEnabled || showPasskey) && (
         <>
-          <div className="flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-muted-foreground text-xs">{t("or")}</span>
-            <Separator className="flex-1" />
-          </div>
+          {methods.length > 0 && (
+            <div className="flex items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-muted-foreground text-xs">{t("or")}</span>
+              <Separator className="flex-1" />
+            </div>
+          )}
 
           {googleEnabled && (
             <Button

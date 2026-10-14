@@ -96,7 +96,6 @@ export function PathPicker({
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button
-          className="h-11"
           variant="secondary"
           onClick={() => onChange(single ? [center] : [...points, center])}
           disabled={!single && points.length >= 500}
@@ -104,7 +103,6 @@ export function PathPicker({
           {t(single ? "setPoint" : "addPoint")}
         </Button>
         <Button
-          className="h-11"
           variant="outline"
           onClick={() => onChange(points.slice(0, -1))}
           disabled={points.length === 0}
@@ -112,12 +110,7 @@ export function PathPicker({
           <Undo2 aria-hidden />
           {t("undo")}
         </Button>
-        <Button
-          className="h-11"
-          variant="ghost"
-          onClick={findMe}
-          disabled={locating}
-        >
+        <Button variant="ghost" onClick={findMe} disabled={locating}>
           {locating ? (
             <Spinner className="size-4" />
           ) : (

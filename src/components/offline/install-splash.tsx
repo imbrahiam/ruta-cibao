@@ -1,47 +1,45 @@
 "use client";
 
-import { Dialog as DialogPrimitive } from "@base-ui/react/dialog";
-import { Bell, Download, Share, WifiOff, X, Zap } from "lucide-react";
+import { Download, Share, X } from "lucide-react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { BorderBeam } from "@/components/ui/border-beam";
 import { Button } from "@/components/ui/button";
-import { DotPattern } from "@/components/ui/dot-pattern";
 import { useDevice } from "@/hooks/use-device";
 import { Link } from "@/i18n/navigation";
+import {
+  INSTALL_MOMENT_EVENT,
+  installMomentEarned,
+} from "@/lib/install-moment";
 import { useInstall } from "./install-provider";
 
 /**
- * The install offer, where people actually are.
+ * The install offer, where people actually are — once they have a reason.
  *
  * `/instalar` explains installation to somebody who went looking for it.
  * Almost nobody does: Chrome's own offer is a line in a menu, and Safari's is
- * three taps deep behind a share icon. So the app makes the offer itself, and
- * makes it once — a full screen that says what installing is for, rather than
- * a card in a corner that reads as an ad and gets swatted away.
+ * three taps deep behind a share icon. So the app makes the offer itself.
+ *
+ * It used to be a full screen on the first visit to the map, before the
+ * person had seen what they came for. That is the interstitial pattern
+ * browsers and search engines call intrusive, and it asked for commitment at
+ * the moment of least trust. Now it waits for a sign the app was useful — a
+ * report sent or queued, a place saved (`markInstallMoment`) — and arrives as
+ * a card over the bottom of the map that can be ignored. Nothing is blocked
+ * and focus is not taken.
  *
  * It shows only on a phone or a tablet, and asks the browser what the device
  * is rather than measuring the window: a laptop with a narrow window has no
  * home screen to install onto, and a media query cannot tell the two apart.
  *
- * Made on the first visit to the map, and then not again for a month. The
- * person who says "ahora no" at a washed-out bridge is not saying "never" —
- * but they are saying "not on the next four loads either", which is what used
- * to happen: the offer waited for the second visit and then came back on the
- * third, the fourth and every one after, because the month only started when
- * somebody dismissed it. On iOS, where there is no `beforeinstallprompt` to
- * gate it, that put a full screen between a person and the map they had opened
- * the app to read.
- *
- * So the month starts when the offer is *made*, not when it is refused.
- * Reloading past it, or leaving the page, spends the same one chance a
- * dismissal does — which is what makes it an offer rather than a toll.
+ * Once shown, not again for a month — counted from when it was *made*, not
+ * when it was refused, so reloading past it spends the same one chance a
+ * dismissal does. That is what makes it an offer rather than a toll.
  */
 const SNOOZE_KEY = "ruta-cibao:install-snoozed-until";
 const SNOOZE_DAYS = 30;
-/** Long enough for the map to paint first: the offer is not the errand. */
-const DELAY_MS = 1600;
+/** Long enough for the success toast to be read first. */
+const DELAY_MS = 1200;
 
 /**
  * Whether the offer is on cooldown.
@@ -70,18 +68,6 @@ function snooze(): void {
   }
 }
 
-const BENEFITS = [
-  { key: "benefitFast", icon: Zap },
-  { key: "benefitOffline", icon: WifiOff },
-  { key: "benefitAlerts", icon: Bell },
-] as const;
-
-const IOS_STEPS = [
-  "splashIosStep1",
-  "splashIosStep2",
-  "splashIosStep3",
-] as const;
-
 export function InstallSplash({
   hidden = false,
 }: {
@@ -92,21 +78,33 @@ export function InstallSplash({
   const device = useDevice();
   const { available, installed, pending, error, install } = useInstall();
   // Starts closed rather than open: the answer lives in storage, which the
-  // server cannot read, and guessing "show it" would flash the splash over the
+  // server cannot read, and guessing "show it" would flash the card over the
   // map for one frame on every load that should not have had one.
   const [snoozed, setSnoozed] = useState(true);
+  const [earned, setEarned] = useState(false);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
     setSnoozed(snoozedUntil());
-    const timer = setTimeout(() => setReady(true), DELAY_MS);
-    return () => clearTimeout(timer);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const arm = () => {
+      setEarned(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => setReady(true), DELAY_MS);
+    };
+    if (installMomentEarned()) arm();
+    window.addEventListener(INSTALL_MOMENT_EVENT, arm);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener(INSTALL_MOMENT_EVENT, arm);
+    };
   }, []);
 
   // No `beforeinstallprompt` on iOS and there never will be, which is why the
-  // splash carries Safari's own instructions instead.
+  // card carries Safari's own instruction instead.
   const ios = device?.ios === true;
   const open =
+    earned &&
     ready &&
     !hidden &&
     !snoozed &&
@@ -121,153 +119,86 @@ export function InstallSplash({
     if (open) snooze();
   }, [open]);
 
+  if (!open) return null;
+
   return (
-    <DialogPrimitive.Root
-      open={open}
-      // Closing only has to close it: the cooldown was written when it opened.
-      onOpenChange={(next) => {
-        if (!next) setSnoozed(true);
-      }}
+    <section
+      aria-labelledby="install-offer-title"
+      className="fade-in-0 slide-in-from-bottom-4 absolute inset-x-3 bottom-3 z-30 animate-in rounded-3xl border bg-background/98 p-4 pr-3 shadow-[0_18px_48px_-16px_rgb(0_0_0/0.35)] backdrop-blur-md duration-300 md:right-auto md:left-4 md:w-96"
     >
-      <DialogPrimitive.Portal>
-        <DialogPrimitive.Backdrop
-          data-slot="install-splash-overlay"
-          className="fixed inset-0 z-50 bg-black/50 duration-300 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0"
+      <div className="flex items-start gap-3">
+        <Image
+          src="/icon-192.png"
+          alt=""
+          width={48}
+          height={48}
+          className="size-12 shrink-0 rounded-[0.9rem] shadow-sm ring-1 ring-black/5"
         />
-        <DialogPrimitive.Popup
-          data-slot="install-splash"
-          className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background outline-none duration-300 data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-10 data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-10"
-        >
-          <div className="relative flex flex-1 flex-col items-center justify-center gap-6 overflow-hidden bg-primary px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-12 text-center text-primary-foreground">
-            <DotPattern
-              width={22}
-              height={22}
-              cr={1.1}
-              className="text-primary-foreground/20 [mask-image:radial-gradient(70%_60%_at_50%_45%,white,transparent)]"
-            />
-            <DialogPrimitive.Close
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-lg"
-                  className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-3 rounded-full text-primary-foreground/80 hover:bg-white/15 hover:text-primary-foreground"
-                />
-              }
-            >
-              <X className="size-5" aria-hidden />
-              <span className="sr-only">{t("dismiss")}</span>
-            </DialogPrimitive.Close>
-
-            <div className="relative flex size-24 items-center justify-center overflow-hidden rounded-[1.75rem] bg-white shadow-2xl ring-1 ring-black/10">
-              <Image
-                src="/icon-192.png"
-                alt=""
-                width={96}
-                height={96}
-                className="size-24"
-                priority
-              />
-              <BorderBeam
-                size={70}
-                duration={6}
-                className="from-transparent via-white to-transparent"
-              />
-            </div>
-
-            <div className="relative space-y-2">
-              <p className="font-semibold text-[0.7rem] text-primary-foreground/70 tracking-[0.18em]">
-                {t("splashEyebrow")}
-              </p>
-              <DialogPrimitive.Title className="text-balance font-semibold text-2xl leading-tight">
-                {t("bannerTitle")}
-              </DialogPrimitive.Title>
-              <DialogPrimitive.Description className="text-pretty text-primary-foreground/80 text-sm leading-relaxed">
-                {t("bannerBody")}
-              </DialogPrimitive.Description>
-            </div>
-          </div>
-
-          <div className="-mt-7 relative rounded-t-[2rem] bg-background px-6 pt-7 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-[0_-10px_34px_-16px_rgb(0_0_0/0.35)]">
+        <div className="min-w-0 flex-1 pt-0.5">
+          <h2
+            id="install-offer-title"
+            className="text-pretty font-semibold text-[15px] leading-snug"
+          >
+            {t("bannerTitle")}
+          </h2>
+          <p className="mt-1 text-pretty text-muted-foreground text-sm leading-snug">
             {ios ? (
-              <ol className="space-y-3.5">
-                {IOS_STEPS.map((key, index) => (
-                  <li key={key} className="flex items-center gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 font-semibold text-primary text-sm">
-                      {index + 1}
-                    </span>
-                    <span className="flex flex-wrap items-center gap-1.5 text-sm leading-snug">
-                      {t(key)}
-                      {index === 0 && (
-                        <Share className="size-4 text-primary" aria-hidden />
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ol>
+              <>
+                <Share
+                  className="-mt-0.5 mr-1 inline size-3.5 text-primary"
+                  aria-hidden
+                />
+                {t("bannerIos")}
+              </>
             ) : (
-              <ul className="space-y-3.5">
-                {BENEFITS.map(({ key, icon: Icon }) => (
-                  <li key={key} className="flex items-center gap-3">
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="size-4" aria-hidden />
-                    </span>
-                    <span className="text-sm leading-snug">{t(key)}</span>
-                  </li>
-                ))}
-              </ul>
+              t("bannerBody")
             )}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="-mt-1 size-9 shrink-0 rounded-full text-muted-foreground"
+          aria-label={t("dismiss")}
+          onClick={() => setSnoozed(true)}
+        >
+          <X className="size-4" aria-hidden />
+        </Button>
+      </div>
 
-            {error && (
-              <p role="alert" className="mt-4 text-destructive text-sm">
-                {t("error")}
-              </p>
-            )}
+      {error && (
+        <p role="alert" className="mt-3 text-destructive text-sm">
+          {t("error")}
+        </p>
+      )}
 
-            <div className="mt-6 space-y-2">
-              {available ? (
-                <>
-                  <Button
-                    className="h-12 w-full rounded-full text-base"
-                    disabled={pending}
-                    onClick={() => void install()}
-                  >
-                    <Download className="size-5" aria-hidden />
-                    {t("action")}
-                  </Button>
-                  <DialogPrimitive.Close
-                    render={
-                      <Button
-                        variant="ghost"
-                        className="h-11 w-full rounded-full text-muted-foreground"
-                      />
-                    }
-                  >
-                    {t("dismiss")}
-                  </DialogPrimitive.Close>
-                </>
-              ) : (
-                <>
-                  <DialogPrimitive.Close
-                    render={
-                      <Button className="h-12 w-full rounded-full text-base" />
-                    }
-                  >
-                    {t("splashGotIt")}
-                  </DialogPrimitive.Close>
-                  <Button
-                    variant="ghost"
-                    className="h-11 w-full rounded-full text-muted-foreground"
-                    nativeButton={false}
-                    render={<Link href="/instalar" />}
-                  >
-                    {t("how")}
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </DialogPrimitive.Popup>
-      </DialogPrimitive.Portal>
-    </DialogPrimitive.Root>
+      <div className="mt-3 flex justify-end gap-2 pr-1">
+        <Button
+          variant="ghost"
+          className="h-10 rounded-full px-4 text-muted-foreground"
+          onClick={() => setSnoozed(true)}
+        >
+          {t("dismiss")}
+        </Button>
+        {available ? (
+          <Button
+            className="h-10 rounded-full px-5"
+            disabled={pending}
+            onClick={() => void install()}
+          >
+            <Download className="size-4" aria-hidden />
+            {t("action")}
+          </Button>
+        ) : (
+          <Button
+            className="h-10 rounded-full px-5"
+            nativeButton={false}
+            render={<Link href="/instalar" />}
+          >
+            {t("how")}
+          </Button>
+        )}
+      </div>
+    </section>
   );
 }

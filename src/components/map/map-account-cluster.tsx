@@ -17,12 +17,10 @@ const floating =
 /**
  * The account control on a phone: one avatar, nothing else.
  *
- * Saved places, notifications and the assistant used to hang below it as
- * their own floating circles, competing with search, the category chips and
- * the map itself for space. They are secondary actions — they now live where
- * secondary actions belong: saved and notifications on the "Mi cuenta" screen
- * (one tap away in the bottom bar), the assistant inside the account menu and
- * as a suggestion in search. The avatar keeps a badge while anything is
+ * Saved places and notifications used to hang below it as their own floating
+ * circles, competing with search, the category chips and the map itself for
+ * space. They are secondary actions, so they live on the "Mi cuenta" screen,
+ * one tap away in the bottom bar. The avatar keeps a badge while anything is
  * unread, so the signal survives without spending a permanent button on it.
  */
 export function MapAccountCluster() {

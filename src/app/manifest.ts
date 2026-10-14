@@ -1,5 +1,20 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type { MetadataRoute } from "next";
 import messages from "../../messages/es.json";
+
+/**
+ * The captures `bun run screenshots` writes, in the order the install sheet
+ * shows them. Listed only when the file is there, so a fresh checkout builds
+ * a valid manifest; Chrome then falls back to its plain install dialog.
+ */
+const SCREENSHOTS = [
+  { file: "map", label: messages.navigation.map },
+  { file: "explore", label: messages.navigation.explore },
+  { file: "consultations", label: messages.navigation.consultations },
+].filter(({ file }) =>
+  existsSync(join(process.cwd(), "public", "screenshots", `${file}.png`)),
+);
 
 /**
  * Installable on a phone's home screen.
@@ -25,6 +40,11 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["travel", "navigation", "government"],
     shortcuts: [
       {
+        name: messages.map.actions.reportTraffic,
+        url: "/mapa?reportar=transito",
+        icons: [{ src: "/icon-192.png", sizes: "192x192" }],
+      },
+      {
         name: messages.navigation.explore,
         url: "/explorar",
         icons: [{ src: "/icon-192.png", sizes: "192x192" }],
@@ -35,6 +55,13 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: "/icon-192.png", sizes: "192x192" }],
       },
     ],
+    screenshots: SCREENSHOTS.map(({ file, label }) => ({
+      src: `/screenshots/${file}.png`,
+      sizes: "1170x2532",
+      type: "image/png",
+      form_factor: "narrow" as const,
+      label,
+    })),
     icons: [
       {
         src: "/icon-192.png",

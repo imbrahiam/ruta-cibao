@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils";
  * deselect the last chip is a trap, so "Todo" is always one tap away and reads
  * as selected when nothing else is.
  */
-function Chip({
+export function FilterChip({
   active,
   onClick,
   children,
@@ -143,17 +143,17 @@ export function CategoryChips({
         ref={scrollRef}
         className="flex h-full items-center gap-2 overflow-x-auto scroll-px-3 pe-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <Chip active={selected.length === 0} onClick={() => onChange([])}>
+        <FilterChip active={selected.length === 0} onClick={() => onChange([])}>
           <LayoutGrid className="size-4" aria-hidden />
           {t("all")}
-        </Chip>
+        </FilterChip>
 
         {(categories ?? []).map((category) => {
           const Icon = categoryIcon(category.icon);
           const active = selected.includes(category.id);
 
           return (
-            <Chip
+            <FilterChip
               key={category.id}
               active={active}
               onClick={() => toggle(category.id)}
@@ -167,7 +167,7 @@ export function CategoryChips({
                 aria-hidden
               />
               {category.name}
-            </Chip>
+            </FilterChip>
           );
         })}
       </div>

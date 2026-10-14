@@ -98,27 +98,44 @@
   --background: oklch(0.989 0.002 100);
   --foreground: oklch(0.24 0.012 160);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.24 0.012 160);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover-foreground: oklch(0.24 0.012 160);
   --primary: oklch(0.36 0.055 164);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
+  --secondary: oklch(0.965 0.004 160);
+  --secondary-foreground: oklch(0.24 0.012 160);
+  --muted: oklch(0.965 0.004 160);
   --muted-foreground: oklch(0.49 0.008 160);
   --accent: oklch(0.955 0.012 160);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent-foreground: oklch(0.3 0.04 164);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --border: oklch(0.915 0.006 160);
+  --input: oklch(0.89 0.008 160);
+  /*
+   * The focus ring, in the brand's green and dark enough to read.
+   *
+   * shadcn's default was a mid grey drawn at half opacity — about 1.5:1 on
+   * white and lost entirely over a basemap, where WCAG 2.2 asks a focus
+   * indicator for 3:1 (1.4.11, 2.4.13). This one clears 4.5:1 against white
+   * and stays visible over the pale map ground.
+   */
+  --ring: oklch(0.5 0.11 164);
+  --chart-1: oklch(0.45 0.08 164);
+  --chart-2: oklch(0.62 0.1 190);
+  --chart-3: oklch(0.78 0.13 85);
+  --chart-4: oklch(0.62 0.16 35);
+  --chart-5: oklch(0.7 0.02 160);
   --radius: 0.875rem;
+  /*
+   * The phone's bottom navigation, as one number.
+   *
+   * The bar, its loading placeholder, and the padding every layout leaves for
+   * it used to be three different guesses: 3.25rem, 4.5rem and a flat 5rem.
+   * On an iPhone the home-indicator inset took the flat one under the bar, and
+   * the last line of every page sat behind it.
+   */
+  --mobile-nav-height: calc(3.75rem + max(0.5rem, env(safe-area-inset-bottom)));
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -129,43 +146,52 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/*
+ * Dark theme, in the brand's own colours.
+ *
+ * Nothing switches to it yet — the app ships one light theme, because the map
+ * itself is light and dark chrome around a white map is the worst of both.
+ * These are real values rather than shadcn's grey defaults so that whoever
+ * adds a toggle (and a dark map style with it) starts from something that
+ * already looks like Ruta Cibao.
+ */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: oklch(0.17 0.01 165);
+  --foreground: oklch(0.96 0.005 160);
+  --card: oklch(0.21 0.012 165);
+  --card-foreground: oklch(0.96 0.005 160);
+  --popover: oklch(0.22 0.012 165);
+  --popover-foreground: oklch(0.96 0.005 160);
+  --primary: oklch(0.8 0.1 164);
+  --primary-foreground: oklch(0.2 0.03 165);
+  --secondary: oklch(0.26 0.012 165);
+  --secondary-foreground: oklch(0.96 0.005 160);
+  --muted: oklch(0.26 0.012 165);
+  --muted-foreground: oklch(0.72 0.012 160);
+  --accent: oklch(0.3 0.03 164);
+  --accent-foreground: oklch(0.96 0.005 160);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.75 0.11 164);
+  --chart-1: oklch(0.8 0.1 164);
+  --chart-2: oklch(0.7 0.09 190);
+  --chart-3: oklch(0.75 0.12 85);
+  --chart-4: oklch(0.65 0.14 30);
+  --chart-5: oklch(0.6 0.02 160);
+  --sidebar: oklch(0.21 0.012 165);
+  --sidebar-foreground: oklch(0.96 0.005 160);
+  --sidebar-primary: oklch(0.8 0.1 164);
+  --sidebar-primary-foreground: oklch(0.2 0.03 165);
+  --sidebar-accent: oklch(0.26 0.012 165);
+  --sidebar-accent-foreground: oklch(0.96 0.005 160);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar-ring: oklch(0.75 0.11 164);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   body {
     @apply bg-background text-foreground antialiased;
@@ -176,6 +202,23 @@
 }
 
 @layer components {
+  /*
+   * One title and one lede for every page. Each screen used to pick its own
+   * size, from text-2xl to text-4xl, so moving between tabs felt like moving
+   * between products.
+   */
+  .page-title {
+    @apply text-balance font-semibold text-[1.875rem] leading-[1.1] tracking-[-0.03em] sm:text-4xl;
+  }
+
+  .page-eyebrow {
+    @apply inline-flex items-center gap-2 font-semibold text-[11px] text-primary uppercase tracking-[0.14em];
+  }
+
+  .page-lede {
+    @apply max-w-2xl text-pretty text-[15px] text-muted-foreground leading-relaxed sm:text-base;
+  }
+
   .surface-card {
     @apply rounded-3xl border border-black/7 bg-card shadow-[0_3px_14px_-8px_rgb(0_0_0_/_0.14)];
   }

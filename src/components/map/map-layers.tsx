@@ -27,6 +27,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Toggle } from "@/components/ui/toggle";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { publicEnv } from "@/lib/env.public";
 import { TRAFFIC_COLORS, type TrafficTone } from "@/lib/map/traffic-colors";
 import { VIEW_MODES, type ViewMode } from "@/lib/map/view-mode";
 
@@ -84,7 +85,8 @@ export function MapLayers({
   const [open, setOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
-  const ActiveIcon = ICONS[mode];
+  const googleRenderer = publicEnv.NEXT_PUBLIC_MAP_RENDERER === "google";
+  const ActiveIcon = googleRenderer ? ICONS[mode] : MapIcon;
 
   return (
     <Drawer
@@ -105,9 +107,9 @@ export function MapLayers({
             // back, which is what makes it findable by someone who has never
             // used the app and has the room to be told. The leading edge
             // respects the landscape notch rather than kissing it.
-            className="absolute bottom-6 left-[max(0.75rem,env(safe-area-inset-left))] z-20 flex size-12 items-center justify-center gap-2 rounded-full border bg-background/95 shadow-md backdrop-blur-sm transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:left-4 md:size-auto md:rounded-xl md:py-2 md:pr-3 md:pl-2.5"
+            className="absolute bottom-6 left-[max(0.75rem,env(safe-area-inset-left))] z-20 flex size-12 items-center justify-center gap-2 rounded-full border border-black/5 bg-background shadow-[0_2px_10px_-2px_rgb(0_0_0/0.22)] transition-[background-color,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 md:left-4 md:h-11 md:w-auto md:rounded-full md:py-1 md:pr-4 md:pl-1"
           >
-            <span className="flex size-9 items-center justify-center rounded-lg md:bg-muted">
+            <span className="flex size-9 items-center justify-center rounded-full md:bg-muted">
               <ActiveIcon className="size-5" aria-hidden />
             </span>
             <span className="hidden pr-1 font-medium text-sm md:inline">
@@ -148,41 +150,46 @@ export function MapLayers({
             {/* One of three, so a radio group: the circle says only one can be
             on, where a tick left that ambiguous. Tapping anywhere on the row
             picks it and closes the drawer. */}
-            <RadioGroup
-              value={mode}
-              onValueChange={(value) => {
-                onModeChange(value as ViewMode);
-                setOpen(false);
-              }}
-              aria-label={t("title")}
-              className="flex flex-col gap-1 px-4"
-            >
-              {VIEW_MODES.map((option) => {
-                const Icon = ICONS[option];
+            {googleRenderer && (
+              <RadioGroup
+                value={mode}
+                onValueChange={(value) => {
+                  onModeChange(value as ViewMode);
+                  setOpen(false);
+                }}
+                aria-label={t("title")}
+                className="flex flex-col gap-1 px-4"
+              >
+                {VIEW_MODES.map((option) => {
+                  const Icon = ICONS[option];
 
-                return (
-                  <label
-                    key={option}
-                    htmlFor={`view-mode-${option}`}
-                    className="flex min-h-16 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-secondary has-checked:bg-accent/60 focus-within:outline-none focus-within:ring-2 focus-within:ring-ring"
-                  >
-                    <Icon
-                      className="size-5 shrink-0 text-muted-foreground"
-                      aria-hidden
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-base">{t(option)}</span>
-                      <span className="block text-muted-foreground text-xs leading-snug">
-                        {t(`${option}Hint`)}
+                  return (
+                    <label
+                      key={option}
+                      htmlFor={`view-mode-${option}`}
+                      className="flex min-h-16 cursor-pointer items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-secondary has-checked:bg-accent/60 focus-within:outline-none focus-within:ring-2 focus-within:ring-ring"
+                    >
+                      <Icon
+                        className="size-5 shrink-0 text-muted-foreground"
+                        aria-hidden
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-base">{t(option)}</span>
+                        <span className="block text-muted-foreground text-xs leading-snug">
+                          {t(`${option}Hint`)}
+                        </span>
                       </span>
-                    </span>
-                    <RadioGroupItem value={option} id={`view-mode-${option}`} />
-                  </label>
-                );
-              })}
-            </RadioGroup>
+                      <RadioGroupItem
+                        value={option}
+                        id={`view-mode-${option}`}
+                      />
+                    </label>
+                  );
+                })}
+              </RadioGroup>
+            )}
 
-            <Separator className="my-3" />
+            {googleRenderer && <Separator className="my-3" />}
             {communityControls}
 
             <div className="flex flex-col gap-1 px-4 pb-8">
@@ -227,42 +234,47 @@ export function MapLayers({
                 </ul>
               )}
 
-              <Toggle
-                pressed={traffic}
-                onPressedChange={onTrafficChange}
-                className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-2 text-left whitespace-normal"
-              >
-                <TrafficCone
-                  className="size-5 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-base">
-                    {trafficCopy("label")}
-                  </span>
-                  <span className="block text-muted-foreground text-xs leading-snug">
-                    {trafficCopy("hint")}
-                  </span>
-                </span>
-              </Toggle>
+              {googleRenderer && (
+                <>
+                  <Toggle
+                    pressed={traffic}
+                    onPressedChange={onTrafficChange}
+                    className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-2 text-left whitespace-normal"
+                  >
+                    <TrafficCone
+                      className="size-5 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-base">
+                        {trafficCopy("label")}
+                      </span>
+                      <span className="block text-muted-foreground text-xs leading-snug">
+                        {trafficCopy("hint")}
+                      </span>
+                    </span>
+                  </Toggle>
 
-              <Toggle
-                pressed={googlePlaces}
-                onPressedChange={onGooglePlacesChange}
-                className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-2 text-left whitespace-normal"
-              >
-                <Store
-                  className="size-5 shrink-0 text-muted-foreground"
-                  aria-hidden
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="block text-base">{placesCopy("label")}</span>
-                  <span className="block text-muted-foreground text-xs leading-snug">
-                    {placesCopy("hint")}
-                  </span>
-                </span>
-              </Toggle>
-
+                  <Toggle
+                    pressed={googlePlaces}
+                    onPressedChange={onGooglePlacesChange}
+                    className="h-auto min-h-16 w-full justify-start gap-3 rounded-lg px-3 py-2 text-left whitespace-normal"
+                  >
+                    <Store
+                      className="size-5 shrink-0 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-base">
+                        {placesCopy("label")}
+                      </span>
+                      <span className="block text-muted-foreground text-xs leading-snug">
+                        {placesCopy("hint")}
+                      </span>
+                    </span>
+                  </Toggle>
+                </>
+              )}
               <OfflineBasemap />
             </div>
           </div>

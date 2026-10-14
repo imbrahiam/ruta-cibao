@@ -6,8 +6,8 @@
  * a single upsert with no read-modify-write race.
  */
 import { sql } from "drizzle-orm";
-import { db } from "@/db";
-import { rateLimitBuckets } from "@/db/schema";
+import { type Db, type DbTransaction, db } from "@/db";
+import { rateLimitBuckets, rollingRateLimits } from "@/db/schema";
 import { hashLookup } from "@/lib/crypto";
 import { env } from "@/lib/env";
 
@@ -40,7 +40,11 @@ export function getRequestClientKey(request: Request): string {
     : undefined;
 
   const address =
-    forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
+    forwarded ||
+    (env.TRUSTED_PROXY
+      ? request.headers.get("x-real-ip")?.trim()
+      : undefined) ||
+    "unknown";
 
   return hashLookup("request-client", address.slice(0, 128));
 }
@@ -48,6 +52,7 @@ export function getRequestClientKey(request: Request): string {
 export async function consumeRateLimit(
   identifier: string,
   policy: RateLimitPolicy,
+  executor: Db | DbTransaction = db,
 ): Promise<RateLimitResult> {
   const now = Date.now();
   const windowStart = Math.floor(now / policy.windowMs) * policy.windowMs;
@@ -57,7 +62,7 @@ export async function consumeRateLimit(
     `${policy.scope}\0${identifier}\0${windowStart}`,
   );
 
-  const [bucket] = await db
+  const [bucket] = await executor
     .insert(rateLimitBuckets)
     .values({ key, scope: policy.scope, requestCount: 1, resetAt })
     .onConflictDoUpdate({
@@ -80,6 +85,52 @@ export async function consumeRateLimit(
   };
 }
 
+/** Serialize reservations in Postgres so all instances share the same budget. */
+export async function consumeRollingRateLimit(
+  identifier: string,
+  policy: RateLimitPolicy,
+  transaction?: DbTransaction,
+): Promise<RateLimitResult> {
+  const run = async (tx: DbTransaction) => {
+    const key = hashLookup(
+      "rolling-rate-limit",
+      `${policy.scope}\0${identifier}`,
+    );
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`,
+    );
+    const [window] = await tx
+      .select({
+        count: sql<number>`count(*)::int`,
+        earliest: sql<Date | null>`min(${rollingRateLimits.expiresAt})`,
+      })
+      .from(rollingRateLimits)
+      .where(
+        sql`${rollingRateLimits.key} = ${key} and ${rollingRateLimits.expiresAt} > clock_timestamp()`,
+      );
+    const count = window?.count ?? 0;
+    const allowed = count < policy.limit;
+    if (allowed)
+      await tx.insert(rollingRateLimits).values({
+        key,
+        expiresAt: sql`clock_timestamp() + ${policy.windowMs} * interval '1 millisecond'`,
+      });
+    return {
+      allowed,
+      remaining: Math.max(0, policy.limit - count - (allowed ? 1 : 0)),
+      retryAfterSeconds: window?.earliest
+        ? Math.max(
+            1,
+            Math.ceil(
+              (new Date(window.earliest).getTime() - Date.now()) / 1000,
+            ),
+          )
+        : Math.ceil(policy.windowMs / 1000),
+    };
+  };
+  return transaction ? run(transaction) : db.transaction(run);
+}
+
 /** Drops windows that have already closed. Safe to run on any schedule. */
 export async function clearExpiredRateLimits(
   now = new Date(),
@@ -89,5 +140,9 @@ export async function clearExpiredRateLimits(
     .where(sql`${rateLimitBuckets.resetAt} <= ${now}`)
     .returning({ key: rateLimitBuckets.key });
 
-  return removed.length;
+  const rolling = await db
+    .delete(rollingRateLimits)
+    .where(sql`${rollingRateLimits.expiresAt} <= ${now}`)
+    .returning({ id: rollingRateLimits.id });
+  return removed.length + rolling.length;
 }

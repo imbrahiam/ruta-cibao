@@ -39,9 +39,7 @@ export default async function WelcomePage({
     <>
       <BlurFade delay={0.05} inView>
         <header className="flex flex-col gap-2 text-center">
-          <h1 className="font-semibold text-2xl tracking-tight">
-            {t("title")}
-          </h1>
+          <h1 className="page-title">{t("title")}</h1>
           <p className="text-muted-foreground text-sm">{t("chooseTier")}</p>
         </header>
       </BlurFade>

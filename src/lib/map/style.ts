@@ -85,6 +85,27 @@ function protomapsFlavor(): Flavor {
     hospital: mapPalette.landAlt,
     industrial: mapPalette.landAlt,
     pedestrian: mapPalette.landAlt,
+    highway: mapPalette.highway,
+    highway_casing_early: mapPalette.highwayCasing,
+    highway_casing_late: mapPalette.highwayCasing,
+    bridges_highway: mapPalette.highway,
+    bridges_highway_casing: mapPalette.highwayCasing,
+    major: mapPalette.road,
+    major_casing_early: mapPalette.roadCasing,
+    major_casing_late: mapPalette.roadCasing,
+    minor_casing: mapPalette.roadCasing,
+    city_label: mapPalette.label,
+    subplace_label: "#5b6470",
+    ocean_label: mapPalette.waterLabel,
+    landcover: {
+      glacier: "#ffffff",
+      forest: mapPalette.forest,
+      grassland: mapPalette.green,
+      scrub: mapPalette.green,
+      farmland: mapPalette.farmland,
+      barren: mapPalette.landAlt,
+      urban_area: mapPalette.landAlt,
+    },
   };
 }
 

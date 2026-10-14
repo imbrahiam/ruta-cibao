@@ -15,6 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { useSignInHref } from "@/hooks/use-sign-in-href";
 import { Link } from "@/i18n/navigation";
+import { markInstallMoment } from "@/lib/install-moment";
 import { enqueue, newIdempotencyKey } from "@/lib/offline/queue";
 import { client } from "@/lib/orpc";
 import type { ReportPlaceInput } from "@/modules/places/contracts";
@@ -80,9 +81,11 @@ export function PlaceReportForm({
           labelKey: "map.place.reportForm.queued",
         });
         toast.success(t("queued"));
+        markInstallMoment();
       } else {
         await client.places.report(input);
         toast.success(t("sent"));
+        markInstallMoment();
       }
       onDone();
     } catch {

@@ -16,7 +16,8 @@ import { type MemberViewer, toViewer, type Viewer } from "./viewer";
  * the static shell.
  */
 export const getServerViewer = cache(async (): Promise<Viewer> => {
-  const session = await getAuth().api.getSession({ headers: await headers() });
+  const requestHeaders = await headers();
+  const session = await getAuth().api.getSession({ headers: requestHeaders });
   if (!session?.user) return { kind: "anonymous" };
 
   const [profile] = await db

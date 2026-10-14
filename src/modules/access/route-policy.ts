@@ -16,7 +16,9 @@ const AUTH_CALLBACK_PATHS = new Set([
   "/consultas",
   "/informes",
   "/rutas",
+  "/pasaporte",
   "/moderacion/temas",
+  "/moderacion/identidad",
 ]);
 
 export function appPath(pathname: string): string {
@@ -31,7 +33,12 @@ export function appPath(pathname: string): string {
 const MEMBER_PATHS = new Set(["/verificar", "/moderacion", "/informes"]);
 
 export function routeAccess(pathname: string): RouteAccess {
-  return MEMBER_PATHS.has(appPath(pathname)) ? "member" : "public";
+  const path = appPath(pathname);
+  return MEMBER_PATHS.has(path) ||
+    path.startsWith("/moderacion/") ||
+    path.startsWith("/informes/")
+    ? "member"
+    : "public";
 }
 
 /**

@@ -155,6 +155,48 @@
       "when": 1788665244795,
       "tag": "0021_mushy_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791000818429,
+      "tag": "0022_identity_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791002223234,
+      "tag": "0023_modern_jackpot",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791002458668,
+      "tag": "0024_greedy_cloak",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791893692573,
+      "tag": "0025_drop_place_embeddings",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1791894279644,
+      "tag": "0026_cedula_hold_and_claimed_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791895700554,
+      "tag": "0027_passport-stamps",
+      "breakpoints": true
     }
   ]
 }

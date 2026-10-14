@@ -149,18 +149,13 @@ export function ReportView({ reportId }: { reportId: string }) {
         </div>
 
         <div className="flex gap-2 print:hidden">
-          <Button
-            variant="outline"
-            className="h-11"
-            onClick={() => window.print()}
-          >
+          <Button variant="outline" onClick={() => window.print()}>
             <Printer className="size-4" aria-hidden />
             {t("print")}
           </Button>
 
           {report.pdfUrl ? (
             <Button
-              className="h-11"
               nativeButton={false}
               render={
                 <a href={report.pdfUrl} target="_blank" rel="noreferrer" />
@@ -172,7 +167,6 @@ export function ReportView({ reportId }: { reportId: string }) {
           ) : (
             <Button
               variant="outline"
-              className="h-11"
               disabled={render.isPending}
               onClick={() => render.mutate()}
             >

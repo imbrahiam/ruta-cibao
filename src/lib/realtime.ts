@@ -13,7 +13,7 @@
  */
 import { and, asc, gt, inArray, or, sql } from "drizzle-orm";
 import { Client } from "pg";
-import { db } from "@/db";
+import { type Db, type DbTransaction, db } from "@/db";
 import { type RealtimeEvent, realtimeEvents } from "@/db/schema";
 import { env } from "@/lib/env";
 
@@ -123,16 +123,19 @@ const RETENTION_MINUTES = 60;
  * never touch the notification channel directly and an event can never exist
  * without a durable row behind it.
  */
-export async function publishRealtimeEvent(event: {
-  channel: string;
-  municipalityId?: string | null;
-  subjectType: string;
-  subjectId: string;
-  action: string;
-  payload?: Record<string, unknown>;
-  location?: { x: number; y: number } | null;
-}): Promise<void> {
-  await db.insert(realtimeEvents).values({
+export async function publishRealtimeEvent(
+  event: {
+    channel: string;
+    municipalityId?: string | null;
+    subjectType: string;
+    subjectId: string;
+    action: string;
+    payload?: Record<string, unknown>;
+    location?: { x: number; y: number } | null;
+  },
+  executor: Db | DbTransaction = db,
+): Promise<void> {
+  await executor.insert(realtimeEvents).values({
     channel: event.channel,
     municipalityId: event.municipalityId ?? null,
     subjectType: event.subjectType,

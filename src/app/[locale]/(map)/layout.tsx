@@ -14,7 +14,7 @@ import { SiteNav } from "@/components/shell/site-nav";
  */
 export default function MapLayout({ children }: LayoutProps<"/[locale]">) {
   return (
-    <div className="flex h-dvh w-full overflow-hidden pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="flex h-dvh w-full overflow-hidden pb-(--mobile-nav-height) md:pb-0">
       <MapRail />
       <main id="contenido" className="relative min-w-0 flex-1">
         {children}

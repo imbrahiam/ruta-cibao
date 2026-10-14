@@ -9,9 +9,33 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { EMBEDDING_DIMENSIONS } from "@/lib/ai/config";
+
+/** Upload capabilities are recorded before issue and consumed once. */
+export const photoUploads = pgTable(
+  "photo_uploads",
+  {
+    storageKey: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    placeId: uuid()
+      .notNull()
+      .references(() => places.id, { onDelete: "cascade" }),
+    sizeBytes: integer().notNull(),
+    contentType: text().notNull(),
+    finalKey: text(),
+    status: text().$type<"pending" | "published">(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index("photo_uploads_user_idx").on(table.userId, table.expiresAt),
+    index("photo_uploads_expiry_idx").on(table.expiresAt),
+  ],
+);
+
 import type { BusinessContact } from "@/modules/businesses/contracts";
-import { embedding, point } from "../types";
+import { point } from "../types";
 import { user } from "./auth";
 import { categories } from "./catalog";
 import { municipalities } from "./geography";
@@ -92,16 +116,6 @@ export const places = pgTable(
     imageUrl: text(),
     businessDetails: jsonb().$type<BusinessContact>(),
 
-    /**
-     * What this place means, as a vector.
-     *
-     * Null until the backfill reaches it, which is why every search that uses
-     * it falls back to trigram matching rather than returning nothing: a place
-     * published thirty seconds ago has no embedding yet and still has to be
-     * findable.
-     */
-    embedding: embedding(EMBEDDING_DIMENSIONS)("embedding"),
-
     status: placeStatus().notNull().default("pending"),
     /** Null for a seeded place; set for anything a person submitted. */
     createdByUserId: text().references(() => user.id, { onDelete: "set null" }),
@@ -127,13 +141,6 @@ export const places = pgTable(
     // always to one municipality.
     index("places_status_idx").on(table.status, table.municipalityId),
     index("places_category_idx").on(table.categoryId),
-    // HNSW rather than IVFFlat: it needs no training pass over existing rows,
-    // which matters for a table that starts almost empty and grows one citizen
-    // submission at a time.
-    index("places_embedding_idx").using(
-      "hnsw",
-      table.embedding.op("vector_cosine_ops"),
-    ),
   ],
 );
 

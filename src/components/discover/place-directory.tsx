@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
+  LayoutGrid,
   Map as MapIcon,
   Search,
   SearchX,
@@ -11,16 +12,13 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { parseAsInteger, parseAsString, useQueryStates } from "nuqs";
-import { PlaceCard } from "@/components/discover/place-card";
+import { PlaceRow } from "@/components/discover/place-row";
+import { FilterChip } from "@/components/map/category-chips";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "@/i18n/navigation";
+import { categoryIcon } from "@/lib/map/category-icons";
 import { orpc } from "@/lib/orpc";
 
 const PAGE_SIZE = 12;
@@ -52,122 +50,123 @@ export function PlaceDirectory() {
   );
   return (
     <div>
-      <header className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
-          <p className="mb-3 text-xs font-medium text-muted-foreground">
-            {t("eyebrow")}
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-            {t("title")}
-          </h1>
-          <p className="mt-3 text-sm text-muted-foreground">{t("intro")}</p>
-        </div>
-        <Button
-          variant="outline"
-          className="h-11 self-start rounded-full px-5"
-          nativeButton={false}
-          render={
-            <Link
-              href={`/mapa${filters.category ? `?cat=${encodeURIComponent(filters.category)}` : ""}`}
-            />
-          }
-        >
-          <MapIcon aria-hidden />
-          {t("viewMap")}
-        </Button>
+      <header className="mb-5">
+        <h1 className="page-title">{t("title")}</h1>
+        <p className="page-lede mt-2">{t("intro")}</p>
       </header>
-      <div className="surface-card mb-8 grid items-end gap-4 p-5 md:grid-cols-[2fr_1fr_1fr]">
-        <form
-          key={filters.q}
-          onSubmit={(event) => {
-            event.preventDefault();
-            const data = new FormData(event.currentTarget);
-            void setFilters({ q: String(data.get("q") ?? "").trim(), page: 1 });
-          }}
-        >
-          <Label htmlFor="place-search" className="mb-2">
-            {t("search")}
-          </Label>
-          <div className="relative flex gap-2">
+      {/* Search and filters stay in reach while the list scrolls, and use the
+          same pill-and-chip language as the map, so nothing here has to be
+          learned twice. */}
+      <div className="sticky top-0 z-10 -mx-5 mb-4 space-y-3 bg-background/95 px-5 pt-2 pb-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="flex gap-2">
+          <form
+            key={filters.q}
+            className="relative flex-1"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const data = new FormData(event.currentTarget);
+              void setFilters({
+                q: String(data.get("q") ?? "").trim(),
+                page: 1,
+              });
+            }}
+          >
+            <Search
+              className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden
+            />
             <Input
-              id="place-search"
+              type="search"
               name="q"
+              enterKeyHint="search"
+              aria-label={t("search")}
               defaultValue={filters.q}
               placeholder={t("searchPlaceholder")}
               maxLength={100}
-              className="h-11 bg-background"
+              className="h-12 rounded-full ps-12 pe-4 shadow-sm"
             />
-            <Button
-              type="submit"
-              className="h-11 px-3"
-              aria-label={t("search")}
+          </form>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-12 shrink-0 rounded-full shadow-sm"
+            aria-label={t("viewMap")}
+            nativeButton={false}
+            render={
+              <Link
+                href={`/mapa${filters.category ? `?cat=${encodeURIComponent(filters.category)}` : ""}`}
+              />
+            }
+          >
+            <MapIcon className="size-5" aria-hidden />
+          </Button>
+        </div>
+        <fieldset className="min-w-0">
+          <legend className="sr-only">{t("category")}</legend>
+          <div className="-mx-5 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <FilterChip
+              active={!filters.category}
+              onClick={() => void setFilters({ category: "", page: 1 })}
             >
-              <Search className="size-4" aria-hidden />
-            </Button>
-          </div>
-        </form>
-        <div>
-          <Label htmlFor="category-filter" className="mb-2">
-            {t("category")}
-          </Label>
-          <NativeSelect
-            id="category-filter"
-            size="lg"
-            className="w-full"
-            value={filters.category || "all"}
-            onChange={(event) => {
-              const value = event.target.value;
-              void setFilters({
-                category: value === "all" ? "" : value,
-                page: 1,
-              });
-            }}
-          >
-            <NativeSelectOption value="all">
+              <LayoutGrid className="size-4" aria-hidden />
               {t("allCategories")}
-            </NativeSelectOption>
-            {categories.data?.map((item) => (
-              <NativeSelectOption key={item.id} value={item.id}>
+            </FilterChip>
+            {categories.data?.map((item) => {
+              const Icon = categoryIcon(item.icon);
+              const active = filters.category === item.id;
+              return (
+                <FilterChip
+                  key={item.id}
+                  active={active}
+                  onClick={() =>
+                    void setFilters({
+                      category: active ? "" : item.id,
+                      page: 1,
+                    })
+                  }
+                >
+                  <Icon
+                    className="size-4"
+                    style={active ? undefined : { color: item.color }}
+                    aria-hidden
+                  />
+                  {item.name}
+                </FilterChip>
+              );
+            })}
+          </div>
+        </fieldset>
+        <fieldset className="min-w-0">
+          <legend className="sr-only">{t("municipality")}</legend>
+          <div className="-mx-5 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {[
+              { id: "", name: t("allMunicipalities") },
+              ...(municipalities.data ?? []),
+            ].map((item) => (
+              <button
+                key={item.id || "all"}
+                type="button"
+                aria-pressed={filters.municipality === item.id}
+                onClick={() =>
+                  void setFilters({ municipality: item.id, page: 1 })
+                }
+                className="h-9 shrink-0 whitespace-nowrap rounded-full px-3.5 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary/10 aria-pressed:text-primary"
+              >
                 {item.name}
-              </NativeSelectOption>
+              </button>
             ))}
-          </NativeSelect>
-        </div>
-        <div>
-          <Label htmlFor="municipality-filter" className="mb-2">
-            {t("municipality")}
-          </Label>
-          <NativeSelect
-            id="municipality-filter"
-            size="lg"
-            className="w-full"
-            value={filters.municipality || "all"}
-            onChange={(event) => {
-              const value = event.target.value;
-              void setFilters({
-                municipality: value === "all" ? "" : value,
-                page: 1,
-              });
-            }}
-          >
-            <NativeSelectOption value="all">
-              {t("allMunicipalities")}
-            </NativeSelectOption>
-            {municipalities.data?.map((item) => (
-              <NativeSelectOption key={item.id} value={item.id}>
-                {item.name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </div>
+          </div>
+        </fieldset>
       </div>
-      <div className="mb-5 flex min-h-9 items-center justify-between gap-3">
-        <p role="status" className="text-sm text-muted-foreground">
+      <div className="mb-2 flex min-h-9 items-center justify-between gap-3">
+        <p role="status" className="text-muted-foreground text-sm">
           {query.data ? t("count", { count: query.data.total }) : t("loading")}
         </p>
         {filtered && (
           <Button
             variant="ghost"
+            size="sm"
+            className="h-9 px-3"
             onClick={() =>
               void setFilters({
                 q: "",
@@ -183,12 +182,28 @@ export function PlaceDirectory() {
         )}
       </div>
       {query.isPending ? (
+        // The shape of what is coming rather than a spinner in a void: the
+        // grid holds its place, so nothing jumps when the cards arrive.
         <div
           role="status"
-          className="flex min-h-60 items-center justify-center gap-2"
+          className="grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-x-6"
         >
-          <Spinner className="size-5" />
           <span className="sr-only">{t("loading")}</span>
+          {Array.from({ length: 6 }, (_, index) => (
+            <div
+              // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
+              key={index}
+              aria-hidden
+              className="flex min-h-24 items-center gap-4 p-2"
+            >
+              <Skeleton className="size-20 shrink-0 rounded-xl" />
+              <div className="flex-1 space-y-2.5">
+                <Skeleton className="h-3 w-1/4" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-3 w-1/3" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : query.isError ? (
         <div className="surface-card p-10 text-center">
@@ -213,11 +228,13 @@ export function PlaceDirectory() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-1 md:grid-cols-2 md:gap-x-6">
           {query.data.items.map((place) => (
-            <PlaceCard key={place.id} place={place} />
+            <li key={place.id}>
+              <PlaceRow place={place} />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       {query.data && (query.data.total > PAGE_SIZE || page > 1) && (
         <div className="mt-8 flex items-center justify-center gap-5">

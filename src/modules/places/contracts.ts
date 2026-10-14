@@ -95,6 +95,7 @@ export const browsePlacesOutput = z.object({
       categoryId: z.string(),
       categoryName: z.string(),
       categoryIcon: z.string(),
+      categoryColor: z.string(),
       municipalityName: z.string(),
     }),
   ),

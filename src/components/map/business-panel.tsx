@@ -207,27 +207,18 @@ export function BusinessPanel({
           </p>
         )}
         {data.mine && (
-          <Button
-            className="h-11"
-            variant="outline"
-            onClick={() => setEditing(true)}
-          >
+          <Button variant="outline" onClick={() => setEditing(true)}>
             {formCopy("edit")}
           </Button>
         )}
         {!data.claimed &&
           !data.pending &&
           (isCitizen ? (
-            <Button
-              className="h-11"
-              variant="outline"
-              onClick={() => setClaiming(true)}
-            >
+            <Button variant="outline" onClick={() => setClaiming(true)}>
               {t("claim")}
             </Button>
           ) : (
             <Button
-              className="h-11"
               variant="outline"
               nativeButton={false}
               render={<Link href={anonymous ? signInHref : "/verificar"} />}
@@ -335,18 +326,13 @@ export function BusinessPanel({
                       type={field === "openingHours" ? "text" : "tel"}
                       defaultValue={data[field] ?? ""}
                       maxLength={field === "openingHours" ? 240 : 24}
-                      className="h-11"
                     />
                   </div>
                 ),
               )}
             </div>
             <DrawerFooter>
-              <Button
-                type="submit"
-                className="h-11"
-                disabled={update.isPending}
-              >
+              <Button type="submit" disabled={update.isPending}>
                 {formCopy("save")}
               </Button>
             </DrawerFooter>
@@ -412,7 +398,6 @@ export function BusinessPanel({
                     name="phone"
                     type="tel"
                     inputMode="tel"
-                    className="h-11"
                     placeholder={formCopy("phonePlaceholder")}
                     maxLength={24}
                   />
@@ -424,7 +409,6 @@ export function BusinessPanel({
                     name="whatsapp"
                     type="tel"
                     inputMode="tel"
-                    className="h-11"
                     placeholder={formCopy("phonePlaceholder")}
                     maxLength={24}
                   />
@@ -436,7 +420,6 @@ export function BusinessPanel({
                 <Input
                   id="claim-hours"
                   name="hours"
-                  className="h-11"
                   placeholder={formCopy("hoursPlaceholder")}
                   maxLength={240}
                 />

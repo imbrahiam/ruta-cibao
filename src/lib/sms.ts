@@ -14,6 +14,7 @@
  * Twilio's trial credit covers the demo, its REST API needs no SDK, and
  * swapping providers means rewriting this file and nothing else.
  */
+import { logDeliveryAllowed } from "@/lib/delivery";
 import { env } from "@/lib/env";
 
 const TWILIO_API = "https://api.twilio.com/2010-04-01";
@@ -31,8 +32,18 @@ export function isSmsConfigured(): boolean {
   );
 }
 
+/** Whether a sign-in code can reach the person, by text or by the log. */
+export function canDeliverSms(): boolean {
+  return isSmsConfigured() || logDeliveryAllowed();
+}
+
 export async function sendSms(message: Message): Promise<void> {
   if (!isSmsConfigured()) {
+    if (!logDeliveryAllowed()) {
+      throw new Error(
+        "SMS is not configured (TWILIO_*), and production never writes codes to the log",
+      );
+    }
     console.info(
       `[sms] Twilio is not configured, so nothing was sent.\n  to: ${message.to}\n  ${message.body}`,
     );

@@ -13,7 +13,7 @@ export async function updateBusiness(
   viewer: CitizenViewer,
   input: z.infer<typeof updateBusinessInput>,
 ) {
-  const outcome = await withIdempotency({
+  await withIdempotency({
     key: input.requestId,
     userId: viewer.userId,
     request: input,
@@ -53,16 +53,18 @@ export async function updateBusiness(
         },
         tx,
       );
+      await publishRealtimeEvent(
+        {
+          channel: "places",
+          municipalityId: claim.municipalityId,
+          subjectType: "place",
+          subjectId: input.placeId,
+          action: "updated",
+        },
+        tx,
+      );
       return { municipalityId: claim.municipalityId };
     },
   });
-  if (!outcome.replayed)
-    await publishRealtimeEvent({
-      channel: "places",
-      municipalityId: outcome.result.municipalityId,
-      subjectType: "place",
-      subjectId: input.placeId,
-      action: "updated",
-    });
   return { status: "ok" as const };
 }

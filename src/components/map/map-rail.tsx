@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
-import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { SavedPlaces } from "@/components/map/saved-places";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { UserMenu } from "@/components/shell/user-menu";
@@ -161,12 +160,6 @@ export async function MapRail() {
           href="/consultas"
           icon={MessagesSquare}
           label={t("consultations")}
-        />
-        {/* Icon over a word, like every other entry: a bare icon in a column
-            of labelled ones reads as decoration, not as somewhere to go. */}
-        <AssistantPanel
-          className="flex h-auto w-full flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[11px] text-muted-foreground leading-tight hover:bg-secondary hover:text-foreground"
-          label={t("assistant")}
         />
         <Suspense fallback={null}>
           <ModerationLink />

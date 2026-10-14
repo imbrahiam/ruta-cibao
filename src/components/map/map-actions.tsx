@@ -1,18 +1,26 @@
 "use client";
 
 import {
-  Check,
-  Crosshair,
+  Download,
+  LocateFixed,
   MapPinPlus,
   Plus,
   Share2,
+  Stamp,
   TrafficCone,
-  X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
+import { useInstall } from "@/components/offline/install-provider";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
+import { Link } from "@/i18n/navigation";
 import { type LocationProblem, requestPosition } from "@/lib/geolocation";
 import { shareUrl } from "@/lib/share";
 
@@ -32,51 +40,13 @@ import { shareUrl } from "@/lib/share";
  * permanent invitation to report, and a map with a cone on every corner is a
  * map nobody believes.
  */
-function ActionButton({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="flex size-11 items-center justify-center rounded-full border bg-background text-foreground shadow-md transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      {children}
-    </button>
-  );
-}
-
-function MenuRow({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={onClick}
-      className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    >
-      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
-        {children}
-      </span>
-      {label}
-    </button>
-  );
-}
+/**
+ * The shared look of the floating circles: the same white disc, hairline and
+ * soft shadow as the search pill above, so the controls over the map read as
+ * one family rather than three components that happen to share a screen.
+ */
+const FLOATING =
+  "flex size-12 items-center justify-center rounded-full border border-black/5 bg-background text-foreground shadow-[0_2px_10px_-2px_rgb(0_0_0/0.22)] transition-[background-color,box-shadow,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 data-popup-open:bg-foreground data-popup-open:text-background";
 
 export function MapActions({
   onLocate,
@@ -88,22 +58,12 @@ export function MapActions({
   onReportTraffic: () => void;
 }) {
   const t = useTranslations("map.actions");
+  const installT = useTranslations("install");
+  const passportT = useTranslations("passport");
+  const { installed } = useInstall();
   const locationCopy = useTranslations("location");
   const moreT = useTranslations("map.place");
-  const closeT = useTranslations("shell");
   const [locating, setLocating] = useState(false);
-  const [shared, setShared] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  // The menu is a small modal over the map: Escape folds it back to the "+".
-  useEffect(() => {
-    if (!open) return;
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
 
   function locate() {
     setLocating(true);
@@ -129,95 +89,106 @@ export function MapActions({
   async function share() {
     // The whole view is in the address bar, so sharing is sharing the URL.
     const outcome = await shareUrl({ url: window.location.href });
-
-    if (outcome === "shared") {
-      setOpen(false);
-      return;
-    }
-
-    if (outcome === "failed") {
-      // No clipboard of any kind here — over plain HTTP there is none. The
-      // address bar is still a link, and saying so beats a check mark that
-      // copied nothing.
-      toast.error(moreT("copyFailed"));
-      setOpen(false);
-      return;
-    }
-
-    setShared(true);
-    setTimeout(() => {
-      setShared(false);
-      setOpen(false);
-    }, 1500);
+    if (outcome === "copied") toast.success(moreT("copied"));
+    // No clipboard of any kind here — over plain HTTP there is none. The
+    // address bar is still a link, and saying so beats a tick that copied
+    // nothing.
+    if (outcome === "failed") toast.error(moreT("copyFailed"));
   }
 
   return (
-    <>
-      {/* Catches taps outside the open menu so it folds back away. */}
-      {open && (
-        <div
-          aria-hidden
-          className="fixed inset-0 z-10"
-          onClick={() => setOpen(false)}
-        />
-      )}
-      {/* `right` respects the swipe-bar edge on notched phones; `bottom-28`
-          matches the 10px inset the renderers give their own zoom controls, so
-          these line up above them instead of sitting a few pixels inside. */}
-      <div className="absolute right-[max(0.625rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2">
-        {open && (
-          <div
-            role="menu"
-            aria-label={moreT("more")}
-            className="w-56 rounded-2xl border bg-background p-1.5 shadow-lg"
-          >
-            <MenuRow
-              label={t("addPlace")}
-              onClick={() => {
-                setOpen(false);
-                onAddPlace();
-              }}
-            >
-              <MapPinPlus className="size-4" aria-hidden />
-            </MenuRow>
-            <MenuRow
-              label={t("reportTraffic")}
-              onClick={() => {
-                setOpen(false);
-                onReportTraffic();
-              }}
-            >
-              <TrafficCone className="size-4" aria-hidden />
-            </MenuRow>
-            <MenuRow label={t("share")} onClick={() => void share()}>
-              {shared ? (
-                <Check className="size-4" aria-hidden />
-              ) : (
-                <Share2 className="size-4" aria-hidden />
-              )}
-            </MenuRow>
-          </div>
-        )}
-
-        <ActionButton
-          label={open ? closeT("close") : moreT("more")}
-          onClick={() => setOpen((value) => !value)}
+    // `right` respects the swipe-bar edge on notched phones; `bottom-28`
+    // clears the renderers' own zoom controls in the same corner.
+    <div className="absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2.5">
+      {/* The shared menu component rather than a hand-built one: focus moves
+          in on open, arrow keys and typeahead walk it, Escape and an outside
+          tap close it and hand focus back — the same behaviour as the place
+          sheet's "…" menu, and one menu style across the app. */}
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <button
+              type="button"
+              aria-label={moreT("more")}
+              title={moreT("more")}
+              className={FLOATING}
+            />
+          }
         >
-          {open ? (
-            <X className="size-5" aria-hidden />
-          ) : (
-            <Plus className="size-5" aria-hidden />
+          <Plus className="size-5" aria-hidden />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          side="left"
+          align="end"
+          sideOffset={10}
+          className="w-60 rounded-2xl p-1.5 shadow-xl"
+        >
+          <DropdownMenuItem
+            onClick={onAddPlace}
+            className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
+              <MapPinPlus className="size-4" aria-hidden />
+            </span>
+            {t("addPlace")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={onReportTraffic}
+            className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+              <TrafficCone className="size-4" aria-hidden />
+            </span>
+            {t("reportTraffic")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => void share()}
+            className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-foreground">
+              <Share2 className="size-4" aria-hidden />
+            </span>
+            {t("share")}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            nativeButton={false}
+            render={<Link href="/pasaporte" />}
+            className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
+          >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
+              <Stamp className="size-4" aria-hidden />
+            </span>
+            {passportT("open")}
+          </DropdownMenuItem>
+          {!installed && (
+            <DropdownMenuItem
+              nativeButton={false}
+              render={<Link href="/instalar" />}
+              className="min-h-12 gap-3 rounded-xl px-2.5 py-2 text-[15px]"
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
+                <Download className="size-4" aria-hidden />
+              </span>
+              {installT("action")}
+            </DropdownMenuItem>
           )}
-        </ActionButton>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-        <ActionButton label={t("locate")} onClick={locate}>
-          {locating ? (
-            <Spinner className="size-5" />
-          ) : (
-            <Crosshair className="size-5" aria-hidden />
-          )}
-        </ActionButton>
-      </div>
-    </>
+      <button
+        type="button"
+        onClick={locate}
+        aria-label={t("locate")}
+        title={t("locate")}
+        aria-busy={locating}
+        className={FLOATING}
+      >
+        {locating ? (
+          <Spinner className="size-5" />
+        ) : (
+          <LocateFixed className="size-5 text-primary" aria-hidden />
+        )}
+      </button>
+    </div>
   );
 }

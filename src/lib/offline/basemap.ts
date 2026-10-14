@@ -9,8 +9,8 @@
  *
  * Only on request. Nine megabytes is a decision on a metered rural plan, so the
  * person taps to download, sees how much it is first, and can remove it later.
- * Neither Google's nor CARTO's tiles may be stored like this — their terms
- * forbid it — which is one of the reasons the self-hosted basemap exists.
+ * Google's tiles and OSM's standard raster tiles may not be bulk downloaded
+ * for offline use — which is one of the reasons the self-hosted basemap exists.
  */
 export const BASEMAP_CACHE = "ruta-cibao-basemap-v1";
 

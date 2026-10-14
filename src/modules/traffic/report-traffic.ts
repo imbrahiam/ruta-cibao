@@ -7,7 +7,7 @@ import {
 } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
-import { dispatch } from "@/lib/jobs/dispatch";
+import { enqueueJob } from "@/lib/jobs/outbox";
 import { QUEUES } from "@/lib/jobs/queues";
 import { nearestOnPath } from "@/lib/map/road-geometry";
 import { streetAt } from "@/lib/map/roads";
@@ -181,6 +181,22 @@ export async function reportTraffic(
         tx,
       );
 
+      await publishRealtimeEvent(
+        {
+          channel: TRAFFIC_CHANNEL,
+          municipalityId: municipality.id,
+          subjectType: "traffic_report",
+          subjectId: created.id,
+          action: "created",
+          payload: { categoryId: input.categoryId },
+          location: { x: location.lng, y: location.lat },
+        },
+        tx,
+      );
+      await enqueueJob(tx, QUEUES.trafficNotifyNearby, {
+        reportId: created.id,
+      });
+
       return {
         id: created.id,
         municipalityId: municipality.id,
@@ -189,27 +205,6 @@ export async function reportTraffic(
       };
     },
   });
-
-  // A replay already published and already notified. Doing either again would
-  // put the same cone on the map twice and buzz the same phones twice.
-  if (!outcome.replayed) {
-    await publishRealtimeEvent({
-      channel: TRAFFIC_CHANNEL,
-      municipalityId: outcome.result.municipalityId,
-      subjectType: "traffic_report",
-      subjectId: outcome.result.id,
-      action: "created",
-      payload: { categoryId: input.categoryId },
-      location: {
-        x: outcome.result.location.lng,
-        y: outcome.result.location.lat,
-      },
-    });
-
-    await dispatch(QUEUES.trafficNotifyNearby, {
-      reportId: outcome.result.id,
-    });
-  }
 
   return {
     id: outcome.result.id,

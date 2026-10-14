@@ -2,16 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
-import {
-  ChevronRight,
-  MapPin,
-  MessageCircleQuestionMark,
-  Search,
-  Store,
-} from "lucide-react";
+import { ChevronRight, Clock, MapPin, Search, Store, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
-import { ASSISTANT_OPEN_EVENT } from "@/components/assistant/assistant-panel";
 import {
   Drawer,
   DrawerContent,
@@ -38,6 +31,49 @@ export type SearchTarget = {
   label: string;
   slug?: string;
 };
+
+/**
+ * What was chosen before, newest first.
+ *
+ * Per device and never sent anywhere: a search history is exactly the kind of
+ * thing a municipality should not hold about its residents. Five is enough to
+ * catch "the clinic again" without becoming a log.
+ */
+const RECENT_KEY = "ruta-cibao:recent-searches";
+const RECENT_MAX = 5;
+
+function readRecent(): SearchTarget[] {
+  try {
+    const parsed: unknown = JSON.parse(
+      window.localStorage.getItem(RECENT_KEY) ?? "[]",
+    );
+    return Array.isArray(parsed)
+      ? (parsed as SearchTarget[])
+          .filter(
+            (item) =>
+              typeof item?.label === "string" &&
+              Number.isFinite(item.lng) &&
+              Number.isFinite(item.lat),
+          )
+          .slice(0, RECENT_MAX)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRecent(items: SearchTarget[]) {
+  try {
+    window.localStorage.setItem(RECENT_KEY, JSON.stringify(items));
+  } catch {
+    // Private mode: the list simply does not persist.
+  }
+}
+
+const ROW =
+  "flex min-h-14 items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+const SECTION =
+  "px-3 pt-4 pb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide";
 
 type GooglePlace = {
   id: string;
@@ -106,6 +142,12 @@ function useGooglePlaces(term: string, enabled: boolean) {
  * are a listing and a coordinate — and collapsing them into one ranked list
  * would hide which is which. One spinner covers all three, because from the
  * outside it is one search.
+ *
+ * Places answer as you type: they come from this server's own database.
+ * Addresses do not. The geocoder behind them is a shared public service whose
+ * terms forbid autocomplete, so it is asked once, when the person submits or
+ * taps "buscar como dirección" — which is also faster on 3G than five
+ * half-typed requests racing each other back.
  */
 export function MapSearch({
   onSelect,
@@ -119,39 +161,67 @@ export function MapSearch({
   const [term, setTerm] = useState("");
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [debouncedTerm, setDebouncedTerm] = useState("");
+  /** The term addresses were last asked for; null until the person submits. */
+  const [addressTerm, setAddressTerm] = useState<string | null>(null);
+  const [recent, setRecent] = useState<SearchTarget[]>([]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedTerm(term), 250);
     return () => window.clearTimeout(timeout);
   }, [term]);
 
+  useEffect(() => {
+    if (open) setRecent(readRecent());
+  }, [open]);
+
+  const trimmed = term.trim();
   const query = useQuery({
-    ...orpc.places.search.queryOptions({ input: { query: term } }),
+    ...orpc.places.search.queryOptions({
+      input: { query: debouncedTerm.trim() },
+    }),
     // Below two characters every query matches, which is noise, not results.
-    enabled: term.trim().length >= 2,
+    enabled: debouncedTerm.trim().length >= 2,
+    placeholderData: (previous) => previous,
+  });
+  const addressQuery = useQuery({
+    ...orpc.places.search.queryOptions({
+      input: { query: addressTerm ?? "", addresses: true },
+    }),
+    enabled: addressTerm !== null && addressTerm.length >= 2,
+    staleTime: 10 * 60 * 1000,
   });
   const google = useGooglePlaces(debouncedTerm, googlePlacesEnabled);
 
+  // A new term makes an earlier address answer stale.
+  useEffect(() => {
+    if (addressTerm !== null && addressTerm !== trimmed) setAddressTerm(null);
+  }, [addressTerm, trimmed]);
+
   function choose(target: SearchTarget) {
+    const next = [
+      target,
+      ...readRecent().filter(
+        (item) =>
+          item.label !== target.label ||
+          item.lng !== target.lng ||
+          item.lat !== target.lat,
+      ),
+    ].slice(0, RECENT_MAX);
+    writeRecent(next);
     onSelect(target);
     setOpen(false);
     setTerm("");
+    setAddressTerm(null);
   }
 
-  // Hands over to the assistant: the search drawer folds away and the chat
-  // opens on top, with the typed words carried over as its first question.
-  function askAssistant() {
-    const question = term.trim();
-    setOpen(false);
-    setTerm("");
-    window.setTimeout(() => {
-      window.dispatchEvent(
-        new CustomEvent(ASSISTANT_OPEN_EVENT, { detail: { question } }),
-      );
-    }, 150);
+  function searchAddresses() {
+    if (trimmed.length >= 2) setAddressTerm(trimmed);
   }
 
-  const results = query.data;
+  const results = trimmed.length >= 2 ? query.data : undefined;
+  const addresses =
+    addressTerm === trimmed ? (addressQuery.data?.addresses ?? []) : [];
+  const geocoder = query.data?.geocoder ?? false;
   const ownNames = new Set(
     (results?.places ?? []).map((place) =>
       place.name.trim().toLocaleLowerCase("es"),
@@ -164,12 +234,13 @@ export function MapSearch({
   );
 
   const searching =
-    query.isFetching || (googlePlacesEnabled && google.isFetching);
+    (query.isFetching && !results) ||
+    addressQuery.isFetching ||
+    (googlePlacesEnabled && google.isFetching);
   const total =
-    (results?.places.length ?? 0) +
-    (results?.addresses.length ?? 0) +
-    googlePlaces.length;
-  const searched = term.trim().length >= 2 && debouncedTerm.trim().length >= 2;
+    (results?.places.length ?? 0) + addresses.length + googlePlaces.length;
+  const searched = trimmed.length >= 2 && debouncedTerm.trim() === trimmed;
+  const addressesAsked = addressTerm === trimmed && addressQuery.isSuccess;
 
   return (
     <Drawer
@@ -182,10 +253,13 @@ export function MapSearch({
         render={
           <button
             type="button"
-            className="flex h-12 w-full items-center gap-3 rounded-full border bg-background px-4 text-left text-muted-foreground shadow-md md:max-w-md"
+            className="flex h-12 w-full items-center gap-3 rounded-full border border-black/5 bg-background px-4 text-left text-muted-foreground shadow-[0_2px_10px_-2px_rgb(0_0_0/0.18)] transition-shadow hover:shadow-[0_4px_16px_-4px_rgb(0_0_0/0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:max-w-md"
           >
-            <Search className="size-4 shrink-0" aria-hidden />
-            <span className="truncate">{t("placeholder")}</span>
+            <Search
+              className="size-[18px] shrink-0 text-foreground/70"
+              aria-hidden
+            />
+            <span className="truncate text-[15px]">{t("placeholder")}</span>
           </button>
         }
       />
@@ -193,43 +267,81 @@ export function MapSearch({
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
-          <Input
-            // The drawer exists only to type into; not focusing it means a
-            // second tap on a phone that already opened the keyboard.
-            autoFocus
-            value={term}
-            onChange={(event) => setTerm(event.target.value)}
-            placeholder={t("placeholder")}
-            className="h-12 text-base md:text-base"
-            enterKeyHint="search"
-            type="search"
-          />
+          {/* A form so the keyboard's search key is the submit, which is the
+              one moment addresses are asked for. */}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              searchAddresses();
+            }}
+            className="relative"
+          >
+            <Search
+              className="-translate-y-1/2 pointer-events-none absolute top-1/2 left-4 size-[18px] text-muted-foreground"
+              aria-hidden
+            />
+            <Input
+              // The drawer exists only to type into; not focusing it means a
+              // second tap on a phone that already opened the keyboard.
+              autoFocus
+              value={term}
+              onChange={(event) => setTerm(event.target.value)}
+              placeholder={t("placeholder")}
+              aria-label={t("title")}
+              className="h-12 rounded-full bg-muted/60 pr-11 pl-11 text-base md:text-base [&::-webkit-search-cancel-button]:hidden"
+              enterKeyHint="search"
+              type="search"
+              autoComplete="off"
+            />
+            {term.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setTerm("")}
+                aria-label={t("clear")}
+                className="-translate-y-1/2 absolute top-1/2 right-2 flex size-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            )}
+          </form>
         </DrawerHeader>
 
-        <div className="flex flex-col gap-1 overflow-y-auto px-4 pb-8">
-          {/* The assistant, as a suggestion: describing what is needed in
-              plain words is a search of its own, and this is where someone
-              looking would think to find it. */}
-          <button
-            type="button"
-            onClick={askAssistant}
-            className="flex min-h-14 items-center gap-3 rounded-lg bg-accent/50 px-3 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <MessageCircleQuestionMark
-              className="size-5 shrink-0 text-primary"
-              aria-hidden
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block text-base">{t("askAiTitle")}</span>
-              <span className="block truncate text-muted-foreground text-xs">
-                {t("askAiHint")}
-              </span>
-            </span>
-            <ChevronRight
-              className="size-4 shrink-0 text-muted-foreground"
-              aria-hidden
-            />
-          </button>
+        <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto overscroll-contain px-3 pb-[max(2rem,env(safe-area-inset-bottom))]">
+          {trimmed.length < 2 && recent.length > 0 && (
+            <>
+              <div className="flex items-center justify-between pr-1">
+                <p className={SECTION}>{t("recent")}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    writeRecent([]);
+                    setRecent([]);
+                  }}
+                  className="mt-3 rounded-full px-2.5 py-1 font-medium text-muted-foreground text-xs hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {t("clearRecent")}
+                </button>
+              </div>
+              {recent.map((item) => (
+                <button
+                  key={`${item.label}-${item.lng}-${item.lat}`}
+                  type="button"
+                  onClick={() => choose(item)}
+                  className={ROW}
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
+                    <Clock
+                      className="size-4 text-muted-foreground"
+                      aria-hidden
+                    />
+                  </span>
+                  <span className="line-clamp-2 min-w-0 flex-1 text-base leading-snug">
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </>
+          )}
 
           {searching && (
             <p
@@ -252,15 +364,22 @@ export function MapSearch({
                   slug: place.slug,
                 })
               }
-              className="flex h-14 items-center gap-3 rounded-lg px-3 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={ROW}
             >
               <span
                 aria-hidden
-                className="size-3 shrink-0 rounded-full"
-                style={{ backgroundColor: place.color }}
-              />
+                className="flex size-9 shrink-0 items-center justify-center rounded-full"
+                style={{ backgroundColor: `${place.color}1f` }}
+              >
+                <span
+                  className="size-3 rounded-full ring-2 ring-white"
+                  style={{ backgroundColor: place.color }}
+                />
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-base">{place.name}</span>
+                <span className="line-clamp-2 block text-base leading-snug">
+                  {place.name}
+                </span>
                 <span className="block truncate text-muted-foreground text-xs">
                   {place.categoryName} · {place.municipalityName}
                 </span>
@@ -269,9 +388,7 @@ export function MapSearch({
           ))}
 
           {googlePlaces.length > 0 && (
-            <p className="px-3 pt-4 pb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-              {t("googlePlaces")}
-            </p>
+            <p className={SECTION}>{t("googlePlaces")}</p>
           )}
 
           {googlePlaces.map((place) => (
@@ -281,14 +398,15 @@ export function MapSearch({
               onClick={() =>
                 choose({ lng: place.lng, lat: place.lat, label: place.name })
               }
-              className="flex min-h-14 items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={ROW}
             >
-              <Store
-                className="size-4 shrink-0 text-muted-foreground"
-                aria-hidden
-              />
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
+                <Store className="size-4 text-muted-foreground" aria-hidden />
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-base">{place.name}</span>
+                <span className="line-clamp-2 block text-base leading-snug">
+                  {place.name}
+                </span>
                 {place.address && (
                   <span className="block truncate text-muted-foreground text-xs">
                     {place.address}
@@ -298,13 +416,38 @@ export function MapSearch({
             </button>
           ))}
 
-          {(results?.addresses.length ?? 0) > 0 && (
-            <p className="px-3 pt-4 pb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">
-              {t("addresses")}
+          {geocoder && trimmed.length >= 2 && !addressesAsked && (
+            <button type="button" onClick={searchAddresses} className={ROW}>
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
+                <MapPin className="size-4 text-muted-foreground" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 block text-base leading-snug">
+                  {t("searchAddress", { term: trimmed })}
+                </span>
+                <span className="block truncate text-muted-foreground text-xs">
+                  {t("searchAddressHint")}
+                </span>
+              </span>
+              <ChevronRight
+                className="size-4 shrink-0 text-muted-foreground"
+                aria-hidden
+              />
+            </button>
+          )}
+
+          {addresses.length > 0 && <p className={SECTION}>{t("addresses")}</p>}
+
+          {addressesAsked && addresses.length === 0 && total > 0 && (
+            <p
+              className="rounded-xl bg-muted px-3 py-2 text-muted-foreground text-sm"
+              role="status"
+            >
+              {t("noAddresses")}
             </p>
           )}
 
-          {results?.addresses.map((address) => (
+          {addresses.map((address) => (
             <button
               key={`${address.lng},${address.lat}`}
               type="button"
@@ -315,14 +458,15 @@ export function MapSearch({
                   label: address.name,
                 })
               }
-              className="flex h-14 items-center gap-3 rounded-lg px-3 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className={ROW}
             >
-              <MapPin
-                className="size-4 shrink-0 text-muted-foreground"
-                aria-hidden
-              />
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
+                <MapPin className="size-4 text-muted-foreground" aria-hidden />
+              </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-base">{address.name}</span>
+                <span className="line-clamp-2 block text-base leading-snug">
+                  {address.name}
+                </span>
                 {address.context && (
                   <span className="block truncate text-muted-foreground text-xs">
                     {address.context}
@@ -341,17 +485,20 @@ export function MapSearch({
             </p>
           )}
 
-          {searched && !searching && total === 0 && (
-            <Empty className="py-8">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Search />
-                </EmptyMedia>
-                <EmptyTitle>{t("noResults", { term })}</EmptyTitle>
-                <EmptyDescription>{t("noResultsHint")}</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
+          {searched &&
+            !searching &&
+            total === 0 &&
+            (!geocoder || addressesAsked) && (
+              <Empty className="py-8">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Search />
+                  </EmptyMedia>
+                  <EmptyTitle>{t("noResults", { term })}</EmptyTitle>
+                  <EmptyDescription>{t("noResultsHint")}</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            )}
         </div>
       </DrawerContent>
     </Drawer>

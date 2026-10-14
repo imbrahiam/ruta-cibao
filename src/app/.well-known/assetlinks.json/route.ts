@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { env } from "@/lib/env";
 
 /**
@@ -14,9 +15,10 @@ import { env } from "@/lib/env";
  * and must be changeable without a code change. Unset means there is no
  * Android app yet, and the file honestly does not exist.
  */
-export function GET(): Response {
+export async function GET(): Promise<Response> {
+  await connection();
   const fingerprints = env.ANDROID_SHA256_FINGERPRINTS?.split(",")
-    .map((value) => value.trim().toUpperCase())
+    .map((value: string) => value.trim().toUpperCase())
     .filter(Boolean);
 
   if (!env.ANDROID_PACKAGE_NAME || !fingerprints?.length) {

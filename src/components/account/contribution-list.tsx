@@ -5,9 +5,9 @@ import { ArrowUpRight, ClipboardList, MapPinPlus } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
+import { ListSkeleton } from "@/components/shell/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { Link } from "@/i18n/navigation";
 import { orpc } from "@/lib/orpc";
 import { cn } from "@/lib/utils";
@@ -40,23 +40,25 @@ export function ContributionList() {
   return (
     <div className="mx-auto max-w-3xl">
       <header className="mb-8">
-        <p className="mb-3 text-xs font-medium text-muted-foreground">
-          {t("eyebrow")}
-        </p>
-        <h1 className="text-4xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          {t("intro")}
-        </p>
+        <p className="page-eyebrow mb-3">{t("eyebrow")}</p>
+        <h1 className="page-title">{t("title")}</h1>
+        <p className="page-lede mt-3">{t("intro")}</p>
       </header>
       {isLoading ? (
-        <Spinner className="mx-auto size-5" />
+        <ListSkeleton label={t("loading")} />
       ) : !member ? (
-        <section className="surface-card p-10 text-center">
-          <h2 className="text-xl font-medium">{t("signIn")}</h2>
-          <p className="my-4 text-sm text-muted-foreground">
+        <section className="surface-card flex flex-col items-center px-6 py-14 text-center">
+          <span className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-accent text-primary">
+            <ClipboardList className="size-6" aria-hidden />
+          </span>
+          <h2 className="font-semibold text-xl tracking-tight">
+            {t("signIn")}
+          </h2>
+          <p className="mt-2 mb-6 max-w-sm text-pretty text-muted-foreground text-sm leading-relaxed">
             {t("signInHint")}
           </p>
           <Button
+            className="h-11 rounded-full px-6"
             nativeButton={false}
             render={<Link href="/entrar?callbackUrl=%2Faportes" />}
           >
@@ -101,25 +103,18 @@ export function ContributionList() {
             </Button>
           </div>
           {query.isPending ? (
-            <p
-              role="status"
-              className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground"
-            >
-              <Spinner className="size-4" />
-              {t("loading")}
-            </p>
+            <ListSkeleton label={t("loading")} />
           ) : query.isError ? (
             <div role="alert" className="surface-card p-8 text-center">
               <p className="mb-4">{t("error")}</p>
               <Button onClick={() => void query.refetch()}>{t("retry")}</Button>
             </div>
           ) : items?.length === 0 ? (
-            <section className="surface-card flex flex-col items-center px-6 py-16 text-center">
-              <ClipboardList
-                className="mb-5 size-8 text-muted-foreground"
-                aria-hidden
-              />
-              <h2 className="text-xl font-medium">
+            <section className="surface-card flex flex-col items-center px-6 py-14 text-center">
+              <span className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-accent text-primary">
+                <ClipboardList className="size-6" aria-hidden />
+              </span>
+              <h2 className="font-semibold text-xl tracking-tight">
                 {pendingOnly ? t("pendingEmpty") : t("empty")}
               </h2>
               <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
@@ -127,11 +122,11 @@ export function ContributionList() {
               </p>
             </section>
           ) : (
-            <ul className="space-y-4">
+            <ul className="space-y-3">
               {items?.map((item) => (
                 <li
                   key={`${item.kind}-${item.id}`}
-                  className="surface-card p-6"
+                  className="surface-card p-5 sm:p-6"
                 >
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <p className="text-xs text-muted-foreground">
@@ -160,7 +155,9 @@ export function ContributionList() {
                       {t(item.status)}
                     </Badge>
                   </div>
-                  <h2 className="font-medium text-lg">{item.name}</h2>
+                  <h2 className="text-pretty font-semibold text-lg leading-snug tracking-tight">
+                    {item.name}
+                  </h2>
                   {item.note && (
                     <div className="mt-4 rounded-xl bg-muted p-4">
                       <h3 className="text-xs font-medium">{t("note")}</h3>

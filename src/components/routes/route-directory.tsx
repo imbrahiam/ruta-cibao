@@ -8,6 +8,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/auth-context";
 import { RouteForm } from "@/components/routes/route-form";
+import { ListSkeleton } from "@/components/shell/list-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,6 @@ function ReviewRoute({ route }: { route: EcoRoute }) {
         {(["published", "rejected"] as const).map((status) => (
           <Button
             key={status}
-            className="h-11"
             variant={status === "published" ? "default" : "outline"}
             disabled={note.trim().length < 5 || decide.isPending}
             onClick={() =>
@@ -103,20 +103,20 @@ export function RouteDirectory() {
     <div className="space-y-7">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl space-y-2">
-          <p className="text-sm font-medium text-primary">{t("eyebrow")}</p>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-            {t("title")}
-          </h1>
-          <p className="text-muted-foreground">{t("intro")}</p>
+          <p className="page-eyebrow">{t("eyebrow")}</p>
+          <h1 className="page-title">{t("title")}</h1>
+          <p className="page-lede">{t("intro")}</p>
         </div>
         {isMember ? (
-          <Button className="h-11" onClick={() => setCreating(!creating)}>
+          <Button
+            className="h-11 rounded-full px-5 shadow-sm"
+            onClick={() => setCreating(!creating)}
+          >
             <Plus aria-hidden />
             {t("create")}
           </Button>
         ) : (
           <Button
-            className="h-11"
             nativeButton={false}
             render={<Link href="/entrar?callbackUrl=%2Frutas" />}
           >
@@ -164,7 +164,7 @@ export function RouteDirectory() {
           ))}
         </NativeSelect>
       </div>
-      {query.isPending && <p role="status">{t("loading")}</p>}
+      {query.isPending && <ListSkeleton label={t("loading")} rows={2} />}
       {query.isError && (
         <div role="alert" className="surface-card p-6">
           <p>{t("failed")}</p>
@@ -174,20 +174,22 @@ export function RouteDirectory() {
         </div>
       )}
       {query.data?.total === 0 && (
-        <div className="surface-card p-12 text-center">
+        <div className="surface-card flex flex-col items-center px-6 py-14 text-center">
           <Mountain
             className="mx-auto mb-4 size-9 text-muted-foreground"
             aria-hidden
           />
-          <h2 className="text-lg font-medium">{t("empty")}</h2>
-          <p className="mt-2 text-muted-foreground">{t("emptyHint")}</p>
+          <h2 className="font-semibold text-xl tracking-tight">{t("empty")}</h2>
+          <p className="mt-2 max-w-sm text-pretty text-muted-foreground text-sm leading-relaxed">
+            {t("emptyHint")}
+          </p>
         </div>
       )}
       <div className="grid gap-5 md:grid-cols-2">
         {query.data?.items.map((route) => (
           <article
             key={route.id}
-            className="surface-card flex flex-col gap-4 p-6"
+            className="surface-card flex flex-col gap-4 p-5 sm:p-6"
           >
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{route.categoryName}</Badge>
@@ -198,7 +200,9 @@ export function RouteDirectory() {
                 <Badge variant="outline">{t(`status.${route.status}`)}</Badge>
               )}
             </div>
-            <h2 className="text-xl font-semibold">{route.name}</h2>
+            <h2 className="text-pretty font-semibold text-xl tracking-tight">
+              {route.name}
+            </h2>
             <p className="line-clamp-4 text-sm leading-relaxed text-muted-foreground">
               {route.description}
             </p>
@@ -242,7 +246,6 @@ export function RouteDirectory() {
       {(query.data?.total ?? 0) > 24 && (
         <nav aria-label={t("pagination")} className="flex justify-between">
           <Button
-            className="h-11"
             variant="outline"
             disabled={offset === 0}
             onClick={() => setOffset(Math.max(0, offset - 24))}
@@ -250,7 +253,6 @@ export function RouteDirectory() {
             {t("previous")}
           </Button>
           <Button
-            className="h-11"
             variant="outline"
             disabled={offset + 24 >= (query.data?.total ?? 0)}
             onClick={() => setOffset(offset + 24)}

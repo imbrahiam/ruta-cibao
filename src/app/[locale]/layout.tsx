@@ -2,10 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
+import { Suspense } from "react";
 import { OfflineIndicator } from "@/components/offline/offline-indicator";
 import { ServiceWorker } from "@/components/offline/service-worker";
 import { Providers } from "@/components/providers";
-import { Toaster } from "@/components/ui/sonner";
+import { AppToaster } from "@/components/shell/app-toaster";
 import { formats, TIME_ZONE } from "@/i18n/config";
 import { type Locale, routing } from "@/i18n/routing";
 import "../globals.css";
@@ -109,8 +110,12 @@ export default async function LocaleLayout({
           <ServiceWorker>
             <Providers>
               {children}
-              <OfflineIndicator />
-              <Toaster position="top-center" />
+              {/* Reads the path to step aside on the map, which is a runtime
+                  read: outside a boundary it would hold back the shell. */}
+              <Suspense fallback={null}>
+                <OfflineIndicator />
+              </Suspense>
+              <AppToaster />
             </Providers>
           </ServiceWorker>
         </NextIntlClientProvider>

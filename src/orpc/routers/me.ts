@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { memberProfiles } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
+import { cedulaStatusSchema } from "@/modules/citizen/contracts";
 import { memberProcedure, pub } from "../base";
 
 /**
@@ -24,9 +25,7 @@ export const meRouter = {
         staffRole: z.enum(["none", "moderator", "admin"]),
         displayName: z.string().nullable(),
         image: z.string().nullable(),
-        cedulaStatus: z
-          .enum(["none", "pending", "verified", "unavailable", "rejected"])
-          .nullable(),
+        cedulaStatus: cedulaStatusSchema.nullable(),
         municipalityId: z.string().nullable(),
         verifiedFullName: z.string().nullable(),
         /**

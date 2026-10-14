@@ -2,10 +2,11 @@
 # droast global ignore=DF033 reason="build context is the repo root, which has .dockerignore"
 # droast global ignore=DF007 reason="full source tree is required by the build; .dockerignore trims it"
 
-# Build with Bun (fast installs, matches local tooling), run on Node so the
-# production image is the smaller, longer-supported runtime.
+# Bun installs dependencies and runs project scripts. Next itself uses Node
+# in both build and production; Bun's Node fallback breaks prerender validation.
+# Debian supplies the glibc ABI that sharp's prebuilt binaries expect.
 
-FROM oven/bun:1.3.14-alpine AS deps
+FROM oven/bun:1.3.14-slim@sha256:d56a2534ffd262e92c12fd3249d3924d296d97086da773f821d7d0477435ea04 AS deps
 WORKDIR /app
 COPY package.json bun.lock ./
 # Cache mount so a retry after a dropped connection resumes from what already
@@ -13,7 +14,8 @@ COPY package.json bun.lock ./
 RUN --mount=type=cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile
 
-FROM oven/bun:1.3.14-alpine AS builder
+FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS builder
+COPY --from=deps /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -30,9 +32,11 @@ COPY . .
 # provider's side and a VAPID *public* key is public by definition; the private
 # halves stay in the runtime environment and never appear here.
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
-ARG NEXT_PUBLIC_MAP_RENDERER=google
+ARG NEXT_PUBLIC_MAP_RENDERER=maplibre
 ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 ARG NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=
+ARG NEXT_PUBLIC_RASTER_TILE_URL=
+ARG NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION=
 ARG NEXT_PUBLIC_MAPTILER_KEY=
 ARG NEXT_PUBLIC_BASEMAP_PMTILES_URL=
 ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=
@@ -42,50 +46,78 @@ ENV NODE_ENV=production \
     NEXT_PUBLIC_MAP_RENDERER=${NEXT_PUBLIC_MAP_RENDERER} \
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY} \
     NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=${NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID} \
+    NEXT_PUBLIC_RASTER_TILE_URL=${NEXT_PUBLIC_RASTER_TILE_URL} \
+    NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION=${NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION} \
     NEXT_PUBLIC_MAPTILER_KEY=${NEXT_PUBLIC_MAPTILER_KEY} \
     NEXT_PUBLIC_BASEMAP_PMTILES_URL=${NEXT_PUBLIC_BASEMAP_PMTILES_URL} \
     NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
-RUN bun run build
+RUN bun run build \
+    && find .next/standalone/node_modules/@img -maxdepth 1 -type d -name "*linuxmusl*" -exec rm -rf {} +
 
-# Migrations need the TypeScript source and the drizzle/ folder, which the
-# standalone runtime image deliberately does not carry. This stage keeps Bun and
-# the full tree so `migrate` can run as its own one-shot container.
-FROM oven/bun:1.3.14-alpine AS migrator
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json tsconfig.json ./
-COPY src ./src
-COPY drizzle ./drizzle
-USER bun
-CMD ["bun", "run", "src/db/migrate.ts"]
-
-# The worker runs the same TypeScript the app does, so it keeps Bun and the
-# source tree rather than the standalone build — which contains only what the
-# Next.js server needs and none of `scripts/`.
-#
-# PDFs are generated directly from frozen metrics with pdf-lib. The worker
-# requires neither Chromium nor an authenticated request to the web app.
-FROM oven/bun:1.3.14-alpine AS worker
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json tsconfig.json ./
+# Bundle background and maintenance entrypoints independently of Next. Native
+# packages remain external; copy their installed graph from the frozen lockfile.
+FROM deps AS runtime-build
+COPY tsconfig.json ./
 COPY src ./src
 COPY scripts ./scripts
 COPY messages ./messages
-USER bun
-CMD ["bun", "run", "scripts/worker.ts"]
+COPY drizzle /migrations
+RUN bun build scripts/init-storage.ts --target=bun --minify --outfile=/runtime/init-storage.ts \
+    && bun build scripts/worker.ts --target=bun --minify \
+      --outfile=/runtime/src/modules/jobs/worker.js --external=sharp --external=pg-native \
+    && bun build src/db/migrate.ts --target=bun --minify \
+      --outfile=/runtime/src/db/migrate.ts --external=pg-native \
+    && bun build scripts/seed.ts scripts/import-boundaries.ts scripts/import-roads.ts scripts/grant-staff.ts \
+      --target=bun --minify --outdir=/runtime/scripts --external=pg-native \
+    && bun run scripts/runtime-notices.ts /runtime/THIRD-PARTY-NOTICES.txt \
+    && bun run scripts/prepare-runtime.ts /worker-dependencies sharp \
+    && find /migrations/meta -type f ! -name _journal.json -delete \
+    && for script in seed import-boundaries import-roads grant-staff; do \
+         mv "/runtime/scripts/$script.js" "/runtime/scripts/$script.ts"; \
+       done
 
-FROM node:24-alpine AS runner
+# Migration and institutional maintenance scripts contain no native packages.
+FROM oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0 AS migrator
+WORKDIR /app
+COPY --from=runtime-build /runtime/THIRD-PARTY-NOTICES.txt ./
+COPY --from=runtime-build /runtime/src/db/migrate.ts ./src/db/migrate.ts
+COPY --from=runtime-build /runtime/scripts ./scripts
+COPY --from=runtime-build /migrations ./drizzle
+USER bun
+CMD ["bun", "run", "src/db/migrate.ts"]
+
+FROM oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0 AS storage-init
+WORKDIR /app
+COPY --from=runtime-build /runtime/THIRD-PARTY-NOTICES.txt ./
+COPY --from=runtime-build /runtime/init-storage.ts ./scripts/init-storage.ts
+USER bun
+CMD ["bun", "run", "scripts/init-storage.ts"]
+
+FROM oven/bun:1.3.14-slim@sha256:d56a2534ffd262e92c12fd3249d3924d296d97086da773f821d7d0477435ea04 AS worker
+WORKDIR /app
+COPY --from=runtime-build /runtime/THIRD-PARTY-NOTICES.txt ./
+COPY --from=runtime-build /runtime/src/modules/jobs/worker.js ./src/modules/jobs/worker.js
+COPY --from=runtime-build /worker-dependencies ./node_modules
+COPY messages ./messages
+USER bun
+CMD ["bun", "run", "src/modules/jobs/worker.js"]
+
+FROM node:24-bookworm-slim@sha256:0e0ff40c39bc087845bfb27465a0df4ea419520094bc35842ff83dd8cbe6f9b6 AS runner
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
-RUN addgroup --system --gid 1001 nodejs \
-    && adduser --system --uid 1001 --ingroup nodejs nextjs
+RUN groupadd --gid 1001 nodejs \
+    && useradd --uid 1001 --gid nodejs --no-create-home nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=runtime-build /runtime/THIRD-PARTY-NOTICES.txt ./
+# Next's own cache is the one writable path in a read-only container (a tmpfs
+# in Compose). Created here so it belongs to the runtime user, not to root.
+RUN mkdir -p /app/.next/cache \
+    && chown -R nextjs:nodejs /app/.next/cache
 USER nextjs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

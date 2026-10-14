@@ -72,14 +72,10 @@ export function CategoryManager() {
       </Button>
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            {t("title")}
-          </h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            {t("intro")}
-          </p>
+          <h1 className="page-title">{t("title")}</h1>
+          <p className="page-lede">{t("intro")}</p>
         </div>
-        <Button className="h-11" onClick={() => openEditor(null)}>
+        <Button onClick={() => openEditor(null)}>
           <Plus className="size-4" aria-hidden />
           {t("create")}
         </Button>
@@ -120,7 +116,7 @@ export function CategoryManager() {
                 </p>
               )}
             </div>
-            <InputGroup className="h-11">
+            <InputGroup>
               <InputGroupAddon>
                 <Search className="size-4" aria-hidden />
               </InputGroupAddon>
@@ -220,7 +216,6 @@ export function CategoryManager() {
               ref={nameRef}
               id="category-name"
               name="name"
-              className="h-11"
               required
               minLength={2}
               maxLength={80}
@@ -254,7 +249,6 @@ export function CategoryManager() {
                 id="category-color"
                 name="color"
                 type="color"
-                className="h-11"
                 defaultValue={editing?.color ?? "#166534"}
               />
             </div>
@@ -269,7 +263,6 @@ export function CategoryManager() {
                 min={0}
                 max={1000}
                 defaultValue={editing?.sortOrder ?? 0}
-                className="h-11"
                 required
               />
             </div>
@@ -305,19 +298,11 @@ export function CategoryManager() {
           )}
           <p className="text-sm text-muted-foreground">{t("deactivateHint")}</p>
           <div className="flex gap-3">
-            <Button
-              type="submit"
-              className="h-11"
-              disabled={mutation.isPending}
-            >
+            <Button type="submit" disabled={mutation.isPending}>
               {t("save")}
             </Button>
             {editing && (
-              <Button
-                variant="ghost"
-                className="h-11"
-                onClick={() => setEditingId(null)}
-              >
+              <Button variant="ghost" onClick={() => setEditingId(null)}>
                 {t("cancel")}
               </Button>
             )}

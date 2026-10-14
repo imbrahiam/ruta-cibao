@@ -7,6 +7,7 @@
  * key and no network.
  */
 import { Resend } from "resend";
+import { logDeliveryAllowed } from "@/lib/delivery";
 import { env } from "@/lib/env";
 
 let client: Resend | undefined;
@@ -24,10 +25,35 @@ type Message = {
   text: string;
 };
 
+/**
+ * Whether an address can receive mail at all.
+ *
+ * Accounts created by phone carry a placeholder address on a `.local` domain
+ * (Better Auth needs one), and so do the demo accounts. Mailing those bounces,
+ * and bounces are what get a sending domain marked as spam.
+ */
+export function isDeliverableAddress(address: string | null | undefined) {
+  return Boolean(address) && !/\.local$/i.test(address ?? "");
+}
+
+export function isEmailConfigured(): boolean {
+  return Boolean(env.RESEND_API_KEY);
+}
+
+/** Whether a sign-in link can reach the person, by email or by the log. */
+export function canDeliverEmail(): boolean {
+  return isEmailConfigured() || logDeliveryAllowed();
+}
+
 export async function sendEmail(message: Message): Promise<void> {
   const api = resend();
 
   if (!api) {
+    if (!logDeliveryAllowed()) {
+      throw new Error(
+        "Email is not configured (RESEND_API_KEY), and production never writes links to the log",
+      );
+    }
     console.info(
       `[mail] RESEND_API_KEY is not set, so nothing was sent.\n  to: ${message.to}\n  subject: ${message.subject}\n${message.text}`,
     );

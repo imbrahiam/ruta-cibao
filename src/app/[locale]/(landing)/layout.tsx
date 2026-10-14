@@ -4,7 +4,7 @@ import { SiteNav } from "@/components/shell/site-nav";
 
 export default function LandingLayout({ children }: LayoutProps<"/[locale]">) {
   return (
-    <div className="min-h-dvh pb-20 md:pb-0">
+    <div className="min-h-dvh pb-(--mobile-nav-height) md:pb-0">
       <AppHeader />
       <main id="contenido">{children}</main>
       <SiteFooter />

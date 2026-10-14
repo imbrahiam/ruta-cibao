@@ -18,7 +18,7 @@ export const citizenRouter = {
       openapi({
         method: "POST",
         path: "/citizen/verify-cedula",
-        summary: "Verify a cédula and become a resident",
+        summary: "Check a cédula against the civil registry",
       }),
     )
     .input(verifyCedulaInput)

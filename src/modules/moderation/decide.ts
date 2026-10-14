@@ -66,7 +66,8 @@ export async function decidePlace(
         })
         .from(places)
         .where(eq(places.id, input.placeId))
-        .limit(1);
+        .limit(1)
+        .for("update");
 
       if (!place) throw new ModerationError("not_found");
       // The scope check happens after the row is read, because the row is what
@@ -100,6 +101,29 @@ export async function decidePlace(
         tx,
       );
 
+      if (place.createdByUserId) {
+        await notify(
+          {
+            userId: place.createdByUserId,
+            messageKey: published
+              ? "notifications.placeApproved"
+              : "notifications.placeRejected",
+            params: { name: place.name },
+            href: published ? `/mapa?lugar=${place.slug}` : "/aportes",
+          },
+          tx,
+        );
+      }
+      await publishRealtimeEvent(
+        {
+          channel: "places",
+          municipalityId: place.municipalityId,
+          subjectType: "place",
+          subjectId: place.id,
+          action: published ? "created" : "deleted",
+        },
+        tx,
+      );
       return { place, published };
     },
   });
@@ -107,18 +131,7 @@ export async function decidePlace(
   // Replays skip the side effects: the first attempt already sent them.
   if (outcome.replayed) return { status: "ok" as const };
 
-  const { place, published } = outcome.result;
-
-  if (place.createdByUserId) {
-    await notify({
-      userId: place.createdByUserId,
-      messageKey: published
-        ? "notifications.placeApproved"
-        : "notifications.placeRejected",
-      params: { name: place.name },
-      href: published ? `/mapa?lugar=${place.slug}` : "/aportes",
-    });
-  }
+  const { published } = outcome.result;
 
   if (published) {
     // `{ expire: 0 }` rather than a stale-while-revalidate window: a citizen
@@ -150,7 +163,8 @@ export async function decideReport(
         .from(placeReports)
         .innerJoin(places, eq(places.id, placeReports.placeId))
         .where(eq(placeReports.id, input.reportId))
-        .limit(1);
+        .limit(1)
+        .for("update");
 
       if (!row) throw new ModerationError("not_found");
       assertModerates(viewer, row.municipalityId);
@@ -211,7 +225,8 @@ export async function decidePhoto(
         .from(placePhotos)
         .innerJoin(places, eq(places.id, placePhotos.placeId))
         .where(eq(placePhotos.id, input.photoId))
-        .limit(1);
+        .limit(1)
+        .for("update");
 
       if (!row) throw new ModerationError("not_found");
       assertModerates(viewer, row.municipalityId);
@@ -283,7 +298,8 @@ export async function decideBusinessClaim(
         .from(businessClaims)
         .innerJoin(places, eq(places.id, businessClaims.placeId))
         .where(eq(businessClaims.id, input.claimId))
-        .limit(1);
+        .limit(1)
+        .for("update");
 
       if (!row) throw new ModerationError("not_found");
       assertModerates(viewer, row.municipalityId);
@@ -322,26 +338,38 @@ export async function decideBusinessClaim(
         tx,
       );
 
+      await notify(
+        {
+          userId: row.claimantUserId,
+          messageKey: approved
+            ? "notifications.businessClaimApproved"
+            : "notifications.businessClaimRejected",
+          params: { name: row.placeName },
+          href: approved ? `/mapa?lugar=${row.placeSlug}` : "/aportes",
+          // Push and the notification centre, like every other moderation decision.
+          // No email: `notify` sends one only when handed an address, and a claim
+          // decision does not warrant reaching outside the platform for it.
+          channels: { push: true, email: false },
+        },
+        tx,
+      );
+      await publishRealtimeEvent(
+        {
+          channel: "places",
+          municipalityId: row.municipalityId,
+          subjectType: "place",
+          subjectId: row.placeId,
+          action: "updated",
+        },
+        tx,
+      );
       return { row, approved };
     },
   });
 
   if (outcome.replayed) return { status: "ok" as const };
 
-  const { row, approved } = outcome.result;
-
-  await notify({
-    userId: row.claimantUserId,
-    messageKey: approved
-      ? "notifications.businessClaimApproved"
-      : "notifications.businessClaimRejected",
-    params: { name: row.placeName },
-    href: approved ? `/mapa?lugar=${row.placeSlug}` : "/aportes",
-    // Push and the notification centre, like every other moderation decision.
-    // No email: `notify` sends one only when handed an address, and a claim
-    // decision does not warrant reaching outside the platform for it.
-    channels: { push: true, email: false },
-  });
+  const { approved } = outcome.result;
 
   if (approved) {
     // The contact details are part of what the tiles and the directory serve,
@@ -386,7 +414,8 @@ export async function removeTrafficReport(
         .from(trafficReports)
         .innerJoin(categories, eq(categories.id, trafficReports.categoryId))
         .where(eq(trafficReports.id, input.reportId))
-        .limit(1);
+        .limit(1)
+        .for("update");
 
       if (!report) throw new ModerationError("not_found");
       assertModerates(viewer, report.municipalityId);
@@ -420,33 +449,37 @@ export async function removeTrafficReport(
         tx,
       );
 
+      await publishRealtimeEvent(
+        {
+          channel: TRAFFIC_CHANNEL,
+          municipalityId: report.municipalityId,
+          subjectType: "traffic_report",
+          subjectId: report.id,
+          action: "deleted",
+          payload: { reason: "removed" },
+          location: report.location,
+        },
+        tx,
+      );
+
+      if (report.reportedByUserId) {
+        await notify(
+          {
+            userId: report.reportedByUserId,
+            messageKey: "notifications.trafficRemoved",
+            params: { description: report.categoryName },
+            href: "/aportes",
+            channels: { push: false, email: false },
+          },
+          tx,
+        );
+      }
+
       return report;
     },
   });
 
   if (outcome.replayed) return { status: "ok" as const };
-
-  const report = outcome.result;
-
-  await publishRealtimeEvent({
-    channel: TRAFFIC_CHANNEL,
-    municipalityId: report.municipalityId,
-    subjectType: "traffic_report",
-    subjectId: report.id,
-    action: "deleted",
-    payload: { reason: "removed" },
-    location: report.location,
-  });
-
-  if (report.reportedByUserId) {
-    await notify({
-      userId: report.reportedByUserId,
-      messageKey: "notifications.trafficRemoved",
-      params: { description: report.categoryName },
-      href: "/aportes",
-      channels: { push: false, email: false },
-    });
-  }
 
   return { status: "ok" as const };
 }
