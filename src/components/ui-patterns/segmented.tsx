@@ -34,7 +34,10 @@ export function Segmented<Value extends string>({
   return (
     <fieldset className={cn("min-w-0", className)}>
       <legend className="sr-only">{label}</legend>
-      <div className="flex w-full gap-1 rounded-[1.375rem] bg-secondary p-1">
+      {/* The sign-in screen's switch: a muted track, 4px of air, and the
+          current option as a white tile with a soft shadow, corners
+          concentric with the track's. */}
+      <div className="flex w-full gap-1 rounded-xl bg-muted p-1">
         {options.map((option) => {
           const current = option.value === value;
           return (
@@ -46,10 +49,10 @@ export function Segmented<Value extends string>({
                 onChange(current && allowEmpty ? "" : option.value)
               }
               className={cn(
-                "flex min-h-11 min-w-0 flex-1 items-center justify-center text-balance rounded-[1.125rem] px-2 py-1.5 text-center font-medium text-[15px] leading-tight transition-colors",
+                "flex min-h-11 min-w-0 flex-1 items-center justify-center text-balance rounded-lg px-4 py-1.5 text-center font-medium text-[15px] leading-tight transition-colors",
                 "focus-visible:outline-2 focus-visible:outline-offset-1",
                 current
-                  ? "bg-card font-semibold text-foreground ring-1 ring-foreground/10"
+                  ? "bg-card font-semibold text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >

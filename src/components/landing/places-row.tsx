@@ -24,7 +24,7 @@ export async function PlacesRow() {
   return (
     <PlacesFrame>
       {places.length === 0 ? (
-        <p className="px-5 text-base text-muted-foreground md:px-0">
+        <p className="px-4 text-base text-muted-foreground sm:px-5 md:px-0">
           {t("empty")}
         </p>
       ) : (
@@ -47,7 +47,7 @@ function PlacesFrame({ children }: { children: React.ReactNode }) {
   return (
     <section
       aria-labelledby="places-title"
-      className="mx-auto mt-16 mb-20 max-w-6xl md:mt-28 md:mb-28 md:px-5"
+      className="mx-auto mt-12 mb-16 max-w-6xl md:mt-24 md:mb-24 md:px-5"
     >
       {children}
     </section>
@@ -113,7 +113,7 @@ export async function PlacesSkeleton() {
   const t = await getTranslations("landing.places");
   return (
     <PlacesFrame>
-      <div className="mb-5 px-5 md:mb-7 md:px-0">
+      <div className="mb-5 px-4 sm:px-5 md:mb-7 md:px-0">
         <h2 id="places-title" className="section-title">
           {t("title")}
         </h2>
