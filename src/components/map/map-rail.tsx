@@ -1,7 +1,7 @@
 import {
   Compass,
-  House,
   Map as MapIcon,
+  MapPin,
   MapPinPlus,
   MessagesSquare,
   ShieldCheck,
@@ -32,6 +32,11 @@ import { getServerViewer } from "@/modules/access/server";
  * Hidden below `md`. On a phone there is no width to spare either, so the same
  * controls float over the map as separate circles instead.
  */
+/**
+ * One destination on the desktop rail — the same item as the phone's bottom
+ * bar, turned on its side: a soft grey pill behind the icon, the word under
+ * it, a dot for the current page. One navigation shape across the product.
+ */
 function RailLink({
   href,
   icon: Icon,
@@ -47,24 +52,51 @@ function RailLink({
     <Link
       href={href}
       aria-current={active ? "page" : undefined}
-      className={`flex w-full flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-center text-[11px] leading-tight transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-        active ? "bg-accent text-foreground" : "text-muted-foreground"
+      className={`group flex w-full flex-col items-center gap-1 rounded-xl py-1.5 text-center text-[11.5px] leading-tight tracking-[-0.01em] focus-visible:outline-2 focus-visible:outline-offset-2 ${
+        active
+          ? "font-semibold text-foreground"
+          : "font-medium text-muted-foreground hover:text-foreground"
       }`}
     >
-      <Icon className="size-5" aria-hidden />
+      <span className="relative flex h-8 w-14 items-center justify-center">
+        <span
+          aria-hidden
+          className={`absolute inset-0 rounded-full transition-colors ${
+            active
+              ? "nav-pill bg-foreground/[0.08]"
+              : "group-hover:bg-foreground/[0.05]"
+          }`}
+        />
+        <Icon
+          className="relative size-[22px]"
+          strokeWidth={active ? 2.25 : 1.75}
+          aria-hidden
+        />
+      </span>
+      {label}
+      <span
+        aria-hidden
+        className={`size-1 rounded-full ${active ? "bg-foreground" : "bg-transparent"}`}
+      />
+    </Link>
+  );
+}
+
+/** Home, as the brand's own tile: the mark the login and header carry. */
+function RailHome({ label }: { label: string }) {
+  return (
+    <Link
+      href="/"
+      className="group mb-2 flex w-full flex-col items-center gap-1.5 rounded-xl py-1.5 font-medium text-[11.5px] text-muted-foreground leading-tight hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2"
+    >
+      <span className="flex size-10 items-center justify-center rounded-[12px] bg-primary text-primary-foreground transition-transform group-active:scale-95">
+        <MapPin className="size-5" aria-hidden />
+      </span>
       {label}
     </Link>
   );
 }
 
-/**
- * Who you are, and what is waiting for you.
- *
- * `floating` is the phone: each control is its own circle over the map, with
- * its own ring and shadow, rather than a bar of chrome sitting on top of it.
- * `rail` is the column on a wider screen, where the surface behind them is
- * already a panel.
- */
 async function RailAccount({
   layout = "rail",
 }: {
@@ -75,7 +107,7 @@ async function RailAccount({
 
   const floating =
     layout === "floating"
-      ? "rounded-full border bg-background/95 shadow-md backdrop-blur-sm"
+      ? "rounded-full border border-black/5 bg-background shadow-[0_2px_10px_-2px_rgb(0_0_0/0.18)]"
       : "";
 
   if (viewer.kind === "anonymous") {
@@ -143,10 +175,10 @@ export async function MapRail() {
   return (
     <nav
       aria-label={t("label")}
-      className="hidden w-[76px] shrink-0 flex-col border-r bg-background md:flex"
+      className="hidden w-[84px] shrink-0 flex-col border-r bg-background md:flex"
     >
-      <div className="flex flex-1 flex-col gap-1 p-2">
-        <RailLink href="/" icon={House} label={t("home")} />
+      <div className="flex flex-1 flex-col gap-1 px-2 pt-4 pb-2">
+        <RailHome label={t("home")} />
         <RailLink href="/explorar" icon={Compass} label={t("explore")} />
         <RailLink href="/mapa" icon={MapIcon} label={t("map")} active />
         {/* The URL carries the mode, so this works from anywhere and the back

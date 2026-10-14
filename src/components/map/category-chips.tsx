@@ -41,11 +41,11 @@ export function FilterChip({
       className={cn(
         // A white pill with a hairline and a soft shadow, the shape every map
         // application uses for this, sized for a thumb.
-        "flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 font-medium text-sm shadow-sm transition-colors",
+        "flex h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-4 font-medium text-[15px] shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_14px_-6px_rgb(0_0_0/0.16)] transition-colors",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
         active
           ? "border-transparent bg-foreground text-background"
-          : "border-border bg-background text-foreground hover:bg-secondary",
+          : "border-black/[0.06] bg-background text-foreground hover:bg-secondary",
       )}
     >
       {children}
@@ -75,8 +75,8 @@ export function CategoryChips({
       el.style.maskImage = "none";
       return;
     }
-    const left = el.scrollLeft > 1 ? 8 : 0;
-    const right = el.scrollLeft < max - 1 ? 8 : 0;
+    const left = el.scrollLeft > 1 ? 32 : 0;
+    const right = el.scrollLeft < max - 1 ? 32 : 0;
     const gradient = `linear-gradient(to right, transparent 0, #000 ${left * 4}px, #000 calc(100% - ${right * 4}px), transparent 100%)`;
     el.style.webkitMaskImage = gradient;
     el.style.maskImage = gradient;

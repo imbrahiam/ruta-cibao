@@ -639,6 +639,7 @@
     },
     "actions": {
       "locate": "Centrar en mi ubicación",
+      "contribute": "Aportar",
       "share": "Compartir esta vista",
       "addPlace": "Añadir un lugar",
       "here": "Estás aquí",

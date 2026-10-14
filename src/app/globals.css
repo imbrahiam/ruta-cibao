@@ -408,9 +408,12 @@
  */
 .maplibregl-ctrl.maplibregl-ctrl-group:not(:empty) {
   overflow: hidden;
-  border: 1px solid rgb(0 0 0 / 0.05);
-  border-radius: 9999px;
-  box-shadow: 0 2px 10px -2px rgb(0 0 0 / 0.22);
+  width: 48px;
+  border: 1px solid rgb(0 0 0 / 0.06);
+  border-radius: 16px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.06),
+    0 4px 14px -4px rgb(0 0 0 / 0.16);
 }
 
 .maplibregl-ctrl.maplibregl-ctrl-group button {
@@ -611,4 +614,17 @@
     calc(var(--perf) / -2) calc(var(--perf) / -2) / var(--perf) var(--perf)
     round,
     linear-gradient(#000 0 0) content-box;
+}
+
+/*
+ * MapLibre's corner, aligned to the floating column above it: the same right
+ * edge (0.75rem) and the same 10px rhythm between the zoom pair and the
+ * attribution (i).
+ */
+.maplibregl-map .maplibregl-ctrl-bottom-right .maplibregl-ctrl {
+  margin: 0 0 10px;
+}
+
+.maplibregl-ctrl-bottom-right {
+  margin-right: max(0.75rem, env(safe-area-inset-right));
 }

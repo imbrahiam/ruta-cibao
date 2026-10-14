@@ -262,7 +262,7 @@ export function MapSearch({
         render={
           <button
             type="button"
-            className="flex h-12 w-full items-center gap-3 rounded-full border border-black/5 bg-background px-4 text-left text-muted-foreground shadow-[0_2px_10px_-2px_rgb(0_0_0/0.18)] transition-shadow hover:shadow-[0_4px_16px_-4px_rgb(0_0_0/0.25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:max-w-md"
+            className="flex h-12 w-full items-center gap-3 rounded-full border border-black/[0.06] bg-background px-4 text-left text-[15px] text-muted-foreground shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_14px_-4px_rgb(0_0_0/0.16)] transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:max-w-md"
           >
             <Search
               className="size-[18px] shrink-0 text-foreground/70"

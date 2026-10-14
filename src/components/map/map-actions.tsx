@@ -43,22 +43,21 @@ import { cn } from "@/lib/utils";
  * map nobody believes.
  */
 /**
- * The shared look of the floating circles: the same white disc, hairline and
- * soft shadow as the search pill above, so the controls over the map read as
- * one family rather than three components that happen to share a screen.
+ * The floating controls' one shape: a 48px soft square (16px radius) in the
+ * page's white, a hairline and one soft shadow — the login screen's language
+ * (its logo tile, its inputs) brought onto the map. Circles, a square zoom
+ * pair and a pill used to share one corner; now every control over the map is
+ * the same object at the same width, so the column reads as one instrument.
  */
 const FLOATING =
-  "flex size-12 items-center justify-center rounded-full border border-black/5 bg-background text-foreground shadow-[0_2px_10px_-2px_rgb(0_0_0/0.22)] transition-[background-color,box-shadow,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 data-popup-open:bg-foreground data-popup-open:text-background";
+  "flex size-12 items-center justify-center rounded-[16px] border border-black/[0.06] bg-background text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_14px_-4px_rgb(0_0_0/0.16)] transition-[background-color,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95";
 
 /**
- * The "+" is filled in the primary colour. White, it was the twin of the zoom
- * control's "+" a few pixels below it, and people pressing it to zoom in got a
- * menu instead.
+ * The way in to contributing: a labelled green button, not a bare "+". A "+"
+ * alone asks the reader to guess between zoom, add and more; the word answers.
  */
-const FLOATING_PRIMARY = cn(
-  FLOATING,
-  "border-transparent bg-primary text-primary-foreground hover:bg-primary/90",
-);
+const FLOATING_PRIMARY =
+  "flex h-12 items-center gap-2 rounded-[16px] bg-primary pr-4 pl-3.5 font-semibold text-[15px] text-primary-foreground shadow-[0_1px_2px_rgb(0_0_0/0.1),0_6px_16px_-6px_rgb(31_77_63/0.55)] transition-[background-color,transform] hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-95 data-popup-open:bg-foreground";
 
 export function MapActions({
   onLocate,
@@ -126,7 +125,7 @@ export function MapActions({
     // the same corner, so the column sits higher to stay clear of them.
     <div
       className={cn(
-        "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2.5 transition-opacity duration-200 pointer-fine:bottom-40",
+        "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-28 z-20 flex flex-col items-end gap-2.5 transition-opacity duration-200 pointer-fine:bottom-38",
         // On a phone the sheet covers the corner, so the column steps out;
         // on a desktop it steps left of the 26rem panel and stays usable.
         concealed &&
@@ -140,16 +139,10 @@ export function MapActions({
           sheet's "…" menu, and one menu style across the app. */}
       <DropdownMenu>
         <DropdownMenuTrigger
-          render={
-            <button
-              type="button"
-              aria-label={moreT("more")}
-              title={moreT("more")}
-              className={FLOATING_PRIMARY}
-            />
-          }
+          render={<button type="button" className={FLOATING_PRIMARY} />}
         >
-          <Plus className="size-5" aria-hidden />
+          <Plus className="size-5" strokeWidth={2.5} aria-hidden />
+          {t("contribute")}
         </DropdownMenuTrigger>
         <DropdownMenuContent
           side="left"

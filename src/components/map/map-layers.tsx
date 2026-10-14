@@ -107,14 +107,13 @@ export function MapLayers({
             // back, which is what makes it findable by someone who has never
             // used the app and has the room to be told. The leading edge
             // respects the landscape notch rather than kissing it.
-            className="absolute bottom-6 left-[max(0.75rem,env(safe-area-inset-left))] z-20 flex size-12 items-center justify-center gap-2 rounded-full border border-black/5 bg-background shadow-[0_2px_10px_-2px_rgb(0_0_0/0.22)] transition-[background-color,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 md:left-4 md:h-11 md:w-auto md:rounded-full md:py-1 md:pr-4 md:pl-1"
+            // The same soft square as the controls on the right, with its
+            // word: "Capas" is short enough to keep on a phone too, and an
+            // unlabelled map icon read as "open the map" to first-time users.
+            className="absolute bottom-6 left-[max(0.75rem,env(safe-area-inset-left))] z-20 flex h-12 items-center gap-2 rounded-[16px] border border-black/[0.06] bg-background pr-4 pl-3.5 font-medium text-[15px] shadow-[0_1px_2px_rgb(0_0_0/0.06),0_4px_14px_-4px_rgb(0_0_0/0.16)] transition-[background-color,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-95 md:left-4"
           >
-            <span className="flex size-9 items-center justify-center rounded-full md:bg-muted">
-              <ActiveIcon className="size-5" aria-hidden />
-            </span>
-            <span className="hidden pr-1 font-medium text-sm md:inline">
-              {t("short")}
-            </span>
+            <ActiveIcon className="size-5" aria-hidden />
+            {t("short")}
           </button>
         }
       />
