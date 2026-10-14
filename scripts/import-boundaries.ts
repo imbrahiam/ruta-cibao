@@ -7,10 +7,18 @@
  * edge of Sabaneta on the other, so a citizen standing on Dominican ground near
  * the border was told their point was outside the province.
  *
- * The source is geoBoundaries gbOpen (ADM2, 2020), pinned to a commit rather
- * than tracking `current`: a boundary that changes silently under a running
- * platform is worse than one that is a year old. It is CC-BY, which is why the
- * attribution below is in the file and on the map.
+ * The source is OCHA's COD-AB for the Dominican Republic, produced from the
+ * Oficina Nacional de Estadística's territorial division (CC BY-IGO). It was
+ * chosen on 2026-10-14 after comparing three sources: COD-AB and OpenStreetMap
+ * agree to within 0.3 km (IoU 0.99–1.00) and match ONE's published areas
+ * (Sabaneta 800.8 km², Villa Los Almácigos 207.1, Monción 138.9), while the
+ * geoBoundaries file used before was up to 3 km off (Monción IoU 0.59).
+ *
+ * The three polygons are kept in `data/boundaries/santiago-rodriguez.geojson`,
+ * extracted from the national file and joined by ONE's P-code rather than by
+ * name. A boundary that changes silently under a running platform is worse
+ * than one that is a year old, and an import that needs no network is one the
+ * municipality can rerun without a developer.
  *
  *   bun run scripts/import-boundaries.ts
  *
@@ -20,33 +28,21 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { municipalities } from "@/db/schema";
 
-const SOURCE =
-  "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/DOM/ADM2/geoBoundaries-DOM-ADM2.geojson";
-
-/**
- * What geoBoundaries calls each municipality, and what this database does.
- *
- * Matched by name because that is the only stable join available: the shape ids
- * are release-scoped and change between versions.
- */
-const NAMES: Record<string, string> = {
-  "San Ignacio de Sabaneta": "sabaneta",
-  Monción: "moncion",
-  "Los Almácigos": "villa-los-almacigos",
-};
+const SOURCE = new URL(
+  "../data/boundaries/santiago-rodriguez.geojson",
+  import.meta.url,
+);
 
 type Ring = [number, number][];
 type Feature = {
-  properties: { shapeName: string };
+  properties: { id: string; pcode: string; name: string; areaSqKm: number };
   geometry:
     | { type: "Polygon"; coordinates: Ring[] }
     | { type: "MultiPolygon"; coordinates: Ring[][] };
 };
 
 function ringText(ring: Ring): string {
-  // Six decimals is about 10 cm, far past what a boundary file resolves and
-  // enough to keep the payload small.
-  return `(${ring.map(([x, y]) => `${x.toFixed(6)} ${y.toFixed(6)}`).join(",")})`;
+  return `(${ring.map(([x, y]) => `${x} ${y}`).join(",")})`;
 }
 
 function multiPolygonText(feature: Feature): string {
@@ -62,32 +58,27 @@ function multiPolygonText(feature: Feature): string {
   return `SRID=4326;MULTIPOLYGON(${body})`;
 }
 
-console.info("downloading boundaries…");
-const response = await fetch(SOURCE);
-if (!response.ok) {
-  console.error(`geoBoundaries responded ${response.status}`);
-  process.exit(1);
-}
-
-const collection = (await response.json()) as { features: Feature[] };
-const wanted = new Map(Object.entries(NAMES));
+const collection = (await Bun.file(SOURCE).json()) as {
+  source: string;
+  features: Feature[];
+};
 let written = 0;
 
 for (const feature of collection.features) {
-  const id = wanted.get(feature.properties.shapeName.trim());
-  if (!id) continue;
+  const { id, pcode, name, areaSqKm } = feature.properties;
+  const shape = multiPolygonText(feature);
 
   await db
     .update(municipalities)
     .set({
-      boundary: multiPolygonText(feature),
+      boundary: shape,
       // The centroid of the real polygon, not a hand-picked point. It is what
       // the add-place form falls back to and what the map frames.
-      center: sql`ST_Centroid(ST_GeomFromEWKT(${multiPolygonText(feature)}))`,
+      center: sql`ST_Centroid(ST_GeomFromEWKT(${shape}))`,
     })
     .where(eq(municipalities.id, id));
 
-  console.info(`  ${feature.properties.shapeName.trim()} → ${id}`);
+  console.info(`  ${pcode} ${name} (${areaSqKm} km²) → ${id}`);
   written += 1;
 }
 
@@ -105,7 +96,7 @@ const extents = await db.execute<{
 
 const extent = extents.rows[0];
 
-console.info(`\n${written}/${wanted.size} written.`);
+console.info(`\n${written}/${collection.features.length} written.`);
 console.info(
   "province extent:",
   extent
@@ -114,7 +105,5 @@ console.info(
         .join(", ")
     : "none",
 );
-console.info(
-  "\nBoundaries © geoBoundaries (gbOpen, CC-BY 4.0) — www.geoboundaries.org",
-);
+console.info(`\nBoundaries: ${collection.source}`);
 process.exit(0);

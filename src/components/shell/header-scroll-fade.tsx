@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 
 /**
- * A hairline under the sticky header, once the page moves.
+ * A soft fade under the sticky header, once the page moves.
  *
  * At the top of the page the header and the page are one surface; once the
  * content slides under it, a rule separates them — by line, not shadow, as
@@ -28,7 +28,10 @@ export function HeaderScrollFade() {
     <div
       aria-hidden
       data-scrolled={scrolled}
-      className="pointer-events-none absolute inset-x-0 top-full h-px bg-border opacity-0 transition-opacity duration-200 data-[scrolled=true]:opacity-100"
+      // A fade rather than a rule: the content dissolves under the header as it
+      // scrolls, instead of being cut by a line — the edge reads as depth, the
+      // way the page meets the header on the landing.
+      className="pointer-events-none absolute inset-x-0 top-full h-5 bg-linear-to-b from-background via-background/70 to-transparent opacity-0 transition-opacity duration-200 data-[scrolled=true]:opacity-100"
     />
   );
 }

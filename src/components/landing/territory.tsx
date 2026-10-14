@@ -72,7 +72,7 @@ function TerritoryFrame({
   return (
     <section
       aria-labelledby="territory-title"
-      className="mx-auto mt-12 max-w-6xl px-4 sm:px-5 md:mt-24"
+      className="mx-auto mt-12 max-w-6xl px-6 md:mt-24"
     >
       <div className="grid gap-6 rounded-[1.75rem] bg-secondary px-4 py-7 sm:px-6 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:grid-rows-[auto_1fr] md:gap-x-12 md:gap-y-8 md:rounded-[2rem] md:p-12">
         <div className="px-1 md:px-0">

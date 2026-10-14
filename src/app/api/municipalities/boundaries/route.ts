@@ -18,7 +18,8 @@ import { COUNTRY_BOUNDS } from "@/lib/map/config";
  * PostGIS already speaks this format and the alternative is a parser nobody
  * asked for.
  *
- * Boundaries © geoBoundaries (gbOpen, CC-BY 4.0). Imported by
+ * Boundaries: Oficina Nacional de Estadística via OCHA COD-AB (CC BY-IGO).
+ * Imported by
  * `scripts/import-boundaries.ts`.
  */
 export const MUNICIPAL_BOUNDARIES_TAG = "municipal-boundaries";
@@ -33,7 +34,11 @@ async function collection() {
     .select({
       id: municipalities.id,
       name: municipalities.name,
-      geometry: sql<string>`ST_AsGeoJSON(${municipalities.boundary})`,
+      // Simplified to ~11 m for the wire: the official polygons are ~260 KB,
+      // which a phone on rural data should not pay for an outline. The
+      // database keeps full precision, and its ST_Contains is the authority on
+      // submit; this copy only draws the map and guesses while dragging.
+      geometry: sql<string>`ST_AsGeoJSON(ST_SimplifyPreserveTopology(${municipalities.boundary}, 0.0001), 5)`,
       // Inside the polygon by construction, unlike a centroid — a horseshoe
       // municipality's centroid can land in its neighbour.
       label: sql<string>`ST_AsGeoJSON(ST_PointOnSurface(${municipalities.boundary}))`,
@@ -50,7 +55,7 @@ async function collection() {
         .select({
           geometry: sql<string>`ST_AsGeoJSON(ST_Difference(
             ST_MakeEnvelope(${west}, ${south}, ${east}, ${north}, 4326),
-            ST_Union(${municipalities.boundary})
+            ST_SimplifyPreserveTopology(ST_Union(${municipalities.boundary}), 0.0001)
           ), 5)`,
         })
         .from(municipalities)

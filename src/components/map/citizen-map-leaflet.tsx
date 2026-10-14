@@ -148,7 +148,9 @@ export function CitizenMap({
 
       instance.getContainer().setAttribute("role", "region");
       instance.getContainer().setAttribute("aria-label", labels.current.title);
-      L.control.attribution({ prefix: false }).addTo(instance);
+      L.control
+        .attribution({ prefix: false, position: "bottomleft" })
+        .addTo(instance);
 
       // A tap on empty ground closes whatever was open, which is what people
       // expect from a map and saves them hunting for a close button.

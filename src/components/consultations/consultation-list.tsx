@@ -82,10 +82,12 @@ export function ConsultationList() {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-        <h1 className="page-title">{t("title")}</h1>
+      {/* The large-title pattern: the action sits beside the title, on its
+          first line, rather than wrapping alone under it on a phone. */}
+      <header className="flex items-start justify-between gap-4">
+        <h1 className="page-title min-w-0">{t("title")}</h1>
         <Button
-          className="h-11 rounded-full px-5"
+          className="mt-1 h-10 shrink-0 rounded-full px-4 text-sm sm:mt-1.5 sm:h-11 sm:px-5 sm:text-[15px]"
           onClick={() => setOpening(true)}
         >
           <Plus className="size-4" aria-hidden />

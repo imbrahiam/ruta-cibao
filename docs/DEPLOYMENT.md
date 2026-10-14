@@ -387,7 +387,7 @@ and re-running is how you update the data.
 
 ```bash
 rc run --rm migrate bun run scripts/seed.ts               # municipalities, categories
-rc run --rm migrate bun run scripts/import-boundaries.ts  # municipal limits (geoBoundaries)
+rc run --rm migrate bun run scripts/import-boundaries.ts  # municipal limits (ONE, via OCHA COD-AB; no network)
 rc run --rm migrate bun run scripts/import-roads.ts       # road network (OpenStreetMap)
 ```
 

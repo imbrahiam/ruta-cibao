@@ -86,7 +86,7 @@ export async function AppHeader() {
         {t("skipToContent")}
       </a>
 
-      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-5 md:h-[4.5rem]">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-between gap-4 px-6 md:h-[4.5rem]">
         <Brand />
         <SiteNav />
 
