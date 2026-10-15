@@ -27,12 +27,15 @@ export function SignInPrompt({
   photoTitle: string;
 }) {
   return (
-    <section className="mt-6 grid gap-6 md:grid-cols-[1.05fr_1fr] md:items-center md:gap-10">
+    <section className="mt-6 grid gap-5 md:grid-cols-[1.05fr_1fr] md:items-center md:gap-10">
       <PhotoPanel
         src={photo}
         title={photoTitle}
         sizes="(min-width: 768px) 360px, 100vw"
-        className="min-h-56 md:min-h-[26rem]"
+        // Hidden on phones, as on the sign-in screen itself: there the photo
+        // is a desktop companion, and on a phone it stacked a third headline
+        // between the page title and the one thing to do.
+        className="hidden min-h-[26rem] md:flex"
       />
       <div className="flex flex-col gap-5">
         <h2 className="section-title">{title}</h2>
@@ -42,7 +45,7 @@ export function SignInPrompt({
           </p>
         ) : null}
         <Button
-          className="h-14 w-full rounded-[14px] text-base"
+          className="h-12 w-full rounded-[14px] text-base md:w-fit md:px-6"
           nativeButton={false}
           render={<Link href={href} />}
         >

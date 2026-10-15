@@ -70,7 +70,7 @@ export function PassportScreen() {
   const placeTotal = places.data?.total;
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="max-w-4xl">
       <header className="mb-6">
         <h1 className="page-title">{t("title")}</h1>
       </header>

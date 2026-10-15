@@ -41,7 +41,7 @@ export function LayerRow({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block font-medium text-base">{title}</span>
-          <span className="block text-muted-foreground text-xs leading-snug">
+          <span className="block text-muted-foreground text-sm leading-snug">
             {hint}
           </span>
         </span>

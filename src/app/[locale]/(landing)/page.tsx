@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 import { FeatureRows } from "@/components/landing/feature-rows";
 import { Hero } from "@/components/landing/hero";
@@ -18,6 +19,12 @@ import { Territory, TerritorySkeleton } from "@/components/landing/territory";
  * hero and the feature rows are in the static shell and paint first; each
  * fallback is the same height as what replaces it.
  */
+export async function generateMetadata() {
+  const t = await getTranslations("app");
+  // The home page names what this is, not just whose it is.
+  return { title: { absolute: `${t("name")} · ${t("tagline")}` } };
+}
+
 export default function Landing() {
   return (
     <>

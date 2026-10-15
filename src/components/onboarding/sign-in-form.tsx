@@ -381,7 +381,7 @@ export function SignInForm({
                 setMethod(option);
                 setError(null);
               }}
-              className={`flex h-10 items-center justify-center gap-2 rounded-lg font-medium text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+              className={`flex h-11 items-center justify-center gap-2 rounded-lg font-medium text-[15px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 method === option
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"

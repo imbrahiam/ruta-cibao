@@ -46,7 +46,9 @@ const mono = Geist_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#213d34",
+  // The page ground, so the browser bar is part of the page rather than a
+  // dark green band over a warm grey one.
+  themeColor: "#f7f6f5",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",

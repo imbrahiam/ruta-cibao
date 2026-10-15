@@ -127,7 +127,7 @@ export function useCommunityMap(
         >
           <Link
             href="/rutas"
-            className="text-primary text-sm underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center font-medium text-primary text-[15px] underline-offset-4 hover:underline"
           >
             {t("seeAllRoutes")}
           </Link>
@@ -141,7 +141,7 @@ export function useCommunityMap(
         >
           <Link
             href="/consultas"
-            className="text-primary text-sm underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center font-medium text-primary text-[15px] underline-offset-4 hover:underline"
           >
             {t("seeAllCases")}
           </Link>

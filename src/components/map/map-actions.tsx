@@ -142,7 +142,7 @@ export function MapActions({
     // baseline as "Capas" opposite it, with "where am I" and zoom above.
     <div
       className={cn(
-        "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-10 z-20 flex flex-col-reverse items-end gap-2.5 transition-opacity duration-200",
+        "absolute right-[max(0.75rem,env(safe-area-inset-right))] bottom-[3.25rem] z-20 flex flex-col-reverse items-end gap-2.5 transition-opacity duration-200",
         // On a phone the sheet covers the corner, so the column steps out;
         // on a desktop it steps left of the 26rem panel and stays usable.
         concealed &&

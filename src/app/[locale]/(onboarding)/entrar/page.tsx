@@ -53,6 +53,11 @@ async function SignInFallback() {
   );
 }
 
+export async function generateMetadata() {
+  const t = await getTranslations("auth");
+  return { title: t("signIn") };
+}
+
 export default function SignInPage({
   searchParams,
 }: PageProps<"/[locale]/entrar">) {

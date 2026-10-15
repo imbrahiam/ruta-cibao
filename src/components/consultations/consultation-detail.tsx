@@ -1,13 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  Map as MapIcon,
-  MessagesSquare,
-  ShieldCheck,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, Map as MapIcon, MessagesSquare, Users } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -113,7 +107,7 @@ export function ConsultationDetail({ slug }: { slug: string }) {
 
   if (query.isPending) {
     return (
-      <div role="status" className="mx-auto max-w-3xl space-y-4">
+      <div role="status" className="max-w-3xl space-y-4">
         <span className="sr-only">{t("loading")}</span>
         <Skeleton aria-hidden className="h-11 w-40 rounded-full" />
         <Skeleton aria-hidden className="mt-6 h-8 w-4/5" />
@@ -125,7 +119,7 @@ export function ConsultationDetail({ slug }: { slug: string }) {
 
   if (query.isError || !query.data) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div className="max-w-3xl">
         <EmptyState
           illustration="cases"
           title={t("notFound")}
@@ -177,7 +171,7 @@ export function ConsultationDetail({ slug }: { slug: string }) {
   ];
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-8">
+    <div className="flex max-w-3xl flex-col gap-8">
       <Button
         variant="ghost"
         className="-ml-3 h-11 self-start rounded-full px-3 text-[15px]"
@@ -246,7 +240,7 @@ export function ConsultationDetail({ slug }: { slug: string }) {
           {isCitizen && !item.isMine && !closed ? (
             <Button
               variant={item.supported ? "default" : "outline"}
-              className="h-11 rounded-full px-5"
+              className="h-11 rounded-[14px] px-5"
               disabled={support.isPending}
               onClick={() => support.mutate(!item.supported)}
             >
@@ -262,14 +256,16 @@ export function ConsultationDetail({ slug }: { slug: string }) {
               {t("support.closed")}
             </p>
           ) : !isCitizen ? (
+            // The task, not the paperwork: the button says what the resident
+            // wants to do, and the verification it needs is the next screen's
+            // job to explain.
             <Button
-              variant="outline"
-              className="h-11 rounded-full px-5"
+              className="h-11 rounded-[14px] px-5"
               nativeButton={false}
               render={<Link href="/verificar" />}
             >
-              <ShieldCheck className="size-4" aria-hidden />
-              {t("support.verify")}
+              <Users className="size-4" aria-hidden />
+              {t("support.add")}
             </Button>
           ) : null}
         </div>
