@@ -1,8 +1,8 @@
 import {
+  ClipboardList,
   Compass,
   Map as MapIcon,
   MapPin,
-  MapPinPlus,
   MessagesSquare,
   ShieldCheck,
   UserRound,
@@ -179,14 +179,12 @@ export async function MapRail() {
     >
       <div className="flex flex-1 flex-col gap-1 px-2 pt-4 pb-2">
         <RailHome label={t("home")} />
-        <RailLink href="/explorar" icon={Compass} label={t("explore")} />
         <RailLink href="/mapa" icon={MapIcon} label={t("map")} active />
-        {/* The URL carries the mode, so this works from anywhere and the back
-            button gets out of it. */}
+        <RailLink href="/explorar" icon={Compass} label={t("explore")} />
         <RailLink
-          href="/mapa?agregar=true"
-          icon={MapPinPlus}
-          label={t("addPlace")}
+          href="/aportes"
+          icon={ClipboardList}
+          label={t("contributions")}
         />
         <RailLink
           href="/consultas"

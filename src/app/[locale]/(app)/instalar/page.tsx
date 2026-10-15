@@ -12,7 +12,7 @@ export async function generateMetadata() {
 export default async function InstallPage() {
   const t = await getTranslations("install");
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="max-w-4xl">
       <header className="mx-auto mb-10 max-w-xl text-center">
         <p className="page-eyebrow mb-4">{t("eyebrow")}</p>
         <h1 className="page-title">{t("title")}</h1>

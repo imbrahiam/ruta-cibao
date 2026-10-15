@@ -99,8 +99,6 @@ export function MapLayers({
         render={
           <button
             type="button"
-            aria-label={t("label")}
-            title={t("label")}
             // A circle over the map on a phone, where the map is the whole
             // application and a fixed card at the bottom reads as a strip of
             // chrome taken out of it. On a wider screen it grows the label
@@ -110,7 +108,7 @@ export function MapLayers({
             // The same soft square as the controls on the right, with its
             // word: "Capas" is short enough to keep on a phone too, and an
             // unlabelled map icon read as "open the map" to first-time users.
-            className="absolute bottom-10 left-[max(0.75rem,env(safe-area-inset-left))] z-20 flex h-11 items-center gap-1.5 rounded-[14px] border border-black/[0.07] bg-card pr-3.5 pl-3 font-semibold text-sm shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)] transition-[background-color,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] md:left-4"
+            className="absolute bottom-[3.25rem] left-[max(0.75rem,env(safe-area-inset-left))] z-20 flex h-11 items-center gap-1.5 rounded-[14px] border border-black/[0.07] bg-card pr-3.5 pl-3 font-semibold text-sm shadow-[0_1px_2px_rgb(0_0_0/0.06),0_6px_16px_-6px_rgb(0_0_0/0.18)] transition-[background-color,transform] hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.98] md:left-4"
           >
             <ActiveIcon className="size-4" aria-hidden />
             {t("short")}
@@ -119,9 +117,11 @@ export function MapLayers({
       />
 
       <DrawerContent className="data-[swipe-axis=y]:[--drawer-content-height:85dvh]">
-        <DrawerHeader className="border-b text-left">
+        <DrawerHeader className="text-left">
           <div className="flex items-center justify-between gap-4">
-            <DrawerTitle className="text-lg">{t("title")}</DrawerTitle>
+            <DrawerTitle className="font-display font-medium text-2xl">
+              {t("title")}
+            </DrawerTitle>
             <DrawerClose
               render={
                 <Button
@@ -136,7 +136,9 @@ export function MapLayers({
             </DrawerClose>
           </div>
           <DrawerDescription className="text-left">
-            {t("description")}
+            {/* Only Google offers a choice of ground; elsewhere the sheet is
+                about what is drawn on it. */}
+            {googleRenderer ? t("description") : t("descriptionLayers")}
           </DrawerDescription>
         </DrawerHeader>
 

@@ -170,9 +170,9 @@ export function MapSearch({
     ...orpc.places.categories.queryOptions(),
     enabled: open,
   });
-  const categories = allCategories?.filter(
-    (category) => category.kind === "place",
-  );
+  // Every type, businesses included: the search matches on category, and
+  // "Comedor" or "Colmado" is as much a thing to look for as "Salud".
+  const categories = allCategories;
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedTerm(term), 250);
@@ -273,7 +273,9 @@ export function MapSearch({
         }
       />
 
-      <DrawerContent>
+      {/* Nearly the full screen on a phone, so the field opens at the top —
+          where the bar that was tapped sits — instead of 600px below it. */}
+      <DrawerContent className="data-[swipe-axis=y]:[--drawer-content-height:calc(100dvh-max(1rem,env(safe-area-inset-top)))]">
         <DrawerHeader>
           <DrawerTitle className="sr-only">{t("title")}</DrawerTitle>
           {/* A form so the keyboard's search key is the submit, which is the

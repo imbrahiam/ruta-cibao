@@ -264,7 +264,7 @@ export function AccountScreen() {
 
   if (isLoading)
     return (
-      <div role="status" className="mx-auto max-w-2xl space-y-4">
+      <div role="status" className="max-w-2xl space-y-4">
         <span className="sr-only">{t("loading")}</span>
         <Skeleton aria-hidden className="h-9 w-40" />
         <div aria-hidden className="flex items-center gap-4 pt-4">
@@ -278,7 +278,7 @@ export function AccountScreen() {
     );
   if (isUnavailable)
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="max-w-2xl">
         <EmptyState
           illustration="account"
           title={t("error")}
@@ -314,7 +314,7 @@ export function AccountScreen() {
     ) : null;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <h1 className="page-title">{t("title")}</h1>
 
       {member && viewer && viewer.kind !== "anonymous" ? (

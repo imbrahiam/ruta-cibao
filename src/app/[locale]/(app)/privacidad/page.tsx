@@ -9,7 +9,7 @@ export async function generateMetadata() {
 export default async function PrivacyPage() {
   const t = await getTranslations("privacy");
   return (
-    <article className="mx-auto max-w-2xl">
+    <article className="max-w-2xl">
       <p className="page-eyebrow mb-4">{t("eyebrow")}</p>
       <h1 className="page-title">{t("title")}</h1>
       <p className="page-lede mt-4">{t("intro")}</p>

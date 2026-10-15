@@ -67,7 +67,7 @@ export function ContributionList() {
   const groups = groupByRecency(items, (item) => item.createdAt, now);
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="max-w-3xl">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
         <h1 className="page-title">{t("title")}</h1>
         {member && (

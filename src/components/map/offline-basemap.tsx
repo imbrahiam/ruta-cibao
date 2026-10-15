@@ -68,20 +68,21 @@ export function OfflineBasemap() {
   const large = (size.data ?? 0) >= 25_000_000;
 
   return (
-    <div className="flex min-h-16 items-center gap-3 rounded-lg px-3 py-2">
-      {saved.data ? (
-        <Check className="size-5 shrink-0 text-emerald-600" aria-hidden />
-      ) : (
-        <HardDriveDownload
-          className="size-5 shrink-0 text-muted-foreground"
-          aria-hidden
-        />
-      )}
+    // The same row as a map layer — icon disc, title, one line — so the
+    // sheet reads as one list rather than layers plus a stray row.
+    <div className="flex min-h-16 items-center gap-3 rounded-xl px-3 py-2.5">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary">
+        {saved.data ? (
+          <Check className="size-5 text-emerald-700" aria-hidden />
+        ) : (
+          <HardDriveDownload className="size-5 text-foreground" aria-hidden />
+        )}
+      </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-base">
+        <span className="block font-medium text-base">
           {saved.data ? t("savedTitle") : t("title")}
         </span>
-        <span className="block text-muted-foreground text-xs leading-snug">
+        <span className="block text-muted-foreground text-sm leading-snug">
           {save.isError
             ? t("failed")
             : saved.data

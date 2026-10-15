@@ -26,7 +26,7 @@ export async function SiteFooter() {
     { label: t("reports"), href: "/informes" },
     { label: nav("install"), href: "/instalar" },
     { label: nav("privacy"), href: "/privacidad" },
-    { label: nav("api"), href: "/api/docs", document: true },
+    { label: nav("contributions"), href: "/aportes" },
   ];
 
   const linkClass =
@@ -100,6 +100,11 @@ export async function SiteFooter() {
               >
                 {t("boundaries")}
                 <ArrowUpRight className="size-4" aria-hidden />
+              </a>
+              {/* For developers, so with the credits rather than among the
+                  links a resident is choosing between. */}
+              <a href="/api/docs" className={smallLink}>
+                {nav("api")}
               </a>
               <a href="/api/spec.json" className={smallLink}>
                 {t("spec")}

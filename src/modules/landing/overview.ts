@@ -224,9 +224,24 @@ export async function landingPlaces() {
     offset: 0,
     limit: 12,
   });
-  return items.toSorted(
+  // "Para visitar" is the places someone goes to for the going — a river, a
+  // park, somewhere to eat or stay — not the town hall or the hospital, which
+  // the map and Explorar still carry. If the province has too few of those
+  // yet, the row falls back to everything rather than showing one card.
+  const visitable = items.filter(
+    (item) => !SERVICE_CATEGORIES.has(item.categoryId),
+  );
+  return (visitable.length >= 3 ? visitable : items).toSorted(
     (a, b) => Number(Boolean(b.imageUrl)) - Number(Boolean(a.imageUrl)),
   );
 }
+
+/** Categories that are services rather than outings. */
+const SERVICE_CATEGORIES = new Set([
+  "salud",
+  "gobierno",
+  "educacion",
+  "transporte",
+]);
 
 export type LandingPlace = Awaited<ReturnType<typeof landingPlaces>>[number];

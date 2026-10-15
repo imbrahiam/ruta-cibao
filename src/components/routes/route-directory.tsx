@@ -110,6 +110,9 @@ export function RouteDirectory() {
   ];
   const reviewing = isStaff && scope === "pendientes";
 
+  const nothingYet =
+    !parsedLevel.success && scope === "publicadas" && query.data?.total === 0;
+
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
@@ -154,29 +157,33 @@ export function RouteDirectory() {
           options={scopes}
         />
       )}
-      <FilterPillRow label={t("difficultyLabel")}>
-        <FilterPill
-          active={!parsedLevel.success}
-          onClick={() => {
-            void setLevel(null);
-            setOffset(0);
-          }}
-        >
-          {t("allDifficulties")}
-        </FilterPill>
-        {difficulty.options.map((value) => (
+      {/* With no routes at all, a row of filters is a set of controls over
+          nothing — and the empty state below would blame them. */}
+      {!nothingYet && (
+        <FilterPillRow label={t("difficultyLabel")}>
           <FilterPill
-            key={value}
-            active={parsedLevel.success && parsedLevel.data === value}
+            active={!parsedLevel.success}
             onClick={() => {
-              void setLevel(level === value ? null : value);
+              void setLevel(null);
               setOffset(0);
             }}
           >
-            {t(`difficulty.${value}`)}
+            {t("allDifficulties")}
           </FilterPill>
-        ))}
-      </FilterPillRow>
+          {difficulty.options.map((value) => (
+            <FilterPill
+              key={value}
+              active={parsedLevel.success && parsedLevel.data === value}
+              onClick={() => {
+                void setLevel(level === value ? null : value);
+                setOffset(0);
+              }}
+            >
+              {t(`difficulty.${value}`)}
+            </FilterPill>
+          ))}
+        </FilterPillRow>
+      )}
 
       {query.isPending ? (
         <div
@@ -209,7 +216,7 @@ export function RouteDirectory() {
       ) : query.data.total === 0 ? (
         <EmptyState
           illustration="routes"
-          title={t("empty")}
+          title={parsedLevel.success ? t("empty") : t("emptyNone")}
           action={
             parsedLevel.success ? (
               <Button

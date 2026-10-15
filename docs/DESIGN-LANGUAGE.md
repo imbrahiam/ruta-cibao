@@ -69,9 +69,12 @@ pins — never to page chrome. Road-alert amber and the traffic legend are the
 only other saturated colours. A pale lime tint (`--highlight`) is for
 illustration fills only, never text.
 
-**Type.** Geist for everything, Geist Mono only for short numeric metadata
-(counts, distances, dates, `01`–`06` indices) via `.meta-mono`. No serif: one
-family keeps one voice and saves a download on slow data.
+**Type.** Two faces, each with one job. **Fraunces** (a warm, soft serif with
+optical sizes, after land-book's serif wordmark) for display, page and section
+titles and the wordmark — never for anything read at length or tapped.
+**Geist** for every other word: body, labels, buttons, rows. Geist Mono only for
+short numeric metadata (counts, distances, dates, `01`–`06` indices) via
+`.meta-mono`.
 
 | Role | Class | Size |
 | --- | --- | --- |
@@ -82,7 +85,21 @@ family keeps one voice and saves a download on slow data.
 | Body | default | 16 px minimum; 17 px in rows |
 | Big number | `.stat-number` | 40 → 56 px, tabular |
 
-**Shape.** Rounded pills for buttons and chips (44 px minimum height, 48 px on
+**Buttons.** One primary shape: the sign-in screen's, 14 px radius, 44 px
+tall (48 px for a form's main action), never taller. Pills are for filters,
+chips and search only — so a pill means "narrow what I see", a rounded
+rectangle means "do something".
+
+**Navigation.** One list everywhere, in one order: Mapa · Explorar · Mis
+aportes · Consultas, plus Mi cuenta on the phone and Inicio first on a
+desktop. The phone tab bar, the desktop header and the map's rail render the
+same list; the account lives at the header's right edge on a desktop.
+
+**Margins.** 24 px on phones for header, pages, landing, sign-in and footer —
+one edge everything lines up on. Page columns are left-aligned to the shell
+and limit only their reading width.
+
+**Shape.** Rounded pills for chips (44 px minimum height, 48 px on
 the landing). Photo cards in a grid for things you choose by looking (a place,
 a route), title under the image; everything you look something up in (cases,
 reports, settings) is a ruled list. Soft tiles (`bg-secondary`, 16 px radius)
@@ -141,7 +158,11 @@ outlines with their names, so the goal is visible.
 links in large text, a status line ("En línea · datos al día" / "Sin conexión
 — viendo datos guardados"), and the credits strip.
 
-**Map**: the same tokens. Floating controls are 48 px white discs with a
-hairline; the primary action is the green disc. See `src/lib/map/palette.ts`
+**Map**: the same tokens. Every floating control is a white 44 px soft square
+(14 px radius) with a hairline and one shadow. "Where am I" and zoom are cells
+of one stack; "Aportar" (green, labelled) and "Capas" share the bottom
+baseline and each opens a bottom sheet of labelled rows — never a menu sprung
+from the button. Search and category chips are pills. The OSM (i) sits in the
+bottom-left corner with a 44 px hit area. See `src/lib/map/palette.ts`
 for the basemap, which follows the same rule as the pages: quiet ground, the
 province's content is the only colour.

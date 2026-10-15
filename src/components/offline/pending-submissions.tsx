@@ -28,7 +28,7 @@ export function PendingSubmissions() {
     [],
   );
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="max-w-2xl">
       <CloudUpload className="mb-5 size-8 text-primary" aria-hidden />
       <h1 className="page-title">{t("pendingTitle")}</h1>
       <p className="page-lede mt-4">{t("pendingHint")}</p>

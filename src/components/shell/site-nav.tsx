@@ -14,15 +14,17 @@ import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 
 /**
- * Where the header goes on a wide screen. "Inicio" is the public landing page,
- * which a visitor on a laptop reasonably wants to get back to.
+ * Where the header goes on a wide screen: the phone's tabs in the phone's
+ * order, with "Inicio" in front — the landing a visitor on a laptop wants to
+ * get back to. "Mi cuenta" is the account area at the right edge (the
+ * sign-in button, or the avatar), not a second item for the same place.
  */
 const desktopDestinations = [
   { href: "/", key: "home", icon: House },
-  { href: "/explorar", key: "explore", icon: Compass },
   { href: "/mapa", key: "map", icon: MapIcon },
+  { href: "/explorar", key: "explore", icon: Compass },
+  { href: "/aportes", key: "contributions", icon: ClipboardList },
   { href: "/consultas", key: "consultations", icon: MessagesSquare },
-  { href: "/cuenta", key: "account", icon: UserRound },
 ] as const;
 
 /**
@@ -74,7 +76,7 @@ function Destinations({ mobile }: { mobile: boolean }) {
               href={href}
               aria-current={current ? "page" : undefined}
               className={cn(
-                "group flex min-h-12 flex-col items-center justify-start gap-1 rounded-xl pt-0.5 text-xs leading-none tracking-[-0.01em] focus-visible:outline-2 focus-visible:outline-offset-2",
+                "group flex min-h-12 flex-col items-center justify-start gap-1 rounded-xl pt-0.5 text-[13px] leading-4 tracking-[-0.01em] focus-visible:outline-2 focus-visible:outline-offset-2",
                 current
                   ? "font-semibold text-foreground"
                   : "font-medium text-muted-foreground active:text-foreground",
@@ -99,7 +101,7 @@ function Destinations({ mobile }: { mobile: boolean }) {
                   aria-hidden
                 />
               </span>
-              <span className="max-w-full truncate">{t(key)}</span>
+              <span className="max-w-full whitespace-nowrap">{t(key)}</span>
               <span
                 aria-hidden
                 className={cn(

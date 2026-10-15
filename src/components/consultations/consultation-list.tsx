@@ -81,13 +81,13 @@ export function ConsultationList() {
   const groups = groupByRecency(items, (item) => item.createdAt, now);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-5">
+    <div className="flex max-w-3xl flex-col gap-5">
       {/* The large-title pattern: the action sits beside the title, on its
           first line, rather than wrapping alone under it on a phone. */}
-      <header className="flex items-start justify-between gap-4">
+      <header className="flex items-start justify-between gap-4 max-[380px]:flex-col max-[380px]:gap-3">
         <h1 className="page-title min-w-0">{t("title")}</h1>
         <Button
-          className="mt-1 h-10 shrink-0 rounded-full px-4 text-sm sm:mt-1.5 sm:h-11 sm:px-5 sm:text-[15px]"
+          className="mt-1 h-11 shrink-0 rounded-[14px] px-4 text-[15px] max-[380px]:mt-0 sm:mt-1.5 sm:px-5"
           onClick={() => setOpening(true)}
         >
           <Plus className="size-4" aria-hidden />
@@ -219,7 +219,11 @@ export function ConsultationList() {
                                   count: item.supportCount,
                                 })}
                               </span>
-                              <span aria-hidden>{item.supportCount}</span>
+                              <span aria-hidden>
+                                {t("support.short", {
+                                  count: item.supportCount,
+                                })}
+                              </span>
                             </span>
                           )}
                         </span>
