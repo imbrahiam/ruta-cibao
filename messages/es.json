@@ -32,8 +32,8 @@
   "notFound": {
     "code": "Error 404",
     "title": "Esta ruta no aparece en el mapa",
-    "description": "Puede que el enlace haya cambiado o que la página ya no exista. Puedes volver al mapa y seguir explorando desde ahí.",
-    "openMap": "Volver al mapa",
+    "description": "Puede que el enlace haya cambiado o que la página ya no exista.",
+    "openMap": "Abrir el mapa",
     "goHome": "Ir al inicio"
   },
   "errors": {
@@ -1139,5 +1139,137 @@
     "save": "Guardar",
     "saved": "Categoría guardada",
     "failed": "No pudimos guardar la categoría."
+  },
+  "landing": {
+    "eyebrow": "Santiago Rodríguez · Mapa cívico",
+    "title": "El mapa de la provincia, hecho por su gente",
+    "lede": "Lugares, vías, rutas y consultas de Sabaneta, Monción y Villa Los Almácigos en un solo mapa, revisado por su municipio.",
+    "openMap": "Abrir el mapa",
+    "explore": "Explorar lugares",
+    "mapLabel": "Mapa de la provincia con sus lugares",
+    "stats": {
+      "places": "{count, plural, one {lugar en el mapa} other {lugares en el mapa}}",
+      "routes": "{count, plural, one {ruta de ecoturismo} other {rutas de ecoturismo}}",
+      "resolved": "{count, plural, one {caso resuelto este mes} other {casos resueltos este mes}}"
+    },
+    "pulse": "{count, plural, one {# reporte en las vías} other {# reportes en las vías}}{blocking, plural, =0 {} one {, # bloquea el paso} other {, # bloquean el paso}}",
+    "pulseClear": "Las vías están despejadas ahora",
+    "features": {
+      "eyebrow": "Qué puedes hacer",
+      "title": "Una sola app para la provincia",
+      "lede": "Para quien vive aquí y para quien viene de visita. Sin cuenta puedes mirar; con una, aportas.",
+      "items": {
+        "discover": {
+          "title": "Encontrar lugares",
+          "body": "Balnearios, colmados, centros de salud y oficinas públicas, con fotos y si siguen abiertos.",
+          "action": "Abrir el mapa"
+        },
+        "traffic": {
+          "title": "Saber cómo están las vías",
+          "body": "Vecinos reportan derrumbes, hoyos e inundaciones, y dicen cuando la vía se despeja.",
+          "action": "Reportar tránsito"
+        },
+        "routes": {
+          "title": "Salir a caminar",
+          "body": "Senderos y paseos que la gente de aquí conoce, con distancia, nivel y servicios.",
+          "action": "Ver rutas"
+        },
+        "consultations": {
+          "title": "Pedirle al ayuntamiento",
+          "body": "Residentes abren casos, los vecinos los apoyan y el municipio responde en público.",
+          "action": "Ver consultas"
+        },
+        "passport": {
+          "title": "Coleccionar sellos",
+          "body": "Un sello por cada lugar que visitas, puesto cuando estás allí. Tuyo y privado.",
+          "action": "Mi pasaporte"
+        },
+        "business": {
+          "title": "Poner tu negocio",
+          "body": "Reclama tu colmado o comedor y mantén el teléfono, el WhatsApp y el horario al día.",
+          "action": "Buscar mi negocio"
+        }
+      }
+    },
+    "roads": {
+      "eyebrow": "Ahora mismo",
+      "title": "Cómo están las vías",
+      "lede": "Lo que reportan los vecinos en este momento. Rojo es que no se pasa; verde, que alguien pasó y ya está despejado.",
+      "open": "reportes activos",
+      "blocking": "bloquean el paso",
+      "resolvedWeek": "despejados esta semana",
+      "report": "Reportar algo en la vía",
+      "blockedTitle": "Vías bloqueadas",
+      "noneBlocked": "Ninguna vía bloqueada en este momento."
+    },
+    "places": {
+      "eyebrow": "Para visitar",
+      "title": "Lugares que valen el viaje",
+      "all": "Ver todos los lugares"
+    },
+    "territory": {
+      "eyebrow": "El territorio",
+      "title": "Tres municipios, una provincia",
+      "lede": "Sabaneta, Monción y Villa Los Almácigos, con sus límites oficiales. Toca uno para ver lo que hay en él.",
+      "label": "Mapa de los tres municipios de Santiago Rodríguez"
+    },
+    "install": {
+      "title": "Llévala en el teléfono",
+      "body": "Se instala desde el navegador, abre a pantalla completa y guarda tus reportes cuando no hay señal.",
+      "action": "Instalar la app"
+    }
+  },
+  "install": {
+    "action": "Instalar Ruta Cibao",
+    "installed": "Ya tienes la app instalada",
+    "installedHint": "Puedes abrirla desde tu pantalla de inicio.",
+    "iosTitle": "En iPhone o iPad",
+    "iosStep1": "Abre esta página en Safari.",
+    "iosStep2": "Toca Compartir; si no aparece en la barra, búscalo en Más (•••).",
+    "iosStep3": "Selecciona Añadir a pantalla de inicio y confirma.",
+    "otherTitle": "En Android o computadora",
+    "otherStep1": "Abre el menú del navegador.",
+    "otherStep2": "Busca Instalar aplicación o Añadir a pantalla de inicio.",
+    "otherStep3": "Confirma y abre Ruta Cibao desde su icono.",
+    "offlineBody": "Los reportes y lugares que envíes sin conexión quedan guardados en el teléfono y salen solos cuando vuelve la señal. Puedes guardar el mapa de la provincia desde «Capas».",
+    "privateTitle": "Tu cuenta sigue siendo tuya",
+    "privateBody": "La instalación no cambia tu cuenta ni lo que has guardado. Puedes seguir entrando desde cualquier navegador.",
+    "error": "No pudimos abrir la instalación. Puedes intentarlo desde el menú del navegador.",
+    "benefitFast": "Abre el mapa con un toque, desde tu pantalla de inicio.",
+    "benefitOffline": "Reporta sin señal: se envía sola cuando vuelve.",
+    "benefitAlerts": "Recibe avisos de tránsito y de tus aportes.",
+    "eyebrow": "Instalar",
+    "title": "Tu provincia, en tu pantalla de inicio",
+    "intro": "Abre Ruta Cibao con un toque, a pantalla completa. Es gratis y no necesitas una tienda de aplicaciones.",
+    "offlineTitle": "Cuando se va la señal"
+  },
+  "privacy": {
+    "identityTitle": "La cédula se guarda cifrada",
+    "identityBody": "La cédula y las fotos de verificación se guardan cifradas. Solo el personal autorizado puede revisar las fotos, y cada consulta queda registrada. Se eliminan después de la decisión o al cumplirse 30 días de una solicitud pendiente. La consulta del registro confirma que la cédula existe; el municipio revisa los documentos antes de aprobar tu identidad y residencia.",
+    "accountTitle": "Cuenta y lugares guardados",
+    "accountBody": "Tu teléfono o correo permiten iniciar sesión. Tus lugares guardados y tu historial de aportes son privados. Los lugares y fotografías aprobados se muestran en el mapa.",
+    "locationTitle": "Tú decides si compartes tu ubicación",
+    "locationBody": "Solo pedimos acceso al GPS cuando tocas una función que lo necesita. También puedes mover el mapa y elegir un punto. No hacemos seguimiento de tus recorridos.",
+    "deviceTitle": "Datos en este dispositivo",
+    "deviceBody": "Las acciones pendientes se guardan localmente para reintentarlas con tu cuenta. No borres los datos del navegador si todavía tienes aportes por enviar.",
+    "providersTitle": "Servicios externos",
+    "providersBody": "Según la configuración, el mapa, el envío de códigos, el correo y las fotos pueden usar proveedores externos. El enlace Cómo llegar abre la aplicación de mapas que elijas.",
+    "passportTitle": "Tus visitas son privadas",
+    "passportBody": "El pasaporte conserva un sello por lugar y la fecha de tu visita en tu cuenta. El identificador del lugar se guarda cifrado. Para registrar un sello comprobamos que la ubicación que envía tu teléfono esté cerca del lugar; no conservamos esas coordenadas ni hacemos seguimiento. Los sellos son recuerdos personales, no certificados de presencia ni pruebas de identidad.",
+    "eyebrow": "Tus datos",
+    "title": "Privacidad, con palabras claras",
+    "intro": "Ruta Cibao usa tu información para mantener tu cuenta y revisar lo que aportas. Esto es todo lo que guardamos y por qué."
+  },
+  "offline": {
+    "pageTitle": "Esta parte necesita conexión",
+    "pageBody": "No podemos cargar esta página sin internet. Lo que enviaste sin señal sigue guardado en este teléfono y sale solo cuando vuelva.",
+    "openMap": "Abrir el mapa",
+    "pending": "Ver lo pendiente"
+  },
+  "recovery": {
+    "title": "Esta página no cargó",
+    "body": "Puede ser la señal. Inténtalo de nuevo; si sigue igual, vuelve al mapa.",
+    "retry": "Intentar de nuevo",
+    "openMap": "Volver al mapa"
   }
 }

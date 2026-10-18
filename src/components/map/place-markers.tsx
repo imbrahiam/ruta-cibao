@@ -168,7 +168,57 @@ function collect(map: MapLibreMap, categories: ReadonlySet<string>): Feature[] {
     seen.set(key, { kind: "cluster", key, count: visible, lng, lat });
   }
 
-  return [...seen.values()];
+  return clustered
+    ? mergeOverlapping(map, [...seen.values()])
+    : [...seen.values()];
+}
+
+/** Closer than this on screen, two markers would touch: they become one cluster. */
+const MERGE_PX = 40;
+
+/**
+ * The server clusters on a grid, so two cells either side of a line can land
+ * a pin's width apart, and a single-place cell drawn as a pin can sit on top
+ * of its neighbouring cluster. A greedy pass in screen space folds anything
+ * that would overlap into the larger marker, weighted by count.
+ */
+function mergeOverlapping(map: MapLibreMap, features: Feature[]): Feature[] {
+  type Item = { feature: Feature; count: number; x: number; y: number };
+  const items: Item[] = features
+    .map((feature) => {
+      const point = map.project([feature.lng, feature.lat]);
+      return {
+        feature,
+        count: feature.kind === "cluster" ? feature.count : 1,
+        x: point.x,
+        y: point.y,
+      };
+    })
+    .sort((a, b) => b.count - a.count);
+  const kept: Item[] = [];
+  for (const item of items) {
+    const near = kept.find(
+      (other) => Math.hypot(other.x - item.x, other.y - item.y) < MERGE_PX,
+    );
+    if (!near) {
+      kept.push(item);
+      continue;
+    }
+    const total = near.count + item.count;
+    const lng =
+      (near.feature.lng * near.count + item.feature.lng * item.count) / total;
+    const lat =
+      (near.feature.lat * near.count + item.feature.lat * item.count) / total;
+    near.feature = {
+      kind: "cluster",
+      key: `${lng.toFixed(4)}:${lat.toFixed(4)}`,
+      count: total,
+      lng,
+      lat,
+    };
+    near.count = total;
+  }
+  return kept.map((item) => item.feature);
 }
 
 function pointOf(feature: { geometry: Geometry }): [number, number] | null {
