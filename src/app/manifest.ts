@@ -9,9 +9,9 @@ import messages from "../../messages/es.json";
  * a valid manifest; Chrome then falls back to its plain install dialog.
  */
 const SCREENSHOTS = [
-  { file: "map", label: messages.navigation.map },
-  { file: "explore", label: messages.navigation.explore },
-  { file: "consultations", label: messages.navigation.consultations },
+  { file: "map", label: messages.nav.map },
+  { file: "explore", label: messages.nav.explore },
+  { file: "consultations", label: messages.nav.consultations },
 ].filter(({ file }) =>
   existsSync(join(process.cwd(), "public", "screenshots", `${file}.png`)),
 );
@@ -33,8 +33,8 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/mapa",
     display: "standalone",
     orientation: "any",
-    background_color: "#ffffff",
-    theme_color: "#213d34",
+    background_color: "#fafaf7",
+    theme_color: "#fafaf7",
     lang: "es-DO",
     dir: "ltr",
     categories: ["travel", "navigation", "government"],
@@ -45,12 +45,12 @@ export default function manifest(): MetadataRoute.Manifest {
         icons: [{ src: "/icon-192.png", sizes: "192x192" }],
       },
       {
-        name: messages.navigation.explore,
+        name: messages.nav.explore,
         url: "/explorar",
         icons: [{ src: "/icon-192.png", sizes: "192x192" }],
       },
       {
-        name: messages.navigation.contributions,
+        name: messages.nav.contributions,
         url: "/aportes",
         icons: [{ src: "/icon-192.png", sizes: "192x192" }],
       },

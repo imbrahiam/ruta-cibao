@@ -35,6 +35,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["pg"],
 
   allowedDevOrigins: devOrigins,
+  // The floating dev badge sits where the map's credits button does.
+  devIndicators: false,
 
   /**
    * Instant navigation.
