@@ -119,7 +119,7 @@ function LayerRow({
 }) {
   return (
     <li>
-      <label className="flex cursor-pointer items-center gap-3 px-4 py-3.5">
+      <div className="flex items-center gap-3 px-4 py-3.5">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-card text-ink-2 shadow-ring [&_svg]:size-[18px]">
           {icon}
         </span>
@@ -132,7 +132,7 @@ function LayerRow({
           onCheckedChange={onChange}
           aria-label={title}
         />
-      </label>
+      </div>
     </li>
   );
 }
