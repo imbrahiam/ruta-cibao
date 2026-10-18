@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Suspense } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cx } from "@/lib/cx";
 import { isActive, NAV_ITEMS } from "./nav-items";
@@ -11,8 +12,27 @@ import { isActive, NAV_ITEMS } from "./nav-items";
  * filled pill and `aria-current`, never by colour alone.
  */
 export function TabBar({ className }: { className?: string }) {
+  // The current path is request data on a dynamic route; the fallback is the
+  // same bar with nothing lit, so the static shell already has it.
+  return (
+    <Suspense fallback={<Bar className={className} pathname={null} />}>
+      <LiveBar className={className} />
+    </Suspense>
+  );
+}
+
+function LiveBar({ className }: { className?: string }) {
+  return <Bar className={className} pathname={usePathname()} />;
+}
+
+function Bar({
+  className,
+  pathname,
+}: {
+  className?: string;
+  pathname: string | null;
+}) {
   const t = useTranslations("nav");
-  const pathname = usePathname();
 
   return (
     <nav
@@ -24,7 +44,7 @@ export function TabBar({ className }: { className?: string }) {
     >
       <ul className="glass pointer-events-auto mx-auto grid h-14 max-w-[420px] grid-cols-5 items-center rounded-full px-1.5">
         {NAV_ITEMS.map((item) => {
-          const active = isActive(item, pathname);
+          const active = pathname !== null && isActive(item, pathname);
           const Icon = item.icon;
           return (
             <li key={item.href} className="flex justify-center">

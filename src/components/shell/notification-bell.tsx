@@ -4,6 +4,7 @@ import { Popover } from "@base-ui/react/popover";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bell, BellOff } from "lucide-react";
 import { useFormatter, useNow, useTranslations } from "next-intl";
+import { Suspense } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { useRealtime } from "@/hooks/use-realtime";
 import { useRouter } from "@/i18n/navigation";
@@ -19,7 +20,11 @@ import { orpc } from "@/lib/orpc";
 export function NotificationBell({ className }: { className?: string }) {
   const { isSignedIn } = useAuth();
   if (!isSignedIn) return null;
-  return <Bell_ className={className} />;
+  return (
+    <Suspense fallback={null}>
+      <Bell_ className={className} />
+    </Suspense>
+  );
 }
 
 function Bell_({ className }: { className?: string }) {

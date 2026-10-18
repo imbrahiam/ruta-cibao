@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useTheme } from "next-themes";
+import { Suspense } from "react";
 import { useAuth } from "@/components/auth/auth-context";
 import { ButtonLink } from "@/components/ui/button";
 import {
@@ -65,6 +66,20 @@ export function Avatar({
 }
 
 export function AccountMenu({ align = "end" }: { align?: "start" | "end" }) {
+  // The locale-aware router reads the current path, which is request data on
+  // a dynamic route; the placeholder keeps the slot in the static shell.
+  return (
+    <Suspense
+      fallback={
+        <span aria-hidden className="size-10 rounded-full bg-paper-3" />
+      }
+    >
+      <AccountMenuInner align={align} />
+    </Suspense>
+  );
+}
+
+function AccountMenuInner({ align }: { align: "start" | "end" }) {
   const t = useTranslations("account.menu");
   const tNav = useTranslations("nav");
   const { viewer, isSignedIn, isStaff, isLoading } = useAuth();

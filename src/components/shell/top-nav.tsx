@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Suspense } from "react";
 import { Logo } from "@/components/brand/logo";
 import { Link, usePathname } from "@/i18n/navigation";
 import { cx } from "@/lib/cx";
@@ -21,9 +22,20 @@ const LINKS = [
  * and this keeps only the logo, the bell and the account.
  */
 export function TopNav() {
+  return (
+    <Suspense fallback={<Nav pathname={null} />}>
+      <LiveNav />
+    </Suspense>
+  );
+}
+
+function LiveNav() {
+  return <Nav pathname={usePathname()} />;
+}
+
+function Nav({ pathname }: { pathname: string | null }) {
   const t = useTranslations("nav");
   const tApp = useTranslations("app");
-  const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-40 px-3 pt-[max(10px,env(safe-area-inset-top))] pb-2 md:px-6 md:pt-4">
@@ -41,7 +53,8 @@ export function TopNav() {
         >
           {LINKS.map((link) => {
             const active =
-              pathname === link.href || pathname.startsWith(`${link.href}/`);
+              pathname !== null &&
+              (pathname === link.href || pathname.startsWith(`${link.href}/`));
             return (
               <Link
                 key={link.href}
