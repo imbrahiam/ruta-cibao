@@ -314,7 +314,11 @@ export function PlaceMarkers({
     <>
       {features.map((feature) =>
         feature.kind === "cluster" ? (
-          <MapMarker key={feature.key} lngLat={[feature.lng, feature.lat]}>
+          <MapMarker
+            key={feature.key}
+            lngLat={[feature.lng, feature.lat]}
+            zIndex={6}
+          >
             <button
               type="button"
               aria-label={t("cluster", { count: feature.count })}

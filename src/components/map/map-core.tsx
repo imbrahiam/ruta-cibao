@@ -274,6 +274,11 @@ export function MapMarker({
     marker.current?.setLngLat([lng, lat]);
   }, [lng, lat]);
 
+  const [offsetX, offsetY] = offset ?? [0, 0];
+  useEffect(() => {
+    marker.current?.setOffset([offsetX, offsetY]);
+  }, [offsetX, offsetY]);
+
   useEffect(() => {
     if (element) element.style.zIndex = String(zIndex);
   }, [element, zIndex]);

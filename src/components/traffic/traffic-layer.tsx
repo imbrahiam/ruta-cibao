@@ -12,6 +12,7 @@ import {
 import { CategoryIcon } from "@/components/places/category-icon";
 import { useRealtime } from "@/hooks/use-realtime";
 import { cx } from "@/lib/cx";
+import { STREET_ZOOM } from "@/lib/map/config";
 import { MAP_PALETTES } from "@/lib/map/palette";
 import { TRAFFIC_COLORS, trafficTone } from "@/lib/map/traffic-colors";
 import { type client, orpc } from "@/lib/orpc";
@@ -67,10 +68,22 @@ export function TrafficLayer({
   /** The latest reports in view, so an open report shows fresh counts. */
   onData?: (reports: TrafficReport[]) => void;
 }) {
-  const { theme } = useMapContext();
+  const { theme, map } = useMapContext();
   const t = useTranslations("traffic");
   const queryClient = useQueryClient();
   const box = useViewportBox();
+  // Below street level a report is a dot, so it marks the spot without
+  // covering a cluster's count; at street level it becomes the full chip.
+  const [compact, setCompact] = useState(true);
+  useEffect(() => {
+    if (!map) return;
+    const update = () => setCompact(map.getZoom() < STREET_ZOOM);
+    update();
+    map.on("zoomend", update);
+    return () => {
+      map.off("zoomend", update);
+    };
+  }, [map]);
   const p = MAP_PALETTES[theme];
 
   const query = useQuery({
@@ -212,7 +225,8 @@ export function TrafficLayer({
           <MapMarker
             key={report.id}
             lngLat={[report.lng, report.lat]}
-            zIndex={selected ? 25 : 5}
+            zIndex={selected ? 25 : 7}
+            offset={compact && !selected ? [13, -13] : undefined}
           >
             <button
               type="button"
@@ -229,7 +243,10 @@ export function TrafficLayer({
             >
               <span
                 className={cx(
-                  "flex size-7 items-center justify-center rounded-[9px] text-white shadow-md ring-2 ring-card transition-transform duration-[260ms] ease-out group-hover:-translate-y-0.5 group-focus-visible:ring-accent",
+                  "flex items-center justify-center text-white shadow-md ring-2 ring-card transition-[transform,width,height,border-radius] duration-[260ms] ease-out group-hover:-translate-y-0.5 group-focus-visible:ring-accent",
+                  compact && !selected
+                    ? "size-3.5 rounded-full [&>svg]:hidden"
+                    : "size-7 rounded-[9px]",
                   selected && "scale-[1.3] shadow-lg",
                 )}
                 style={{ backgroundColor: TRAFFIC_COLORS[tone] }}
