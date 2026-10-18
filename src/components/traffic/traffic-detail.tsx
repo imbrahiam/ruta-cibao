@@ -210,7 +210,7 @@ export function TrafficDetail({ report }: { report: TrafficReport }) {
   );
 }
 
-function RemoveSheet({
+export function RemoveSheet({
   open,
   onOpenChange,
   reportId,

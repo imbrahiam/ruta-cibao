@@ -128,7 +128,15 @@
       "peopleVerified": "Cédulas verificadas",
       "peopleContributors": "Personas que aportaron"
     },
-    "noActivity": "Sin actividad esta semana."
+    "noActivity": "Sin actividad esta semana.",
+    "eyebrow": "Municipio",
+    "forbidden": "Los informes son para el personal del municipio",
+    "statuses": {
+      "pending": "Generando",
+      "ready": "Listo",
+      "failed": "Falló"
+    },
+    "preparePdf": "Preparar PDF"
   },
   "consultations": {
     "status": "Estado",
@@ -681,7 +689,45 @@
       "other": "Otro motivo"
     },
     "eyebrow": "Residentes",
-    "progress": "Pasos de la verificación"
+    "progress": "Pasos de la verificación",
+    "desk": {
+      "eyebrow": "Municipio",
+      "title": "Verificar residentes",
+      "lede": "Compara el registro con la cédula y con la persona que la sostiene, y confirma la residencia antes de aprobar.",
+      "forbidden": "Esta sección es para el personal del municipio",
+      "back": "Volver a moderación",
+      "pending": "Pendientes",
+      "decided": "Decididas",
+      "checklist": "Antes de aprobar: el nombre debe coincidir con el registro, la cara con la cédula y la residencia con el municipio indicado. Las fotos solo se abren aquí y se borran después de decidir.",
+      "empty": "No hay solicitudes pendientes",
+      "emptyDecided": "Todavía no hay decisiones",
+      "meta": "{name} · {municipality} · enviada el {date}",
+      "pendingStatus": "En revisión",
+      "approvedStatus": "Aprobada",
+      "rejectedStatus": "Rechazada",
+      "previousRejections": "{count, plural, one {# rechazo anterior} other {# rechazos anteriores}}",
+      "registryPendingTag": "Falta el registro",
+      "showDocuments": "Ver las fotos",
+      "hideDocuments": "Ocultar las fotos",
+      "documentsDeleted": "Las fotos ya se eliminaron.",
+      "doc": {
+        "front": "Frente de la cédula",
+        "selfie": "Persona con la cédula",
+        "residence": "Comprobante de residencia"
+      },
+      "municipality": "Municipio de residencia",
+      "approve": "Aprobar",
+      "reject": "Pedir corrección",
+      "rejectConfirm": "Enviar decisión",
+      "reason": "Motivo",
+      "note": "Indicaciones para la persona",
+      "noteHint": "Opcional. No incluyas el número de cédula.",
+      "cancel": "Cancelar",
+      "approved": "Solicitud aprobada",
+      "rejected": "Se enviaron las indicaciones",
+      "failed": "No pudimos guardar la decisión.",
+      "registry_pending": "Espera la respuesta del registro antes de aprobar."
+    }
   },
   "auth": {
     "signIn": "Entrar",
@@ -991,5 +1037,107 @@
       "added": "Llave de acceso guardada",
       "failed": "No pudimos guardar la llave de acceso."
     }
+  },
+  "moderation": {
+    "eyebrow": "Municipio",
+    "title": "Moderación",
+    "lede": "Lo que la gente envió y espera una decisión, del más antiguo al más nuevo.",
+    "queues": "Colas de revisión",
+    "forbidden": "Esta sección es para el personal del municipio",
+    "forbiddenHint": "Si trabajas en el ayuntamiento, pide a un administrador que te dé acceso.",
+    "tabs": {
+      "places": "Lugares",
+      "reports": "Reportes",
+      "photos": "Fotos",
+      "claims": "Negocios",
+      "consultations": "Consultas",
+      "traffic": "Tránsito",
+      "routes": "Rutas"
+    },
+    "identity": "Verificar residentes",
+    "categories": "Categorías",
+    "emptyTitle": "Todo al día",
+    "empty": {
+      "places": "No hay lugares esperando revisión.",
+      "reports": "No hay reportes de lugares por resolver.",
+      "photos": "No hay fotos por revisar.",
+      "claims": "No hay solicitudes de negocios.",
+      "consultations": "No hay consultas sin responder.",
+      "traffic": "No hay reportes de tránsito activos.",
+      "routes": "No hay rutas por revisar."
+    },
+    "sentBy": "Enviado por {name} {when}",
+    "claimedBy": "Lo reclama {name}",
+    "openedBy": "Abierta por {name} {when} · {count, plural, one {# apoyo} other {# apoyos}}",
+    "someone": "alguien",
+    "citizen": "Residente verificado",
+    "visitor": "Visitante",
+    "gps": "Ubicación por GPS",
+    "seeLocation": "Ver la ubicación en OpenStreetMap",
+    "openPlace": "Abrir el lugar",
+    "seeOnMap": "Ver en el mapa",
+    "phone": "Teléfono",
+    "photoAlt": "Foto enviada para {name}",
+    "publish": "Publicar",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "resolve": "Corregido",
+    "dismiss": "Descartar",
+    "answer": "Responder",
+    "review": "Revisar",
+    "removeTraffic": "Quitar del mapa",
+    "failed": "No pudimos guardar la decisión. Puede que otra persona ya la haya tomado.",
+    "reasons": {
+      "incorrect_information": "Información incorrecta",
+      "closed": "Cerró",
+      "duplicate": "Repetido",
+      "wrong_location": "Mal ubicado",
+      "other": "Otro motivo"
+    },
+    "rejectForm": {
+      "title": "Rechazar",
+      "description": "Quien lo envió recibirá tu nota.",
+      "note": "Motivo",
+      "noteHint": "Al menos 10 caracteres. Explica cómo corregirlo.",
+      "cancel": "Cancelar",
+      "submit": "Rechazar"
+    }
+  },
+  "catalog": {
+    "eyebrow": "Administración",
+    "title": "Categorías",
+    "lede": "Los tipos de lugares, rutas, problemas en la vía y consultas. Se cambian aquí, sin esperar una actualización.",
+    "forbidden": "Solo los administradores pueden editar categorías",
+    "back": "Volver a moderación",
+    "new": "Nueva categoría",
+    "kind": "Tipo",
+    "kinds": {
+      "place": "Lugares",
+      "business": "Negocios",
+      "route": "Rutas",
+      "traffic": "Tránsito",
+      "consultation": "Consultas"
+    },
+    "inactive": "Inactiva",
+    "edit": "Editar {name}",
+    "editTitle": "Editar categoría",
+    "newTitle": "Nueva categoría",
+    "name": "Nombre",
+    "icon": "Icono",
+    "iconHint": "Elige un icono para guardar.",
+    "color": "Color",
+    "order": "Orden",
+    "severityLabel": "Qué tan grave es",
+    "severityHint": "Decide el color en el mapa: rojo, ámbar o ámbar claro.",
+    "severity": {
+      "blocking": "Bloquea la vía",
+      "partial": "Se pasa con cuidado",
+      "minor": "Para tener en cuenta"
+    },
+    "active": "Activa",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "saved": "Categoría guardada",
+    "failed": "No pudimos guardar la categoría."
   }
 }
