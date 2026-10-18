@@ -174,7 +174,43 @@
       "searching": "Buscando…",
       "noAddresses": "No encontramos esa dirección."
     },
-    "placeTitle": "Lugar"
+    "placeTitle": "Lugar",
+    "contribute": {
+      "label": "Aportar",
+      "traffic": "Reportar tránsito",
+      "place": "Agregar un lugar",
+      "route": "Proponer una ruta",
+      "case": "Abrir una consulta"
+    },
+    "community": {
+      "route": "Ruta: {name}",
+      "case": "Consulta: {title}"
+    },
+    "layers": {
+      "title": "Capas del mapa",
+      "traffic": "Tránsito",
+      "trafficHint": "Lo que reportan vecinos sobre las vías",
+      "routes": "Rutas de ecoturismo",
+      "routesHint": "Senderos y recorridos publicados",
+      "cases": "Consultas abiertas",
+      "casesHint": "Casos ciudadanos con ubicación",
+      "appearance": "Apariencia",
+      "system": "Sistema",
+      "light": "Claro",
+      "dark": "Oscuro",
+      "appearanceHint": "El mapa cambia con la apariencia.",
+      "offline": {
+        "title": "Mapa sin señal",
+        "hint": "Guarda el mapa de la provincia en este teléfono ({size}). Mejor con Wi-Fi.",
+        "hintNoSize": "Guarda el mapa de la provincia en este teléfono. Mejor con Wi-Fi.",
+        "saved": "Guardado. El mapa funciona aunque no haya señal.",
+        "save": "Guardar mapa",
+        "saving": "Guardando…",
+        "remove": "Quitar del teléfono",
+        "done": "Mapa guardado en el teléfono",
+        "failed": "No pudimos guardar el mapa. Intenta con Wi-Fi."
+      }
+    }
   },
   "pwa": {
     "update": "Hay una versión nueva de Ruta Cibao.",
@@ -332,6 +368,299 @@
         "not_found": "Este lugar ya no existe.",
         "unknown": "No pudimos guardar. Revisa los números e intenta de nuevo."
       }
+    }
+  },
+  "traffic": {
+    "markerLabel": "{category}: {tone}",
+    "tones": {
+      "blocking": "No se puede pasar",
+      "partial": "Se pasa con cuidado",
+      "minor": "Para tener en cuenta",
+      "cleared": "Ya se despejó"
+    },
+    "where": "En {length} de vía · {municipality}",
+    "wherePoint": "En un punto · {municipality}",
+    "reported": "Reportado",
+    "expires": "Vence",
+    "clearedLabel": "Se quita del mapa",
+    "voices": "{count, plural, one {Una persona habló de esto} other {# personas hablaron de esto}}",
+    "anonymous": "Alguien",
+    "citizen": "Residente verificado",
+    "tally": "{still, plural, one {# dice} other {# dicen}} que sigue · {cleared, plural, one {# dice} other {# dicen}} que se despejó",
+    "yours": "Este reporte es tuyo. Otras personas confirmarán si sigue o se despejó.",
+    "ask": "¿Pasaste por ahí?",
+    "still": "Sigue así",
+    "cleared": "Ya se despejó",
+    "thanksStill": "Gracias. Avisaste que sigue así.",
+    "thanksCleared": "Gracias. Avisaste que se despejó.",
+    "remove": "Quitar del mapa",
+    "errors": {
+      "own_report": "No puedes confirmar tu propio reporte.",
+      "already_resolved": "Este reporte ya se resolvió.",
+      "stale_report": "Este reporte ya venció.",
+      "not_found": "Este reporte ya no está en el mapa.",
+      "rate_limited": "Vas muy rápido. Espera un momento.",
+      "unknown": "No pudimos guardar tu respuesta. Intenta de nuevo."
+    },
+    "removeForm": {
+      "title": "Quitar este reporte",
+      "description": "Quien lo reportó recibirá tu nota.",
+      "note": "Motivo",
+      "noteHint": "Al menos 10 caracteres.",
+      "cancel": "Cancelar",
+      "submit": "Quitar del mapa",
+      "done": "Reporte quitado del mapa",
+      "failed": "No pudimos quitar el reporte."
+    },
+    "report": {
+      "eyebrow": "Reportar tránsito",
+      "moveMap": "Mueve el mapa hasta la calle",
+      "zoomIn": "Acércate para elegir la calle",
+      "outside": "Ese punto está fuera de la provincia",
+      "looking": "Buscando la calle…",
+      "noStreet": "No hay una calle aquí. Toca una de las marcadas",
+      "noNetwork": "No tenemos las calles de esta zona. Repórtalo como un punto",
+      "unnamed": "Calle sin nombre",
+      "streetHint": "Toca otra calle o mueve el mapa para cambiarla.",
+      "pointHere": "Un punto en {municipality}",
+      "extent": "Largo del tramo",
+      "usePoint": "Es un punto, no la calle",
+      "useStreet": "Marcar la calle",
+      "cancel": "Cancelar",
+      "continue": "Siguiente",
+      "detailsTitle": "¿Qué pasa en la vía?",
+      "back": "Atrás",
+      "what": "Elige una",
+      "description": "Detalle",
+      "optional": "Opcional",
+      "descriptionHint": "Por ejemplo: el agua cubre el puente.",
+      "submit": "Enviar reporte",
+      "sending": "Enviando…",
+      "sent": "Reporte enviado",
+      "sentHint": "Ya aparece en el mapa para todos.",
+      "queued": "Sin conexión. Lo enviaremos cuando vuelva la señal.",
+      "errors": {
+        "invalid_category": "Elige qué pasa en la vía.",
+        "invalid_street": "No encontramos esa calle. Muévete un poco e intenta otra vez.",
+        "outside_province": "Ese punto está fuera de la provincia.",
+        "duplicate": "Alguien ya reportó esto aquí. Confírmalo en su reporte.",
+        "rate_limited": "Enviaste varios reportes seguidos. Espera unos minutos.",
+        "unknown": "No pudimos enviar el reporte. Intenta de nuevo."
+      }
+    }
+  },
+  "addPlace": {
+    "eyebrow": "Agregar un lugar",
+    "move": "Mueve el mapa hasta el lugar",
+    "inside": "En {municipality}",
+    "outside": "Ese punto está fuera de la provincia",
+    "pickHint": "El punto queda bajo el alfiler.",
+    "here": "Estoy aquí ahora",
+    "locating": "Ubicando…",
+    "gpsUnavailable": "Tu navegador no permite ubicarte en esta conexión.",
+    "gpsFailed": "No pudimos obtener tu ubicación.",
+    "cancel": "Cancelar",
+    "continue": "Siguiente",
+    "detailsTitle": "¿Qué lugar es?",
+    "reviewNote": "El municipio lo revisa antes de publicarlo. Te avisamos.",
+    "back": "Atrás",
+    "name": "Nombre",
+    "nameHint": "Como lo conoce la gente.",
+    "category": "Tipo de lugar",
+    "categoryPlaceholder": "Elige uno",
+    "kinds": {
+      "place": "Lugares",
+      "business": "Negocios"
+    },
+    "description": "Descripción",
+    "descriptionHint": "{count, plural, =0 {Listo.} one {Falta # carácter.} other {Faltan # caracteres.}}",
+    "address": "Dirección o referencia",
+    "optional": "Opcional",
+    "businessLegend": "Contacto del negocio",
+    "phone": "Teléfono",
+    "whatsapp": "WhatsApp",
+    "hours": "Horario",
+    "submit": "Enviar para revisión",
+    "sending": "Enviando…",
+    "sent": "Lugar enviado",
+    "sentHint": "Te avisamos cuando lo publiquen.",
+    "queued": "Sin conexión. Lo enviaremos cuando vuelva la señal.",
+    "errors": {
+      "invalid_category": "Elige un tipo de lugar.",
+      "outside_province": "Ese punto está fuera de la provincia.",
+      "verification_required": "Para usar tu ubicación exacta necesitas verificar tu cédula.",
+      "duplicate": "Ya hay un lugar con ese nombre muy cerca.",
+      "unknown": "No pudimos enviar el lugar. Intenta de nuevo."
+    }
+  },
+  "onboarding": {
+    "title": "Bienvenido a Ruta Cibao",
+    "chooseTier": "Una pregunta y listo: ¿vives en la provincia o estás de visita?",
+    "visitor": {
+      "title": "Soy visitante",
+      "description": "Guarda lugares, comparte fotos y ayuda a corregir el mapa. No necesitas cédula.",
+      "action": "Entrar como visitante"
+    },
+    "citizen": {
+      "title": "Soy residente",
+      "description": "Verifica tu cédula para aportar puntos con tu GPS. También puedes hacerlo después.",
+      "action": "Verificar mi cédula"
+    },
+    "cedula": {
+      "label": "Cédula",
+      "placeholder": "001-1234567-8",
+      "help": "Tu cédula se guarda cifrada y nunca se muestra.",
+      "nameLabel": "Tu nombre y apellido",
+      "namePlaceholder": "Como aparece en tu cédula",
+      "checkDigit": "Ese número no parece correcto. Revísalo con tu cédula en la mano.",
+      "confirmNumber": "Está bien escrito, continuar",
+      "municipality": "Municipio",
+      "submit": "Verificar",
+      "verified": "Listo, {name}. Ya eres residente verificado.",
+      "pending": "El registro todavía no ha respondido. Si tu cédula quedó guardada, puedes continuar con las fotos mientras esperamos.",
+      "rejected": "Esa cédula y ese nombre no coinciden con la JCE. Revisa ambos e intenta de nuevo.",
+      "taken": "Esa cédula ya está registrada en otra cuenta.",
+      "checking": "Consultando la JCE…",
+      "title": "Cédula y municipio",
+      "intro": "Primero confirmamos tu cédula con la JCE. Después envías dos fotos para que tu municipio te verifique.",
+      "loadingStatus": "Revisando tu estado…",
+      "municipalityPlaceholder": "Elige tu municipio",
+      "municipalityHelp": "Elige el municipio donde vives.",
+      "privacy": {
+        "trigger": "¿Qué hacen con mi cédula?",
+        "title": "Qué hacemos con tu cédula",
+        "subtitle": "Sin letra chica. Esto es exactamente lo que pasa con el número que escribes.",
+        "lookup": {
+          "title": "Solo consultamos tu nombre",
+          "body": "Le preguntamos a la JCE una sola cosa: a quién pertenece esa cédula. No recibimos ni guardamos nada más."
+        },
+        "encrypted": {
+          "title": "Se guarda cifrada",
+          "body": "El número se cifra antes de tocar la base de datos. Ni con una copia de la base se puede leer sin la llave."
+        },
+        "never_shown": {
+          "title": "Nadie la ve",
+          "body": "Tu cédula no aparece en ninguna pantalla, ni en los registros del sistema, ni en la API pública. Ni el personal del ayuntamiento la ve."
+        },
+        "one_vote": {
+          "title": "Para qué sirve",
+          "body": "Para que una cédula sea una sola cuenta y un solo voto en las consultas. Sin eso, cualquiera podría inflar una votación con cuentas falsas."
+        }
+      },
+      "matched": "Encontramos tu cédula. Ahora envía las fotos para que tu municipio confirme tu identidad y residencia.",
+      "inReview": "Tus fotos están con el municipio. Te avisaremos cuando haya una decisión."
+    },
+    "saveError": "No pudimos guardar tu elección. Inténtalo de nuevo.",
+    "back": "Volver al mapa",
+    "eyebrow": "Tu cuenta",
+    "shell": {
+      "back": "Volver al mapa",
+      "photoAlt": "La presa de Monción al atardecer",
+      "photoEyebrow": "Santiago Rodríguez",
+      "photoCaption": "Sabaneta, Monción y Villa Los Almácigos en un solo mapa, hecho por su gente."
+    }
+  },
+  "identity": {
+    "title": "Verifica tu identidad y residencia",
+    "intro": "Primero consultamos tu cédula. Después, tu municipio revisa las fotos para confirmar que eres tú y que resides allí.",
+    "steps": {
+      "cedula": "Cédula",
+      "documents": "Fotos",
+      "review": "Revisión"
+    },
+    "registryName": "Nombre en el registro",
+    "municipality": "Municipio de residencia",
+    "registryPending": "El registro todavía no ha respondido. Puedes enviar las fotos mientras esperamos; el municipio podrá aprobarlas cuando tengamos el resultado.",
+    "documentsTitle": "Envía las fotos para revisión",
+    "documentsHint": "Usa fotos claras, sin reflejos y con las cuatro esquinas del documento visibles. No se publican en el mapa.",
+    "front": "Frente de tu cédula",
+    "frontHint": "El número, nombre y foto deben leerse con claridad.",
+    "selfie": "Foto tuya sosteniendo la cédula",
+    "selfieHint": "Colócala junto a tu cara para que ambas se vean bien.",
+    "residence": "Comprobante de residencia (opcional)",
+    "residenceHint": "Puedes añadir una factura de servicio o una carta de tu junta de vecinos que confirme dónde resides.",
+    "fileHint": "JPG, PNG o WebP. Máximo 8 MB por foto.",
+    "privacy": "Las fotos se guardan cifradas y solo el personal autorizado de tu municipio puede consultarlas. Se eliminan después de la decisión; si tu solicitud queda pendiente, se conservan por un máximo de 30 días.",
+    "consent": "Confirmo que estos documentos son míos y autorizo su revisión para verificar mi identidad y residencia.",
+    "send": "Enviar para revisión",
+    "sending": "Enviando las fotos…",
+    "submitted": "Tu solicitud está con el municipio.",
+    "reviewTitle": "Tu municipio está revisando la solicitud",
+    "reviewHint": "Te avisaremos cuando haya una decisión. Mientras tanto, puedes seguir explorando y usando tu cuenta de visitante.",
+    "submittedAt": "Enviada el {date}",
+    "rejectedTitle": "Necesitamos que corrijas las fotos",
+    "rejectedHint": "Revisa el motivo y vuelve a enviarlas.",
+    "restart": "La cédula o el municipio no son correctos",
+    "restartConfirm": "Cambiar cédula o municipio",
+    "restartHint": "Se borrará la cédula de esta solicitud. Tendrás que completar el primer paso de nuevo.",
+    "cancel": "Cancelar",
+    "continue": "Seguir explorando",
+    "verified": "Tu identidad y residencia están verificadas.",
+    "loadError": "No pudimos consultar tu solicitud.",
+    "retry": "Intentar de nuevo",
+    "errors": {
+      "invalid_file": "La foto no es válida o supera los 8 MB. Usa JPG, PNG o WebP.",
+      "missing_file": "Añade el frente de tu cédula y la foto tuya sosteniéndola.",
+      "too_many": "Has enviado varias solicitudes hoy. Inténtalo mañana.",
+      "unauthorized": "Tu sesión venció. Vuelve a entrar antes de enviar las fotos.",
+      "already_submitted": "Ya tienes una solicitud en revisión.",
+      "cedula_required": "Completa el paso de la cédula antes de enviar las fotos.",
+      "generic": "No pudimos enviar la solicitud. Tus archivos siguen aquí; puedes intentarlo de nuevo."
+    },
+    "reasons": {
+      "unreadable": "La foto no se puede leer",
+      "mismatch": "Los documentos no coinciden con la persona o con el registro",
+      "not_resident": "No se pudo confirmar la residencia en el municipio",
+      "incomplete": "Faltan datos o documentos",
+      "other": "Otro motivo"
+    },
+    "eyebrow": "Residentes",
+    "progress": "Pasos de la verificación"
+  },
+  "auth": {
+    "signIn": "Entrar",
+    "eyebrow": "Entrar",
+    "title": "Entra a Ruta Cibao",
+    "lede": "Con tu celular o tu correo. No hay contraseñas que recordar.",
+    "terms": "Al entrar aceptas que guardemos tu número o correo para identificar tu cuenta. Nunca lo mostramos a otras personas.",
+    "email": "Correo electrónico",
+    "magicLink": "Enviarme un enlace",
+    "magicLinkHelp": "Ábrelo desde este mismo teléfono.",
+    "magicLinkSent": "Te enviamos un enlace a {email}. Ábrelo desde este mismo teléfono.",
+    "linkSentTitle": "Revisa tu correo",
+    "useAnother": "Usar otro método",
+    "passkey": "Entrar con huella o rostro",
+    "or": "o",
+    "sending": "Enviando…",
+    "error": "No pudimos enviarlo. Revisa los datos e intenta de nuevo.",
+    "passkeyNotFound": "No encontramos una llave de acceso en este dispositivo.",
+    "passkeyNotFoundHint": "Si es tu primera vez, entra con tu celular. Después puedes activar la huella desde tu cuenta.",
+    "unavailable": "El inicio de sesión no está disponible en este momento. Inténtalo más tarde.",
+    "google": "Continuar con Google",
+    "method": {
+      "label": "Cómo quieres entrar",
+      "phone": "Celular",
+      "email": "Correo"
+    },
+    "phone": {
+      "label": "Tu celular",
+      "placeholder": "809-555-1234",
+      "help": "Te enviamos un código por mensaje de texto.",
+      "send": "Enviarme el código",
+      "sending": "Enviando…",
+      "invalid": "Escribe un celular dominicano de 10 dígitos: 809, 829 u 849.",
+      "codeTitle": "Escribe el código",
+      "codeSentTo": "Lo enviamos al <strong>{phone}</strong>.",
+      "codeLabel": "Código de 6 dígitos",
+      "digit": "Dígito {index} de 6",
+      "verify": "Entrar",
+      "verifying": "Comprobando…",
+      "invalidCode": "Ese código no es correcto. Revísalo e inténtalo de nuevo.",
+      "expiredCode": "El código venció. Pide uno nuevo.",
+      "tooManyAttempts": "Demasiados intentos. Pide un código nuevo.",
+      "resend": "Enviar otro código",
+      "resendIn": "Otro código en {seconds} s",
+      "changeNumber": "Cambiar número"
     }
   }
 }

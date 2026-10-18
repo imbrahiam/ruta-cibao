@@ -144,6 +144,10 @@ export function MapCanvas({
     instance.touchZoomRotate.disableRotation();
 
     instance.on("style.load", () => setStyleEpoch((epoch) => epoch + 1));
+    // Development only: lets screenshot scripts move the camera.
+    if (process.env.NODE_ENV !== "production") {
+      (window as unknown as { __map?: MapLibreMap }).__map = instance;
+    }
     instance.once("load", () => readyRef.current?.(instance));
     setMap(instance);
 

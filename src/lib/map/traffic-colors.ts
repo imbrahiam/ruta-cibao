@@ -30,10 +30,11 @@ import type { TrafficSeverity } from "@/db/schema/catalog";
 export type TrafficState = "active" | "cleared";
 
 export const TRAFFIC_COLORS = {
-  blocking: "#dc2626",
-  partial: "#f59e0b",
-  minor: "#eab308",
-  cleared: "#16a34a",
+  // Genesis status tokens: danger, warning, a lighter step of warning, success.
+  blocking: "#d4483a",
+  partial: "#c98a1b",
+  minor: "#d9ad4b",
+  cleared: "#2e9e6b",
 } as const;
 
 export type TrafficTone = keyof typeof TRAFFIC_COLORS;
