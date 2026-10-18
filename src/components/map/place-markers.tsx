@@ -25,6 +25,8 @@ export type MapPlace = {
   icon: string | null;
   lng: number;
   lat: number;
+  /** Whether its name fits beside it without covering another. */
+  labeled?: boolean;
 };
 
 type MapCluster = {
@@ -168,9 +170,62 @@ function collect(map: MapLibreMap, categories: ReadonlySet<string>): Feature[] {
     seen.set(key, { kind: "cluster", key, count: visible, lng, lat });
   }
 
-  return clustered
-    ? mergeOverlapping(map, [...seen.values()])
-    : [...seen.values()];
+  const zoom = map.getZoom();
+  const radius = clustered ? MERGE_PX : zoom < SEPARATE_ZOOM ? PIN_MERGE_PX : 0;
+  let merged = [...seen.values()];
+  // A merge moves the cluster to its weighted centre, which can bring it
+  // within reach of another marker; repeat until nothing changes.
+  for (let pass = 0; radius && pass < 4; pass++) {
+    const next = mergeOverlapping(map, merged, radius);
+    if (next.length === merged.length) break;
+    merged = next;
+  }
+  return zoom >= NAME_ZOOM ? placeLabels(map, merged) : merged;
+}
+
+/** From here up, places are always drawn one by one. */
+const SEPARATE_ZOOM = 17;
+/** Two pins closer than this would cover each other's icon. */
+const PIN_MERGE_PX = 34;
+
+/**
+ * Names go under their pins only where they fit: a greedy pass that keeps a
+ * label when its box touches no pin and no label already placed. The rest
+ * stay icons until the map is closer; tapping one still names it.
+ */
+function placeLabels(map: MapLibreMap, features: Feature[]): Feature[] {
+  const taken: { x1: number; y1: number; x2: number; y2: number }[] = [];
+  const overlaps = (box: (typeof taken)[number]) =>
+    taken.some(
+      (other) =>
+        box.x1 < other.x2 &&
+        box.x2 > other.x1 &&
+        box.y1 < other.y2 &&
+        box.y2 > other.y1,
+    );
+  for (const feature of features) {
+    const point = map.project([feature.lng, feature.lat]);
+    taken.push({
+      x1: point.x - 16,
+      y1: point.y - 16,
+      x2: point.x + 16,
+      y2: point.y + 16,
+    });
+  }
+  return features.map((feature) => {
+    if (feature.kind !== "place") return feature;
+    const point = map.project([feature.lng, feature.lat]);
+    const width = Math.min(224, feature.name.length * 6.6 + 16);
+    const box = {
+      x1: point.x - width / 2,
+      y1: point.y + 18,
+      x2: point.x + width / 2,
+      y2: point.y + 38,
+    };
+    if (overlaps(box)) return { ...feature, labeled: false };
+    taken.push(box);
+    return { ...feature, labeled: true };
+  });
 }
 
 /** Closer than this on screen, two markers would touch: they become one cluster. */
@@ -182,7 +237,11 @@ const MERGE_PX = 40;
  * of its neighbouring cluster. A greedy pass in screen space folds anything
  * that would overlap into the larger marker, weighted by count.
  */
-function mergeOverlapping(map: MapLibreMap, features: Feature[]): Feature[] {
+function mergeOverlapping(
+  map: MapLibreMap,
+  features: Feature[],
+  radius: number,
+): Feature[] {
   type Item = { feature: Feature; count: number; x: number; y: number };
   const items: Item[] = features
     .map((feature) => {
@@ -198,7 +257,7 @@ function mergeOverlapping(map: MapLibreMap, features: Feature[]): Feature[] {
   const kept: Item[] = [];
   for (const item of items) {
     const near = kept.find(
-      (other) => Math.hypot(other.x - item.x, other.y - item.y) < MERGE_PX,
+      (other) => Math.hypot(other.x - item.x, other.y - item.y) < radius,
     );
     if (!near) {
       kept.push(item);
@@ -262,7 +321,7 @@ export function PlaceMarkers({
               onClick={() =>
                 map?.easeTo({
                   center: [feature.lng, feature.lat],
-                  zoom: Math.min(map.getZoom() + 2.2, CLUSTER_MAX_ZOOM + 1.2),
+                  zoom: Math.min(map.getZoom() + 2, SEPARATE_ZOOM + 0.5),
                   duration: 520,
                 })
               }
@@ -284,7 +343,7 @@ export function PlaceMarkers({
             <PlacePin
               place={feature}
               selected={feature.slug === selectedSlug}
-              showName={zoom >= NAME_ZOOM}
+              showName={zoom >= NAME_ZOOM && feature.labeled !== false}
               onSelect={onSelect}
             />
           </MapMarker>
