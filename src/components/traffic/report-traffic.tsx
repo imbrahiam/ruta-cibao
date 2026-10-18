@@ -170,7 +170,7 @@ export function ReportTraffic({
         layout: { "line-cap": "round", "line-join": "round" },
         paint: {
           "line-color": p.ink,
-          "line-opacity": 0.045,
+          "line-opacity": theme === "dark" ? 0.03 : 0.045,
           "line-width": ["interpolate", ["linear"], ["zoom"], 13, 10, 17, 22],
         },
       },

@@ -148,8 +148,11 @@ export function MapCanvas({
     if (process.env.NODE_ENV !== "production") {
       (window as unknown as { __map?: MapLibreMap }).__map = instance;
     }
-    instance.once("load", () => readyRef.current?.(instance));
     setMap(instance);
+    // Ready as soon as it exists: camera moves do not need tiles, and the
+    // `load` event waits for every one of them, which on a weak phone GPU
+    // left a linked place unfocused for seconds.
+    readyRef.current?.(instance);
 
     return () => {
       instance.remove();

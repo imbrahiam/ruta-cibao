@@ -96,7 +96,7 @@ export function CategoryManager() {
           {t("new")}
         </Button>
       </div>
-      <div className="scrollbar-none -mx-4 overflow-x-auto px-4">
+      <div className="scrollbar-none -mx-4 overflow-x-auto px-4 [mask-image:linear-gradient(to_right,black_calc(100%-32px),transparent)] sm:[mask-image:none]">
         <Segmented
           label={t("kind")}
           value={kind}

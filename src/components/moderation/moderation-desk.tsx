@@ -586,7 +586,7 @@ function Card({
       {media ? <div className="mb-4">{media}</div> : null}
       <div className="flex gap-4">
         {icon ? (
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-paper-2">
+          <span className="hidden size-11 shrink-0 items-center justify-center rounded-full bg-paper-2 sm:flex">
             {icon}
           </span>
         ) : null}
