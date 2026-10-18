@@ -394,7 +394,7 @@ function PlacePin({
           "flex size-8 items-center justify-center rounded-full shadow-md ring-[2.5px] transition-[transform,background-color,box-shadow] duration-[260ms] ease-out group-hover:-translate-y-0.5 group-focus-visible:ring-accent",
           selected
             ? "scale-[1.28] text-white ring-card shadow-lg"
-            : "bg-card ring-card",
+            : "bg-card ring-card dark:bg-paper-3 dark:ring-white/25",
         )}
         style={
           selected ? { backgroundColor: place.color } : { color: place.color }
