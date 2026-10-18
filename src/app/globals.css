@@ -11,7 +11,10 @@
 :root {
   --ink: #121211;
   --ink-2: #57554f;
-  --ink-3: #8a877f;
+  /* Genesis lists #8A877F; it is 3.4:1 on paper, below WCAG AA for the small
+     captions it carries here, so light mode takes the nearest step that
+     passes on paper and paper-2 (5.0:1 and 4.6:1). Dark mode is unchanged. */
+  --ink-3: #6f6c64;
   --ink-4: #b5b2a9;
 
   --paper: #fafaf7;
@@ -253,6 +256,12 @@
     transform: scale(0.97);
     transition-duration: 90ms;
   }
+}
+
+/* Error and refusal text: the danger hue pulled toward ink, so it keeps
+   4.5:1 on cards in both themes while the bare hue stays for marks. */
+@utility text-danger-ink {
+  color: color-mix(in srgb, var(--danger) 82%, var(--ink));
 }
 
 @utility scrollbar-none {

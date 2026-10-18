@@ -1271,7 +1271,9 @@
     "pageTitle": "Esta parte necesita conexión",
     "pageBody": "No podemos cargar esta página sin internet. Lo que enviaste sin señal sigue guardado en este teléfono y sale solo cuando vuelva.",
     "openMap": "Abrir el mapa",
-    "pending": "Ver lo pendiente"
+    "pending": "Ver lo pendiente",
+    "notice": "Sin conexión · lo que envíes se guarda",
+    "noticePending": "Sin conexión · {count, plural, one {# envío espera} other {# envíos esperan}} señal"
   },
   "recovery": {
     "title": "Esta página no cargó",

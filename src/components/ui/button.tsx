@@ -15,7 +15,7 @@ const VARIANTS: Record<ButtonVariant, string> = {
   accent: "bg-accent text-on-accent hover:bg-accent-hover",
   secondary: "bg-card text-ink shadow-ring hover:bg-paper-2",
   ghost: "text-ink-2 hover:bg-paper-3 hover:text-ink",
-  danger: "bg-card text-danger shadow-ring hover:bg-paper-2",
+  danger: "bg-card text-danger-ink shadow-ring hover:bg-paper-2",
 };
 
 /*

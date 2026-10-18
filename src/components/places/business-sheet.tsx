@@ -183,7 +183,7 @@ export function BusinessSheet({
             />
           </Field>
           {error ? (
-            <p role="alert" className="t-small text-danger">
+            <p role="alert" className="t-small text-danger-ink">
               {error}
             </p>
           ) : null}

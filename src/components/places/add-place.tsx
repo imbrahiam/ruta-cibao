@@ -305,7 +305,7 @@ export function AddPlace({
             </fieldset>
           ) : null}
           {error ? (
-            <p role="alert" className="t-small text-danger">
+            <p role="alert" className="t-small text-danger-ink">
               {error}
             </p>
           ) : null}

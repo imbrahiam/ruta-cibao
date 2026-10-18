@@ -24,7 +24,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       className={cx(
-        "inline-flex h-10 items-center gap-0.5 rounded-full bg-paper-3 p-1",
+        "inline-flex h-10 items-center gap-0.5 rounded-full bg-paper-3 p-1 pointer-coarse:h-12",
         className,
       )}
     >
@@ -61,7 +61,7 @@ export function Segmented<T extends string>({
               }
             }}
             className={cx(
-              "inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 pb-px text-[14px] whitespace-nowrap transition-[background-color,color,box-shadow] duration-200 pointer-coarse:h-9",
+              "inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 pb-px text-[14px] whitespace-nowrap transition-[background-color,color,box-shadow] duration-200 pointer-coarse:h-10",
               selected
                 ? "bg-card font-medium text-ink shadow-sm"
                 : "text-ink-2 hover:text-ink",

@@ -254,7 +254,7 @@ export function SignInForm({
             </OTPField.Root>
           </div>
           {error ? (
-            <p role="alert" className="t-small text-danger">
+            <p role="alert" className="t-small text-danger-ink">
               {error.message}
             </p>
           ) : null}

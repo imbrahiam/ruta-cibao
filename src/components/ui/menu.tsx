@@ -47,7 +47,7 @@ export function MenuItem({
     <BaseMenu.Item
       className={cx(
         ITEM,
-        tone === "danger" && "text-danger [&_svg]:text-danger",
+        tone === "danger" && "text-danger-ink [&_svg]:text-danger-ink",
         className as string,
       )}
       {...props}

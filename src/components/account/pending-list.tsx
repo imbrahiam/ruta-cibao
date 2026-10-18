@@ -61,7 +61,7 @@ export function PendingList() {
         </Button>
       </div>
       {queue.hasError ? (
-        <p role="alert" className="t-small text-danger">
+        <p role="alert" className="t-small text-danger-ink">
           {t("failed")}
         </p>
       ) : null}
@@ -93,7 +93,7 @@ export function PendingList() {
                 type="button"
                 aria-label={t("discard")}
                 onClick={() => void forget(item.id)}
-                className="press flex size-10 items-center justify-center rounded-full text-ink-3 hover:bg-paper-3 hover:text-danger"
+                className="press flex size-10 items-center justify-center rounded-full text-ink-3 hover:bg-paper-3 hover:text-danger-ink"
               >
                 <Trash2 strokeWidth={1.5} className="size-[18px]" />
               </button>

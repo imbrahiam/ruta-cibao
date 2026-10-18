@@ -48,7 +48,7 @@ export function Chip({
       type={type}
       aria-pressed={selected}
       className={cx(
-        "press inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 pb-px text-[14px] whitespace-nowrap pointer-coarse:h-10 [&_svg]:size-4 [&_svg]:shrink-0",
+        "press inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 pb-px text-[14px] whitespace-nowrap pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0",
         selected
           ? cx("bg-ink font-medium text-paper", floating && "shadow-sm")
           : floating

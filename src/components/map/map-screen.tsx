@@ -21,6 +21,7 @@ import { useAuth } from "@/components/auth/auth-context";
 import { LogoMark } from "@/components/brand/logo";
 import { AddPlace } from "@/components/places/add-place";
 import { PlaceDetail } from "@/components/places/place-detail";
+import { OfflineNotice } from "@/components/pwa/offline-notice";
 import { AccountMenu } from "@/components/shell/account-menu";
 import { NotificationBell } from "@/components/shell/notification-bell";
 import { TabBar } from "@/components/shell/tab-bar";
@@ -391,6 +392,7 @@ export function MapScreen() {
               onChange={(next) => void setCategories(next.length ? next : null)}
               className="pointer-events-auto mt-2 md:hidden"
             />
+            <OfflineNotice className="mt-2 px-3 md:ml-[432px]" />
           </div>
         )}
 

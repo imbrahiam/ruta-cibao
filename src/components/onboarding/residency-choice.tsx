@@ -50,7 +50,7 @@ export function ResidencyChoice({ next }: { next: string }) {
         onClick={() => declare.mutate({ resident: false })}
       />
       {declare.isError ? (
-        <p role="alert" className="t-small text-danger">
+        <p role="alert" className="t-small text-danger-ink">
           {t("saveError")}
         </p>
       ) : null}
