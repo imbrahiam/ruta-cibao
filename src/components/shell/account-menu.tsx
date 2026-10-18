@@ -84,7 +84,7 @@ export function AccountMenu({ align = "end" }: { align?: "start" | "end" }) {
     );
   }
 
-  const name = viewer.verifiedFullName ?? viewer.displayName;
+  const name = viewer.displayName ?? viewer.verifiedFullName;
 
   return (
     <Menu
