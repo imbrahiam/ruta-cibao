@@ -63,7 +63,7 @@ export function Segmented<T extends string>({
             className={cx(
               "inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-full px-3.5 pb-px text-[14px] whitespace-nowrap transition-[background-color,color,box-shadow] duration-200 pointer-coarse:h-10",
               selected
-                ? "bg-card font-medium text-ink shadow-sm"
+                ? "bg-card font-medium text-ink shadow-sm dark:bg-ink-4"
                 : "text-ink-2 hover:text-ink",
             )}
           >

@@ -22,7 +22,13 @@ export function PlaceCard({ place }: { place: PlaceCardData }) {
       href={`/mapa?lugar=${encodeURIComponent(place.slug)}`}
       className="group flex flex-col overflow-hidden rounded-card bg-card shadow-ring transition-shadow duration-200 hover:shadow-md"
     >
-      <div className="relative aspect-[3/2] overflow-hidden bg-paper-2">
+      <div
+        className={
+          place.imageUrl
+            ? "relative aspect-[3/2] overflow-hidden bg-paper-2"
+            : "relative aspect-[5/2] overflow-hidden bg-paper-2"
+        }
+      >
         {place.imageUrl ? (
           // biome-ignore lint/performance/noImgElement: photos come from storage and seeds, not optimisable here
           <img
@@ -34,7 +40,7 @@ export function PlaceCard({ place }: { place: PlaceCardData }) {
         ) : (
           <div className="flex size-full items-center justify-center">
             <span
-              className="flex size-14 items-center justify-center rounded-full bg-card shadow-sm"
+              className="flex size-12 items-center justify-center rounded-full bg-card shadow-sm"
               style={{ color: place.categoryColor }}
             >
               <CategoryIcon
