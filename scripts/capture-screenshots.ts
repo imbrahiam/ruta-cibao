@@ -33,11 +33,16 @@ const SHOTS = [
 
 mkdirSync(OUT, { recursive: true });
 
-// Playwright's bundled headless shell renders WebGL in software, which the app
-// answers by falling back to the raster map — not the map an installed phone
-// shows. `SCREENSHOT_CHANNEL=chrome` drives the installed Chrome, with its GPU.
+// The bundled headless shell draws the MapLibre map with SwiftShader, which
+// is slow but correct. `SCREENSHOT_CHANNEL=chrome` drives the installed
+// Chrome with its GPU instead.
 const browser = await chromium.launch({
   channel: process.env.SCREENSHOT_CHANNEL,
+  args: [
+    "--use-gl=angle",
+    "--use-angle=swiftshader",
+    "--enable-unsafe-swiftshader",
+  ],
 });
 const context = await browser.newContext({
   viewport: VIEWPORT,

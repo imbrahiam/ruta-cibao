@@ -1,168 +1,102 @@
 # Design language
 
-One product, three surfaces: the landing, the content pages (Explorar,
-Consultas, Mis aportes, Pasaporte, Mi cuenta, Rutas) and the map. This file is
-the shared reference; when a surface needs something it does not cover, add it
-here first.
+Ruta Cibao uses the Genesis design system (warm paper, near-black ink, ink-tinted
+rings and shadows, pills, small fast motion) with one accent of its own. This
+file is the reference for every surface: the landing, the content pages and the
+map. When a surface needs something it does not cover, add it here first.
 
-It comes from a 2026-10-14 survey of the thirty galleries listed on
-mkdir.directory (Awwwards, CSS Design Awards, land-book, minimal.gallery,
-siteinspire, footer.design and the rest), filtered for civic portals, tourism,
-parks, maps and mobile app UI, and weighed against who uses this app: rural
-residents and visitors, many older, many on cheap Android phones over slow
-data, reading Spanish with varying confidence.
+## Tokens
 
-## The overall reference: land-book
+All tokens live in `src/app/globals.css` and are mapped into Tailwind v4's
+`@theme`, so components use `bg-paper`, `text-ink-2`, `shadow-ring`,
+`rounded-card` and so on. Do not add a colour, size, radius or shadow that is
+not a token.
 
-The owner chose land-book.com as the closest model for the whole product: a
-curated directory you browse by category, search and filter — which is what
-Explorar and the map are. What it contributes:
-
-- **Palette.** Warm greys, not white: page `#f7f6f5`, soft tiles `#f0efed`,
-  hairlines `#e6e6e3`, ink `#1d1c1c`, and one muted green accent. (land-book's
-  grey text, `#868584`, is 3.4:1 — ours is darker to pass AA.) The accent stays
-  the brand's forest green `#1f4d3f`; land-book's teal `#017c6e` also passes AA
-  and is a one-token swap if the owner prefers it.
-- **No shadows on the page.** Surfaces separate by tone (`bg-secondary` tiles on
-  the page ground) and hairlines, never by drop shadow. Shadows are only for
-  what floats over the map.
-- **Navigation.** Pill nav; the active item is a soft grey pill with a small
-  dot under it.
-- **Search** as a centred pill, the most prominent control after the title.
-- **Category tiles.** Large soft-grey rounded tiles (16 px radius), a picture
-  inside, the label underneath; the active one gets the same dot.
-- **Filter chips** in soft grey pills, the active one filled with ink.
-- **A photo-card grid** for things you choose by looking (places, routes), with
-  the title under the image rather than over it.
-
-park.photos is a second reference the owner liked: calm, muted, photography
-first, one pill call to action.
-
-## References that shaped it
-
-| Reference | What we take |
-| --- | --- |
-| Wellington City Council, Ville de Mascouche, LAPL | The home page asks a question and offers search plus direct tasks, not a slogan. Launcher rows of icon + verb. |
-| Ville de Varennes, Brossard | A notice bar for what matters today (a closed road), orange while active, slate when lifted. |
-| Felt | The product shown as a map of the place, with a small live card ("Abiertos · Resueltos esta semana"). Numbered feature rows on hairline rules. |
-| Circulátelo (Cali) | A Spanish-language civic map: real counts in big numerals, a list that renders before the tiles. |
-| Notranjski park | Status said three ways at once — icon, colour, word. |
-| Places to Read, Chesas da cultura Engiadina | Directory rows: pictogram or thumb, name, town, chevron; the town on every row. |
-| HUTS | Cream and forest green, line illustrations, a deep-green footer slab with rounded top corners. |
-| Insel Hombroich | Search that opens on ready-made questions ("¿Cómo llego a la presa?"). |
-| Tourisme Montréal, Spots Travel, Glossar | The passport: perforated stamps, a circular cancellation mark, dashed "page" borders. |
-| Lugano Living Lab, Leedlime | A footer that says who runs the project and whether the data is live. |
-
-Rejected for this audience, all seen in the galleries: splash or intro
-screens, scroll-jacking and scroll-revealed text, WebGL or autoplay video
-heroes, carousels that advance by themselves, cursor followers, marquees,
-tiny all-caps mono paragraphs, icon-only buttons, colour-only status, bento
-grids, cookie sheets and chat bubbles over the content, user-agent checks.
-Cape Town Dam Levels was excluded by the owner.
-
-## Foundations
-
-**Colour.** Warm paper ground (`--background`), one ink (`--foreground`), and
-the brand forest green (`--primary`, `#1f4d3f`) as the single colour that means
-"you can press this". Category colours belong to the map, its chips and its
-pins — never to page chrome. Road-alert amber and the traffic legend are the
-only other saturated colours. A pale lime tint (`--highlight`) is for
-illustration fills only, never text.
-
-**Type.** Two faces, each with one job. **Fraunces** (a warm, soft serif with
-optical sizes, after land-book's serif wordmark) for display, page and section
-titles and the wordmark — never for anything read at length or tapped.
-**Geist** for every other word: body, labels, buttons, rows. Geist Mono only for
-short numeric metadata (counts, distances, dates, `01`–`06` indices) via
-`.meta-mono`.
-
-| Role | Class | Size |
+| Group | Tokens | Notes |
 | --- | --- | --- |
-| Display (landing hero) | `.display-title` | 40 px phone → 72 px desktop, bold, −0.035em |
-| Page title | `.page-title` | 30 → 36 px, semibold |
-| Section title | `.section-title` | 22 → 28 px, semibold |
-| Eyebrow | `.page-eyebrow` | 11 px caps, green — labels only, never sentences |
-| Body | default | 16 px minimum; 17 px in rows |
-| Big number | `.stat-number` | 40 → 56 px, tabular |
+| Ink | `--ink` `--ink-2` `--ink-3` `--ink-4` | Light `--ink-3` is `#6F6C64`, not Genesis' `#8A877F`, which is 3.4:1 on paper and fails AA for captions. |
+| Paper | `--paper` `--paper-2` `--paper-3` `--line` `--card` | Page, inset areas, chips and hover, hairlines, cards. |
+| Accent | `--accent` `--accent-hover` `--accent-soft` `--on-accent` | "Pino" `#1F6B52` (dark `#5FBF9A`). Primary action and links only, at most one accent button per view. |
+| Status | `--success` `--warning` `--danger` | Always with an icon and words. Text uses `text-danger-ink` (the hue pulled toward ink) for 4.5:1. |
+| Location | `--locate` | Genesis blue, for the "you are here" dot only. A map convention, not an accent. |
+| Depth | `--ring` `--shadow-sm/md/lg` `--glass` | Cards take `shadow-ring`; floating things take `shadow-lg`; glass is for controls over the map. |
+| Motion | `--ease-out` `--ease-in` `--ease-soft` `--ease-spring` | See Motion. |
 
-**Buttons.** One primary shape: the sign-in screen's, 14 px radius, 44 px
-tall (48 px for a form's main action), never taller. Pills are for filters,
-chips and search only — so a pill means "narrow what I see", a rounded
-rectangle means "do something".
+Radii: pills `999px`, inputs `10px` (`rounded-input`), cards `16px`
+(`rounded-card`), panels and sheets `24px` (`rounded-panel`), photo and map
+frames `32px` (`rounded-frame`).
 
-**Navigation.** One list everywhere, in one order: Mapa · Explorar · Mis
-aportes · Consultas, plus Mi cuenta on the phone and Inicio first on a
-desktop. The phone tab bar, the desktop header and the map's rail render the
-same list; the account lives at the header's right edge on a desktop.
+## Type
 
-**Margins.** 24 px on phones for header, pages, landing, sign-in and footer —
-one edge everything lines up on. Page columns are left-aligned to the shell
-and limit only their reading width.
+Inter (with `ss01`, `cv11` and optical sizing) for everything, Geist Mono 500
+for small uppercase labels and figures. Weights are 400, 500 and 600, and
+headlines are 450–500. The roles are utilities: `t-display`, `t-h2`, `t-h3`,
+`t-body-lg`, `t-body`, `t-small`, `t-label`. Inputs stay at 16px so iOS does not
+zoom on focus.
 
-**Shape.** Rounded pills for chips (44 px minimum height, 48 px on
-the landing). Photo cards in a grid for things you choose by looking (a place,
-a route), title under the image; everything you look something up in (cases,
-reports, settings) is a ruled list. Soft tiles (`bg-secondary`, 16 px radius)
-group things; hairline rules (`.ruled > * + *`) separate rows. No drop shadows
-on the page — only on things floating over the map.
+Every page opens with the same rhythm (`PageHeader`): a mono eyebrow, a
+headline of eight words or fewer, and one sentence of lede.
 
-**Status.** Always icon + word + colour, never colour alone:
-Recibido (grey, circle) · En revisión (amber, half circle) · En proceso (blue,
-play) · Resuelto (green, check) · No procede (muted red, cross). In a detail
-view the badge expands into a vertical timeline.
+## Layout
 
-**Motion.** `transform` and `opacity` only, 150–250 ms, one ease
-(`--ease-out-soft`). Every animation sits inside
-`@media (prefers-reduced-motion: no-preference)`, so the default is none.
-Content never waits for an animation to become visible. No smooth-scroll or
-animation libraries, no `backdrop-filter` on anything that moves (it is
-expensive on low-end Android GPUs).
+- Phones first. Content pages use a glass pill nav at the top (logo, bell,
+  account) and a floating glass tab bar at the bottom: Mapa, Explorar,
+  Consultas, Aportes, Cuenta. Icon and label are always shown, and the current
+  section is a filled ink pill with `aria-current`.
+- From 810px up the nav shows its links, the tab bar goes away, and an ink
+  footer closes each page.
+- Container: 1200px, with a 16px gutter on phones and 24px above 640px.
 
-**Copy.** Spanish, verbs first, no filler (see the product-focus rule: nothing
-that reassures or decorates). "Reporta un hoyo", not "Ayúdanos a construir una
-mejor comunidad". All of it in `messages/es.json`.
+## The map
 
-## Surfaces
+The map is the product, so it gets the most care. It must stay plain enough to
+read at a glance.
 
-**Landing**, mobile first, one column:
-1. Notice bar when a road is blocked right now (live data), dismissible.
-2. Hero: a short question, one large search field that opens the map's search,
-   and two direct tasks — "Abrir el mapa", "Reportar un problema". A real
-   province photo, shorter than the screen, with the search card overlapping
-   its bottom edge.
-3. The province in real numbers: places, routes, reports resolved this month.
-4. The territory: a flat drawing of the three municipalities from the real
-   boundaries, the dam marked, with a small live card for open and resolved
-   reports. Tapping it opens the map.
-5. What you can do: numbered ruled rows `01`–`06`, one per feature, each a verb
-   and one line, each a link.
-6. Places to visit: a horizontal snap row of photo cards with ← → buttons and
-   "Ver todo".
-7. Footer: the deep-green slab.
+- **Style.** `src/lib/map/style.ts` is written by hand for the Protomaps schema
+  over the self-hosted PMTiles. There is no prebuilt style. The ground is paper
+  and ink; vegetation and water are paper tinted toward the accent hue. Roads
+  are told apart by width and casing, not by colour, so red, amber and green
+  stay free for traffic. OSM points of interest are left out on purpose: the
+  places on this map are the curated ones. Light and dark palettes are in
+  `src/lib/map/palette.ts`, and `tests/map-style.test.ts` checks both.
+- **Labels** use Inter and Geist Mono, from glyph packs built by
+  `bun run basemap:glyphs`.
+- **Province.** Everything outside the province is veiled with paper, labels
+  included. Municipal lines are dashed, and municipality names are set in the
+  mono label face.
+- **Markers** are DOM elements styled with the interface tokens. They are not
+  symbol layers, so they get real buttons, focus rings and transitions.
+  - Places are round pins in their category colour.
+  - Traffic points are square chips (road-sign shape).
+  - Routes are footprints; open cases are speech marks.
+  - Clusters are ink pills with a mono count. They come from the Postgres MVT
+    tiles and are merged in screen space so no two markers overlap.
+- **Selection.** The pin scales up, fills with its category colour, and shows
+  its name in a glass pill.
+- **Sheets.** On phones a place or report opens in a Base UI drawer that snaps
+  at 320px, 62% and 94% and never covers the whole map. On desktop the same
+  content sits in a 400px floating panel on the left.
+- **Picking a spot.** The pin stays fixed and the map moves under it
+  (`PickFrame`). The map's padding follows the card, so the centre of the map
+  is the crosshair.
 
-**Lists** (Explorar, Consultas, Mis aportes, Rutas): 72–88 px rows — pictogram
-in a tinted circle or a 64 px thumb, name (17 px semibold, two lines max),
-"Municipio · categoría" muted, status badge or chevron at the edge. The whole
-row is the target. Municipality filters are three segmented buttons. Skeleton
-rows match real row height.
+## Motion
 
-**Pasaporte**: a dashed-border page of perforated stamps with a circular
-cancellation ("SANTIAGO RODRÍGUEZ · fecha"); places not yet visited are dashed
-outlines with their names, so the goal is visible.
+Small distances (12px or less), short durations (450ms or less), ease-out when
+entering and ease-in when leaving.
 
-**Mi cuenta**: plain underlined rows under bold headings. No cards.
+- **Blur and rise** (`animate-rise`, `.stagger`) is used once per page, on
+  entry.
+- **Panel switch** (`animate-panel`) is used when a sheet's subject changes.
+- **Press** (`press`) scales a control to 0.97 with a spring back.
+- **Pins** pop in with a short blur.
 
-**Empty states**: a line illustration, one sentence, one action.
+`prefers-reduced-motion` turns all of these off. Motion never carries meaning on
+its own.
 
-**Footer**: deep green slab with rounded top corners, the wordmark, short
-links in large text, a status line ("En línea · datos al día" / "Sin conexión
-— viendo datos guardados"), and the credits strip.
+## Components
 
-**Map**: the same tokens. Every floating control is a white 44 px soft square
-(14 px radius) with a hairline and one shadow. "Where am I" and zoom are cells
-of one stack; "Aportar" (green, labelled) and "Capas" share the bottom
-baseline and each opens a bottom sheet of labelled rows — never a menu sprung
-from the button. Search and category chips are pills. The OSM (i) sits in the
-bottom-left corner with a 44 px hit area. See `src/lib/map/palette.ts`
-for the basemap, which follows the same rule as the pages: quiet ground, the
-province's content is the only colour.
+Primitives are in `src/components/ui`, on Base UI (headless) for focus
+management, swipe, snap points, menus and toasts. Magic UI is not used: Genesis
+rules out decorative effects. Use the existing primitives before adding new
+ones.

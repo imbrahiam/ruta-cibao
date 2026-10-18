@@ -1,7 +1,7 @@
 "use client";
 
 import { Collapsible } from "@base-ui/react/collapsible";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
   ChevronDown,
@@ -382,6 +382,51 @@ function DocumentsStep({
       >
         {busy ? t("sending") : t("send")}
       </Button>
+      <RestartCedula onDone={onDone} />
+    </div>
+  );
+}
+
+/**
+ * The registry matched a different name, or the wrong municipality was
+ * chosen: clear the cédula and start the first step again.
+ */
+function RestartCedula({ onDone }: { onDone: () => void }) {
+  const t = useTranslations("identity");
+  const [confirming, setConfirming] = useState(false);
+  const restart = useMutation(
+    orpc.identity.restart.mutationOptions({
+      onSuccess: onDone,
+      onError: () => toast.error({ title: t("errors.generic") }),
+    }),
+  );
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirming(true)}
+        className="t-small self-center rounded-full px-3 py-2 text-ink-2 underline-offset-2 hover:text-ink hover:underline"
+      >
+        {t("restart")}
+      </button>
+    );
+  }
+  return (
+    <div className="rounded-card bg-paper-2 p-4">
+      <p className="t-small text-ink-2">{t("restartHint")}</p>
+      <div className="mt-3 flex justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+          {t("cancel")}
+        </Button>
+        <Button
+          size="sm"
+          variant="primary"
+          disabled={restart.isPending}
+          onClick={() => restart.mutate()}
+        >
+          {t("restartConfirm")}
+        </Button>
+      </div>
     </div>
   );
 }
