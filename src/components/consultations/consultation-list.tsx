@@ -96,7 +96,7 @@ export function ConsultationList() {
         )}
         <div className="grid grid-cols-2 gap-2 md:flex">
           <Select
-            aria-label={t("status")}
+            aria-label={t("statusFilter")}
             value={status}
             onChange={(event) => void setStatus(event.target.value || null)}
             className="rounded-full md:w-44"

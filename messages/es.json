@@ -139,7 +139,13 @@
     "preparePdf": "Preparar PDF"
   },
   "consultations": {
-    "status": "Estado",
+    "status": {
+      "open": "recibido",
+      "in_review": "en revisión",
+      "answered": "respondido",
+      "resolved": "resuelto",
+      "rejected": "no procede"
+    },
     "eyebrow": "Consultas ciudadanas",
     "title": "Lo que la gente le pide al ayuntamiento",
     "lede": "Casos abiertos por residentes verificados, con el apoyo de sus vecinos y cada respuesta del municipio a la vista.",
@@ -211,7 +217,8 @@
       "citizenOnlyBody": "Una consulta habla en nombre de una persona real de la provincia, por eso pedimos verificar la cédula primero.",
       "verify": "Verificar mi cédula",
       "signIn": "Entrar"
-    }
+    },
+    "statusFilter": "Estado"
   },
   "map": {
     "title": "Mapa de Santiago Rodríguez",
