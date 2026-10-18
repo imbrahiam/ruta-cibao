@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatCedula } from "@/components/onboarding/cedula-input";
+import { formatCedula } from "@/lib/cedula-format";
 import { parseCedula } from "@/lib/jce";
 
 describe("parseCedula", () => {

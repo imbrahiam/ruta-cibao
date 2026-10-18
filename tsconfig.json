@@ -24,7 +24,7 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["bun", "google.maps"]
+    "types": ["bun"]
   },
   "include": [
     "next-env.d.ts",

@@ -1,5 +1,4 @@
 import type { TrafficSeverity } from "@/db/schema/catalog";
-import { mapPalette } from "./palette";
 
 /**
  * What colour a reported road is drawn in.
@@ -65,20 +64,3 @@ export function trafficColor(
  * this the stretch simply disappears, like every other report.
  */
 export const CLEARED_VISIBLE_HOURS = 3;
-
-/**
- * How a street being chosen is drawn, before it is anything.
- *
- * Not a traffic colour. Red, amber and yellow each mean something on this map,
- * and a stretch that has not been reported yet must not borrow one of them —
- * the person has not said what is wrong. It is drawn in the interface's own
- * ink, the same as the pin and the buttons, which is what makes it read as a
- * selection laid over the map rather than as a report already on it. The
- * white caps at both ends say exactly where the stretch starts and stops,
- * which is the one thing the extent buttons change.
- */
-export const STREET_SELECTION = {
-  stroke: mapPalette.ink,
-  hover: mapPalette.lineStrong,
-  cap: "#ffffff",
-} as const;
