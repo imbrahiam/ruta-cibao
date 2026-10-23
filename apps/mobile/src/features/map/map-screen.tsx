@@ -35,6 +35,8 @@ import { ProvinceMap, type ProvinceMapHandle } from "./province-map";
 
 /** Height of the floating system tab bar the sheet must clear. */
 const TAB_BAR = Platform.select({ ios: 56, default: 80 });
+/** How much of the sheet shows above the tab bar when resting. */
+const PEEK = 132;
 
 export function MapScreen() {
   const t = useTranslations("map");
@@ -70,16 +72,12 @@ export function MapScreen() {
   }, [places.data, category, municipality]);
 
   const bottomInset = insets.bottom + TAB_BAR;
-  const snapPoints = useMemo(() => [156, "50%", "88%"], []);
+  const peek = PEEK + bottomInset;
+  const snapPoints = useMemo(() => [peek, "52%", "90%"], [peek]);
   const topChrome = insets.top + 112;
   const padding = useMemo(
-    () => ({
-      top: topChrome,
-      bottom: 156 + bottomInset + 8,
-      left: 24,
-      right: 24,
-    }),
-    [topChrome, bottomInset],
+    () => ({ top: topChrome, bottom: peek + 12, left: 28, right: 28 }),
+    [topChrome, peek],
   );
 
   const select = useCallback((place: PlaceFeature | null) => {
@@ -219,7 +217,7 @@ export function MapScreen() {
 
       <View
         pointerEvents="box-none"
-        style={[styles.controls, { bottom: 156 + bottomInset + space.md }]}
+        style={[styles.controls, { bottom: peek + space.md }]}
       >
         <IconButton
           icon={LocateFixed}
@@ -235,7 +233,6 @@ export function MapScreen() {
         ref={sheet}
         index={0}
         snapPoints={snapPoints}
-        bottomInset={bottomInset}
         enableDynamicSizing={false}
         animationConfigs={reduced ? { duration: 1 } : spring.sheet}
         backgroundStyle={[
@@ -247,7 +244,7 @@ export function MapScreen() {
           width: 40,
         }}
         style={floating(scheme)}
-        accessibilityLabel={t("sheetLabel")}
+        accessible={false}
       >
         {selected ? (
           <PlaceSummary
@@ -263,7 +260,10 @@ export function MapScreen() {
           <BottomSheetFlatList
             data={visible?.features ?? []}
             keyExtractor={(item) => item.properties.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: bottomInset + space.lg },
+            ]}
             ListHeaderComponent={
               <View style={styles.sheetHeader}>
                 <Text variant="title2" accessibilityRole="header">

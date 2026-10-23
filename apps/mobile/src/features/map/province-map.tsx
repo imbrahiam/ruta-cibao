@@ -1,4 +1,8 @@
-import Mapbox, { type Camera, type ShapeSource } from "@rnmapbox/maps";
+import Mapbox, {
+  type Camera,
+  type CircleLayerStyle,
+  type ShapeSource,
+} from "@rnmapbox/maps";
 import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
 import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
 import { StyleSheet } from "react-native";
@@ -9,7 +13,33 @@ import type {
   PlaceCollection,
   PlaceFeature,
 } from "./data";
-import { PinImages, pinImage } from "./pin-images";
+import { MAP_GLYPHS } from "./glyphs";
+import { SelectedPin } from "./selected-pin";
+
+/** Map-ready image ids: every glyph, drawn white and recoloured as an SDF. */
+const GLYPH_IMAGES = Object.fromEntries(
+  Object.entries(MAP_GLYPHS).map(([name, source]) => [
+    `glyph-${name}`,
+    { image: source, sdf: true },
+  ]),
+);
+
+/** A place dot grows with zoom: a speck at province scale, a tappable disc in town. */
+function dotRadius(extra: number): CircleLayerStyle["circleRadius"] {
+  return [
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    8,
+    5 + extra / 2,
+    11,
+    9 + extra,
+    14,
+    13 + extra,
+    17,
+    15 + extra,
+  ];
+}
 
 export type Padding = {
   top: number;
@@ -97,6 +127,17 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
       [places, selectedId],
     );
 
+    /** Single places, minus the selected one (it is drawn as a marker on top). */
+    const unclustered = useMemo(
+      () =>
+        [
+          "all",
+          ["!", ["has", "point_count"]],
+          ["!=", ["get", "id"], selectedId ?? ""],
+        ] as const,
+      [selectedId],
+    );
+
     const labels = useMemo<GeoJSON.FeatureCollection>(
       () => ({
         type: "FeatureCollection",
@@ -170,7 +211,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
           }}
         />
 
-        <PinImages categories={categories} />
+        <Mapbox.Images images={GLYPH_IMAGES} />
 
         <Mapbox.ShapeSource
           id="province-outside"
@@ -288,6 +329,24 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
           }}
         >
           <Mapbox.CircleLayer
+            id="place-cluster-halo"
+            slot="top"
+            filter={["has", "point_count"]}
+            style={{
+              circleColor: colors.accent,
+              circleOpacity: 0.18,
+              circleRadius: [
+                "step",
+                ["get", "point_count"],
+                24,
+                10,
+                29,
+                50,
+                36,
+              ],
+            }}
+          />
+          <Mapbox.CircleLayer
             id="place-clusters"
             slot="top"
             filter={["has", "point_count"]}
@@ -296,14 +355,14 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
               circleRadius: [
                 "step",
                 ["get", "point_count"],
-                16,
+                17,
                 10,
-                20,
+                21,
                 50,
-                26,
+                27,
               ],
-              circleStrokeWidth: 3,
-              circleStrokeColor: colors.surface,
+              circleStrokeWidth: 2.5,
+              circleStrokeColor: "#FFFFFF",
             }}
           />
           <Mapbox.SymbolLayer
@@ -312,58 +371,95 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
             filter={["has", "point_count"]}
             style={{
               textField: ["get", "point_count_abbreviated"],
-              textSize: 13,
+              textSize: 14,
               textFont: ["DIN Pro Bold", "Arial Unicode MS Bold"],
-              textColor: colors.onAccent,
+              textColor: "#FFFFFF",
               textAllowOverlap: true,
+              textIgnorePlacement: true,
             }}
           />
-          <Mapbox.SymbolLayer
-            id="place-pins"
+          <Mapbox.CircleLayer
+            id="place-shadow"
             slot="top"
-            filter={["!", ["has", "point_count"]]}
+            filter={unclustered}
             style={{
-              iconImage: ["concat", "pin-", ["get", "category"]],
-              iconSize: [
+              circleColor: "#000000",
+              circleOpacity: scheme === "dark" ? 0.45 : 0.22,
+              circleBlur: 0.7,
+              circleTranslate: [0, 2],
+              circleRadius: dotRadius(4),
+            }}
+          />
+          <Mapbox.CircleLayer
+            id="place-dots"
+            slot="top"
+            filter={unclustered}
+            style={{
+              circleColor: ["get", "color"],
+              circleRadius: dotRadius(0),
+              circleStrokeWidth: [
                 "interpolate",
                 ["linear"],
                 ["zoom"],
                 8,
-                0.6,
-                12,
-                0.85,
-                15,
-                1,
+                1.5,
+                13,
+                2.5,
+              ],
+              circleStrokeColor: "#FFFFFF",
+              circlePitchAlignment: "map",
+            }}
+          />
+          <Mapbox.SymbolLayer
+            id="place-glyphs"
+            slot="top"
+            filter={unclustered}
+            minZoomLevel={10.5}
+            style={{
+              iconImage: ["concat", "glyph-", ["get", "icon"]],
+              iconColor: "#FFFFFF",
+              iconSize: [
+                "interpolate",
+                ["linear"],
+                ["zoom"],
+                10.5,
+                0.2,
+                13,
+                0.27,
+                16,
+                0.32,
               ],
               iconAllowOverlap: true,
+              iconIgnorePlacement: true,
               textField: ["step", ["zoom"], "", 13.5, ["get", "name"]],
-              textSize: 12,
+              textSize: 12.5,
               textFont: ["DIN Pro Medium", "Arial Unicode MS Regular"],
               textAnchor: "left",
-              textOffset: [1.3, 0],
-              textMaxWidth: 9,
+              textOffset: [1.45, 0],
+              textMaxWidth: 10,
               textOptional: true,
               textColor: colors.text,
               textHaloColor: colors.background,
-              textHaloWidth: 1.5,
+              textHaloWidth: 1.6,
             }}
           />
         </Mapbox.ShapeSource>
 
-        <Mapbox.ShapeSource id="selected-place" shape={selected ?? EMPTY}>
-          <Mapbox.SymbolLayer
-            id="selected-place-pin"
-            slot="top"
-            style={{
-              iconImage: selected
-                ? pinImage(selected.properties.category, true)
-                : "",
-              iconAnchor: "bottom",
-              iconAllowOverlap: true,
-              iconIgnorePlacement: true,
-            }}
-          />
-        </Mapbox.ShapeSource>
+        {selected ? (
+          <Mapbox.MarkerView
+            key={selected.properties.id}
+            coordinate={selected.geometry.coordinates as [number, number]}
+            anchor={{ x: 0.5, y: 1 }}
+            allowOverlap
+            allowOverlapWithPuck
+          >
+            <SelectedPin
+              color={selected.properties.color}
+              icon={selected.properties.icon}
+              label={selected.properties.name}
+            />
+          </Mapbox.MarkerView>
+        ) : null}
 
         {showUserLocation ? (
           <Mapbox.LocationPuck

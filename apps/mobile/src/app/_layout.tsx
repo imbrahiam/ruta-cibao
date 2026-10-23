@@ -1,3 +1,4 @@
+import "@/i18n/polyfills";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
 import Mapbox from "@rnmapbox/maps";
 import { QueryClientProvider } from "@tanstack/react-query";

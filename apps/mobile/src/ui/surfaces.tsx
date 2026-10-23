@@ -1,4 +1,3 @@
-import { BlurView } from "expo-blur";
 import type { LucideIcon } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { type StyleProp, StyleSheet, View, type ViewStyle } from "react-native";
@@ -123,7 +122,7 @@ export function IconButton({
         base,
         variant === "glass" && [
           floating(scheme),
-          { borderColor: colors.hairline },
+          { backgroundColor: colors.surface, borderColor: colors.hairline },
         ],
         variant === "plain" && { backgroundColor: colors.fill },
         variant === "filled" && { backgroundColor: colors.accent },
@@ -131,20 +130,6 @@ export function IconButton({
         disabled && { opacity: 0.45 },
       ]}
     >
-      {variant === "glass" ? (
-        <BlurView
-          intensity={60}
-          tint={
-            scheme === "dark"
-              ? "systemChromeMaterialDark"
-              : "systemChromeMaterialLight"
-          }
-          style={[
-            StyleSheet.absoluteFill,
-            { borderRadius: size / 2, overflow: "hidden" },
-          ]}
-        />
-      ) : null}
       <Icon as={icon} size={glyphSize} color={color} />
     </PressableScale>
   );

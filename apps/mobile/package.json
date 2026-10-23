@@ -5,6 +5,8 @@
   "dependencies": {
     "@better-auth/expo": "1.7.2",
     "@expo/ui": "~58.0.22",
+    "@formatjs/intl-locale": "^5.3.12",
+    "@formatjs/intl-pluralrules": "^6.3.16",
     "@gorhom/bottom-sheet": "^5.2.14",
     "@hookform/resolvers": "^6.0.0",
     "@orpc/client": "2.0.0-beta.32",
@@ -60,6 +62,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "lucide-static": "^1.61.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
