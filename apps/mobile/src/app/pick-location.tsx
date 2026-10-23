@@ -45,6 +45,7 @@ export default function PickLocationScreen() {
     initial ?? [(WEST + EAST) / 2, (SOUTH + NORTH) / 2],
   );
   const lift = useSharedValue(0);
+  const [cardHeight, setCardHeight] = useState(220);
 
   const where = municipalityAt(
     { lng: center[0], lat: center[1] },
@@ -118,11 +119,20 @@ export default function PickLocationScreen() {
                   },
                 }
           }
+          padding={{
+            paddingBottom: cardHeight,
+            paddingTop: 0,
+            paddingLeft: 0,
+            paddingRight: 0,
+          }}
         />
         <Mapbox.LocationPuck />
       </Mapbox.MapView>
 
-      <View pointerEvents="none" style={[styles.crosshair, { bottom: 0 }]}>
+      <View
+        pointerEvents="none"
+        style={[styles.crosshair, { bottom: cardHeight }]}
+      >
         <Animated.View style={[styles.groundShadow, shadowStyle]} />
         <Animated.View style={[styles.pin, pinStyle]}>
           <Svg width={40} height={52} viewBox="0 0 48 60">
@@ -154,6 +164,9 @@ export default function PickLocationScreen() {
       </View>
 
       <View
+        onLayout={(event) =>
+          setCardHeight(Math.round(event.nativeEvent.layout.height))
+        }
         style={[
           styles.card,
           floating(scheme),

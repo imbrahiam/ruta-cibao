@@ -1,12 +1,373 @@
-import { ScrollView } from "react-native";
-import { useTheme } from "@/ui/theme";
+import { renderNotification } from "@ruta/shared/open-keys";
+import { FlashList } from "@shopify/flash-list";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { router, Stack } from "expo-router";
+import {
+  Bell,
+  CircleCheck,
+  CircleDot,
+  CircleX,
+  Clock,
+  Inbox,
+  type LucideIcon,
+  Plus,
+  Sparkles,
+} from "lucide-react-native";
+import { useState } from "react";
+import { RefreshControl, StyleSheet, View } from "react-native";
+import { useTranslations } from "use-intl";
+import { useMe } from "@/features/auth/session";
+import { useAgo } from "@/i18n/ago";
+import { orpc } from "@/lib/api";
+import { targetRoute } from "@/lib/targets";
+import { BrandMark } from "@/ui/brand";
+import { Button } from "@/ui/button";
+import { Icon } from "@/ui/icon";
+import { PressableScale } from "@/ui/pressable";
+import { Segmented } from "@/ui/segmented";
+import { EmptyState, Skeleton } from "@/ui/states";
+import { Card, IconButton } from "@/ui/surfaces";
+import { Badge, type BadgeTone } from "@/ui/tags";
+import { Text } from "@/ui/text";
+import { radius, space, useTheme } from "@/ui/theme";
+
+type Status =
+  | "draft"
+  | "pending"
+  | "published"
+  | "rejected"
+  | "archived"
+  | "resolved"
+  | "dismissed"
+  | "active"
+  | "cleared"
+  | "expired"
+  | "removed"
+  | "open"
+  | "in_review"
+  | "answered"
+  | "approved";
+
+const STATUS: Record<Status, { tone: BadgeTone; icon: LucideIcon }> = {
+  draft: { tone: "neutral", icon: CircleDot },
+  pending: { tone: "warning", icon: Clock },
+  in_review: { tone: "warning", icon: Clock },
+  open: { tone: "neutral", icon: CircleDot },
+  published: { tone: "success", icon: CircleCheck },
+  approved: { tone: "success", icon: CircleCheck },
+  active: { tone: "success", icon: CircleCheck },
+  answered: { tone: "accent", icon: CircleCheck },
+  resolved: { tone: "success", icon: CircleCheck },
+  cleared: { tone: "neutral", icon: CircleCheck },
+  expired: { tone: "neutral", icon: Clock },
+  archived: { tone: "neutral", icon: CircleDot },
+  rejected: { tone: "danger", icon: CircleX },
+  dismissed: { tone: "danger", icon: CircleX },
+  removed: { tone: "danger", icon: CircleX },
+};
 
 export default function ContributionsScreen() {
+  const t = useTranslations("contributions");
   const { colors } = useTheme();
+  const { signedIn, isPending } = useMe();
+  const [view, setView] = useState<"mine" | "inbox">("mine");
+
+  if (!isPending && !signedIn) {
+    return (
+      <View style={[styles.signedOut, { backgroundColor: colors.background }]}>
+        <Stack.Screen options={{ title: t("title") }} />
+        <BrandMark size={64} />
+        <Text variant="title2" align="center">
+          {t("signedOutTitle")}
+        </Text>
+        <Text tone="secondary" align="center">
+          {t("signedOutBody")}
+        </Text>
+        <Button
+          label={t("signIn")}
+          onPress={() => router.push("/sign-in")}
+          testID="contributions-sign-in"
+        />
+      </View>
+    );
+  }
+
   return (
-    <ScrollView
+    <>
+      <Stack.Screen
+        options={{
+          title: t("title"),
+          headerRight: () => (
+            <IconButton
+              icon={Plus}
+              label={t("contribute")}
+              variant="filled"
+              size={36}
+              onPress={() => router.push("/contribute")}
+              testID="contribute-open"
+            />
+          ),
+        }}
+      />
+      {view === "mine" ? (
+        <MyContributions header={<Switcher view={view} onChange={setView} />} />
+      ) : (
+        <InboxList header={<Switcher view={view} onChange={setView} />} />
+      )}
+    </>
+  );
+}
+
+function Switcher({
+  view,
+  onChange,
+}: {
+  view: "mine" | "inbox";
+  onChange: (v: "mine" | "inbox") => void;
+}) {
+  const t = useTranslations("contributions");
+  const unread = useQuery(
+    orpc.notifications.list.queryOptions({ input: { limit: 50 } }),
+  );
+  const count = unread.data?.unread ?? 0;
+  return (
+    <View style={styles.switcher}>
+      <Segmented
+        accessibilityLabel={t("title")}
+        value={view}
+        onChange={onChange}
+        options={[
+          { value: "mine", label: t("mine") },
+          {
+            value: "inbox",
+            label: count > 0 ? t("inboxCount", { count }) : t("inbox"),
+          },
+        ]}
+      />
+    </View>
+  );
+}
+
+function MyContributions({ header }: { header: React.ReactElement }) {
+  const t = useTranslations("contributions");
+  const tc = useTranslations("common");
+  const { colors } = useTheme();
+  const ago = useAgo();
+  const list = useQuery(orpc.places.contributions.queryOptions());
+
+  return (
+    <FlashList
+      data={list.data ?? []}
+      keyExtractor={(item) => `${item.kind}-${item.id}`}
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: colors.background }}
+      contentContainerStyle={styles.list}
+      ListHeaderComponent={header}
+      ItemSeparatorComponent={() => <View style={styles.gap} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={list.isRefetching}
+          onRefresh={() => list.refetch()}
+          tintColor={colors.accent}
+        />
+      }
+      ListEmptyComponent={
+        list.isPending ? (
+          <View style={styles.gapList}>
+            {[0, 1, 2].map((key) => (
+              <Skeleton key={key} height={96} rounded={radius.card} />
+            ))}
+          </View>
+        ) : list.isError ? (
+          <EmptyState
+            icon={Inbox}
+            tone="danger"
+            title={tc("errorTitle")}
+            body={tc("errorBody")}
+            action={{ label: tc("retry"), onPress: () => list.refetch() }}
+          />
+        ) : (
+          <EmptyState
+            icon={Sparkles}
+            title={t("empty")}
+            body={t("emptyBody")}
+            action={{
+              label: t("contribute"),
+              onPress: () => router.push("/contribute"),
+            }}
+          />
+        )
+      }
+      renderItem={({ item }) => {
+        const status = STATUS[item.status];
+        const route = targetRoute(item.href);
+        return (
+          <Card
+            onPress={route ? () => router.push(route) : undefined}
+            accessibilityLabel={`${t(`kind.${item.kind}`)}: ${item.name}. ${t(`status.${item.status}`)}`}
+            style={styles.card}
+          >
+            <View style={styles.row}>
+              <Text
+                variant="footnote"
+                tone="tertiary"
+                uppercase
+                style={styles.flex}
+              >
+                {t(`kind.${item.kind}`)} · {ago(item.createdAt)}
+              </Text>
+              <Badge
+                label={t(`status.${item.status}`)}
+                tone={status.tone}
+                icon={status.icon}
+              />
+            </View>
+            <Text variant="headline" numberOfLines={2}>
+              {item.name}
+            </Text>
+            {item.note ? (
+              <View style={[styles.note, { backgroundColor: colors.inset }]}>
+                <Text variant="footnote" tone="tertiary" weight="600">
+                  {t("note")}
+                </Text>
+                <Text variant="subhead" tone="secondary">
+                  {item.note}
+                </Text>
+              </View>
+            ) : null}
+          </Card>
+        );
+      }}
     />
   );
 }
+
+function InboxList({ header }: { header: React.ReactElement }) {
+  const t = useTranslations("contributions");
+  const tc = useTranslations("common");
+  const root = useTranslations();
+  const { colors } = useTheme();
+  const ago = useAgo();
+  const queryClient = useQueryClient();
+  const list = useQuery(
+    orpc.notifications.list.queryOptions({ input: { limit: 50 } }),
+  );
+  const markRead = useMutation(
+    orpc.notifications.markRead.mutationOptions({
+      onSuccess: () =>
+        queryClient.invalidateQueries({
+          queryKey: orpc.notifications.list.key(),
+        }),
+    }),
+  );
+
+  return (
+    <FlashList
+      data={list.data?.items ?? []}
+      keyExtractor={(item) => item.id}
+      contentInsetAdjustmentBehavior="automatic"
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={styles.list}
+      ListHeaderComponent={
+        <View>
+          {header}
+          {(list.data?.unread ?? 0) > 0 ? (
+            <View style={styles.markAll}>
+              <Button
+                label={t("markAll")}
+                variant="tertiary"
+                size="sm"
+                onPress={() => markRead.mutate({})}
+              />
+            </View>
+          ) : null}
+        </View>
+      }
+      refreshControl={
+        <RefreshControl
+          refreshing={list.isRefetching}
+          onRefresh={() => list.refetch()}
+          tintColor={colors.accent}
+        />
+      }
+      ListEmptyComponent={
+        list.isPending ? null : list.isError ? (
+          <EmptyState
+            icon={Bell}
+            tone="danger"
+            title={tc("errorTitle")}
+            action={{ label: tc("retry"), onPress: () => list.refetch() }}
+          />
+        ) : (
+          <EmptyState
+            icon={Bell}
+            title={t("inboxEmpty")}
+            body={t("inboxEmptyBody")}
+          />
+        )
+      }
+      renderItem={({ item }) => {
+        const unread = !item.readAt;
+        return (
+          <PressableScale
+            onPress={() => {
+              if (unread) markRead.mutate({ id: item.id });
+              const route = targetRoute(item.href);
+              if (route) router.push(route);
+            }}
+            scaleTo={0.985}
+            accessibilityRole="button"
+            accessibilityState={{ selected: unread }}
+            style={styles.notice}
+          >
+            <View
+              style={[
+                styles.dot,
+                { backgroundColor: unread ? colors.accent : "transparent" },
+              ]}
+            />
+            <View style={styles.flex}>
+              <Text weight={unread ? "600" : "400"}>
+                {renderNotification(root, item.messageKey, item.params)}
+              </Text>
+              <Text variant="footnote" tone="tertiary">
+                {ago(item.createdAt)}
+              </Text>
+            </View>
+            <Icon as={Bell} size={16} color="textDisabled" />
+          </PressableScale>
+        );
+      }}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  signedOut: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: space.md,
+    padding: space.xl,
+  },
+  list: { paddingHorizontal: space.md, paddingBottom: space.xxl + space.xl },
+  switcher: { paddingVertical: space.md },
+  gap: { height: space.sm + 4 },
+  gapList: { gap: space.sm + 4 },
+  flex: { flex: 1 },
+  card: { gap: space.sm },
+  row: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  note: { borderRadius: radius.sm, padding: space.sm + 2, gap: 2 },
+  markAll: {
+    alignItems: "flex-end",
+    marginTop: -space.sm,
+    marginBottom: space.xs,
+  },
+  notice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md - 4,
+    paddingVertical: space.md - 2,
+  },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+});

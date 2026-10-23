@@ -1,3 +1,4 @@
+import { appTargetHref } from "@ruta/shared/app-target";
 import { ORPCError } from "@orpc/server";
 import {
   type BrowseRoutesInput,
@@ -239,7 +240,7 @@ export async function decideRoute(
           {
             userId: route.submittedByUserId,
             messageKey: "notifications.routeReviewed",
-            href: `/rutas?ver=mias&ruta=${input.id}`,
+            href: appTargetHref({ kind: "route", ref: input.id }),
             channels: { push: true, email: false },
           },
           tx,

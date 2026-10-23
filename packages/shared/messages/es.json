@@ -153,6 +153,174 @@
     "locate": "Ir a mi ubicación",
     "locationDenied": "Ubicación desactivada. Mueve el mapa para elegir el lugar."
   },
+  "contribute": {
+    "title": "Aportar",
+    "lede": "Tu aporte ayuda a toda la provincia. El equipo municipal revisa lugares y consultas antes de publicarlos.",
+    "mark": "Marcar",
+    "change": "Cambiar",
+    "reviewNote": "Lo revisa el equipo municipal antes de publicarlo. Te avisaremos.",
+    "traffic": {
+      "title": "Reportar en la vía",
+      "body": "Un hoyo, una inundación o una vía bloqueada, ahora mismo.",
+      "locate": "Ir a mi ubicación",
+      "shape": "Qué cubre el reporte",
+      "street": "Tramo de vía",
+      "point": "Un punto",
+      "onStreet": "{street}, {place}",
+      "unnamed": "Vía sin nombre",
+      "noStreet": "No encontramos una vía aquí. Acércate a la calle o usa un punto.",
+      "atPoint": "Punto en {place}",
+      "outside": "Ese lugar está fuera de la provincia.",
+      "description": "Detalle",
+      "submit": "Reportar",
+      "sent": "Reporte publicado",
+      "sentBody": "Tus vecinos lo verán en el mapa ahora mismo.",
+      "duplicate": "Ya lo reportaron",
+      "duplicateBody": "Alguien reportó lo mismo aquí cerca. Puedes confirmarlo en el mapa."
+    },
+    "place": {
+      "title": "Sugerir un lugar",
+      "body": "Un lugar, un negocio o un sitio que vale la pena conocer.",
+      "lede": "Cuéntanos qué es y dónde está. Lo publicamos después de revisarlo.",
+      "placeCategories": "Lugar",
+      "businessCategories": "Negocio",
+      "name": "Nombre",
+      "description": "Descripción",
+      "descriptionHelper": "Qué es y por qué alguien querría ir. Mínimo 20 caracteres.",
+      "location": "Ubicación",
+      "locationRequired": "Marca dónde está en el mapa.",
+      "locationSet": "Marcado en {place}",
+      "address": "Dirección o referencia",
+      "businessContact": "Contacto del negocio",
+      "phone": "Teléfono",
+      "hours": "Horario",
+      "submit": "Enviar para revisión",
+      "sent": "Lugar enviado",
+      "sentBody": "Lo publicaremos cuando el equipo municipal lo revise.",
+      "errors": {
+        "category": "Elige una categoría.",
+        "name": "Escribe el nombre (al menos 3 caracteres).",
+        "description": "Describe el lugar con al menos 20 caracteres.",
+        "location": "Marca la ubicación en el mapa."
+      }
+    },
+    "consultation": {
+      "title": "Consulta ciudadana",
+      "body": "Lleva un problema del barrio al ayuntamiento y síguelo."
+    }
+  },
+  "contributions": {
+    "title": "Aportes",
+    "contribute": "Aportar",
+    "signedOutTitle": "Tus aportes, en un solo lugar",
+    "signedOutBody": "Entra para sugerir lugares, reportar la vía, abrir consultas y seguir las respuestas del ayuntamiento.",
+    "signIn": "Entrar",
+    "mine": "Mis aportes",
+    "inbox": "Avisos",
+    "inboxCount": "Avisos ({count})",
+    "empty": "Todavía no has aportado",
+    "emptyBody": "Sugiere un lugar, reporta algo en la vía o abre una consulta.",
+    "note": "Nota del equipo municipal",
+    "markAll": "Marcar todo como leído",
+    "inboxEmpty": "No tienes avisos",
+    "inboxEmptyBody": "Aquí verás las respuestas del ayuntamiento y la revisión de tus aportes.",
+    "kind": {
+      "place": "Lugar",
+      "report": "Reporte de lugar",
+      "photo": "Foto",
+      "traffic": "Vía",
+      "consultation": "Consulta",
+      "claim": "Negocio"
+    },
+    "status": {
+      "draft": "Borrador",
+      "pending": "En revisión",
+      "published": "Publicado",
+      "rejected": "No aprobado",
+      "archived": "Archivado",
+      "resolved": "Resuelto",
+      "dismissed": "Descartado",
+      "active": "Activo",
+      "cleared": "Despejado",
+      "expired": "Vencido",
+      "removed": "Retirado",
+      "open": "Recibido",
+      "in_review": "En revisión",
+      "answered": "Respondido",
+      "approved": "Aprobado"
+    }
+  },
+  "account": {
+    "title": "Cuenta",
+    "signedOutTitle": "Entra a Ruta Cibao",
+    "signedOutBody": "Guarda lugares, sigue tus consultas y recibe las respuestas del ayuntamiento. Solo necesitas tu celular o tu correo.",
+    "signIn": "Entrar o crear cuenta",
+    "resident": "Residente verificado de {place}",
+    "yours": "Lo tuyo",
+    "profile": "Perfil",
+    "saved": "Lugares guardados",
+    "passport": "Pasaporte turístico",
+    "passportLede": "{count, plural, =0 {Aún no tienes sellos. Visita un lugar y séllalo desde su ficha.} one {Llevas # sello en tu pasaporte.} other {Llevas # sellos en tu pasaporte.}}",
+    "passportEmpty": "Tu pasaporte está vacío",
+    "passportEmptyBody": "Cuando visites un lugar, séllalo desde su ficha para guardar el recuerdo.",
+    "passportRemoved": "Lugar retirado",
+    "about": "Ruta Cibao",
+    "privacy": "Privacidad",
+    "aboutApp": "Acerca de",
+    "signOut": "Cerrar sesión",
+    "signedOut": "Sesión cerrada"
+  },
+  "profile": {
+    "title": "Perfil",
+    "welcomeTitle": "Bienvenido",
+    "welcomeLede": "¿Cómo quieres que te vean tus vecinos? Puedes cambiarlo cuando quieras.",
+    "name": "Nombre",
+    "nameHelper": "Así aparecerá en tus consultas y reportes.",
+    "nameError": "Escribe un nombre de al menos 2 caracteres.",
+    "municipality": "Tu municipio",
+    "municipalityHelper": "Opcional. Lo usamos para mostrarte lo que pasa cerca.",
+    "saved": "Perfil actualizado",
+    "skip": "Ahora no"
+  },
+  "privacy": {
+    "title": "Privacidad",
+    "lede": "Ruta Cibao guarda solo lo necesario para que la plataforma funcione. Esto es lo que guardamos y por qué.",
+    "account": {
+      "title": "Tu cuenta",
+      "body": "Tu celular o correo, para enviarte el código de entrada, y el nombre que elijas. Tu número nunca se muestra a otras personas."
+    },
+    "location": {
+      "title": "Tu ubicación",
+      "body": "Solo cuando tocas \"Mi ubicación\" o marcas un punto. No seguimos tu ubicación en segundo plano."
+    },
+    "contributions": {
+      "title": "Tus aportes",
+      "body": "Los lugares, reportes y consultas que envías son públicos cuando se publican, con el nombre que elegiste."
+    },
+    "photos": {
+      "title": "Fotos",
+      "body": "Las fotos que subes se revisan antes de publicarse y se les quitan los datos de ubicación de la cámara."
+    },
+    "device": {
+      "title": "En tu teléfono",
+      "body": "Tu sesión se guarda cifrada en el llavero del teléfono. Al cerrar sesión se borra."
+    },
+    "providers": {
+      "title": "Servicios que usamos",
+      "body": "Mapbox dibuja el mapa, Twilio envía los mensajes de texto y Resend los correos. No vendemos ni compartimos tus datos con fines publicitarios."
+    }
+  },
+  "about": {
+    "title": "Acerca de",
+    "tagline": "Descubre la provincia Santiago Rodríguez y participa en lo que pasa en ella.",
+    "version": "Versión {version} ({build})",
+    "credits": "Créditos",
+    "license": "Licencia del código",
+    "maps": "Mapas",
+    "mapsCredit": "© Mapbox © OpenStreetMap",
+    "source": "Código fuente",
+    "contest": "Proyecto para TechEmprende SR Conecta 2026."
+  },
   "time": {
     "now": "ahora mismo",
     "minutes": "{count, plural, one {hace # minuto} other {hace # minutos}}",

@@ -1,3 +1,4 @@
+import { appTargetHref } from "@ruta/shared/app-target";
 import type { BrowsePlacesInput } from "@ruta/contracts";
 import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -145,7 +146,7 @@ export async function listContributions(userId: string) {
         .limit(100),
     ]);
 
-  const placeHref = (slug: string) => `/mapa?lugar=${encodeURIComponent(slug)}`;
+  const placeHref = (slug: string) => appTargetHref({ kind: "place", ref: slug });
 
   return [
     ...submittedPlaces.map((item) => ({
@@ -174,14 +175,14 @@ export async function listContributions(userId: string) {
       // the whole point of it lapsing.
       href:
         item.status === "active"
-          ? `/mapa?reporte=${encodeURIComponent(item.id)}`
+          ? appTargetHref({ kind: "traffic", ref: item.id })
           : null,
     })),
     ...cases.map((item) => ({
       ...item,
       kind: "consultation" as const,
       note: null,
-      href: `/consultas/${encodeURIComponent(item.slug)}`,
+      href: appTargetHref({ kind: "consultation", ref: item.slug }),
     })),
     ...claims.map((item) => ({
       ...item,

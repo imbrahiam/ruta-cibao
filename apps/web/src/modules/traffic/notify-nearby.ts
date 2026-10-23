@@ -1,3 +1,4 @@
+import { appTargetHref } from "@ruta/shared/app-target";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { union } from "drizzle-orm/pg-core";
 import { db } from "@/db";
@@ -96,7 +97,7 @@ export async function notifyNearbyOfTraffic(reportId: string): Promise<number> {
       userId: row.userId,
       messageKey: "notifications.trafficNearby",
       params: { description },
-      href: `/mapa?reporte=${report.id}`,
+      href: appTargetHref({ kind: "traffic", ref: report.id }),
       // No email. This is a thing that will be over in a few hours, and an
       // inbox is the wrong place for it.
       channels: { push: true, email: false },

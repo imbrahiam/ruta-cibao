@@ -1,3 +1,4 @@
+import { appTargetHref } from "@ruta/shared/app-target";
 import type {
   DecideClaimInput,
   DecidePhotoInput,
@@ -109,7 +110,9 @@ export async function decidePlace(
               ? "notifications.placeApproved"
               : "notifications.placeRejected",
             params: { name: place.name },
-            href: published ? `/mapa?lugar=${place.slug}` : "/aportes",
+            href: published
+              ? appTargetHref({ kind: "place", ref: place.slug })
+              : appTargetHref({ kind: "contributions" }),
           },
           tx,
         );
@@ -345,7 +348,9 @@ export async function decideBusinessClaim(
             ? "notifications.businessClaimApproved"
             : "notifications.businessClaimRejected",
           params: { name: row.placeName },
-          href: approved ? `/mapa?lugar=${row.placeSlug}` : "/aportes",
+          href: approved
+            ? appTargetHref({ kind: "place", ref: row.placeSlug })
+            : appTargetHref({ kind: "contributions" }),
           // Push and the notification centre, like every other moderation decision.
           // No email: `notify` sends one only when handed an address, and a claim
           // decision does not warrant reaching outside the platform for it.
@@ -468,7 +473,7 @@ export async function removeTrafficReport(
             userId: report.reportedByUserId,
             messageKey: "notifications.trafficRemoved",
             params: { description: report.categoryName },
-            href: "/aportes",
+            href: appTargetHref({ kind: "contributions" }),
             channels: { push: false, email: false },
           },
           tx,

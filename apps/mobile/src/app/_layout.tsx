@@ -77,6 +77,25 @@ function RootStack() {
         options={{ presentation: "modal" }}
       />
       <Stack.Screen
+        name="contribute"
+        options={{
+          presentation: "formSheet",
+          headerShown: false,
+          sheetAllowedDetents: "fitToContents",
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 24,
+        }}
+      />
+      <Stack.Screen
+        name="contribute/place"
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="contribute/traffic"
+        options={{ presentation: "fullScreenModal", headerShown: false }}
+      />
+      <Stack.Screen name="s/[kind]/[ref]" options={{ headerShown: false }} />
+      <Stack.Screen
         name="pick-location"
         options={{ presentation: "fullScreenModal", headerShown: false }}
       />

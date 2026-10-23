@@ -33,3 +33,9 @@ export function useMemberAction() {
     [signedIn],
   );
 }
+
+/** Leaves the sign-in modal, wherever in its steps the person is. */
+export function closeSignIn() {
+  router.dismissAll();
+  router.back();
+}

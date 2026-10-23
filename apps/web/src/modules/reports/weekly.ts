@@ -1,3 +1,4 @@
+import { appTargetHref } from "@ruta/shared/app-target";
 import type { WeeklyMetrics } from "@ruta/contracts";
 import { weeklyMetrics } from "@ruta/contracts";
 import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
@@ -405,7 +406,7 @@ export async function buildWeeklyReports(
         dedupeKey: `weekly-report:${report.id}:${person.userId}`,
         messageKey: "notifications.reportReady",
         params: { scope: municipality.name },
-        href: `/informes/${report.id}`,
+        href: appTargetHref({ kind: "report", ref: report.id }),
         channels: { push: true, email: false },
       });
 

@@ -17,7 +17,7 @@ import { eq } from "drizzle-orm";
 import { createTranslator } from "next-intl";
 import { type DbTransaction, db } from "@/db";
 import { notifications, user } from "@/db/schema";
-import { renderNotification } from "@/i18n/open-keys";
+import { renderNotification } from "@ruta/shared/open-keys";
 import { routing } from "@/i18n/routing";
 import { recordAudit } from "@/lib/audit";
 import { env } from "@/lib/env";

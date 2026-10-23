@@ -7,6 +7,8 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslations } from "use-intl";
 import { signInErrorKey } from "@/features/auth/errors";
+import { closeSignIn } from "@/features/auth/session";
+import { api } from "@/lib/api";
 import { authClient } from "@/lib/auth";
 import { queryClient } from "@/lib/query";
 import { Button } from "@/ui/button";
@@ -22,6 +24,7 @@ const RESEND_SECONDS = 60;
 export default function VerifyScreen() {
   const t = useTranslations("signIn");
   const tc = useTranslations("common");
+  const defaultName = useTranslations("auth")("defaultDisplayName");
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -63,10 +66,18 @@ export default function VerifyScreen() {
       }
       await queryClient.invalidateQueries();
       toast.show({ title: t("welcome") });
-      router.dismissAll();
-      router.back();
+      const me = await api.me.get().catch(() => null);
+      const needsProfile =
+        me?.kind === "member" &&
+        me.municipalityId === null &&
+        (me.displayName ?? "").startsWith(`${defaultName} `);
+      if (needsProfile) {
+        router.replace("/sign-in/profile");
+        return;
+      }
+      closeSignIn();
     },
-    [destination, method, t, toast],
+    [destination, method, t, toast, defaultName],
   );
 
   const resend = async () => {

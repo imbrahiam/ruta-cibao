@@ -1,3 +1,4 @@
+import { appTargetHref } from "@ruta/shared/app-target";
 import type { CommunityFeature, MapFeaturesInput } from "@ruta/contracts";
 import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
@@ -54,7 +55,7 @@ export async function mapFeatures(db: Db, bounds: MapFeaturesInput) {
         lng: first.x,
         lat: first.y,
         path: route.path.map(({ x, y }) => ({ lng: x, lat: y })),
-        href: `/rutas?ruta=${route.id}`,
+        href: appTargetHref({ kind: "route", ref: route.id }),
       });
   }
   for (const item of cases.slice(0, 500)) {
@@ -67,7 +68,7 @@ export async function mapFeatures(db: Db, bounds: MapFeaturesInput) {
         lng: item.location.x,
         lat: item.location.y,
         path: null,
-        href: `/consultas/${item.slug}`,
+        href: appTargetHref({ kind: "consultation", ref: item.slug }),
       });
   }
   return { features, truncated: routes.length > 500 || cases.length > 500 };
