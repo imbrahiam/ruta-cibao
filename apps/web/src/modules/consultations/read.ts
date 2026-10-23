@@ -1,3 +1,4 @@
+import type { BrowseConsultationsInput } from "@ruta/contracts";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import {
@@ -9,7 +10,6 @@ import {
   municipalities,
 } from "@/db/schema";
 import type { Viewer } from "@/modules/access/viewer";
-import type { BrowseConsultationsInput } from "./contracts";
 import { ConsultationError } from "./open-consultation";
 
 /**

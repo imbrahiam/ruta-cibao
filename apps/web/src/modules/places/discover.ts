@@ -1,3 +1,4 @@
+import type { BrowsePlacesInput } from "@ruta/contracts";
 import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -10,7 +11,6 @@ import {
   places,
   trafficReports,
 } from "@/db/schema";
-import type { BrowsePlacesInput } from "./contracts";
 
 export async function browsePlaces(input: BrowsePlacesInput) {
   const where = and(

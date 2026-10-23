@@ -1,0 +1,94 @@
+import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
+import Mapbox from "@rnmapbox/maps";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { KeyboardProvider } from "react-native-keyboard-controller";
+import { I18nProvider } from "@/i18n/provider";
+import { MAPBOX_ACCESS_TOKEN } from "@/lib/config";
+import { queryClient, wireQueryLifecycle } from "@/lib/query";
+import { palettes, useScheme } from "@/ui/theme";
+import { ToastProvider } from "@/ui/toast";
+
+SplashScreen.preventAutoHideAsync();
+SplashScreen.setOptions({ duration: 250, fade: true });
+Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
+wireQueryLifecycle();
+
+export const unstable_settings = {
+  anchor: "(tabs)",
+};
+
+function navigationTheme(scheme: "light" | "dark") {
+  const base = scheme === "dark" ? DarkTheme : DefaultTheme;
+  const colors = palettes[scheme];
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: colors.accent,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.text,
+      border: colors.separator,
+      notification: colors.danger,
+    },
+  };
+}
+
+function RootStack() {
+  return (
+    <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen name="search" />
+      <Stack.Screen
+        name="map-layers"
+        options={{
+          presentation: "formSheet",
+          headerShown: false,
+          sheetAllowedDetents: [0.6, 0.9],
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 24,
+        }}
+      />
+      <Stack.Screen
+        name="sign-in"
+        options={{
+          presentation: "modal",
+          headerShown: false,
+          gestureEnabled: true,
+        }}
+      />
+    </Stack>
+  );
+}
+
+export default function RootLayout() {
+  const scheme = useScheme();
+
+  useEffect(() => {
+    SplashScreen.hideAsync();
+  }, []);
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardProvider>
+        <I18nProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider value={navigationTheme(scheme)}>
+              <BottomSheetModalProvider>
+                <ToastProvider>
+                  <StatusBar style="auto" />
+                  <RootStack />
+                </ToastProvider>
+              </BottomSheetModalProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </I18nProvider>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
+  );
+}

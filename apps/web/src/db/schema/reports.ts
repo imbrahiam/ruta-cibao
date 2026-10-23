@@ -51,7 +51,7 @@ export const weeklyReports = pgTable(
     periodEnd: timestamp({ withTimezone: true }).notNull(),
 
     status: weeklyReportStatus().notNull().default("pending"),
-    /** The frozen figures. Shape lives in `@/modules/reports/contracts`. */
+    /** The frozen figures. Shape lives in `@ruta/contracts`. */
     metrics: jsonb().$type<Record<string, unknown>>().notNull().default({}),
     /** Null until the mandatory PDF step completes; retried by the worker. */
     pdfStorageKey: text(),

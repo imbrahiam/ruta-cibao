@@ -4,15 +4,14 @@ import { decryptSensitive, encryptSensitive } from "@/lib/crypto";
 /**
  * Text that is encrypted at rest and plain everywhere else.
  *
- * For personal data the app has to read back — the name the civil registry
- * holds for a cédula. Encryption happens on the way into the driver and
- * decryption on the way out, so every query, seed and script that touches the
- * column gets it right without remembering to. The price is that the column
- * cannot be searched or sorted by value; nothing needs to.
+ * For personal data the app has to read back, such as the place a passport
+ * stamp records. Encryption happens on the way into the driver and decryption
+ * on the way out, so every query, seed and script that touches the column gets
+ * it right without remembering to. The price is that the column cannot be
+ * searched or sorted by value; nothing needs to.
  *
- * A value without the ciphertext prefix is a row written before the column
- * was encrypted. It is read as-is so a development database keeps working,
- * and `scripts/encrypt-legacy-names.ts` rewrites it.
+ * A value without the ciphertext prefix is read as-is, so a development
+ * database seeded before encryption keeps working.
  */
 export const encryptedText = customType<{ data: string; driverData: string }>({
   dataType() {

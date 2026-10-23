@@ -34,7 +34,7 @@ export const photoUploads = pgTable(
   ],
 );
 
-import type { BusinessContact } from "@/modules/businesses/contracts";
+import type { BusinessContact } from "@ruta/contracts";
 import { point } from "../types";
 import { user } from "./auth";
 import { categories } from "./catalog";

@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { MAX_PHOTO_BYTES } from "@ruta/contracts";
 import { and, asc, eq, gt, isNull, lte, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import { photoUploads, placePhotos, places } from "@/db/schema";
@@ -14,6 +15,7 @@ import {
   putObject,
   statObject,
 } from "@/lib/storage";
+import { hasStaffAuthority } from "@/modules/access/permissions";
 import type { MemberViewer } from "@/modules/access/viewer";
 import { issuePhotoKey, keyIssuedTo } from "./photo-key";
 
@@ -30,9 +32,6 @@ export const ALLOWED_PHOTO_TYPES = [
   "image/png",
   "image/webp",
 ] as const;
-
-/** Roughly a full-resolution phone photo; anything larger is a mistake. */
-export const MAX_PHOTO_BYTES = 8 * 1024 * 1024;
 
 /** How many published photos a place shows, and how many it accepts. */
 export const MAX_PHOTOS_PER_PLACE = 8;
@@ -213,7 +212,11 @@ export async function attachPhoto(
     // change the temporary upload, never an already accepted photograph.
     const finalKey = canonicalPhotoKey(place.id, input.storageKey);
     await putObject(finalKey, normalized, "image/webp");
-    const status = viewer.kind === "citizen" ? "published" : "pending";
+    // New photographs wait for review; only staff with authority over this
+    // municipality publish directly. A verified contact is not that authority.
+    const status = hasStaffAuthority(viewer, place.municipalityId)
+      ? "published"
+      : "pending";
     await tx.insert(placePhotos).values({
       placeId: place.id,
       uploadedByUserId: viewer.userId,

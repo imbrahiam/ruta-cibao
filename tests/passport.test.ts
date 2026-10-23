@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { stampInput } from "@/modules/passport/contracts";
+import { stampInput } from "@ruta/contracts";
 import { visitProblem } from "@/modules/passport/visit-policy";
 
 const now = Date.parse("2026-10-13T12:00:00Z");

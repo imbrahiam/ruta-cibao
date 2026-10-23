@@ -41,55 +41,43 @@ const serverSchema = z
 
     BETTER_AUTH_SECRET: z.string().min(32, "must be at least 32 characters"),
     BETTER_AUTH_URL: z.url(),
-    // Fictional, allowlisted local accounts only. Refused in production.
+    // Fictional, allowlisted local accounts only: a phone in LOCAL_DEMO_PHONES
+    // signs in with LOCAL_DEMO_OTP. Refused in production.
     LOCAL_DEMO_OTP: optionalString().refine(
       (value) => !value || /^\d{6}$/.test(value),
       "must be six digits",
     ),
     LOCAL_DEMO_PHONES: optionalString(),
 
-    JCE_API_URL: z.url(),
-    JCE_API_KEY: z.string().min(1),
-    JCE_USE_MOCK: z
-      .enum(["0", "1"])
-      .default("0")
-      .transform((value) => value === "1"),
-
-    // 32 bytes, hex-encoded. Encrypts cedulas and every other piece of personal
-    // data at rest, and keys the blind index that makes them searchable.
-    // Rotating it makes existing ciphertext unreadable — see OPERATIONS.md.
+    // 32 bytes, hex-encoded. Encrypts personal data at rest and keys the
+    // lookup hashes that make some of it searchable. Rotating it makes existing
+    // ciphertext unreadable — see OPERATIONS.md.
     APP_ENCRYPTION_KEY: z
       .string()
       .regex(/^[0-9a-f]{64}$/, "must be 64 hex characters"),
 
-    // Email. Without a key, magic links are written to the server log instead of
-    // being sent, which is what local development wants.
+    // Email. Without a key, sign-in codes are written to the server log
+    // instead of being sent (development only).
     RESEND_API_KEY: optionalString(),
     EMAIL_FROM: z.string().min(1).default("Ruta Cibao <onboarding@resend.dev>"),
 
-    // Google sign-in. Optional: without a client id the button is not rendered
-    // and the phone and email routes are unaffected.
-    GOOGLE_CLIENT_ID: optionalString(),
-    GOOGLE_CLIENT_SECRET: optionalString(),
-
-    // SMS. A phone number is the default way into this app, so the sign-in code
-    // has to arrive by text. Without Twilio credentials the code is written to
-    // the server log instead, which is what development and the demo want.
+    // Phone sign-in through Twilio Verify, which generates, delivers and
+    // checks the code. Without these, development writes the code to the log.
     TWILIO_ACCOUNT_SID: optionalString(),
     TWILIO_AUTH_TOKEN: optionalString(),
-    /** The Twilio number the code is sent from, in E.164. */
-    TWILIO_FROM: optionalString(),
+    TWILIO_VERIFY_SERVICE_SID: optionalString(),
 
-    // Whether a sign-in code or link may be written to the server log when no
-    // SMS or email provider is configured. Always allowed outside production —
-    // that is how development and a laptop demo sign in with no accounts. In
-    // production it is refused unless this is set, because a code in the log is
-    // a way into somebody else's account for anyone who can read the log. Set it
-    // only for a demo deployment with invented users.
-    AUTH_LOG_DELIVERY: z
-      .enum(["0", "1"])
-      .default("0")
-      .transform((value) => value === "1"),
+    // Whether a sign-in code may be written to the server log when no SMS or
+    // email provider is configured. On by default outside production, which is
+    // how development signs in with no provider accounts; set 0 to turn it
+    // off. Refused in production: a code in the log is a way into somebody
+    // else's account for anyone who can read the log.
+    AUTH_LOG_DELIVERY: optionalString()
+      .refine(
+        (value) => value === undefined || value === "0" || value === "1",
+        "must be 0 or 1",
+      )
+      .transform((value) => (value === undefined ? undefined : value === "1")),
 
     // Web Push. Without a keypair, push notifications are disabled and the
     // in-app notification centre still works. Generate with: bunx web-push generate-vapid-keys
@@ -157,6 +145,13 @@ const serverSchema = z
         message: "local demo credentials are forbidden in production",
       });
     }
+    if (value.AUTH_LOG_DELIVERY) {
+      context.addIssue({
+        code: "custom",
+        path: ["AUTH_LOG_DELIVERY"],
+        message: "writing sign-in codes to the log is forbidden in production",
+      });
+    }
     const app = new URL(value.APP_URL);
     const auth = new URL(value.BETTER_AUTH_URL);
     const local = ["localhost", "127.0.0.1", "[::1]"].includes(app.hostname);
@@ -188,7 +183,12 @@ const serverSchema = z
         path: ["S3_ACCESS_KEY_ID"],
         message: "replace development storage credentials",
       });
-  });
+  })
+  .transform((value) => ({
+    ...value,
+    AUTH_LOG_DELIVERY:
+      value.AUTH_LOG_DELIVERY ?? value.NODE_ENV !== "production",
+  }));
 
 export type ServerEnv = z.infer<typeof serverSchema>;
 

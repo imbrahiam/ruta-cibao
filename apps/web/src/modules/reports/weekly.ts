@@ -1,3 +1,5 @@
+import type { WeeklyMetrics } from "@ruta/contracts";
+import { weeklyMetrics } from "@ruta/contracts";
 import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -12,8 +14,6 @@ import {
 } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { notify } from "@/modules/notifications/notify";
-import type { WeeklyMetrics } from "./contracts";
-import { weeklyMetrics } from "./contracts";
 import { renderWeeklyReportPdf } from "./render-pdf";
 
 /**

@@ -1,19 +1,18 @@
+import type { ClaimBusinessInput } from "@ruta/contracts";
 import { formatPhone, normalizePhone } from "@ruta/shared/phone";
 import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import { businessClaims, categories, places } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
-import type { CitizenViewer, Viewer } from "@/modules/access/viewer";
-import type { ClaimBusinessInput } from "./contracts";
+import type { MemberViewer, Viewer } from "@/modules/access/viewer";
 
 /**
  * Saying a business on the map is yours.
  *
- * Citizen-only, and this is the tier line the contest brief draws: a business
- * listing carries a phone number the platform is vouching for, and the person
- * behind it has to be someone the civil registry can name. Anybody may put a
- * colmado on the map; only a verified resident may claim to run it.
+ * Any member with a verified contact may claim a business; the claim itself
+ * is what gets checked. A municipal resident badge adds nothing here, and an
+ * account never gains another business's listing by being verified.
  *
  * The claim is reviewed like any other contribution. "I own this" is not a fact
  * the platform can check, so a human looks at what the claimant offered as
@@ -35,7 +34,7 @@ export class BusinessClaimError extends Error {
 }
 
 export async function claimBusiness(
-  viewer: CitizenViewer,
+  viewer: MemberViewer,
   input: ClaimBusinessInput,
 ) {
   const outcome = await withIdempotency({

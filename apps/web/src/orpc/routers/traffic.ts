@@ -1,33 +1,19 @@
-import { openapi } from "@orpc/openapi";
 import { ORPCError } from "@orpc/server";
 import { and, eq, inArray } from "drizzle-orm";
-import { z } from "zod";
 import { categories } from "@/db/schema";
 import { roadsInView, streetAt } from "@/lib/map/roads";
 import { confirmTraffic } from "@/modules/traffic/confirm";
-import {
-  activeTrafficInput,
-  confirmTrafficInput,
-  confirmTrafficOutput,
-  reportTrafficInput,
-  reportTrafficOutput,
-  streetAtInput,
-  streetAtOutput,
-  streetsInViewInput,
-  streetsInViewOutput,
-  trafficReportShape,
-} from "@/modules/traffic/contracts";
 import { activeTrafficReports } from "@/modules/traffic/read";
 import { reportTraffic, TrafficError } from "@/modules/traffic/report-traffic";
-import { memberProcedure, pub } from "../base";
+import { impl, member } from "../base";
 
 /**
  * Traffic, as an API.
  *
  * Reading is open to anyone, including a driver with no account: a blocked road
  * is public safety information and putting a sign-in wall in front of it would
- * be indefensible. Writing needs an account of any tier — a visitor stuck
- * behind the landslide knows what the residents on the far side need to hear.
+ * be indefensible. Writing needs a member with a verified phone or email —
+ * a tourist stuck behind the landslide knows what the far side needs to hear.
  */
 function asTrafficError(error: unknown): never {
   if (!(error instanceof TrafficError)) throw error;
@@ -60,69 +46,47 @@ function asTrafficError(error: unknown): never {
 
 export const trafficRouter = {
   /** The traffic taxonomy, for the report form and the legend. */
-  categories: pub
-    .meta(
-      openapi({
-        method: "GET",
-        path: "/traffic/categories",
-        summary: "Traffic report categories",
-      }),
-    )
-    .output(
-      z.array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          icon: z.string(),
-          color: z.string(),
-        }),
-      ),
-    )
-    .handler(({ context }) =>
-      context.db
-        .select({
-          id: categories.id,
-          name: categories.name,
-          icon: categories.icon,
-          color: categories.color,
-        })
-        .from(categories)
-        .where(
-          and(
-            inArray(categories.kind, ["traffic"]),
-            eq(categories.isActive, true),
-          ),
-        )
-        .orderBy(categories.sortOrder),
-    ),
+  categories: impl.traffic.categories.handler(({ context }) =>
+    context.db
+      .select({
+        id: categories.id,
+        name: categories.name,
+        icon: categories.icon,
+        color: categories.color,
+      })
+      .from(categories)
+      .where(
+        and(
+          inArray(categories.kind, ["traffic"]),
+          eq(categories.isActive, true),
+        ),
+      )
+      .orderBy(categories.sortOrder),
+  ),
 
-  active: pub
-    .meta(
-      openapi({
-        method: "GET",
-        path: "/traffic",
-        summary: "Traffic reports inside a bounding box",
-      }),
-    )
-    .input(activeTrafficInput)
-    .output(z.array(trafficReportShape))
-    .handler(async ({ context, input }) =>
-      activeTrafficReports(context.db, await context.getViewer(), input),
-    ),
+  active: impl.traffic.active.handler(async ({ context, input }) =>
+    activeTrafficReports(context.db, await context.getViewer(), input),
+  ),
 
-  report: memberProcedure
-    .meta(
-      openapi({
-        method: "POST",
-        path: "/traffic",
-        successStatus: 201,
-        summary: "Report something on the road",
+  report: impl.traffic.report
+    .use(member)
+    .handler(({ context, input, errors }) =>
+      reportTraffic(context.viewer, input).catch((error: unknown) => {
+        if (
+          error instanceof TrafficError &&
+          error.reason === "duplicate" &&
+          error.existingReportId
+        ) {
+          throw errors.DUPLICATE_REPORT({
+            message: "That report already exists nearby.",
+            data: {
+              reason: "duplicate",
+              existingReportId: error.existingReportId,
+            },
+          });
+        }
+        return asTrafficError(error);
       }),
-    )
-    .input(reportTrafficInput)
-    .output(reportTrafficOutput)
-    .handler(({ context, input }) =>
-      reportTraffic(context.viewer, input).catch(asTrafficError),
     ),
 
   /**
@@ -138,17 +102,7 @@ export const trafficRouter = {
    * coordinate it is given, so nothing that comes back here is trusted on the
    * way into the database.
    */
-  streetAt: pub
-    .meta(
-      openapi({
-        method: "POST",
-        path: "/traffic/street",
-        summary: "The street under a point",
-      }),
-    )
-    .input(streetAtInput)
-    .output(streetAtOutput)
-    .handler(({ input }) => streetAt(input)),
+  streetAt: impl.traffic.streetAt.handler(({ input }) => streetAt(input)),
 
   /**
    * The roads in view, so the picker can resolve a tap to a road on the phone.
@@ -158,30 +112,12 @@ export const trafficRouter = {
    * the nearest one within a thumb's width instantly, and answer a mouse
    * hovering over a road without a round trip per pixel.
    */
-  streetsInView: pub
-    .meta(
-      openapi({
-        method: "GET",
-        path: "/traffic/streets",
-        summary: "Roads inside a bounding box",
-      }),
-    )
-    .input(streetsInViewInput)
-    .output(streetsInViewOutput)
-    .handler(async ({ input }) => ({
-      streets: await roadsInView(input, input.limit),
-    })),
+  streetsInView: impl.traffic.streetsInView.handler(async ({ input }) => ({
+    streets: await roadsInView(input, input.limit),
+  })),
 
-  confirm: memberProcedure
-    .meta(
-      openapi({
-        method: "POST",
-        path: "/traffic/{reportId}/confirm",
-        summary: "Say a report is still true, or is over",
-      }),
-    )
-    .input(confirmTrafficInput)
-    .output(confirmTrafficOutput)
+  confirm: impl.traffic.confirm
+    .use(member)
     .handler(({ context, input }) =>
       confirmTraffic(context.db, context.viewer, input).catch(asTrafficError),
     ),

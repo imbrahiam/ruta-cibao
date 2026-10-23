@@ -1,3 +1,4 @@
+import type { ConfirmTrafficInput } from "@ruta/contracts";
 import { and, eq, sql } from "drizzle-orm";
 import type { Db, DbTransaction } from "@/db";
 import {
@@ -8,8 +9,7 @@ import {
 import { recordAudit } from "@/lib/audit";
 import { publishRealtimeEvent } from "@/lib/realtime";
 import type { MemberViewer } from "@/modules/access/viewer";
-import { confirmationWeight } from "@/modules/places/trust";
-import type { ConfirmTrafficInput } from "./contracts";
+import { CONFIRMATION_WEIGHT } from "@/modules/places/trust";
 import { TRAFFIC_CHANNEL, TrafficError } from "./report-traffic";
 
 /**
@@ -22,7 +22,7 @@ import { TRAFFIC_CHANNEL, TrafficError } from "./report-traffic";
  * the exceptions.
  */
 
-/** Enough weight to say it is over. Two verified residents, or four visitors. */
+/** Enough agreement to say it is over: four verified accounts. */
 const CLEARED_SCORE = 4;
 
 /**
@@ -97,7 +97,7 @@ export async function confirmTraffic(
       throw new TrafficError("own_report");
     }
 
-    const weight = confirmationWeight(viewer);
+    const weight = CONFIRMATION_WEIGHT;
 
     await tx
       .insert(trafficConfirmations)

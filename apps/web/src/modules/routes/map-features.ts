@@ -1,32 +1,9 @@
+import type { CommunityFeature, MapFeaturesInput } from "@ruta/contracts";
 import { and, eq, sql } from "drizzle-orm";
-import { z } from "zod";
 import type { Db } from "@/db";
 import { categories, consultations, ecoRoutes } from "@/db/schema";
 
-export const mapFeaturesInput = z
-  .object({
-    west: z.number().min(-180).max(180),
-    east: z.number().min(-180).max(180),
-    south: z.number().min(-90).max(90),
-    north: z.number().min(-90).max(90),
-  })
-  .refine((box) => box.west < box.east && box.south < box.north);
-export const communityFeature = z.object({
-  id: z.string(),
-  kind: z.enum(["route", "consultation"]),
-  title: z.string(),
-  color: z.string(),
-  lng: z.number(),
-  lat: z.number(),
-  path: z.array(z.object({ lng: z.number(), lat: z.number() })).nullable(),
-  href: z.string(),
-});
-export type CommunityFeature = z.infer<typeof communityFeature>;
-
-export async function mapFeatures(
-  db: Db,
-  bounds: z.infer<typeof mapFeaturesInput>,
-) {
+export async function mapFeatures(db: Db, bounds: MapFeaturesInput) {
   const box = sql`ST_MakeEnvelope(${bounds.west}, ${bounds.south}, ${bounds.east}, ${bounds.north}, 4326)`;
   const [routes, cases] = await Promise.all([
     db

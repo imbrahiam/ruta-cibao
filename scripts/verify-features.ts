@@ -31,13 +31,10 @@ import {
 import { router } from "@/orpc/router";
 
 if (
-  !env.JCE_USE_MOCK ||
   !["localhost", "127.0.0.1"].includes(new URL(env.DATABASE_URL).hostname) ||
   !["localhost", "127.0.0.1"].includes(new URL(env.S3_ENDPOINT).hostname)
 )
-  throw new Error(
-    "Feature verification requires local storage/database and JCE_USE_MOCK=1",
-  );
+  throw new Error("Feature verification requires local storage and database");
 
 const runId = crypto.randomUUID();
 const fixtureUsers: string[] = [];
@@ -54,12 +51,29 @@ function clientFor(viewer: Viewer, expectedUser?: string) {
         expectedUser ? { "x-expected-user-id": expectedUser } : {},
       ),
       getViewer: async () => viewer,
+      getSession: async () =>
+        viewer.kind === "anonymous"
+          ? { viewer, contact: null }
+          : {
+              viewer,
+              contact: {
+                phoneNumber: null,
+                phoneVerified: false,
+                email: null,
+                emailVerified: viewer.contactVerified,
+              },
+            },
     },
   });
 }
 
+/**
+ * A fixture account. `unverified` has signed in but proved no contact; every
+ * other kind holds a verified email. Moderators are confined to the given
+ * municipality through the staff-only column.
+ */
 async function account(
-  role: "visitor" | "citizen" | "admin" | "moderator",
+  role: "unverified" | "member" | "admin" | "moderator",
   municipalityId = "moncion",
 ) {
   const id = key();
@@ -68,29 +82,33 @@ async function account(
     id,
     name: "Verification Fixture",
     email: `${id}@example.invalid`,
+    emailVerified: role !== "unverified",
   });
   const [profile] = await db
     .insert(memberProfiles)
     .values({
       userId: id,
       displayName: "Verification Fixture",
-      municipalityId: role === "visitor" ? null : municipalityId,
-      tier: role === "visitor" ? "visitor" : "citizen",
-      cedulaStatus: role === "visitor" ? "none" : "verified",
-      verifiedFullName: role === "visitor" ? null : "Verification Fixture",
+      municipalityId: role === "member" ? null : municipalityId,
       staffRole: role === "admin" || role === "moderator" ? role : "none",
+      staffMunicipalityId: role === "moderator" ? municipalityId : null,
     })
     .returning();
-  return toViewer(id, profile);
+  return toViewer(id, profile, {
+    image: null,
+    contactVerified: role !== "unverified",
+  });
 }
 
 try {
-  const visitor = await account("visitor");
-  const citizen = await account("citizen");
-  const otherCitizen = await account("citizen");
+  const unverified = await account("unverified");
+  const visitor = await account("member");
+  const citizen = await account("member");
+  const otherCitizen = await account("member");
   const admin = await account("admin");
   const wrongMunicipality = await account("moderator", "sabaneta");
   const anonApi = clientFor({ kind: "anonymous" });
+  const unverifiedApi = clientFor(unverified);
   const visitorApi = clientFor(visitor);
   const citizenApi = clientFor(citizen);
   const secondApi = clientFor(otherCitizen);
@@ -175,19 +193,37 @@ try {
   );
 
   await expect(
-    visitorApi.consultations.open({
+    unverifiedApi.consultations.open({
       requestId: key(),
       categoryId: topic.id,
       title: "Verification community case",
       body: "A detailed local verification issue that should appear on the citizen map.",
+      municipalityId: "moncion",
       location: position,
     }),
-  ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  ).rejects.toMatchObject({
+    code: "FORBIDDEN",
+    data: { reason: "contact_verification_required" },
+  });
+  await expect(
+    citizenApi.consultations.open({
+      requestId: key(),
+      categoryId: topic.id,
+      title: "Verification community case",
+      body: "A detailed local verification issue that should appear on the citizen map.",
+      municipalityId: "sabaneta",
+      location: position,
+    }),
+  ).rejects.toMatchObject({
+    code: "MUNICIPALITY_MISMATCH",
+    data: { reason: "municipality_mismatch", pointMunicipalityId: "moncion" },
+  });
   const caseInput = {
     requestId: key(),
     categoryId: topic.id,
     title: `Verification case ${runId}`,
     body: "A detailed local verification issue that should appear on the citizen map.",
+    municipalityId: "moncion",
     location: position,
   };
   const issue = await citizenApi.consultations.open(caseInput);

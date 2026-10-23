@@ -1,17 +1,6 @@
-import { openapi } from "@orpc/openapi";
 import { ORPCError } from "@orpc/server";
 import { and, eq } from "drizzle-orm";
-import { z } from "zod";
 import { categories } from "@/db/schema";
-import {
-  browseConsultationsInput,
-  browseConsultationsOutput,
-  consultationDetailOutput,
-  openConsultationInput,
-  openConsultationOutput,
-  respondConsultationInput,
-  supportConsultationInput,
-} from "@/modules/consultations/contracts";
 import {
   ConsultationError,
   openConsultation,
@@ -22,15 +11,14 @@ import {
   consultationDetail,
 } from "@/modules/consultations/read";
 import { respondToConsultation } from "@/modules/consultations/respond";
-import { citizenProcedure, moderatorProcedure, pub } from "../base";
+import { impl, member, moderator } from "../base";
 
 /**
  * Citizen consultations, as an API.
  *
- * The tier split is the whole shape of this router and it is worth reading in
- * one glance: anybody may read a case, only a verified resident may open one or
- * add their voice, and only an official may answer. Nothing here re-checks
- * that — the procedure builder each entry is attached to is the check, so a new
+ * Anybody may read a published case, a member with a verified contact may
+ * open one or add their voice, and only an official may answer. Nothing here re-checks
+ * that — the middleware each entry is attached to is the check, so a new
  * procedure cannot quietly skip it.
  */
 function asConsultationError(error: unknown): never {
@@ -57,121 +45,62 @@ function asConsultationError(error: unknown): never {
 
 export const consultationsRouter = {
   /** The consultation taxonomy, for the form and the filter chips. */
-  categories: pub
-    .meta(
-      openapi({
-        method: "GET",
-        path: "/consultations/categories",
-        summary: "Consultation categories",
+  categories: impl.consultations.categories.handler(({ context }) =>
+    context.db
+      .select({
+        id: categories.id,
+        name: categories.name,
+        icon: categories.icon,
+        color: categories.color,
+      })
+      .from(categories)
+      .where(
+        and(eq(categories.kind, "consultation"), eq(categories.isActive, true)),
+      )
+      .orderBy(categories.sortOrder),
+  ),
+
+  browse: impl.consultations.browse.handler(async ({ context, input }) =>
+    browseConsultations(context.db, await context.getViewer(), input),
+  ),
+
+  detail: impl.consultations.detail.handler(async ({ context, input }) =>
+    consultationDetail(context.db, await context.getViewer(), input.slug).catch(
+      asConsultationError,
+    ),
+  ),
+
+  open: impl.consultations.open
+    .use(member)
+    .handler(({ context, input, errors }) =>
+      openConsultation(context.viewer, input).catch((error: unknown) => {
+        if (
+          error instanceof ConsultationError &&
+          error.reason === "municipality_mismatch" &&
+          error.pointMunicipalityId
+        ) {
+          throw errors.MUNICIPALITY_MISMATCH({
+            message: "The point is in another municipality.",
+            data: {
+              reason: "municipality_mismatch",
+              pointMunicipalityId: error.pointMunicipalityId,
+            },
+          });
+        }
+        return asConsultationError(error);
       }),
-    )
-    .output(
-      z.array(
-        z.object({
-          id: z.string(),
-          name: z.string(),
-          icon: z.string(),
-          color: z.string(),
-        }),
-      ),
-    )
-    .handler(({ context }) =>
-      context.db
-        .select({
-          id: categories.id,
-          name: categories.name,
-          icon: categories.icon,
-          color: categories.color,
-        })
-        .from(categories)
-        .where(
-          and(
-            eq(categories.kind, "consultation"),
-            eq(categories.isActive, true),
-          ),
-        )
-        .orderBy(categories.sortOrder),
     ),
 
-  browse: pub
-    .meta(
-      openapi({
-        method: "GET",
-        path: "/consultations",
-        summary: "Browse citizen cases",
-      }),
-    )
-    .input(browseConsultationsInput)
-    .output(browseConsultationsOutput)
-    .handler(async ({ context, input }) =>
-      browseConsultations(context.db, await context.getViewer(), input),
-    ),
-
-  detail: pub
-    .meta(
-      openapi({
-        method: "GET",
-        path: "/consultations/{slug}",
-        summary: "One case and its replies",
-      }),
-    )
-    .input(z.object({ slug: z.string().min(1) }))
-    .output(consultationDetailOutput)
-    .handler(async ({ context, input }) =>
-      consultationDetail(
-        context.db,
-        await context.getViewer(),
-        input.slug,
-      ).catch(asConsultationError),
-    ),
-
-  open: citizenProcedure
-    .meta(
-      openapi({
-        method: "POST",
-        path: "/consultations",
-        successStatus: 201,
-        summary: "Open a case with the ayuntamiento",
-      }),
-    )
-    .input(openConsultationInput)
-    .output(openConsultationOutput)
-    .handler(({ context, input }) =>
-      openConsultation(context.viewer, input).catch(asConsultationError),
-    ),
-
-  support: citizenProcedure
-    .meta(
-      openapi({
-        method: "POST",
-        path: "/consultations/{consultationId}/support",
-        summary: "Add or withdraw your voice",
-      }),
-    )
-    .input(supportConsultationInput)
-    .output(
-      z.object({
-        supported: z.boolean(),
-        supportCount: z.number().int().nonnegative(),
-      }),
-    )
+  support: impl.consultations.support
+    .use(member)
     .handler(({ context, input }) =>
       supportConsultation(context.db, context.viewer, input).catch(
         asConsultationError,
       ),
     ),
 
-  respond: moderatorProcedure
-    .meta(
-      openapi({
-        method: "POST",
-        path: "/consultations/{consultationId}/responses",
-        successStatus: 201,
-        summary: "Answer a case",
-      }),
-    )
-    .input(respondConsultationInput)
-    .output(z.object({ status: z.literal("ok") }))
+  respond: impl.consultations.respond
+    .use(moderator)
     .handler(({ context, input }) =>
       respondToConsultation(context.viewer, input).catch(asConsultationError),
     ),

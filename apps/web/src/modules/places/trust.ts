@@ -13,22 +13,17 @@ import type { MemberViewer } from "@/modules/access/viewer";
  * out — and the map still sends people to it. Moderation catches the first;
  * only the people walking past catch the second.
  *
- * So the signal is a question anybody can answer from the sidewalk, weighted by
- * how much the platform knows about who is answering, and surfaced as a state
+ * So the signal is a question anybody can answer from the sidewalk, one
+ * verified account one answer, and surfaced as a state
  * rather than a number. "Confirmado por 4 vecinos" is a fact somebody can act
  * on; a 78% reliability score is a number nobody can.
  */
 
 /**
- * A verified resident's word counts double.
- *
- * Not because visitors are dishonest, but because a cédula ties the claim to a
- * person who lives with the consequences of it, and because a bot can hold an
- * email address and cannot hold a cédula.
+ * Every verified account's word counts once. The stored weight column stays so
+ * the tally reads the same query either way; nothing writes anything but this.
  */
-export function confirmationWeight(viewer: MemberViewer): number {
-  return viewer.kind === "citizen" ? 2 : 1;
-}
+export const CONFIRMATION_WEIGHT = 1;
 
 /** Enough agreement that the map should stop asking. */
 const CONFIRMED_SCORE = 3;
@@ -136,7 +131,7 @@ export async function confirmPlace(
       throw new ConfirmationError("own_place");
     }
 
-    const weight = confirmationWeight(viewer);
+    const weight = CONFIRMATION_WEIGHT;
 
     await tx
       .insert(placeConfirmations)

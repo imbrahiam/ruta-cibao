@@ -90,6 +90,13 @@ async function main() {
     });
   }
 
+  // Declared, not configured: a schedule removed from the code (such as the
+  // retired civil-registry retry) is removed from pg-boss too.
+  const declared = new Set<string>(SCHEDULES.map((schedule) => schedule.queue));
+  for (const existing of await boss.getSchedules()) {
+    if (!declared.has(existing.name)) await boss.unschedule(existing.name);
+  }
+
   console.info("worker ready", {
     queues: Object.values(QUEUES),
     schedules: SCHEDULES.map(

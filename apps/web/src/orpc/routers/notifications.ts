@@ -1,37 +1,12 @@
-import { openapi } from "@orpc/openapi";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
-import { z } from "zod";
 import { notifications, pushSubscriptions } from "@/db/schema";
 import { encryptSensitive } from "@/lib/crypto";
 import { isPushEnabled } from "@/lib/push";
-import { memberProcedure } from "../base";
-
-const notificationShape = z.object({
-  id: z.string(),
-  messageKey: z.string(),
-  params: z.record(z.string(), z.union([z.string(), z.number()])),
-  href: z.string().nullable(),
-  readAt: z.iso.datetime().nullable(),
-  createdAt: z.iso.datetime(),
-});
+import { impl, member } from "../base";
 
 export const notificationsRouter = {
-  list: memberProcedure
-    .meta(
-      openapi({
-        method: "GET",
-        path: "/notifications",
-        summary: "The viewer's notifications",
-      }),
-    )
-    .input(
-      z
-        .object({ limit: z.number().int().min(1).max(50).default(20) })
-        .optional(),
-    )
-    .output(
-      z.object({ items: z.array(notificationShape), unread: z.number().int() }),
-    )
+  list: impl.notifications.list
+    .use(member)
     .handler(async ({ context, input }) => {
       const [items, [counted]] = await Promise.all([
         context.db
@@ -71,16 +46,8 @@ export const notificationsRouter = {
    * reading: an id belonging to someone else matches nothing instead of
    * revealing that it exists.
    */
-  markRead: memberProcedure
-    .meta(
-      openapi({
-        method: "POST",
-        path: "/notifications/read",
-        summary: "Mark notifications as read",
-      }),
-    )
-    .input(z.object({ id: z.uuid().optional() }))
-    .output(z.object({ updated: z.number().int() }))
+  markRead: impl.notifications.markRead
+    .use(member)
     .handler(async ({ context, input }) => {
       const scope = input.id
         ? and(
@@ -109,23 +76,8 @@ export const notificationsRouter = {
    * endpoint is the natural key: re-subscribing the same browser updates its
    * row instead of accumulating duplicates.
    */
-  subscribePush: memberProcedure
-    .meta(
-      openapi({
-        method: "POST",
-        path: "/notifications/push",
-        summary: "Register a device for push",
-      }),
-    )
-    .input(
-      z.object({
-        endpoint: z.url(),
-        p256dh: z.string().min(1),
-        auth: z.string().min(1),
-        userAgent: z.string().max(500).optional(),
-      }),
-    )
-    .output(z.object({ enabled: z.boolean() }))
+  subscribePush: impl.notifications.subscribePush
+    .use(member)
     .handler(async ({ context, input }) => {
       if (!isPushEnabled()) return { enabled: false };
 
@@ -150,16 +102,8 @@ export const notificationsRouter = {
       return { enabled: true };
     }),
 
-  unsubscribePush: memberProcedure
-    .meta(
-      openapi({
-        method: "DELETE",
-        path: "/notifications/push",
-        summary: "Remove a device",
-      }),
-    )
-    .input(z.object({ endpoint: z.url() }))
-    .output(z.object({ removed: z.number().int() }))
+  unsubscribePush: impl.notifications.unsubscribePush
+    .use(member)
     .handler(async ({ context, input }) => {
       const removed = await context.db
         .delete(pushSubscriptions)

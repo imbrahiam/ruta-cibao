@@ -1,3 +1,4 @@
+import type { ActiveTrafficInput } from "@ruta/contracts";
 import { pathLength } from "@ruta/shared/road-geometry";
 import { CLEARED_VISIBLE_HOURS } from "@ruta/shared/traffic";
 import { and, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
@@ -11,8 +12,8 @@ import {
   user,
 } from "@/db/schema";
 import { hashLookup } from "@/lib/crypto";
+import { residentVerified } from "@/modules/access/resident";
 import type { Viewer } from "@/modules/access/viewer";
-import type { ActiveTrafficInput } from "./contracts";
 
 /**
  * What is on the road right now, inside the viewport.
@@ -63,7 +64,7 @@ type Voice = {
   key: string;
   name: string | null;
   image: string | null;
-  tier: "visitor" | "citizen";
+  residentVerified: boolean;
 };
 
 export async function activeTrafficReports(
@@ -93,7 +94,7 @@ export async function activeTrafficReports(
       municipalityName: municipalities.name,
       reportedBy: memberProfiles.displayName,
       reporterImage: user.image,
-      reporterTier: memberProfiles.tier,
+      reporterResidentVerified: residentVerified,
       stillCount: sql<number>`(
         select count(*)::int from ${trafficConfirmations}
         where ${trafficConfirmations.reportId} = ${trafficReports.id}
@@ -163,7 +164,7 @@ export async function activeTrafficReports(
         userId: trafficConfirmations.userId,
         name: memberProfiles.displayName,
         image: user.image,
-        tier: memberProfiles.tier,
+        residentVerified,
       })
       .from(trafficConfirmations)
       .leftJoin(
@@ -183,7 +184,7 @@ export async function activeTrafficReports(
           key: voiceKey(row.id, row.reportedByUserId),
           name: row.reportedBy,
           image: row.reporterImage,
-          tier: row.reporterTier ?? "visitor",
+          residentVerified: row.reporterResidentVerified,
         });
       }
 
@@ -194,7 +195,7 @@ export async function activeTrafficReports(
           key: voiceKey(row.id, vote.userId),
           name: vote.name,
           image: vote.image,
-          tier: vote.tier ?? "visitor",
+          residentVerified: vote.residentVerified,
         });
       }
 
@@ -229,7 +230,7 @@ export async function activeTrafficReports(
       municipalityId: row.municipalityId,
       municipalityName: row.municipalityName,
       reportedBy: row.reportedBy,
-      reporterTier: row.reporterTier,
+      reporterResidentVerified: row.reporterResidentVerified,
       // The faces behind it, and the headcount they stand for.
       voices: voices.get(row.id) ?? [],
       voiceCount: (voices.get(row.id) ?? []).length,

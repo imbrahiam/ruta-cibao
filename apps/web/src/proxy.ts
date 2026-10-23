@@ -17,6 +17,24 @@ import { NextResponse } from "next/server";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
+ * The native app's schemes. Better Auth's Expo plugin turns the client's
+ * `expo-origin` header into `Origin`, so these arrive on auth requests. A
+ * scheme is not authentication — the session cookie still is — it only stops
+ * this check from rejecting the app as a foreign web page.
+ */
+const NATIVE_ORIGINS = new Set([
+  "rutacibao://",
+  "rutacibao-preview://",
+  ...(process.env.NODE_ENV === "production" ? [] : ["rutacibao-dev://"]),
+]);
+
+function isNativeOrigin(origin: string): boolean {
+  if (NATIVE_ORIGINS.has(origin)) return true;
+  // Expo Go reports `exp://<host>:<port>`; development only.
+  return process.env.NODE_ENV !== "production" && origin.startsWith("exp://");
+}
+
+/**
  * Whether an unsafe request came from this site.
  *
  * `Sec-Fetch-Site` is the browser's own verdict and cannot be forged by a page;
@@ -28,6 +46,7 @@ function isSameSite(request: NextRequest): boolean {
 
   const origin = request.headers.get("origin");
   if (!origin) return true;
+  if (isNativeOrigin(origin)) return true;
   try {
     return new URL(origin).host === request.headers.get("host");
   } catch {

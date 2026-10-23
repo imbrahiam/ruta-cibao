@@ -1,6 +1,6 @@
 import { ORPCError } from "@orpc/server";
+import type { PassportInput, StampInput } from "@ruta/contracts";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
-import type { z } from "zod";
 import { type Db, db } from "@/db";
 import {
   categories,
@@ -11,7 +11,6 @@ import {
 import { recordAudit } from "@/lib/audit";
 import { hashLookup } from "@/lib/crypto";
 import type { MemberViewer } from "@/modules/access/viewer";
-import type { passportInput, StampInput } from "./contracts";
 import { VISIT_RADIUS_METERS, visitProblem } from "./visit-policy";
 
 function placeKey(userId: string, placeId: string) {
@@ -115,7 +114,7 @@ export async function passportStatus(
 export async function readPassport(
   executor: Db,
   viewer: MemberViewer,
-  input: z.infer<typeof passportInput>,
+  input: PassportInput,
 ) {
   const [stamps, [count]] = await Promise.all([
     executor

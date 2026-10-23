@@ -1,71 +1,46 @@
 /**
  * Who is asking.
  *
- * The platform serves three kinds of people and the difference matters on
- * almost every mutation, so it is modelled as a union rather than a pile of
- * nullable fields. There is no way to hold a `CitizenViewer` without a verified
- * cédula, which is what keeps "one cédula, one vote" from depending on whoever
- * remembered to write the check.
- *
- *   anonymous  browsing without an account
- *   visitor    signed in, no cédula — a tourist or someone from the diaspora
- *   citizen    signed in with a verified cédula
+ * Two kinds of caller: somebody browsing without an account, and a member.
+ * Participation is progressive trust — a member who has proved they hold a
+ * phone number or an email address can contribute; no identity document is
+ * asked for. Staff authority is a separate, explicit grant (see
+ * `permissions.ts`), never a consequence of anything the person edits.
  */
 import type { MemberProfile } from "@/db/schema";
 
 export type AnonymousViewer = { kind: "anonymous" };
 
-export type VisitorViewer = {
-  kind: "visitor";
+export type MemberViewer = {
+  kind: "member";
   userId: string;
-  /** The identity provider's photo (Google), if there is one. */
+  /** The account photo, if there is one. */
   image: string | null;
   profile: MemberProfile;
+  /** Whether the account holds a verified phone number or email address. */
+  contactVerified: boolean;
 };
 
-export type CitizenViewer = {
-  kind: "citizen";
-  userId: string;
-  /** The identity provider's photo (Google), if there is one. */
-  image: string | null;
-  profile: MemberProfile & { municipalityId: string; verifiedFullName: string };
-};
-
-export type MemberViewer = VisitorViewer | CitizenViewer;
 export type Viewer = AnonymousViewer | MemberViewer;
 
 /**
- * Builds a viewer from a profile.
+ * Builds a viewer from an authenticated account and its profile.
  *
- * A profile only counts as a citizen when the verification actually completed.
- * A row sitting at `pending` or `unavailable` is still a visitor: it can
- * discover, review and report, but not vote — which is the degradation the
- * civil registry's downtime is allowed to cause, and the worst one.
+ * A session without a profile fails closed: the profile is created with the
+ * account, so its absence means something is wrong, and the safe reading of
+ * "something is wrong" is "no permissions".
  */
 export function toViewer(
   userId: string,
   profile: MemberProfile | undefined,
-  image: string | null = null,
+  options: { image: string | null; contactVerified: boolean },
 ): Viewer {
   if (!profile) return { kind: "anonymous" };
-
-  if (
-    profile.tier === "citizen" &&
-    profile.cedulaStatus === "verified" &&
-    profile.municipalityId !== null &&
-    profile.verifiedFullName !== null
-  ) {
-    return {
-      kind: "citizen",
-      userId,
-      image,
-      profile: {
-        ...profile,
-        municipalityId: profile.municipalityId,
-        verifiedFullName: profile.verifiedFullName,
-      },
-    };
-  }
-
-  return { kind: "visitor", userId, image, profile };
+  return {
+    kind: "member",
+    userId,
+    image: options.image,
+    profile,
+    contactVerified: options.contactVerified,
+  };
 }

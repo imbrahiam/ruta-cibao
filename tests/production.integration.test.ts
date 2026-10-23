@@ -3,7 +3,8 @@ import { eq, sql } from "drizzle-orm";
 import { db, pool } from "@/db";
 import {
   auditEvents,
-  identityReviews,
+  categories,
+  consultations,
   jobOutbox,
   memberProfiles,
   municipalities,
@@ -14,9 +15,16 @@ import { recordAudit } from "@/lib/audit";
 import { drainOutbox, enqueueJob } from "@/lib/jobs/outbox";
 import { QUEUES } from "@/lib/jobs/queues";
 import { consumeRollingRateLimit } from "@/lib/rate-limit";
-import { requireModerator } from "@/modules/access/permissions";
-import { toViewer } from "@/modules/access/viewer";
-import { decideReview, listReviews } from "@/modules/identity/review";
+import {
+  type ModeratorViewer,
+  requireModerator,
+} from "@/modules/access/permissions";
+import { setResidencyVerified, updateProfile } from "@/modules/access/profile";
+import { type MemberViewer, toViewer } from "@/modules/access/viewer";
+import {
+  ConsultationError,
+  openConsultation,
+} from "@/modules/consultations/open-consultation";
 import { notify } from "@/modules/notifications/notify";
 
 // Explicit opt-in: the caller must supply a dedicated database with migrations.
@@ -27,7 +35,8 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
     const municipalityId = `${prefix}-town`;
     const applicantId = `${prefix}-applicant`;
     const moderatorId = `${prefix}-moderator`;
-    let moderator: ReturnType<typeof requireModerator>;
+    let moderator: ModeratorViewer;
+    let applicant: MemberViewer;
     beforeAll(async () => {
       await db
         .insert(municipalities)
@@ -49,30 +58,40 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
           userId: applicantId,
           displayName: "Applicant",
           municipalityId,
-          cedulaStatus: "in_review",
-          verifiedFullName: "APPLICANT NAME",
+          residencyVerifiedAt: new Date(),
         },
         {
           userId: moderatorId,
           displayName: "Reviewer",
           municipalityId,
-          tier: "citizen",
-          cedulaStatus: "verified",
           staffRole: "moderator",
-          verifiedFullName: "REVIEWER NAME",
+          staffMunicipalityId: municipalityId,
         },
       ]);
-      const [profile] = await db
+      const profiles = await db
         .select()
         .from(memberProfiles)
-        .where(eq(memberProfiles.userId, moderatorId));
-      if (!profile) throw new Error("Fixture profile missing");
-      moderator = requireModerator(toViewer(moderatorId, profile, null));
+        .where(
+          sql`${memberProfiles.userId} in (${applicantId}, ${moderatorId})`,
+        );
+      const asViewer = (id: string) => {
+        const viewer = toViewer(
+          id,
+          profiles.find((profile) => profile.userId === id),
+          { image: null, contactVerified: true },
+        );
+        if (viewer.kind !== "member") throw new Error("Fixture missing");
+        return viewer;
+      };
+      moderator = requireModerator(asViewer(moderatorId));
+      applicant = asViewer(applicantId);
     });
     afterAll(async () => {
       await db
-        .delete(identityReviews)
-        .where(eq(identityReviews.municipalityId, municipalityId));
+        .delete(memberProfiles)
+        .where(
+          sql`${memberProfiles.userId} in (${applicantId}, ${moderatorId})`,
+        );
       await db
         .delete(user)
         .where(sql`${user.id} in (${applicantId}, ${moderatorId})`);
@@ -134,7 +153,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
       const input = {
         dedupeKey: prefix,
         userId: applicantId,
-        messageKey: "notifications.identitySubmitted",
+        messageKey: "notifications.routeReviewed",
         channels: { push: false, email: false },
       };
       await notify(input);
@@ -152,51 +171,135 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
       expect(delivered?.processedAt).toBeInstanceOf(Date);
       expect(await drainOutbox()).toBe(0);
     });
-    test("only one concurrent reviewer decision changes the identity", async () => {
-      const reviewId = crypto.randomUUID();
-      // Mark documents purged so this DB-only test cannot call object storage.
-      await db.insert(identityReviews).values({
-        id: reviewId,
-        userId: applicantId,
+    test("identical concurrent profile updates commit once", async () => {
+      const input = {
+        requestId: crypto.randomUUID(),
+        displayName: "Applicant Updated",
         municipalityId,
-        frontKey: "test/front",
-        selfieKey: "test/selfie",
-        documentsPurgedAt: new Date(),
-      });
+      };
       const results = await Promise.allSettled([
-        decideReview(moderator, {
-          reviewId,
-          decision: "reject",
-          reason: "incomplete",
-        }),
-        decideReview(moderator, {
-          reviewId,
-          decision: "reject",
-          reason: "mismatch",
-        }),
+        updateProfile(applicant, input),
+        updateProfile(applicant, input),
       ]);
-      expect(
-        results.filter((result) => result.status === "fulfilled"),
-      ).toHaveLength(1);
+      expect(results.every((result) => result.status === "fulfilled")).toBe(
+        true,
+      );
+      const audits = await db
+        .select()
+        .from(auditEvents)
+        .where(
+          sql`${auditEvents.subjectId} = ${applicantId} and ${auditEvents.action} = 'member.profile_updated'`,
+        );
+      expect(audits).toHaveLength(1);
+      await expect(
+        updateProfile(applicant, { ...input, displayName: "Different" }),
+      ).rejects.toThrow();
+    });
+
+    test("a moderator changing their own municipality keeps staff jurisdiction", async () => {
+      const [other] = await db
+        .select({ id: municipalities.id })
+        .from(municipalities)
+        .where(sql`${municipalities.id} <> ${municipalityId}`)
+        .limit(1);
+      if (!other) throw new Error("A second municipality is required");
+      await updateProfile(moderator, {
+        requestId: crypto.randomUUID(),
+        displayName: "Reviewer",
+        municipalityId: other.id,
+      });
+      const [profile] = await db
+        .select()
+        .from(memberProfiles)
+        .where(eq(memberProfiles.userId, moderatorId));
+      expect(profile?.municipalityId).toBe(other.id);
+      expect(profile?.staffMunicipalityId).toBe(municipalityId);
+    });
+
+    test("the resident badge is staff-scoped, never self-granted, and cleared by a move", async () => {
+      await expect(
+        setResidencyVerified(moderator, {
+          requestId: crypto.randomUUID(),
+          userId: moderatorId,
+          municipalityId,
+          verified: true,
+          reason: "Checked in person at the office.",
+        }),
+      ).rejects.toThrow();
+      await expect(
+        setResidencyVerified(
+          { ...moderator, scope: [`${prefix}-outside`] },
+          {
+            requestId: crypto.randomUUID(),
+            userId: applicantId,
+            municipalityId,
+            verified: false,
+            reason: "Checked in person at the office.",
+          },
+        ),
+      ).rejects.toThrow();
+
+      await updateProfile(applicant, {
+        requestId: crypto.randomUUID(),
+        displayName: "Applicant Updated",
+        municipalityId: null,
+      });
       const [profile] = await db
         .select()
         .from(memberProfiles)
         .where(eq(memberProfiles.userId, applicantId));
-      expect(profile?.tier).toBe("visitor");
-      expect(profile?.cedulaStatus).toBe("matched");
+      expect(profile?.residencyVerifiedAt).toBeNull();
+    });
+
+    test("a case whose point lies in another municipality is refused without side effects", async () => {
+      const [category] = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(eq(categories.kind, "consultation"))
+        .limit(1);
+      const [pair] = await db
+        .execute<{
+          inside: string;
+          other: string;
+          lng: number;
+          lat: number;
+        }>(
+          sql`select a.id as inside, b.id as other,
+              ST_X(ST_PointOnSurface(a.boundary)) as lng,
+              ST_Y(ST_PointOnSurface(a.boundary)) as lat
+            from municipalities a join municipalities b on a.id <> b.id
+            where a.boundary is not null and b.boundary is not null limit 1`,
+        )
+        .then((result) => result.rows);
+      if (!category || !pair) throw new Error("Seeded boundaries required");
+
+      const title = `Mismatch ${prefix}`;
+      const error = await openConsultation(applicant, {
+        requestId: crypto.randomUUID(),
+        categoryId: category.id,
+        title,
+        body: "A case body long enough to pass the forty character minimum.",
+        municipalityId: pair.other,
+        location: { lng: Number(pair.lng), lat: Number(pair.lat) },
+      }).catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(ConsultationError);
+      expect((error as ConsultationError).reason).toBe("municipality_mismatch");
+      expect((error as ConsultationError).pointMunicipalityId).toBe(
+        pair.inside,
+      );
+      const created = await db
+        .select({ id: consultations.id })
+        .from(consultations)
+        .where(eq(consultations.title, title));
+      expect(created).toHaveLength(0);
       const audits = await db
         .select()
         .from(auditEvents)
-        .where(eq(auditEvents.subjectId, reviewId));
-      expect(
-        audits.filter((event) => event.action === "identity_review.rejected"),
-      ).toHaveLength(1);
-    });
-    test("a moderator cannot list requests from another municipality", async () => {
-      const outside = { ...moderator, scope: [`${prefix}-outside`] };
-      expect(
-        await listReviews(outside, { status: "decided", limit: 50 }),
-      ).toHaveLength(0);
+        .where(
+          sql`${auditEvents.actorUserId} = ${applicantId} and ${auditEvents.action} = 'consultation.opened'`,
+        );
+      expect(audits).toHaveLength(0);
     });
   },
 );

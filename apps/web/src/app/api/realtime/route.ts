@@ -1,6 +1,6 @@
 import type { RealtimeEvent } from "@/db/schema";
 import { drainEvents, onRealtimeNudge, userChannel } from "@/lib/realtime";
-import { getServerViewer } from "@/modules/access/server";
+import { resolveSession } from "@/modules/access/session";
 
 /**
  * The live stream.
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   // A viewer's own channel is derived from the session, never from the query
   // string — otherwise anyone could ask to read someone else's notifications.
-  const viewer = await getServerViewer();
+  const { viewer } = await resolveSession(request.headers);
   const channels =
     viewer.kind === "anonymous"
       ? requested

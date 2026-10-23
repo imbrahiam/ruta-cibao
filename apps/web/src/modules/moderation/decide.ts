@@ -1,3 +1,10 @@
+import type {
+  DecideClaimInput,
+  DecidePhotoInput,
+  DecidePlaceInput,
+  DecideReportInput,
+  RemoveTrafficInput,
+} from "@ruta/contracts";
 import { and, eq } from "drizzle-orm";
 import { revalidateTag } from "next/cache";
 import { PLACES_GEOJSON_TAG } from "@/app/api/places/geojson/route";
@@ -17,15 +24,8 @@ import {
   assertModerates,
   type ModeratorViewer,
 } from "@/modules/access/permissions";
-import type { DecideClaimInput } from "@/modules/businesses/contracts";
 import { notify } from "@/modules/notifications/notify";
-import type { RemoveTrafficInput } from "@/modules/traffic/contracts";
 import { TRAFFIC_CHANNEL } from "@/modules/traffic/report-traffic";
-import type {
-  DecidePhotoInput,
-  DecidePlaceInput,
-  DecideReportInput,
-} from "./contracts";
 
 /**
  * Acting on somebody else's contribution.

@@ -1,3 +1,4 @@
+import { type WeeklyMetrics, weeklyMetrics } from "@ruta/contracts";
 import { catalogues } from "@ruta/shared/messages";
 import { eq, sql } from "drizzle-orm";
 import { createTranslator } from "next-intl";
@@ -7,7 +8,6 @@ import { municipalities, weeklyReports } from "@/db/schema";
 import { routing } from "@/i18n/routing";
 import { recordAudit } from "@/lib/audit";
 import { putObject } from "@/lib/storage";
-import { type WeeklyMetrics, weeklyMetrics } from "./contracts";
 
 export type ReportDocument = {
   municipalityName: string;

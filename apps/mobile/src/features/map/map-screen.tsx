@@ -1,0 +1,534 @@
+import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import { directionsUrl } from "@ruta/shared/directions";
+import * as Location from "expo-location";
+import { router } from "expo-router";
+import {
+  Layers,
+  LocateFixed,
+  Navigation,
+  Search,
+  X,
+} from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTranslations } from "use-intl";
+import { Button } from "@/ui/button";
+import { categoryIcon, Icon } from "@/ui/icon";
+import { PressableScale } from "@/ui/pressable";
+import { EmptyState, Skeleton } from "@/ui/states";
+import { IconButton } from "@/ui/surfaces";
+import { Chip } from "@/ui/tags";
+import { Text } from "@/ui/text";
+import { floating, radius, space, spring, useTheme } from "@/ui/theme";
+import { useToast } from "@/ui/toast";
+import {
+  categoriesOf,
+  type PlaceFeature,
+  useBoundaries,
+  usePlaceCollection,
+} from "./data";
+import { consumeFocusRequest, useFocusRequest } from "./focus";
+import { useMapLayers } from "./layers";
+import { ProvinceMap, type ProvinceMapHandle } from "./province-map";
+
+/** Height of the floating system tab bar the sheet must clear. */
+const TAB_BAR = Platform.select({ ios: 56, default: 80 });
+
+export function MapScreen() {
+  const t = useTranslations("map");
+  const tc = useTranslations("common");
+  const { colors, scheme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const toast = useToast();
+  const reduced = useReducedMotion();
+  const map = useRef<ProvinceMapHandle>(null);
+  const sheet = useRef<BottomSheet>(null);
+
+  const places = usePlaceCollection();
+  const boundaries = useBoundaries();
+  const categories = useMemo(() => categoriesOf(places.data), [places.data]);
+  const layers = useMapLayers();
+
+  const [category, setCategory] = useState<string | null>(null);
+  const [municipality, setMunicipality] = useState<string | null>(null);
+  const [selected, setSelected] = useState<PlaceFeature | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [showUser, setShowUser] = useState(false);
+
+  const visible = useMemo(() => {
+    if (!places.data) return undefined;
+    return {
+      ...places.data,
+      features: places.data.features.filter(
+        (feature) =>
+          (!category || feature.properties.category === category) &&
+          (!municipality || feature.properties.municipality === municipality),
+      ),
+    };
+  }, [places.data, category, municipality]);
+
+  const bottomInset = insets.bottom + TAB_BAR;
+  const snapPoints = useMemo(() => [156, "50%", "88%"], []);
+  const topChrome = insets.top + 112;
+  const padding = useMemo(
+    () => ({
+      top: topChrome,
+      bottom: 156 + bottomInset + 8,
+      left: 24,
+      right: 24,
+    }),
+    [topChrome, bottomInset],
+  );
+
+  const select = useCallback((place: PlaceFeature | null) => {
+    setSelected(place);
+    if (place) {
+      map.current?.flyTo(place.geometry.coordinates as [number, number]);
+      sheet.current?.snapToIndex(0);
+    }
+  }, []);
+
+  const focus = useFocusRequest();
+  useEffect(() => {
+    if (!focus || !places.data) return;
+    consumeFocusRequest();
+    const place = places.data.features.find(
+      (feature) => feature.properties.id === focus.placeId,
+    );
+    if (!place) return;
+    setCategory(null);
+    setMunicipality(null);
+    select(place);
+  }, [focus, places.data, select]);
+
+  const locate = useCallback(async () => {
+    setLocating(true);
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== "granted") {
+        toast.show({
+          title: t("locationDenied"),
+          body: t("locationDeniedBody"),
+          tone: "info",
+        });
+        return;
+      }
+      setShowUser(true);
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      map.current?.flyTo(
+        [position.coords.longitude, position.coords.latitude],
+        14,
+      );
+    } catch {
+      toast.show({ title: t("locationFailed"), tone: "error" });
+    } finally {
+      setLocating(false);
+    }
+  }, [t, toast]);
+
+  const municipalities = boundaries.data?.features ?? [];
+
+  return (
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <ProvinceMap
+        ref={map}
+        scheme={scheme}
+        places={layers.places ? visible : undefined}
+        boundaries={boundaries.data}
+        categories={categories}
+        selectedId={selected?.properties.id ?? null}
+        showUserLocation={showUser}
+        basemap={layers.basemap}
+        padding={padding}
+        onSelectPlace={select}
+      />
+
+      <View
+        style={[styles.top, { paddingTop: insets.top + space.sm }]}
+        pointerEvents="box-none"
+      >
+        <View style={styles.searchRow}>
+          <PressableScale
+            testID="map-search"
+            containerStyle={styles.searchFlex}
+            onPress={() => router.push("/search")}
+            accessibilityRole="search"
+            accessibilityLabel={t("searchLabel")}
+            scaleTo={0.985}
+            style={[
+              styles.search,
+              floating(scheme),
+              { backgroundColor: colors.surface, borderColor: colors.hairline },
+            ]}
+          >
+            <Icon as={Search} size={19} color="textSecondary" />
+            <Text tone="tertiary" numberOfLines={1} style={styles.searchText}>
+              {t("searchPlaceholder")}
+            </Text>
+          </PressableScale>
+          <IconButton
+            icon={Layers}
+            label={t("layers")}
+            variant="glass"
+            onPress={() => router.push("/map-layers")}
+            testID="map-layers"
+          />
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chips}
+          accessibilityRole="tablist"
+        >
+          <Chip
+            label={t("allCategories")}
+            selected={category === null}
+            onPress={() => setCategory(null)}
+            floating
+          />
+          {places.isPending
+            ? [96, 80, 112].map((width) => (
+                <Skeleton
+                  key={width}
+                  width={width}
+                  height={36}
+                  rounded={radius.pill}
+                />
+              ))
+            : categories.map((item) => (
+                <Chip
+                  key={item.id}
+                  label={item.name}
+                  icon={categoryIcon(item.icon)}
+                  iconColor={item.color}
+                  selected={category === item.id}
+                  onPress={() => {
+                    setCategory(category === item.id ? null : item.id);
+                    setSelected(null);
+                  }}
+                  floating
+                  testID={`category-${item.id}`}
+                />
+              ))}
+        </ScrollView>
+      </View>
+
+      <View
+        pointerEvents="box-none"
+        style={[styles.controls, { bottom: 156 + bottomInset + space.md }]}
+      >
+        <IconButton
+          icon={LocateFixed}
+          label={t("locate")}
+          variant="glass"
+          disabled={locating}
+          onPress={locate}
+          testID="map-locate"
+        />
+      </View>
+
+      <BottomSheet
+        ref={sheet}
+        index={0}
+        snapPoints={snapPoints}
+        bottomInset={bottomInset}
+        enableDynamicSizing={false}
+        animationConfigs={reduced ? { duration: 1 } : spring.sheet}
+        backgroundStyle={[
+          styles.sheetBackground,
+          { backgroundColor: colors.surface, borderColor: colors.hairline },
+        ]}
+        handleIndicatorStyle={{
+          backgroundColor: colors.fillPressed,
+          width: 40,
+        }}
+        style={floating(scheme)}
+        accessibilityLabel={t("sheetLabel")}
+      >
+        {selected ? (
+          <PlaceSummary
+            place={selected}
+            municipalityName={
+              municipalities.find(
+                (m) => m.properties.id === selected.properties.municipality,
+              )?.properties.name ?? ""
+            }
+            onClose={() => setSelected(null)}
+          />
+        ) : (
+          <BottomSheetFlatList
+            data={visible?.features ?? []}
+            keyExtractor={(item) => item.properties.id}
+            contentContainerStyle={styles.listContent}
+            ListHeaderComponent={
+              <View style={styles.sheetHeader}>
+                <Text variant="title2" accessibilityRole="header">
+                  {t("province")}
+                </Text>
+                <Text tone="secondary">
+                  {places.isPending
+                    ? tc("loading")
+                    : t("placesCount", {
+                        count: visible?.features.length ?? 0,
+                      })}
+                </Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.municipalityChips}
+                >
+                  <Chip
+                    label={tc("allMunicipalities")}
+                    selected={municipality === null}
+                    onPress={() => {
+                      setMunicipality(null);
+                      map.current?.showProvince();
+                    }}
+                  />
+                  {municipalities.map((feature) => (
+                    <Chip
+                      key={feature.properties.id}
+                      label={feature.properties.name}
+                      selected={municipality === feature.properties.id}
+                      onPress={() => {
+                        const next =
+                          municipality === feature.properties.id
+                            ? null
+                            : feature.properties.id;
+                        setMunicipality(next);
+                        const label = feature.properties.label;
+                        if (next && label) map.current?.flyTo(label, 11.5);
+                        else map.current?.showProvince();
+                      }}
+                    />
+                  ))}
+                </ScrollView>
+              </View>
+            }
+            ListEmptyComponent={
+              places.isError ? (
+                <EmptyState
+                  icon={X}
+                  tone="danger"
+                  title={tc("errorTitle")}
+                  body={tc("errorBody")}
+                  action={{
+                    label: tc("retry"),
+                    onPress: () => places.refetch(),
+                  }}
+                />
+              ) : places.isPending ? (
+                <View style={styles.skeletons}>
+                  {[0, 1, 2, 3].map((row) => (
+                    <View key={row} style={styles.skeletonRow}>
+                      <Skeleton width={40} height={40} rounded={20} />
+                      <View style={styles.skeletonText}>
+                        <Skeleton width="70%" height={16} />
+                        <Skeleton width="45%" height={12} />
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <EmptyState icon={Search} title={t("emptyFilter")} />
+              )
+            }
+            renderItem={({ item }) => (
+              <PlaceRow
+                place={item}
+                municipalityName={
+                  municipalities.find(
+                    (m) => m.properties.id === item.properties.municipality,
+                  )?.properties.name ?? ""
+                }
+                onPress={() => select(item)}
+              />
+            )}
+          />
+        )}
+      </BottomSheet>
+    </View>
+  );
+}
+
+function PlaceRow({
+  place,
+  municipalityName,
+  onPress,
+}: {
+  place: PlaceFeature;
+  municipalityName: string;
+  onPress: () => void;
+}) {
+  const { properties } = place;
+  return (
+    <PressableScale
+      onPress={onPress}
+      scaleTo={0.985}
+      accessibilityRole="button"
+      accessibilityLabel={`${properties.name}, ${properties.categoryName}, ${municipalityName}`}
+      style={styles.row}
+      testID={`place-row-${properties.slug}`}
+    >
+      <View style={[styles.rowIcon, { backgroundColor: properties.color }]}>
+        <Icon as={categoryIcon(properties.icon)} size={19} color="#FFFFFF" />
+      </View>
+      <View style={styles.rowText}>
+        <Text variant="headline" numberOfLines={1}>
+          {properties.name}
+        </Text>
+        <Text variant="subhead" tone="tertiary" numberOfLines={1}>
+          {properties.categoryName} · {municipalityName}
+        </Text>
+      </View>
+    </PressableScale>
+  );
+}
+
+function PlaceSummary({
+  place,
+  municipalityName,
+  onClose,
+}: {
+  place: PlaceFeature;
+  municipalityName: string;
+  onClose: () => void;
+}) {
+  const t = useTranslations("map");
+  const tc = useTranslations("common");
+  const { properties, geometry } = place;
+  const [lng, lat] = geometry.coordinates as [number, number];
+
+  return (
+    <View style={styles.summary} testID="place-summary">
+      <View style={styles.summaryHeader}>
+        <View
+          style={[styles.summaryIcon, { backgroundColor: properties.color }]}
+        >
+          <Icon as={categoryIcon(properties.icon)} size={22} color="#FFFFFF" />
+        </View>
+        <View style={styles.rowText}>
+          <Text variant="title3" numberOfLines={2} accessibilityRole="header">
+            {properties.name}
+          </Text>
+          <Text variant="subhead" tone="tertiary">
+            {properties.categoryName} · {municipalityName}
+          </Text>
+        </View>
+        <IconButton
+          icon={X}
+          label={tc("close")}
+          onPress={onClose}
+          size={32}
+          haptic="none"
+        />
+      </View>
+      <View style={styles.summaryActions}>
+        <View style={styles.flex}>
+          <Button
+            label={t("directions")}
+            icon={Navigation}
+            size="md"
+            block
+            onPress={() =>
+              Linking.openURL(
+                directionsUrl(
+                  { lat, lng, label: properties.name },
+                  Platform.OS === "ios" ? "ios" : "android",
+                ),
+              ).catch(() =>
+                Linking.openURL(
+                  directionsUrl({ lat, lng, label: properties.name }, "other"),
+                ),
+              )
+            }
+          />
+        </View>
+        <View style={styles.flex}>
+          <Button
+            label={t("details")}
+            variant="secondary"
+            size="md"
+            block
+            onPress={() => router.push(`/place/${properties.slug}`)}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  flex: { flex: 1 },
+  top: { position: "absolute", left: 0, right: 0, top: 0, gap: space.sm + 2 },
+  searchRow: {
+    flexDirection: "row",
+    gap: space.sm,
+    paddingHorizontal: space.md,
+  },
+  searchFlex: { flex: 1 },
+  search: {
+    height: 48,
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm + 2,
+    paddingHorizontal: space.md,
+  },
+  searchText: { flex: 1 },
+  chips: {
+    gap: space.sm,
+    paddingHorizontal: space.md,
+    paddingBottom: space.sm,
+  },
+  controls: { position: "absolute", right: space.md, gap: space.sm },
+  sheetBackground: {
+    borderRadius: radius.panel,
+    borderCurve: "continuous",
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  sheetHeader: { gap: space.xs, paddingBottom: space.md },
+  municipalityChips: { gap: space.sm, paddingTop: space.sm + 4 },
+  listContent: { paddingHorizontal: space.md, paddingBottom: space.xxl },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.md - 4,
+    paddingVertical: space.sm + 2,
+  },
+  rowIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  rowText: { flex: 1, gap: 2 },
+  skeletons: { gap: space.md, paddingTop: space.sm },
+  skeletonRow: {
+    flexDirection: "row",
+    gap: space.md - 4,
+    alignItems: "center",
+  },
+  skeletonText: { flex: 1, gap: space.xs + 2 },
+  summary: { paddingHorizontal: space.md, gap: space.md, paddingTop: space.xs },
+  summaryHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: space.md - 4,
+  },
+  summaryIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  summaryActions: { flexDirection: "row", gap: space.sm },
+});

@@ -39,6 +39,7 @@ import {
 } from "@/db/schema";
 import { env } from "@/lib/env";
 import { streetAt } from "@/lib/map/roads";
+import { CONFIRMATION_WEIGHT } from "@/modules/places/trust";
 
 /** Stable ids from names, so a second run updates rather than duplicates. */
 function idFor(kind: string, name: string): string {
@@ -85,10 +86,12 @@ const ago = (hours: number) => new Date(Date.now() - hours * HOUR);
 /**
  * The neighbours.
  *
- * A spread of tiers on purpose: the interface weighs a verified resident's word
- * differently from a visitor's in half a dozen places, and a demo where
- * everybody is verified shows none of it. `staffRole` gives the moderation desk
- * and the weekly report somebody to belong to.
+ * Every account signs in with a verified phone, which is all participation
+ * needs. A few carry the optional in-person resident badge (`resident`), so
+ * the interface shows it somewhere; it never changes what anyone may do.
+ * `staff` gives the moderation desk and the weekly report somebody to belong
+ * to: moderators are confined to their `municipality`, the admin has the
+ * province.
  *
  * Each one has a fictional 809-555-01xx number so the demo can be signed into
  * as any of them: list the numbers in `LOCAL_DEMO_PHONES` and the code is
@@ -98,63 +101,63 @@ const PEOPLE = [
   {
     name: "Altagracia Peña",
     municipality: "sabaneta",
-    tier: "citizen",
+    resident: true,
     staff: "admin",
     phone: "+18095550101",
   },
   {
     name: "Ramón Ureña",
     municipality: "sabaneta",
-    tier: "citizen",
+    resident: true,
     staff: "moderator",
     phone: "+18095550102",
   },
   {
     name: "Yudelka Tavárez",
     municipality: "moncion",
-    tier: "citizen",
+    resident: true,
     staff: "moderator",
     phone: "+18095550103",
   },
   {
     name: "Franklin Rodríguez",
     municipality: "sabaneta",
-    tier: "citizen",
+    resident: true,
     staff: "none",
     phone: "+18095550104",
   },
   {
     name: "Miguelina Cruz",
     municipality: "moncion",
-    tier: "citizen",
+    resident: false,
     staff: "none",
     phone: "+18095550105",
   },
   {
     name: "José Antonio Fermín",
     municipality: "villa-los-almacigos",
-    tier: "citizen",
+    resident: true,
     staff: "none",
     phone: "+18095550106",
   },
   {
     name: "Rosa Jiménez",
     municipality: "sabaneta",
-    tier: "citizen",
+    resident: false,
     staff: "none",
     phone: "+18095550107",
   },
   {
     name: "Wilson Bencosme",
     municipality: "moncion",
-    tier: "visitor",
+    resident: false,
     staff: "none",
     phone: "+18095550108",
   },
   {
     name: "Katherine Almonte",
     municipality: "sabaneta",
-    tier: "visitor",
+    resident: false,
     staff: "none",
     phone: "+18095550109",
   },
@@ -289,7 +292,9 @@ async function main() {
     const id = idFor("user", person.name);
     userIds.set(person.name, id);
 
-    const email = `${id}@demo.rutacibao.local`;
+    // The same internal placeholder a real phone sign-up gets: never shown,
+    // never mailed, and not a verified email.
+    const email = `${person.phone.replace(/\D/g, "")}@telefono.rutacibao.local`;
 
     await db
       .insert(user)
@@ -297,43 +302,40 @@ async function main() {
         id,
         name: person.name,
         email,
-        emailVerified: true,
+        emailVerified: false,
         phoneNumber: person.phone,
         phoneNumberVerified: true,
+        role: person.staff === "admin" ? "admin" : "user",
       })
       .onConflictDoUpdate({
         target: user.id,
         set: {
           name: person.name,
           email,
+          emailVerified: false,
           phoneNumber: person.phone,
           phoneNumberVerified: true,
+          role: person.staff === "admin" ? "admin" : "user",
         },
       });
 
+    const adminId = userIds.get(PEOPLE[0].name) ?? null;
+    const profile = {
+      displayName: person.name,
+      staffRole: person.staff,
+      municipalityId: person.municipality,
+      staffMunicipalityId:
+        person.staff === "moderator" ? person.municipality : null,
+      residencyVerifiedAt: person.resident ? ago(200) : null,
+      // The admin's own badge was granted by nobody in this fiction; every
+      // other badge names the admin, never the person themselves.
+      residencyVerifiedByUserId:
+        person.resident && adminId !== id ? adminId : null,
+    };
     await db
       .insert(memberProfiles)
-      .values({
-        userId: id,
-        displayName: person.name,
-        tier: person.tier,
-        staffRole: person.staff,
-        municipalityId: person.municipality,
-        cedulaStatus: person.tier === "citizen" ? "verified" : "none",
-        verifiedFullName:
-          person.tier === "citizen" ? person.name.toUpperCase() : null,
-        verifiedAt: person.tier === "citizen" ? ago(200) : null,
-        residencyDeclaredAt: ago(200),
-      })
-      .onConflictDoUpdate({
-        target: memberProfiles.userId,
-        set: {
-          displayName: person.name,
-          tier: person.tier,
-          staffRole: person.staff,
-          municipalityId: person.municipality,
-        },
-      });
+      .values({ userId: id, ...profile })
+      .onConflictDoUpdate({ target: memberProfiles.userId, set: profile });
   }
 
   const ids = [...userIds.values()];
@@ -389,8 +391,7 @@ async function main() {
           reportId: row.id,
           userId: voter,
           verdict: "still",
-          weight:
-            PEOPLE[(index + n + 1) % PEOPLE.length]?.tier === "citizen" ? 2 : 1,
+          weight: CONFIRMATION_WEIGHT,
         })
         .onConflictDoNothing();
     }
@@ -525,7 +526,7 @@ async function main() {
           placeId: place.id,
           userId: voter,
           verdict: "exists",
-          weight: 2,
+          weight: CONFIRMATION_WEIGHT,
         })
         .onConflictDoNothing();
     }
@@ -572,7 +573,12 @@ async function main() {
     "\ndemo data ready. Sign in by phone (code = LOCAL_DEMO_OTP when the number is in LOCAL_DEMO_PHONES):",
   );
   for (const person of PEOPLE) {
-    const role = person.staff === "none" ? person.tier : person.staff;
+    const role =
+      person.staff === "none"
+        ? person.resident
+          ? "resident"
+          : "member"
+        : person.staff;
     console.log(
       `  ${formatPhone(person.phone)}  ${role.padEnd(9)}  ${person.name} (${person.municipality})`,
     );

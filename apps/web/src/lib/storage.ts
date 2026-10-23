@@ -16,6 +16,7 @@ import {
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -159,6 +160,25 @@ export async function readObjectHead(
 
 export async function deleteObject(key: string): Promise<void> {
   await s3().send(new DeleteObjectCommand({ Bucket: env.S3_BUCKET, Key: key }));
+}
+
+/** Every key under a prefix, one page at a time. */
+export async function listObjectKeys(prefix: string): Promise<string[]> {
+  const keys: string[] = [];
+  let token: string | undefined;
+  do {
+    const page = await s3().send(
+      new ListObjectsV2Command({
+        Bucket: env.S3_BUCKET,
+        Prefix: prefix,
+        ContinuationToken: token,
+      }),
+    );
+    for (const object of page.Contents ?? [])
+      if (object.Key) keys.push(object.Key);
+    token = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (token);
+  return keys;
 }
 
 export type ImageTransform = {

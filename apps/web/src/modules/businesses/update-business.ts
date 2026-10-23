@@ -1,4 +1,5 @@
 import { ORPCError } from "@orpc/server";
+import type { updateBusinessInput } from "@ruta/contracts";
 import { normalizePhone } from "@ruta/shared/phone";
 import { and, eq } from "drizzle-orm";
 import type { z } from "zod";
@@ -6,11 +7,10 @@ import { businessClaims, places } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { publishRealtimeEvent } from "@/lib/realtime";
-import type { CitizenViewer } from "@/modules/access/viewer";
-import type { updateBusinessInput } from "./contracts";
+import type { MemberViewer } from "@/modules/access/viewer";
 
 export async function updateBusiness(
-  viewer: CitizenViewer,
+  viewer: MemberViewer,
   input: z.infer<typeof updateBusinessInput>,
 ) {
   await withIdempotency({

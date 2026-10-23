@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { reportPlaceInput, submitPlaceInput } from "@/modules/places/contracts";
+import { reportPlaceInput, submitPlaceInput } from "@ruta/contracts";
 
 const validSubmission = {
   requestId: "d7f66c55-5d18-466c-a220-bb45892cc580",

@@ -1,4 +1,10 @@
 import { ORPCError } from "@orpc/server";
+import {
+  type BrowseRoutesInput,
+  type DecideRouteInput,
+  routeOutput,
+  type SubmitRouteInput,
+} from "@ruta/contracts";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { type Db, db } from "@/db";
 import { categories, ecoRoutes, municipalities } from "@/db/schema";
@@ -13,12 +19,6 @@ import {
 } from "@/modules/access/permissions";
 import type { MemberViewer, Viewer } from "@/modules/access/viewer";
 import { notify } from "@/modules/notifications/notify";
-import {
-  type BrowseRoutesInput,
-  type DecideRouteInput,
-  routeOutput,
-  type SubmitRouteInput,
-} from "./contracts";
 
 export async function submitRoute(
   viewer: MemberViewer,

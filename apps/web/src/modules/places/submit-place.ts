@@ -1,9 +1,9 @@
+import type { ReportPlaceInput, SubmitPlaceInput } from "@ruta/contracts";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { categories, municipalities, placeReports, places } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import type { MemberViewer } from "@/modules/access/viewer";
-import type { ReportPlaceInput, SubmitPlaceInput } from "./contracts";
 
 function slugify(value: string): string {
   return value
@@ -20,7 +20,6 @@ export class PlaceSubmissionError extends Error {
     readonly reason:
       | "invalid_category"
       | "outside_province"
-      | "verification_required"
       | "duplicate"
       | "not_found",
   ) {
@@ -38,12 +37,6 @@ export async function submitPlace(
     userId: viewer.userId,
     request: input,
     run: async (tx) => {
-      // Claiming to be standing at the point is a claim about a person, so it
-      // is checked against who they are before anything is read or written.
-      if (input.locationSource === "gps" && viewer.kind !== "citizen") {
-        throw new PlaceSubmissionError("verification_required");
-      }
-
       // A transaction owns one PostgreSQL connection, so these checks are
       // deliberately sequential. Parallel queries on that connection are
       // deprecated by pg and do not make the round-trips concurrent anyway.

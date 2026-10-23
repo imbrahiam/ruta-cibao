@@ -21,10 +21,7 @@ export const QUEUES = {
   reportsRender: "reports.render",
   /** Drop expired realtime events, idempotency keys and rate-limit buckets. */
   platformCleanup: "platform.cleanup",
-  /** Finish the verifications the civil registry could not answer. */
-  cedulaRetry: "cedula.retry",
   notificationDeliver: "notification.deliver",
-  identityDiscardUploads: "identity.discard-uploads",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -37,14 +34,12 @@ export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
  * back out.
  */
 export type JobPayloads = {
-  [QUEUES.identityDiscardUploads]: { userId: string; reviewId: string };
   [QUEUES.trafficNotifyNearby]: { reportId: string };
   [QUEUES.trafficExpire]: Record<string, never>;
   /** Omit the period to mean "the week that just ended". */
   [QUEUES.reportsWeekly]: { periodStart?: string };
   [QUEUES.reportsRender]: { reportId: string };
   [QUEUES.platformCleanup]: Record<string, never>;
-  [QUEUES.cedulaRetry]: Record<string, never>;
   [QUEUES.notificationDeliver]: {
     notificationId: string;
     push: boolean;
@@ -82,12 +77,6 @@ export const SCHEDULES: ReadonlyArray<{
     cron: "17 * * * *",
     reason:
       "Hourly, off the hour: nothing else in this system runs at :17, so the sweep never queues behind the reports.",
-  },
-  {
-    queue: QUEUES.cedulaRetry,
-    cron: "*/30 * * * *",
-    reason:
-      "The registry allows 50 uncached lookups an hour across every key. Half-hourly leaves room for the people verifying live.",
   },
 ];
 

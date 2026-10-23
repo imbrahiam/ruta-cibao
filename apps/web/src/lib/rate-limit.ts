@@ -34,16 +34,14 @@ export type RateLimitResult = {
  *
  * The result is hashed, so the limiter never stores a readable IP.
  */
-export function getRequestClientKey(request: Request): string {
+export function getRequestClientKey(headers: Headers): string {
   const forwarded = env.TRUSTED_PROXY
-    ? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ? headers.get("x-forwarded-for")?.split(",")[0]?.trim()
     : undefined;
 
   const address =
     forwarded ||
-    (env.TRUSTED_PROXY
-      ? request.headers.get("x-real-ip")?.trim()
-      : undefined) ||
+    (env.TRUSTED_PROXY ? headers.get("x-real-ip")?.trim() : undefined) ||
     "unknown";
 
   return hashLookup("request-client", address.slice(0, 128));

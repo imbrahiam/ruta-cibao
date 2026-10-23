@@ -1,3 +1,7 @@
+import type {
+  OpenConsultationInput,
+  SupportConsultationInput,
+} from "@ruta/contracts";
 import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import {
@@ -9,25 +13,15 @@ import {
 import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { publishRealtimeEvent } from "@/lib/realtime";
-import type { CitizenViewer } from "@/modules/access/viewer";
-import type {
-  OpenConsultationInput,
-  SupportConsultationInput,
-} from "./contracts";
+import type { MemberViewer } from "@/modules/access/viewer";
 
 /**
  * Opening a case, and standing behind someone else's.
  *
- * Both are citizen-only, and that is the sharpest line in the tier matrix. A
- * consultation is addressed to an office that answers to residents, and support
- * counts are what the office uses to decide what to do first — so an
- * unverifiable account being able to open or back one would turn the queue into
- * something anybody with an email address could steer.
- *
- * "One resident, one voice" is not enforced here. It is enforced by the unique
- * index on the cédula blind index in `member_profiles`: one cédula is one
- * account, one account is one vote, and neither of those depends on this file
- * remembering to check.
+ * Both need a member with a verified phone or email. Support is one row per
+ * account per case (a unique index): it measures how many accounts back a
+ * case, not a binding vote or proof of legal identity, and a municipal
+ * resident badge adds nothing to it.
  */
 export const CONSULTATIONS_CHANNEL = "consultations";
 
@@ -45,10 +39,14 @@ export class ConsultationError extends Error {
   constructor(
     readonly reason:
       | "invalid_category"
+      | "invalid_municipality"
+      | "municipality_mismatch"
       | "outside_province"
       | "not_found"
       | "closed"
       | "own_case",
+    /** For `municipality_mismatch`: where the point actually is. */
+    readonly pointMunicipalityId?: string,
   ) {
     super(reason);
     this.name = "ConsultationError";
@@ -56,7 +54,7 @@ export class ConsultationError extends Error {
 }
 
 export async function openConsultation(
-  viewer: CitizenViewer,
+  viewer: MemberViewer,
   input: OpenConsultationInput,
 ) {
   const outcome = await withIdempotency({
@@ -78,16 +76,19 @@ export async function openConsultation(
 
       if (!category) throw new ConsultationError("invalid_category");
 
-      // A case belongs to the citizen's own municipality, not to wherever they
-      // dropped a pin. Verification set that field from the civil registry, so
-      // it is the one claim about where somebody lives the platform can stand
-      // behind — and it stops a resident of Sabaneta filing cases against
-      // Monción's ayuntamiento.
-      const municipalityId = viewer.profile.municipalityId;
+      // The person chooses which ayuntamiento the case is for. It has to
+      // exist, and a pin, when there is one, has to agree with it: a case
+      // never moves to another municipality behind the author's back.
+      const [municipality] = await tx
+        .select({ id: municipalities.id })
+        .from(municipalities)
+        .where(eq(municipalities.id, input.municipalityId))
+        .limit(1);
+      if (!municipality) throw new ConsultationError("invalid_municipality");
+      const municipalityId = municipality.id;
 
-      // The point, when there is one, still has to be inside the province.
       if (input.location) {
-        const [inside] = await tx
+        const [containing] = await tx
           .select({ id: municipalities.id })
           .from(municipalities)
           .where(
@@ -95,7 +96,10 @@ export async function openConsultation(
           )
           .limit(1);
 
-        if (!inside) throw new ConsultationError("outside_province");
+        if (!containing) throw new ConsultationError("outside_province");
+        if (containing.id !== municipalityId) {
+          throw new ConsultationError("municipality_mismatch", containing.id);
+        }
       }
 
       const id = crypto.randomUUID();
@@ -169,7 +173,7 @@ export async function openConsultation(
  */
 export async function supportConsultation(
   db: Db,
-  viewer: CitizenViewer,
+  viewer: MemberViewer,
   input: SupportConsultationInput,
 ) {
   return db.transaction(async (tx) => {

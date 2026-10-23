@@ -1,10 +1,10 @@
 import { ORPCError } from "@orpc/server";
+import type { SaveCategoryInput } from "@ruta/contracts";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { categories } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import type { ModeratorViewer } from "@/modules/access/permissions";
-import type { SaveCategoryInput } from "./contracts";
 
 export async function saveCategory(
   viewer: ModeratorViewer,

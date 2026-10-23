@@ -1,11 +1,7 @@
-import { openapi } from "@orpc/openapi";
-import { z } from "zod";
-import { pub } from "./base";
+import { impl } from "./base";
 import { businessesRouter } from "./routers/businesses";
 import { catalogRouter } from "./routers/catalog";
-import { citizenRouter } from "./routers/citizen";
 import { consultationsRouter } from "./routers/consultations";
-import { identityRouter } from "./routers/identity";
 import { meRouter } from "./routers/me";
 import { moderationRouter } from "./routers/moderation";
 import { municipalitiesRouter } from "./routers/municipalities";
@@ -17,25 +13,19 @@ import { routesRouter } from "./routers/routes";
 import { trafficRouter } from "./routers/traffic";
 
 /**
- * Root router. The shape of this object is what the typed client and the
- * OpenAPI document are both generated from, so a procedure cannot exist in one
- * and be missing from the other.
+ * Root router: the server's implementation of `@ruta/contracts`.
  *
- * HTTP routing lives in `openapi()` metadata — in oRPC v2 the builder has no
- * `.route()` method.
+ * `impl.router` checks every procedure against the contract, so the typed
+ * clients, the OpenAPI document and the handlers cannot disagree.
  */
-export const router = {
-  health: pub
-    .meta(
-      openapi({ method: "GET", path: "/health", summary: "Liveness probe" }),
-    )
-    .output(z.object({ status: z.literal("ok"), time: z.iso.datetime() }))
-    .handler(() => ({ status: "ok" as const, time: new Date().toISOString() })),
+export const router = impl.router({
+  health: impl.health.handler(() => ({
+    status: "ok" as const,
+    time: new Date().toISOString(),
+  })),
 
   me: meRouter,
   municipalities: municipalitiesRouter,
-  citizen: citizenRouter,
-  identity: identityRouter,
   moderation: moderationRouter,
   notifications: notificationsRouter,
   places: placesRouter,
@@ -46,6 +36,4 @@ export const router = {
   reports: reportsRouter,
   catalog: catalogRouter,
   routes: routesRouter,
-};
-
-export type AppRouter = typeof router;
+});

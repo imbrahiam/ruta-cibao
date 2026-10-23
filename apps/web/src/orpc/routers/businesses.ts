@@ -1,19 +1,11 @@
-import { openapi } from "@orpc/openapi";
 import { ORPCError } from "@orpc/server";
-import { z } from "zod";
 import {
   BusinessClaimError,
   businessClaimState,
   claimBusiness,
 } from "@/modules/businesses/claim-business";
-import {
-  businessClaimStateOutput,
-  claimBusinessInput,
-  claimBusinessOutput,
-  updateBusinessInput,
-} from "@/modules/businesses/contracts";
 import { updateBusiness } from "@/modules/businesses/update-business";
-import { citizenProcedure, pub } from "../base";
+import { impl, member } from "../base";
 
 /**
  * Business ownership, as an API.
@@ -48,10 +40,8 @@ function asClaimError(error: unknown): never {
 }
 
 export const businessesRouter = {
-  update: citizenProcedure
-    .meta(openapi({ method: "PATCH", path: "/places/{placeId}/business" }))
-    .input(updateBusinessInput)
-    .output(z.object({ status: z.literal("ok") }))
+  update: impl.businesses.update
+    .use(member)
     .handler(({ context, input }) => updateBusiness(context.viewer, input)),
   /**
    * Whether this place can be claimed, is claimed, and by whom.
@@ -61,31 +51,12 @@ export const businessesRouter = {
    * are `mine` and `pending`, and both are derived from the session rather than
    * from anything the caller sends.
    */
-  claimState: pub
-    .meta(
-      openapi({
-        method: "GET",
-        path: "/places/{placeId}/business",
-        summary: "Business ownership for a place",
-      }),
-    )
-    .input(z.object({ placeId: z.uuid() }))
-    .output(businessClaimStateOutput)
-    .handler(async ({ context, input }) =>
-      businessClaimState(context.db, await context.getViewer(), input.placeId),
-    ),
+  claimState: impl.businesses.claimState.handler(async ({ context, input }) =>
+    businessClaimState(context.db, await context.getViewer(), input.placeId),
+  ),
 
-  claim: citizenProcedure
-    .meta(
-      openapi({
-        method: "POST",
-        path: "/places/{placeId}/business",
-        successStatus: 201,
-        summary: "Claim a business as yours",
-      }),
-    )
-    .input(claimBusinessInput)
-    .output(claimBusinessOutput)
+  claim: impl.businesses.claim
+    .use(member)
     .handler(({ context, input }) =>
       claimBusiness(context.viewer, input).catch(asClaimError),
     ),

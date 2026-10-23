@@ -1,57 +1,48 @@
 /**
- * Outbound SMS.
+ * Phone verification through Twilio Verify.
  *
- * Without Twilio credentials the message is written to the server log instead
- * of being sent — the same bargain `mail.ts` strikes. Local development, the
- * offline demo and a jury on a laptop can all sign in by phone with no account,
- * no key and no network: the code is in the terminal.
+ * Verify owns the whole code lifecycle — generation, delivery, expiry, attempt
+ * counting and fraud controls — so the application never sees the code it
+ * sends. Better Auth's phone plugin keeps its session and account logic; its
+ * own generated code is never delivered when Verify is configured.
  *
- * Twilio and not Firebase, since that question comes up: Firebase Cloud
- * Messaging delivers push notifications to an app that is already installed,
- * which cannot be how somebody signs in for the first time — and this project
- * already sends its own web push. Firebase Phone Auth does send SMS, but it
- * would put a second identity provider beside Better Auth for one message.
- * Twilio's trial credit covers the demo, its REST API needs no SDK, and
- * swapping providers means rewriting this file and nothing else.
+ * Without Verify credentials, outside production only, the plugin's own code
+ * is written to the server log (see `delivery.ts`), which is how a laptop
+ * signs in with no provider account.
  */
 import { logDeliveryAllowed } from "@/lib/delivery";
 import { env } from "@/lib/env";
 
-const TWILIO_API = "https://api.twilio.com/2010-04-01";
+const VERIFY_API = "https://verify.twilio.com/v2";
 const REQUEST_TIMEOUT_MS = 10_000;
 
-type Message = {
-  /** E.164, as produced by `normalizePhone`. */
-  to: string;
-  body: string;
-};
+/** Raised when the provider cannot be reached or refuses the request. */
+export class VerifyProviderError extends Error {
+  constructor(readonly status: number) {
+    super(`Twilio Verify request failed with status ${status}`);
+    this.name = "VerifyProviderError";
+  }
+}
 
-export function isSmsConfigured(): boolean {
+export function isVerifyConfigured(): boolean {
   return Boolean(
-    env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN && env.TWILIO_FROM,
+    env.TWILIO_ACCOUNT_SID &&
+      env.TWILIO_AUTH_TOKEN &&
+      env.TWILIO_VERIFY_SERVICE_SID,
   );
 }
 
-/** Whether a sign-in code can reach the person, by text or by the log. */
+/** Whether a phone sign-in code can reach the person at all. */
 export function canDeliverSms(): boolean {
-  return isSmsConfigured() || logDeliveryAllowed();
+  return isVerifyConfigured() || logDeliveryAllowed();
 }
 
-export async function sendSms(message: Message): Promise<void> {
-  if (!isSmsConfigured()) {
-    if (!logDeliveryAllowed()) {
-      throw new Error(
-        "SMS is not configured (TWILIO_*), and production never writes codes to the log",
-      );
-    }
-    console.info(
-      `[sms] Twilio is not configured, so nothing was sent.\n  to: ${message.to}\n  ${message.body}`,
-    );
-    return;
-  }
-
-  const response = await fetch(
-    `${TWILIO_API}/Accounts/${env.TWILIO_ACCOUNT_SID}/Messages.json`,
+async function verifyRequest(
+  path: "Verifications" | "VerificationCheck",
+  body: Record<string, string>,
+): Promise<Response> {
+  return fetch(
+    `${VERIFY_API}/Services/${env.TWILIO_VERIFY_SERVICE_SID}/${path}`,
     {
       method: "POST",
       headers: {
@@ -60,21 +51,53 @@ export async function sendSms(message: Message): Promise<void> {
         )}`,
         "content-type": "application/x-www-form-urlencoded",
       },
-      body: new URLSearchParams({
-        To: message.to,
-        From: env.TWILIO_FROM ?? "",
-        Body: message.body,
-      }),
+      body: new URLSearchParams(body),
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     },
   );
+}
 
-  if (!response.ok) {
-    // Twilio answers with a JSON body carrying its own error code; the status
-    // alone does not say whether the number was wrong or the account is out of
-    // credit, and the operator reading the log needs to know which.
+/** Starts a Spanish SMS verification for an E.164 number. */
+export async function startPhoneVerification(to: string): Promise<void> {
+  const response = await verifyRequest("Verifications", {
+    To: to,
+    Channel: "sms",
+    Locale: "es",
+  });
+  // The body can echo the number; only the status is logged upstream.
+  if (!response.ok) throw new VerifyProviderError(response.status);
+}
+
+/**
+ * Whether Verify approves a code for a number.
+ *
+ * A wrong, expired or already used code is a normal `false`; a 404 is how
+ * Verify reports a verification that no longer exists (expired, approved or
+ * out of attempts), which is also a plain refusal. Anything else is a provider
+ * failure and never becomes a sign-in.
+ */
+export async function checkPhoneVerification(
+  to: string,
+  code: string,
+): Promise<boolean> {
+  const response = await verifyRequest("VerificationCheck", {
+    To: to,
+    Code: code,
+  });
+  if (response.status === 404) return false;
+  if (!response.ok) throw new VerifyProviderError(response.status);
+  const result = (await response.json()) as { status?: string };
+  return result.status === "approved";
+}
+
+/** Development only: the code goes to the server log instead of a phone. */
+export function logPhoneCode(to: string, text: string): void {
+  if (!logDeliveryAllowed()) {
     throw new Error(
-      `Failed to send SMS: ${response.status} ${await response.text()}`,
+      "Phone verification is not configured (TWILIO_VERIFY_SERVICE_SID), and log delivery is off",
     );
   }
+  console.info(
+    `[sms] Twilio Verify is not configured.\n  to: ${to}\n  ${text}`,
+  );
 }

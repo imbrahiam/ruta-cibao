@@ -1,121 +1,151 @@
 /**
- * Appointing a moderator.
+ * Appointing or removing staff.
  *
  * There is no screen for this on purpose. Granting somebody authority over
  * other people's contributions is an act of the institution running the
  * platform, not a self-service setting, and it belongs in a shell someone had
  * to be given access to.
  *
- *   bun run scripts/grant-staff.ts <phone|email|userId> moderator
+ *   bun run scripts/grant-staff.ts <phone|email|userId> moderator --municipality <id>
+ *   bun run scripts/grant-staff.ts <phone|email|userId> admin --approved-in-person
  *   bun run scripts/grant-staff.ts <phone|email|userId> none
+ *
+ * The account must already exist with a verified phone or email. A moderator
+ * is confined to one municipality; an admin has the whole province and
+ * requires the explicit attestation that the institution approved the person
+ * in person. This is the only path that changes staff jurisdiction, and it
+ * keeps Better Auth's own admin flag in step with it.
  */
 
+import { parseArgs } from "node:util";
 import { normalizePhone } from "@ruta/shared/phone";
 import { eq, or, sql } from "drizzle-orm";
-import { db } from "@/db";
-import { memberProfiles, user } from "@/db/schema";
+import { db, pool } from "@/db";
+import { memberProfiles, municipalities, user } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 
-const [identifier, role = "moderator"] = process.argv.slice(2);
+const { positionals, values } = parseArgs({
+  allowPositionals: true,
+  options: {
+    municipality: { type: "string" },
+    "approved-in-person": { type: "boolean", default: false },
+  },
+});
 
-if (!identifier) {
-  console.error(
-    "usage: bun run scripts/grant-staff.ts <phone|email|userId> [moderator|admin|none]",
-  );
+const [identifier, role] = positionals;
+
+function fail(message: string): never {
+  console.error(message);
   process.exit(1);
 }
 
+if (!identifier || !role) {
+  fail(
+    "usage: bun run scripts/grant-staff.ts <phone|email|userId> <moderator --municipality <id> | admin --approved-in-person | none>",
+  );
+}
 if (role !== "moderator" && role !== "admin" && role !== "none") {
-  console.error(`unknown role: ${role}`);
-  process.exit(1);
+  fail(`unknown role: ${role}`);
+}
+if (role === "moderator" && !values.municipality) {
+  fail("a moderator needs --municipality <id>");
+}
+if (role !== "moderator" && values.municipality) {
+  fail("--municipality applies only to moderators");
+}
+if (role === "admin" && !values["approved-in-person"]) {
+  fail(
+    "an administrator needs --approved-in-person: the institution must approve them in person",
+  );
 }
 
 const phone = normalizePhone(identifier);
 
-const [account] = await db
-  .select({ id: user.id, email: user.email })
-  .from(user)
-  .where(
-    or(
-      eq(user.id, identifier),
-      eq(user.email, identifier),
-      ...(phone ? [eq(user.phoneNumber, phone)] : []),
-    ),
-  )
-  .limit(1);
-
-if (!account) {
-  console.error("No account matches the supplied identifier");
-  process.exit(1);
-}
-
-const bootstrap = process.argv.includes("--bootstrap-verified-in-person");
-await db.transaction(async (tx) => {
-  await tx.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended('staff-bootstrap', 0))`,
-  );
-  const [profile] = await tx
-    .select()
-    .from(memberProfiles)
-    .where(eq(memberProfiles.userId, account.id))
-    .limit(1)
-    .for("update");
-  if (!profile) throw new Error("Member profile missing");
-  if (bootstrap) {
-    if (role !== "admin")
-      throw new Error("Bootstrap is only for the first administrator");
-    const [existing] = await tx
-      .select({ count: sql<number>`count(*)::int` })
-      .from(memberProfiles)
-      .where(
-        sql`${memberProfiles.staffRole} = 'admin' and ${memberProfiles.cedulaStatus} = 'verified'`,
-      );
-    if ((existing?.count ?? 0) > 0)
-      throw new Error(
-        "An administrator already exists; use the document review flow",
-      );
-    if (
-      !profile.verifiedFullName ||
-      !profile.cedulaCiphertext ||
-      !profile.municipalityId ||
-      profile.cedulaStatus !== "matched"
+try {
+  const [account] = await db
+    .select({
+      id: user.id,
+      emailVerified: user.emailVerified,
+      phoneNumberVerified: user.phoneNumberVerified,
+    })
+    .from(user)
+    .where(
+      or(
+        eq(user.id, identifier),
+        eq(user.email, identifier.toLowerCase()),
+        ...(phone ? [eq(user.phoneNumber, phone)] : []),
+      ),
     )
-      throw new Error(
-        "Bootstrap requires a matched registry lookup and municipality, with no open review",
-      );
-    // The explicit flag attests that the institution checked this person
-    // in person. Shell access alone never silently bypasses document review.
-    await tx
-      .update(memberProfiles)
-      .set({
-        tier: "citizen",
-        cedulaStatus: "verified",
-        verifiedAt: new Date(),
-        staffRole: "admin",
-      })
-      .where(eq(memberProfiles.userId, account.id));
-  } else {
-    if (
-      role !== "none" &&
-      (profile.cedulaStatus !== "verified" || profile.tier !== "citizen")
-    )
-      throw new Error("Verify the resident before granting a staff role");
-    await tx
-      .update(memberProfiles)
-      .set({ staffRole: role })
-      .where(eq(memberProfiles.userId, account.id));
+    .limit(1);
+
+  if (!account) fail("No account matches the supplied identifier");
+  if (role !== "none" && !account.emailVerified && !account.phoneNumberVerified)
+    fail("The account has no verified phone or email");
+
+  const staffMunicipalityId = role === "moderator" ? values.municipality : null;
+  if (staffMunicipalityId) {
+    const [municipality] = await db
+      .select({ id: municipalities.id })
+      .from(municipalities)
+      .where(eq(municipalities.id, staffMunicipalityId))
+      .limit(1);
+    if (!municipality) fail(`unknown municipality: ${staffMunicipalityId}`);
   }
-  await recordAudit(
-    {
-      action: bootstrap ? "staff.bootstrapped_in_person" : "staff.role_changed",
-      subjectType: "member_profile",
-      subjectId: profile.id,
-      municipalityId: profile.municipalityId,
-      metadata: { role, source: "operator_cli" },
-    },
-    tx,
-  );
-});
-console.info("Staff role updated", { userId: account.id, role, bootstrap });
 
-process.exit(0);
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtextextended('staff-grant', 0))`,
+    );
+    const [profile] = await tx
+      .select()
+      .from(memberProfiles)
+      .where(eq(memberProfiles.userId, account.id))
+      .limit(1)
+      .for("update");
+    if (!profile) throw new Error("Member profile missing");
+
+    if (role !== "admin" && profile.staffRole === "admin") {
+      const [admins] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(memberProfiles)
+        .where(eq(memberProfiles.staffRole, "admin"));
+      if ((admins?.count ?? 0) <= 1)
+        throw new Error(
+          "This is the last administrator; appoint another one first",
+        );
+    }
+
+    await tx
+      .update(memberProfiles)
+      .set({ staffRole: role, staffMunicipalityId })
+      .where(eq(memberProfiles.userId, account.id));
+    await tx
+      .update(user)
+      .set({ role: role === "admin" ? "admin" : "user" })
+      .where(eq(user.id, account.id));
+
+    await recordAudit(
+      {
+        action: "staff.role_changed",
+        subjectType: "member",
+        subjectId: account.id,
+        municipalityId: staffMunicipalityId,
+        metadata: {
+          role,
+          previousRole: profile.staffRole,
+          previousStaffMunicipalityId: profile.staffMunicipalityId,
+          approvedInPerson: values["approved-in-person"],
+          source: "operator_cli",
+        },
+      },
+      tx,
+    );
+  });
+  console.info("Staff role updated", {
+    userId: account.id,
+    role,
+    staffMunicipalityId,
+  });
+} finally {
+  await pool.end();
+}

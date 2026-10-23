@@ -62,12 +62,14 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         toViewer(
           memberId,
           profiles.find((p) => p.userId === memberId),
+          { image: null, contactVerified: true },
         ),
       );
       other = requireMember(
         toViewer(
           otherId,
           profiles.find((p) => p.userId === otherId),
+          { image: null, contactVerified: true },
         ),
       );
       await db.insert(places).values(
@@ -98,6 +100,10 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         db,
         headers: new Headers(),
         getViewer: async () => ({ kind: "anonymous" as const }),
+        getSession: async () => ({
+          viewer: { kind: "anonymous" as const },
+          contact: null,
+        }),
       };
       await expect(
         call(passportRouter.list, {}, { context }),

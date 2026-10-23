@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
   turbopack: { root: workspaceRoot },
   poweredByHeader: false,
   serverExternalPackages: ["pg"],
-  transpilePackages: ["@ruta/shared"],
+  transpilePackages: ["@ruta/shared", "@ruta/contracts"],
   allowedDevOrigins: devOrigins,
   devIndicators: false,
   /** `"use cache"` gives cached route handlers (tiles, boundaries) a lifetime. */

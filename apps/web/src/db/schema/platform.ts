@@ -155,14 +155,6 @@ export const rollingRateLimits = pgTable(
   ],
 );
 
-/** Resolved registry answers are encrypted and never looked up again. */
-export const registryLookups = pgTable("registry_lookups", {
-  key: text().primaryKey(),
-  status: text().$type<"pending" | "found" | "not_found">().notNull(),
-  nameCiphertext: text(),
-  resolvedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-});
-
 /** Domain transactions write jobs here before they commit. */
 export const jobOutbox = pgTable(
   "job_outbox",

@@ -22,8 +22,6 @@ const PRODUCED_KEYS = [
   "notifications.consultationStatusChanged",
   "notifications.trafficNearby",
   "notifications.trafficRemoved",
-  "notifications.cedulaVerified",
-  "notifications.cedulaPending",
   "notifications.businessClaimApproved",
   "notifications.businessClaimRejected",
   "notifications.reportReady",

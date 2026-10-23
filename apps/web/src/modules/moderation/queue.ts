@@ -1,3 +1,4 @@
+import type { QueueInput } from "@ruta/contracts";
 import { formatPhone } from "@ruta/shared/phone";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -15,7 +16,7 @@ import {
 } from "@/db/schema";
 import { imageUrl } from "@/lib/storage";
 import type { ModeratorViewer } from "@/modules/access/permissions";
-import type { QueueInput } from "./contracts";
+import { residentVerified } from "@/modules/access/resident";
 
 /**
  * What is waiting for a decision.
@@ -62,7 +63,7 @@ export async function pendingPlaces(
       municipalityId: municipalities.id,
       municipalityName: municipalities.name,
       submittedBy: memberProfiles.displayName,
-      submitterTier: memberProfiles.tier,
+      submitterResidentVerified: residentVerified,
     })
     .from(places)
     .innerJoin(categories, eq(categories.id, places.categoryId))
@@ -93,10 +94,9 @@ export async function pendingPlaces(
     municipalityId: row.municipalityId,
     municipalityName: row.municipalityName,
     submittedBy: row.submittedBy,
-    // Worth showing: a verified resident vouching for a place is a different
-    // claim from an anonymous-ish visitor doing the same, and the moderator is
-    // the person who should weigh that rather than the code.
-    submitterTier: row.submitterTier,
+    // The optional in-person resident badge, shown as context only: the
+    // moderator weighs it, the code does not.
+    submitterResidentVerified: row.submitterResidentVerified,
   }));
 }
 
@@ -235,8 +235,8 @@ export async function queueCounts(viewer: ModeratorViewer) {
 /**
  * Photographs waiting for a look.
  *
- * Only ones a visitor uploaded ever land here — a verified resident's photo
- * publishes on the spot — so the queue is short by design rather than by luck.
+ * Every upload from a member lands here; only authorized staff publish their
+ * own photos directly.
  * The URL is signed per request and expires, which is what keeps an unpublished
  * photo unreachable to anybody who is not looking at this screen.
  */
@@ -295,10 +295,8 @@ export async function pendingPhotos(
 /**
  * Claims waiting for somebody to weigh the evidence.
  *
- * The claimant's tier is shown for the same reason it is on the place queue: a
- * verified resident saying a colmado is theirs is a different claim from an
- * unverified account saying so, and the moderator is the one who should weigh
- * that rather than the code.
+ * The claimant's in-person resident badge is shown for the same reason it is
+ * on the place queue: context for the moderator, not a rule in the code.
  */
 export async function pendingClaims(
   viewer: ModeratorViewer,
@@ -322,7 +320,7 @@ export async function pendingClaims(
       municipalityId: municipalities.id,
       municipalityName: municipalities.name,
       claimedBy: memberProfiles.displayName,
-      claimantTier: memberProfiles.tier,
+      claimantResidentVerified: residentVerified,
     })
     .from(businessClaims)
     .innerJoin(places, eq(places.id, businessClaims.placeId))
@@ -436,7 +434,7 @@ export async function liveTrafficReports(
       municipalityId: municipalities.id,
       municipalityName: municipalities.name,
       reportedBy: memberProfiles.displayName,
-      reporterTier: memberProfiles.tier,
+      reporterResidentVerified: residentVerified,
     })
     .from(trafficReports)
     .innerJoin(categories, eq(categories.id, trafficReports.categoryId))
@@ -473,6 +471,6 @@ export async function liveTrafficReports(
     municipalityId: row.municipalityId,
     municipalityName: row.municipalityName,
     reportedBy: row.reportedBy,
-    reporterTier: row.reporterTier,
+    reporterResidentVerified: row.reporterResidentVerified,
   }));
 }

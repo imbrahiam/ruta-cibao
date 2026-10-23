@@ -1,3 +1,4 @@
+import type { RespondConsultationInput } from "@ruta/contracts";
 import { eq } from "drizzle-orm";
 import { consultationResponses, consultations } from "@/db/schema";
 import { keyParam } from "@/i18n/open-keys";
@@ -9,7 +10,6 @@ import {
   type ModeratorViewer,
 } from "@/modules/access/permissions";
 import { notify } from "@/modules/notifications/notify";
-import type { RespondConsultationInput } from "./contracts";
 import { CONSULTATIONS_CHANNEL, ConsultationError } from "./open-consultation";
 
 /**

@@ -1,3 +1,4 @@
+import type { ReportTrafficInput } from "@ruta/contracts";
 import { nearestOnPath } from "@ruta/shared/road-geometry";
 import { and, eq, sql } from "drizzle-orm";
 import {
@@ -14,7 +15,6 @@ import { streetAt } from "@/lib/map/roads";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { publishRealtimeEvent } from "@/lib/realtime";
 import type { MemberViewer } from "@/modules/access/viewer";
-import type { ReportTrafficInput } from "./contracts";
 
 /**
  * Filing a report about the road.
@@ -50,6 +50,8 @@ export class TrafficError extends Error {
       | "already_resolved"
       | "rate_limited"
       | "stale_report",
+    /** For `duplicate`: the active report this one would repeat. */
+    readonly existingReportId?: string,
   ) {
     super(reason);
     this.name = "TrafficError";
@@ -119,9 +121,10 @@ export async function reportTraffic(
       if (!municipality) throw new TrafficError("outside_province");
 
       // Three people stuck behind the same landslide will all report it, which
-      // is a good sign about the platform and a bad one for the map. The
-      // second and third reports are treated as confirmations of the first:
-      // same category, within 150 m, still active.
+      // is a good sign about the platform and a bad one for the map. A second
+      // report of the same category within 150 m of an active one is refused
+      // with that report's id; it is not counted as a confirmation, so the
+      // client offers to open the existing one and confirm it explicitly.
       const [nearby] = await tx
         .select({ id: trafficReports.id })
         .from(trafficReports)
@@ -135,7 +138,7 @@ export async function reportTraffic(
         )
         .limit(1);
 
-      if (nearby) throw new TrafficError("duplicate");
+      if (nearby) throw new TrafficError("duplicate", nearby.id);
 
       const expiresAt = new Date(
         new Date(input.observedAt).getTime() +
