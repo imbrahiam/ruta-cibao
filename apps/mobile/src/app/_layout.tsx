@@ -69,6 +69,18 @@ function RootStack() {
       <Stack.Screen name="place/claim" options={{ presentation: "modal" }} />
       <Stack.Screen name="route/[id]" options={{ headerShown: false }} />
       <Stack.Screen
+        name="consultation/[slug]"
+        options={{ headerTransparent: true }}
+      />
+      <Stack.Screen
+        name="consultation/new"
+        options={{ presentation: "modal" }}
+      />
+      <Stack.Screen
+        name="pick-location"
+        options={{ presentation: "fullScreenModal", headerShown: false }}
+      />
+      <Stack.Screen
         name="sign-in"
         options={{
           presentation: "modal",
