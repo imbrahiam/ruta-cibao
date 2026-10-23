@@ -10,18 +10,23 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { categoryIcon, Icon } from "@/ui/icon";
-import { ease, palettes, useScheme } from "@/ui/theme";
+import { ease, useScheme } from "@/ui/theme";
 
 const WIDTH = 48;
-const HEIGHT = 60;
-
-/** Teardrop path on a 48×60 canvas: a 22-radius head and a point at the bottom. */
-const DROP =
-  "M24 58 C24 58 4 37.5 4 24 A20 20 0 1 1 44 24 C44 37.5 24 58 24 58 Z";
+const HEIGHT = 50;
 
 /**
- * The chosen place, lifted off the map: a teardrop in the category colour that
- * drops onto its spot with a little settle, over a soft ground shadow that
+ * The map's own disc, enlarged, with a short rounded nub pointing at the spot:
+ * one path, so the white outline runs unbroken around disc and nub. A
+ * 19-radius disc centred at (24, 22); the nub's sides are tangent to it and
+ * meet just above the bottom edge.
+ */
+const DROP =
+  "M11.66 36.44 A19 19 0 1 1 36.34 36.44 L25.6 45.3 Q24 46.9 22.4 45.3 Z";
+
+/**
+ * The chosen place, lifted off the map: its category disc, larger, with a nub
+ * on the spot. It drops in with a little settle, over a soft ground shadow that
  * grows as it lands. Rare and user-caused, so it may move; with reduced motion
  * it simply appears.
  */
@@ -51,7 +56,7 @@ export function SelectedPin({
   const pin = useAnimatedStyle(() => ({
     opacity: Math.min(1, drop.get() * 2),
     transform: [
-      { translateY: (1 - Math.min(drop.get(), 1)) * -18 },
+      { translateY: (1 - Math.min(drop.get(), 1)) * -12 },
       { scale: 0.9 + drop.get() * 0.1 },
     ],
   }));
@@ -82,29 +87,23 @@ export function SelectedPin({
           />
         </View>
       </Animated.View>
-      <View
-        style={[
-          styles.dot,
-          { backgroundColor: palettes[scheme].surface, borderColor: color },
-        ]}
-      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { width: WIDTH, height: HEIGHT + 6, alignItems: "center" },
+  wrap: { width: WIDTH, height: HEIGHT + 2, alignItems: "center" },
   pin: {
     width: WIDTH,
     height: HEIGHT,
     shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 3 },
   },
   glyph: {
     position: "absolute",
-    top: 14,
+    top: 12,
     left: 0,
     right: 0,
     alignItems: "center",
@@ -112,17 +111,9 @@ const styles = StyleSheet.create({
   shadow: {
     position: "absolute",
     bottom: 0,
-    width: 22,
-    height: 7,
-    borderRadius: 4,
+    width: 14,
+    height: 5,
+    borderRadius: 3,
     backgroundColor: "#000",
-  },
-  dot: {
-    position: "absolute",
-    bottom: 1,
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    borderWidth: 2,
   },
 });
