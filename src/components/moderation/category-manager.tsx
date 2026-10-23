@@ -259,7 +259,7 @@ function EditSheet({
                 className={cx(
                   "press flex aspect-square items-center justify-center rounded-[12px] shadow-ring",
                   draft.icon === icon
-                    ? "bg-ink text-paper"
+                    ? "bg-accent text-on-accent"
                     : "bg-card text-ink-2 hover:bg-paper-2",
                 )}
               >

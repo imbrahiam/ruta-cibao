@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 import { useRealtime } from "@/hooks/use-realtime";
 import { Link } from "@/i18n/navigation";
+import { cx } from "@/lib/cx";
 import { MAP_PALETTES } from "@/lib/map/palette";
 import { orpc } from "@/lib/orpc";
 import { MapMarker, useMapContext, useMapLayers } from "./map-core";
@@ -36,10 +37,12 @@ export function CommunityLayer({
     east: number;
     north: number;
   } | null>(null);
+  const [compact, setCompact] = useState(true);
 
   useEffect(() => {
     if (!map) return;
     const update = () => {
+      setCompact(map.getZoom() < 13);
       const bounds = map.getBounds();
       setBox({
         west: Math.floor(bounds.getWest() * 20) / 20,
@@ -141,7 +144,10 @@ export function CommunityLayer({
             className="map-pop group flex size-11 items-center justify-center"
           >
             <span
-              className="flex size-7 items-center justify-center rounded-full text-white shadow-md ring-2 ring-card transition-transform group-hover:-translate-y-0.5"
+              className={cx(
+                "flex items-center justify-center rounded-full text-white shadow-md ring-2 ring-card transition-[transform,width,height] group-hover:-translate-y-0.5",
+                compact ? "size-2.5 [&>svg]:hidden" : "size-7",
+              )}
               style={{ backgroundColor: route.color }}
             >
               <Footprints strokeWidth={2} className="size-3.5" />
@@ -160,10 +166,18 @@ export function CommunityLayer({
             aria-label={t("case", { title: item.title })}
             className="map-pop group flex size-11 items-center justify-center"
           >
-            <span className="flex size-7 items-center justify-center rounded-full rounded-bl-[4px] bg-card text-ink-2 shadow-md ring-1 ring-line transition-transform group-hover:-translate-y-0.5">
+            <span
+              className={cx(
+                "flex items-center justify-center bg-card text-ink-2 shadow-md ring-2 ring-card transition-[transform,width,height] group-hover:-translate-y-0.5",
+                compact
+                  ? "size-2.5 rounded-full"
+                  : "size-7 rounded-full rounded-bl-[4px] ring-line",
+              )}
+              style={compact ? { backgroundColor: item.color } : undefined}
+            >
               <MessagesSquare
                 strokeWidth={1.75}
-                className="size-3.5"
+                className={cx("size-3.5", compact && "hidden")}
                 style={{ color: item.color }}
               />
             </span>

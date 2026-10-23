@@ -12,7 +12,7 @@ import { makeQueryClient } from "@/lib/query";
  * One query client per browser session, created in state so the server never
  * shares one visitor's cache with another's render.
  *
- * The theme follows the system unless the person picks one; `data-theme` on
+ * Light unless the person picks dark (or "system") themselves; `data-theme` on
  * `<html>` is what the tokens and the map style both key off.
  */
 export function Providers({ children }: { children: ReactNode }) {
@@ -21,7 +21,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider
       attribute="data-theme"
-      defaultTheme="system"
+      defaultTheme="light"
       enableSystem
       disableTransitionOnChange
     >

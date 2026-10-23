@@ -21,9 +21,11 @@ export function storableBasemapUrl(
   if (!url || typeof window === "undefined") return;
   try {
     const resolved = new URL(url, window.location.href);
-    return resolved.origin === window.location.origin
-      ? resolved.href
-      : undefined;
+    if (resolved.origin !== window.location.origin) return;
+    // The marker lets the service worker distinguish an intentional offline
+    // archive from the much larger display archive without bundling env state.
+    resolved.searchParams.set("offline", "1");
+    return resolved.href;
   } catch {
     return;
   }

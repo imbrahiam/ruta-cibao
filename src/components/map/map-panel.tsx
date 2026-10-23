@@ -55,7 +55,7 @@ export function MapPanel({
     return (
       <aside
         aria-label={title}
-        className="pointer-events-auto absolute top-[88px] bottom-4 left-4 z-20 flex w-[400px] flex-col overflow-hidden rounded-panel bg-card shadow-lg animate-panel"
+        className="pointer-events-auto absolute top-[132px] bottom-4 left-4 z-20 flex w-[400px] flex-col overflow-hidden rounded-panel bg-card shadow-lg animate-panel"
       >
         <div className="absolute top-3 right-3 z-10">
           <button

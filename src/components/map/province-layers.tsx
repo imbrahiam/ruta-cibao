@@ -9,11 +9,11 @@ import { useMapContext, useMapLayers } from "./map-core";
 const EMPTY: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 /**
- * The province as the subject: everything outside it is veiled with paper,
- * labels included, so a town across the border reads as context rather than
- * as a destination. Its edge is drawn in ink, the three municipalities divided by a dashed line
- * and named in the mono label face. The veil lifts at street level, where
- * crossing into Valverde or Dajabón is just the next block.
+ * The province as the subject: nearby context stays visible instead of being
+ * erased. A soft paper veil rises only as the camera approaches the province,
+ * then lifts at street level where crossing a municipal edge is the next
+ * block. Its edge is ink; the three municipalities are divided by a dashed
+ * line and named in the mono label face.
  */
 export function ProvinceLayers() {
   const { theme } = useMapContext();
@@ -27,6 +27,13 @@ export function ProvinceLayers() {
       properties: { role: "municipality", name: feature.properties.name },
       geometry: feature.geometry,
     }));
+    if (data.province) {
+      features.push({
+        type: "Feature",
+        properties: { role: "outline" },
+        geometry: data.province,
+      });
+    }
     if (data.outside) {
       features.push({
         type: "Feature",
@@ -70,7 +77,11 @@ export function ProvinceLayers() {
             "interpolate",
             ["linear"],
             ["zoom"],
-            12,
+            4,
+            0,
+            8,
+            0.12,
+            11,
             p.veilOpacity,
             15,
             0,
@@ -94,7 +105,7 @@ export function ProvinceLayers() {
         id: "province-outline",
         type: "line",
         source: "province",
-        filter: ["==", ["get", "role"], "outside"],
+        filter: ["==", ["get", "role"], "outline"],
         layout: { "line-join": "round" },
         paint: {
           "line-color": p.outline,

@@ -7,18 +7,18 @@
  * edge of Sabaneta on the other, so a citizen standing on Dominican ground near
  * the border was told their point was outside the province.
  *
- * The source is OCHA's COD-AB for the Dominican Republic, produced from the
- * Oficina Nacional de Estadística's territorial division (CC BY-IGO). It was
- * chosen on 2026-10-14 after comparing three sources: COD-AB and OpenStreetMap
- * agree to within 0.3 km (IoU 0.99–1.00) and match ONE's published areas
- * (Sabaneta 800.8 km², Villa Los Almácigos 207.1, Monción 138.9), while the
- * geoBoundaries file used before was up to 3 km off (Monción IoU 0.59).
+ * The source is the three OpenStreetMap administrative relations used by the
+ * Protomaps basemap: San Ignacio de Sabaneta 7390991, Villa Los Almácigos
+ * 7390993 and Monción 7391002 (ODbL 1.0). Using the same geometry removes the
+ * competing municipal lines that appeared when the former COD-AB shapes sat a
+ * few hundred metres away from OSM. Their areas still match ONE's published
+ * values (800.8, 207.1 and 138.9 km²).
  *
- * The three polygons are kept in `data/boundaries/santiago-rodriguez.geojson`,
- * extracted from the national file and joined by ONE's P-code rather than by
- * name. A boundary that changes silently under a running platform is worse
- * than one that is a year old, and an import that needs no network is one the
- * municipality can rerun without a developer.
+ * The reviewed polygons are kept in
+ * `data/boundaries/santiago-rodriguez.geojson` and joined by ONE's P-code, not
+ * by name. Normal imports are offline and deterministic. Refresh them
+ * deliberately with `bun run scripts/fetch-boundaries.ts`, review the diff,
+ * then import; a boundary must never change silently under a running platform.
  *
  *   bun run scripts/import-boundaries.ts
  *

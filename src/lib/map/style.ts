@@ -502,6 +502,28 @@ export function basemapStyle({
       },
     },
     {
+      id: "label-city-world",
+      type: "symbol",
+      source: BASEMAP_SOURCE,
+      "source-layer": "places",
+      minzoom: 3,
+      maxzoom: 7,
+      filter: ["all", kindIn("locality"), detailIn("city")],
+      layout: {
+        "text-field": NAME,
+        "text-font": [...MAP_FONTS.medium],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 3, 10, 7, 12],
+        "text-max-width": 8,
+        "text-padding": 8,
+        "symbol-sort-key": ["get", "population_rank"],
+      },
+      paint: {
+        "text-color": p.label2,
+        "text-halo-color": p.halo,
+        "text-halo-width": 1.4,
+      },
+    },
+    {
       id: "label-town",
       type: "symbol",
       source: BASEMAP_SOURCE,

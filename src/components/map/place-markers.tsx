@@ -3,12 +3,19 @@
 import type { Geometry } from "geojson";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import {
+  type CSSProperties,
+  type MouseEvent,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { CategoryIcon } from "@/components/places/category-icon";
 import { cx } from "@/lib/cx";
 import {
   CLUSTER_MAX_ZOOM,
   CLUSTERS_SOURCE_LAYER,
+  PLACE_LABEL_ZOOM,
   PLACES_SOURCE_ID,
   PLACES_SOURCE_LAYER,
   PLACES_TILE_URL,
@@ -25,8 +32,9 @@ export type MapPlace = {
   icon: string | null;
   lng: number;
   lat: number;
-  /** Whether its name fits beside it without covering another. */
+  /** Whether and where its name fits without covering another feature. */
   labeled?: boolean;
+  labelSide?: "left" | "right";
 };
 
 type MapCluster = {
@@ -39,8 +47,8 @@ type MapCluster = {
 
 type Feature = MapPlace | MapCluster;
 
-/** Names appear beside pins only once there is ground between them. */
-const NAME_ZOOM = 15;
+/** Individual places become shaped pins once streets begin to separate. */
+const PIN_ZOOM = 12.5;
 
 /**
  * Reads the places tile layer and turns what is on screen into features.
@@ -180,7 +188,7 @@ function collect(map: MapLibreMap, categories: ReadonlySet<string>): Feature[] {
     if (next.length === merged.length) break;
     merged = next;
   }
-  return zoom >= NAME_ZOOM ? placeLabels(map, merged) : merged;
+  return zoom >= PLACE_LABEL_ZOOM ? placeLabels(map, merged) : merged;
 }
 
 /** From here up, places are always drawn one by one. */
@@ -215,16 +223,18 @@ function placeLabels(map: MapLibreMap, features: Feature[]): Feature[] {
   return features.map((feature) => {
     if (feature.kind !== "place") return feature;
     const point = map.project([feature.lng, feature.lat]);
-    const width = Math.min(224, feature.name.length * 6.6 + 16);
+    const width = Math.min(184, feature.name.length * 6.6 + 28);
+    const roomOnRight = point.x + width + 30 <= map.getCanvas().clientWidth;
+    const labelSide = roomOnRight ? "right" : "left";
     const box = {
-      x1: point.x - width / 2,
-      y1: point.y + 18,
-      x2: point.x + width / 2,
-      y2: point.y + 38,
+      x1: roomOnRight ? point.x + 18 : point.x - width - 18,
+      y1: point.y - 15,
+      x2: roomOnRight ? point.x + width + 18 : point.x - 18,
+      y2: point.y + 15,
     };
-    if (overlaps(box)) return { ...feature, labeled: false };
+    if (overlaps(box)) return { ...feature, labeled: false, labelSide };
     taken.push(box);
-    return { ...feature, labeled: true };
+    return { ...feature, labeled: true, labelSide };
   });
 }
 
@@ -329,10 +339,10 @@ export function PlaceMarkers({
                   duration: 520,
                 })
               }
-              className="map-pop press flex h-8 min-w-8 items-center justify-center rounded-full bg-ink px-2.5 font-mono text-[12px] font-medium text-paper tabular shadow-md ring-[3px] ring-card/90 hover:bg-ink-2"
+              className="map-pop press flex h-8 min-w-8 items-center justify-center rounded-full bg-accent px-2.5 font-mono text-[12px] font-semibold text-on-accent tabular shadow-md ring-4 ring-accent-soft/80 hover:bg-accent-hover"
               style={{
                 scale:
-                  feature.count >= 25 ? 1.22 : feature.count >= 8 ? 1.1 : 1,
+                  feature.count >= 25 ? 1.2 : feature.count >= 8 ? 1.08 : 1,
               }}
             >
               {feature.count}
@@ -342,12 +352,22 @@ export function PlaceMarkers({
           <MapMarker
             key={feature.id}
             lngLat={[feature.lng, feature.lat]}
+            anchor={
+              zoom >= PIN_ZOOM || feature.slug === selectedSlug
+                ? "bottom"
+                : "center"
+            }
             zIndex={feature.slug === selectedSlug ? 20 : 2}
           >
             <PlacePin
               place={feature}
               selected={feature.slug === selectedSlug}
-              showName={zoom >= NAME_ZOOM && feature.labeled !== false}
+              zoom={zoom}
+              showName={
+                selectedSlug === null &&
+                zoom >= PLACE_LABEL_ZOOM &&
+                feature.labeled !== false
+              }
               onSelect={onSelect}
             />
           </MapMarker>
@@ -357,11 +377,13 @@ export function PlaceMarkers({
         <MapMarker
           key={`selected-${selectedFallback.id}`}
           lngLat={[selectedFallback.lng, selectedFallback.lat]}
+          anchor="bottom"
           zIndex={20}
         >
           <PlacePin
             place={selectedFallback}
             selected
+            zoom={zoom}
             showName
             onSelect={onSelect}
           />
@@ -374,46 +396,67 @@ export function PlaceMarkers({
 function PlacePin({
   place,
   selected,
+  zoom,
   showName,
   onSelect,
 }: {
   place: MapPlace;
   selected: boolean;
+  zoom: number;
   showName: boolean;
   onSelect: (place: MapPlace) => void;
 }) {
+  const style = { "--marker-color": place.color } as CSSProperties;
+  const select = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onSelect(place);
+  };
+
+  if (zoom < PIN_ZOOM && !selected) {
+    return (
+      <button
+        type="button"
+        aria-label={place.name}
+        onClick={select}
+        className="map-pop group flex size-11 items-center justify-center outline-none"
+        style={style}
+      >
+        <span className="size-2.5 rounded-full bg-[var(--marker-color)] shadow-sm ring-[3px] ring-card transition-transform group-hover:scale-125 group-focus-visible:ring-accent" />
+      </button>
+    );
+  }
+
+  const labelSide = place.labelSide ?? "right";
   return (
     <button
       type="button"
       aria-pressed={selected}
       aria-label={place.name}
-      onClick={(event) => {
-        event.stopPropagation();
-        onSelect(place);
-      }}
-      className="map-pop group relative flex size-11 items-center justify-center outline-none"
+      onClick={select}
+      className="map-pop group relative flex h-12 w-11 items-start justify-center outline-none"
+      style={style}
     >
       <span
         className={cx(
-          "flex size-8 items-center justify-center rounded-full shadow-md ring-[2.5px] transition-[transform,background-color,box-shadow] duration-[260ms] ease-out group-hover:-translate-y-0.5 group-focus-visible:ring-accent",
+          "relative flex size-8 items-center justify-center rounded-full shadow-md ring-[3px] ring-card transition-[transform,background-color,box-shadow] duration-[260ms] ease-out after:absolute after:top-[calc(100%-1px)] after:left-1/2 after:h-2 after:w-1.5 after:-translate-x-1/2 after:rounded-b-full after:bg-[var(--marker-color)] group-hover:-translate-y-0.5 group-focus-visible:ring-accent",
           selected
-            ? "scale-[1.28] text-white ring-card shadow-lg"
-            : "bg-card ring-card dark:bg-paper-3 dark:ring-white/25",
+            ? "scale-110 bg-[var(--marker-color)] text-white shadow-lg"
+            : "bg-[color-mix(in_srgb,var(--marker-color)_14%,white)] text-[var(--marker-color)]",
         )}
-        style={
-          selected ? { backgroundColor: place.color } : { color: place.color }
-        }
       >
         <CategoryIcon icon={place.icon} className="size-4" />
       </span>
       {selected || showName ? (
         <span
           className={cx(
-            "pointer-events-none absolute top-[calc(100%-2px)] left-1/2 max-w-56 -translate-x-1/2 truncate rounded-full px-2 py-0.5 text-center text-[12px] leading-tight font-medium whitespace-nowrap text-ink [text-shadow:0_0_2px_var(--paper),0_0_2px_var(--paper),0_0_4px_var(--paper)]",
-            selected && "glass mt-1.5 text-[12px] [text-shadow:none]",
+            "pointer-events-none absolute top-1 flex h-7 max-w-44 items-center gap-1.5 rounded-full bg-card px-2.5 text-[12px] leading-none font-medium whitespace-nowrap text-ink shadow-sm ring-1 ring-line/70",
+            labelSide === "right"
+              ? "left-[calc(100%-2px)]"
+              : "right-[calc(100%-2px)]",
           )}
         >
-          {place.name}
+          <span className="size-1.5 shrink-0 rounded-full bg-[var(--marker-color)]" />
+          <span className="truncate">{place.name}</span>
         </span>
       ) : null}
     </button>

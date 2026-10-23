@@ -23,7 +23,9 @@ export type MunicipalFeature = {
 
 export type MunicipalBoundaries = {
   features: MunicipalFeature[];
-  /** The country minus the province, for dimming what is not ours. */
+  /** The province union, for drawing only its real outer edge. */
+  province?: MunicipalFeature["geometry"] | null;
+  /** The country minus the province, for softly dimming nearby context. */
   outside?: MunicipalFeature["geometry"] | null;
 };
 

@@ -304,13 +304,13 @@ function Appearance() {
       <h2 className="t-label mb-2.5 text-ink-3">{tPage("appearance")}</h2>
       <Segmented
         label={tPage("appearance")}
-        value={(theme as "system" | "light" | "dark") ?? "system"}
+        value={(theme as "system" | "light" | "dark") ?? "light"}
         onChange={setTheme}
         className="w-full"
         options={[
-          { value: "system", label: t("system") },
           { value: "light", label: t("light") },
           { value: "dark", label: t("dark") },
+          { value: "system", label: t("system") },
         ]}
       />
     </section>

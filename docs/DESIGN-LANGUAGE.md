@@ -1,9 +1,15 @@
 # Design language
 
 Ruta Cibao uses the Genesis design system (warm paper, near-black ink, ink-tinted
-rings and shadows, pills, small fast motion) with one accent of its own. This
-file is the reference for every surface: the landing, the content pages and the
-map. When a surface needs something it does not cover, add it here first.
+rings and shadows, pills, small fast motion) with one accent of its own, and
+keeps two things from the first design: Fraunces headlines and a deep pine
+surface. This file is the reference for every surface: the landing, the content
+pages and the map. When a surface needs something it does not cover, add it
+here first.
+
+The app is light by default. Dark is an explicit choice in the account menu,
+the layers sheet and Cuenta; it is kept working, but light is the design
+target and is checked first.
 
 ## Tokens
 
@@ -17,6 +23,7 @@ not a token.
 | Ink | `--ink` `--ink-2` `--ink-3` `--ink-4` | Light `--ink-3` is `#6F6C64`, not Genesis' `#8A877F`, which is 3.4:1 on paper and fails AA for captions. |
 | Paper | `--paper` `--paper-2` `--paper-3` `--line` `--card` | Page, inset areas, chips and hover, hairlines, cards. |
 | Accent | `--accent` `--accent-hover` `--accent-soft` `--on-accent` | "Pino" `#1F6B52` (dark `#5FBF9A`). Primary action and links only, at most one accent button per view. |
+| Pine | `--pine` `--on-pine` | `#183F32` with paper text. The one coloured surface: the landing hero band and the footer. Never a button. |
 | Status | `--success` `--warning` `--danger` | Always with an icon and words. Text uses `text-danger-ink` (the hue pulled toward ink) for 4.5:1. |
 | Location | `--locate` | Genesis blue, for the "you are here" dot only. A map convention, not an accent. |
 | Depth | `--ring` `--shadow-sm/md/lg` `--glass` | Cards take `shadow-ring`; floating things take `shadow-lg`; glass is for controls over the map. |
@@ -28,11 +35,12 @@ frames `32px` (`rounded-frame`).
 
 ## Type
 
-Inter (with `ss01`, `cv11` and optical sizing) for everything, Geist Mono 500
-for small uppercase labels and figures. Weights are 400, 500 and 600, and
-headlines are 450–500. The roles are utilities: `t-display`, `t-h2`, `t-h3`,
-`t-body-lg`, `t-body`, `t-small`, `t-label`. Inputs stay at 16px so iOS does not
-zoom on focus.
+Inter (with `ss01`, `cv11` and optical sizing) for body and interface text,
+Fraunces (optical size, `SOFT` 50) for the display and section headlines, and
+Geist Mono 500 for small uppercase labels and figures. Weights are 400, 500 and
+600, and headlines are 450–500. The roles are utilities: `t-display` and
+`t-h2` (Fraunces), `t-h3`, `t-body-lg`, `t-body`, `t-small` (Inter), `t-label`
+(mono). Inputs stay at 16px so iOS does not zoom on focus.
 
 Every page opens with the same rhythm (`PageHeader`): a mono eyebrow, a
 headline of eight words or fewer, and one sentence of lede.
@@ -61,18 +69,28 @@ read at a glance.
   `src/lib/map/palette.ts`, and `tests/map-style.test.ts` checks both.
 - **Labels** use Inter and Geist Mono, from glyph packs built by
   `bun run basemap:glyphs`.
-- **Province.** Everything outside the province is veiled with paper, labels
-  included. Municipal lines are dashed, and municipality names are set in the
+- **Chrome.** Two floating rows over the map: the search with a filter disc
+  and the account beside it, then every category as icon and label. The active
+  categories are marked by an ink underline, never by fill alone, and several
+  can be on at once. It is the same rail at both sizes — icon over label on a
+  phone, beside it on a desktop — so a category an official adds in the admin
+  panel appears in both without a code change.
+- **Province.** Nearby context is softly veiled as the camera closes in.
+  Municipal polygons come from the exact OpenStreetMap administrative
+  relations used by the basemap; their lines are dashed, and names use the
   mono label face.
-- **Markers** are DOM elements styled with the interface tokens. They are not
-  symbol layers, so they get real buttons, focus rings and transitions.
-  - Places are round pins in their category colour.
-  - Traffic points are square chips (road-sign shape).
-  - Routes are footprints; open cases are speech marks.
-  - Clusters are ink pills with a mono count. They come from the Postgres MVT
-    tiles and are merged in screen space so no two markers overlap.
-- **Selection.** The pin scales up, fills with its category colour, and shows
-  its name in a glass pill.
+- **Markers** are DOM elements styled with interface tokens, so they keep real
+  buttons, focus rings and transitions.
+  - At regional zoom, places, routes, cases and traffic are small coloured
+    dots. Place clusters are accent circles with a mono count.
+  - At street zoom, places become category-coloured pins: a circular icon over
+    a narrow stem. Traffic becomes a road-sign chip.
+  - At z15, collision-tested place names become compact side tags. Selecting a
+    place hides the other tags and opens the draggable detail sheet.
+  - Server MVT clustering plus a screen-space merge keeps markers from
+    overlapping at broad zooms.
+- **Selection.** The pin scales up, fills with its category colour, keeps its
+  side tag, and suppresses unrelated labels while its sheet is open.
 - **Sheets.** On phones a place or report opens in a Base UI drawer that snaps
   at 320px, 62% and 94% and never covers the whole map. On desktop the same
   content sits in a 400px floating panel on the left.

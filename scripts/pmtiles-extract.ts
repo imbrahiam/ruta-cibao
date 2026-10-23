@@ -1,21 +1,17 @@
 /**
- * Cuts basemaps for the province and the country out of the global Protomaps
- * build.
+ * Builds the self-hosted Protomaps archives used by Ruta Cibao.
  *
- * This is the handover path. A hosted tile provider is convenient while
- * building, but it is a key, a bill and a third party the municipality would
- * inherit. Protomaps publishes the whole planet as a single PMTiles file, and
- * the extractor reads it over HTTP range requests — so this pulls down only the
- * tiles covering Santiago Rodríguez, a few megabytes, and never the planet.
+ * `provincia` is the nine-megabyte offline download. `pais` is a compact
+ * street-level Dominican archive. `mundo` joins a low-zoom world (z0–8) to
+ * street-level Hispaniola (z9–15): global context without trying to host the
+ * roughly 135 GB street-level planet.
  *
- * What comes out is one file per region. Serve one from the same server as the
- * app, point NEXT_PUBLIC_BASEMAP_PMTILES_URL at it, and the map has no external
- * dependency, no quota and nothing to renew. It is also what makes the offline
- * story real: a file the service worker can cache is a map that works in a dead
- * zone.
+ * PMTiles reads the planet through HTTP range requests, so only the selected
+ * tile bytes are downloaded. Generated archives are gitignored.
  *
- *   bun run scripts/pmtiles-extract.ts              # both regions
- *   bun run scripts/pmtiles-extract.ts provincia    # just the small one
+ *   bun run basemap                     # province + country
+ *   bun run basemap -- provincia
+ *   bun run basemap -- mundo            # ~650 MB
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync } from "node:fs";
@@ -46,7 +42,12 @@ const REGIONS = {
   },
 } as const;
 
-type Region = keyof typeof REGIONS;
+const WORLD_OUTPUT = "public/basemap/mundo-hispaniola.pmtiles";
+const WORLD_BUILD_DIR = ".tooling/basemap-build";
+const WORLD_MAX_ZOOM = 8;
+const HISPANIOLA_BBOX = "-74.55,17.4,-68.2,20.1";
+
+type Region = keyof typeof REGIONS | "mundo";
 
 /**
  * Street level. Past this the basemap adds detail nobody reads at walking pace
@@ -98,28 +99,56 @@ function explainMissingCli(): never {
   process.exit(1);
 }
 
-function extract(region: Region) {
+function run([command, ...args]: [string, ...string[]], label: string) {
+  const result = spawnSync(command, args, { stdio: "inherit" });
+  if (result.status !== 0) {
+    console.error(`${label} failed`);
+    process.exit(result.status ?? 1);
+  }
+}
+
+function extract(region: keyof typeof REGIONS) {
   const { bbox: box, output } = REGIONS[region];
   const bbox = `${box.west},${box.south},${box.east},${box.north}`;
   console.log(`extracting ${region}: ${bbox} up to z${MAX_ZOOM}`);
-  console.log(`  from ${SOURCE}`);
-  console.log(`  to   ${output}`);
-
-  const result = spawnSync(
-    cli(),
-    ["extract", SOURCE, output, `--bbox=${bbox}`, `--maxzoom=${MAX_ZOOM}`],
-    { stdio: "inherit" },
+  run(
+    [
+      cli(),
+      "extract",
+      SOURCE,
+      output,
+      `--bbox=${bbox}`,
+      `--maxzoom=${MAX_ZOOM}`,
+    ],
+    `extraction of ${region}`,
   );
-
-  if (result.status !== 0) {
-    console.error(`extraction of ${region} failed`);
-    process.exit(result.status ?? 1);
-  }
-
   if (!existsSync(output)) {
     console.error("the extractor reported success but wrote no file");
     process.exit(1);
   }
+}
+
+function extractWorld() {
+  mkdirSync(WORLD_BUILD_DIR, { recursive: true });
+  const low = `${WORLD_BUILD_DIR}/world-low.pmtiles`;
+  const island = `${WORLD_BUILD_DIR}/hispaniola-high.pmtiles`;
+  run(
+    [cli(), "extract", SOURCE, low, `--maxzoom=${WORLD_MAX_ZOOM}`],
+    "low-zoom world extraction",
+  );
+  run(
+    [
+      cli(),
+      "extract",
+      SOURCE,
+      island,
+      `--bbox=${HISPANIOLA_BBOX}`,
+      `--minzoom=${WORLD_MAX_ZOOM + 1}`,
+      `--maxzoom=${MAX_ZOOM}`,
+    ],
+    "Hispaniola extraction",
+  );
+  run([cli(), "merge", low, island, WORLD_OUTPUT], "world archive merge");
 }
 
 /**
@@ -130,12 +159,14 @@ function extract(region: Region) {
  */
 function requestedRegions(): Region[] {
   const named = process.argv.slice(2).filter((arg) => !arg.startsWith("-"));
-  if (named.length === 0) return Object.keys(REGIONS) as Region[];
+  if (named.length === 0)
+    return Object.keys(REGIONS) as (keyof typeof REGIONS)[];
 
-  const unknown = named.find((name) => !(name in REGIONS));
+  const expected: Region[] = [...Object.keys(REGIONS), "mundo"] as Region[];
+  const unknown = named.find((name) => !expected.includes(name as Region));
   if (unknown) {
     console.error(
-      `unknown region "${unknown}"; expected one of ${Object.keys(REGIONS).join(", ")}`,
+      `unknown region "${unknown}"; expected one of ${expected.join(", ")}`,
     );
     process.exit(1);
   }
@@ -150,20 +181,28 @@ function main() {
   mkdirSync("public/basemap", { recursive: true });
 
   const regions = requestedRegions();
-  for (const region of regions) extract(region);
+  for (const region of regions) {
+    if (region === "mundo") extractWorld();
+    else extract(region);
+  }
 
   console.log(
     [
       "",
-      "Done. Serve one of them as the basemap:",
+      "Done. Display the world archive and keep the province for offline use:",
       "",
-      ...regions.map(
-        (region) =>
-          `  NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/${REGIONS[region].output.split("/").pop()}   # ${region}`,
-      ),
+      ...(regions.includes("mundo")
+        ? [
+            `  NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/${WORLD_OUTPUT.split("/").pop()}`,
+          ]
+        : []),
+      ...(regions.includes("provincia")
+        ? [
+            "  NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL=/basemap/santiago-rodriguez.pmtiles",
+          ]
+        : []),
       "",
-      "The country file is the same map with room to grow; the province file",
-      "is the small one a phone can save for offline use.",
+      "The country target remains useful for a smaller regional deployment.",
       "",
       "The style also needs glyphs for its labels. Copy a font pack into",
       "public/fonts/{fontstack}/{range}.pbf — the Noto Sans build from",

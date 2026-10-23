@@ -17,27 +17,27 @@ produced from it.
 | Queue sent with the app closed (Background Sync) | Yes | No — sent on next open |
 | Province basemap stored on the device | Yes, MapLibre renderer only | Yes, MapLibre renderer only |
 
-Two pieces are deliberately renderer-dependent. Google's terms and the OSM standard tile usage policy
-forbid storing their tiles, so the *Mapa sin señal* row in the layers panel only
-appears when `NEXT_PUBLIC_MAP_RENDERER=maplibre` and
-`NEXT_PUBLIC_BASEMAP_PMTILES_URL` points at a file this origin serves, and
-hardware WebGL is available. Software rendering falls back to online raster
-tiles, so the offline-download row is hidden on that device. Saving it
-stores the whole PMTiles file in Cache Storage; the service worker then answers
-the renderer's byte-range requests from that copy.
+Two pieces are deliberately renderer-dependent. Google's terms and the OSM
+standard tile usage policy forbid storing their tiles, so *Mapa sin señal*
+appears only with MapLibre, hardware WebGL and a same-origin
+`NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL`. Saving stores that complete,
+province-only archive in Cache Storage; the service worker then answers
+MapLibre's byte-range requests from the local copy.
 
-`bun run basemap` cuts two files at street level (z15), and the served one is
-what the row downloads:
+Display and offline storage use separate files:
 
-| File | Covers | Size |
+| File | Covers | Size/use |
 | --- | --- | --- |
-| `/basemap/santiago-rodriguez.pmtiles` | The province | ~9 MB |
-| `/basemap/republica-dominicana.pmtiles` | The whole country | ~57 MB |
+| `/basemap/mundo-hispaniola.pmtiles` | World z0–8; Hispaniola z9–15 | ~650 MB on the server; visible byte ranges only |
+| `/basemap/santiago-rodriguez.pmtiles` | Province through z15 | ~9 MB explicit phone download |
+| `/basemap/republica-dominicana.pmtiles` | Country through z15 | ~57 MB optional expansion archive |
 
-The country file exists so that adding a municipality elsewhere is a change of
-environment variable, not a new build. The row shows the size before anything is
-downloaded and suggests Wi-Fi above 25 MB. Nothing else in the app widens with
-it: `PROVINCE_BOUNDS` still decides where a place or a report may be filed.
+Build the display archive with `bun run basemap -- mundo` and the offline
+archive with `bun run basemap -- provincia`. The service worker never routes
+the world archive through Cache Storage; doing so would turn the first range
+request into a full-file download. The offline row shows its size before
+downloading and suggests Wi-Fi above 25 MB. `PROVINCE_BOUNDS` still decides
+where a place or report may be filed.
 
 ### Where the code lives
 
@@ -126,7 +126,8 @@ opened.
 - Chrome DevTools → *Application* → *Service workers* has a **Sync** button that
   fires the `sync` event by hand; queue a traffic report offline, go back online,
   press it, and watch `/pendientes` empty.
-- To try the offline basemap, run with `NEXT_PUBLIC_MAP_RENDERER=maplibre` and
-  `NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/santiago-rodriguez.pmtiles`, save
-  the map from the layers panel, then tick *Offline* in DevTools → *Network* and
-  pan around Sabaneta.
+- To try the offline basemap, run with
+  `NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/mundo-hispaniola.pmtiles` and
+  `NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL=/basemap/santiago-rodriguez.pmtiles`,
+  save the map from the layers sheet, then tick *Offline* in DevTools →
+  *Network* and pan around Sabaneta.

@@ -213,8 +213,10 @@ curl -fsSL -o /tmp/pmtiles.tar.gz "<link to the release asset>"
 tar -xzf /tmp/pmtiles.tar.gz -C .tooling pmtiles
 .tooling/pmtiles version
 
-bun run basemap          # cuts the province (~9 MB) and the country (~57 MB)
-bun run basemap:fonts    # the map label fonts
+bun run basemap -- mundo       # global z0–8 + Hispaniola z9–15 (~650 MB)
+bun run basemap -- provincia   # optional phone download (~9 MB)
+bun run basemap:fonts          # fetch the map label font files
+bun run basemap:glyphs         # compile MapLibre glyph ranges
 ls -lh public/basemap public/fonts
 ```
 
@@ -343,8 +345,8 @@ S3_FORCE_PATH_STYLE=0
 
 # --- Map -----------------------------------------------------------------
 NEXT_PUBLIC_MAP_RENDERER=maplibre
-NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/republica-dominicana.pmtiles
-
+NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/mundo-hispaniola.pmtiles
+NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL=/basemap/santiago-rodriguez.pmtiles
 # --- Address search ------------------------------------------------------
 # "nominatim" uses OpenStreetMap's public geocoder within its usage policy
 # (asked only on submit, cached, one request a second). For heavy use, run your
@@ -387,7 +389,7 @@ and re-running is how you update the data.
 
 ```bash
 rc run --rm migrate bun run scripts/seed.ts               # municipalities, categories
-rc run --rm migrate bun run scripts/import-boundaries.ts  # municipal limits (ONE, via OCHA COD-AB; no network)
+rc run --rm migrate bun run scripts/import-boundaries.ts  # exact OSM municipal relations
 rc run --rm migrate bun run scripts/import-roads.ts       # road network (OpenStreetMap)
 ```
 
@@ -397,8 +399,10 @@ rc run --rm migrate bun run scripts/import-roads.ts       # road network (OpenSt
 | `import-boundaries.ts` | The location picker cannot name the municipality |
 | `import-roads.ts` | Traffic reports cannot cover a whole street, only a point |
 
-The boundary and road imports download from public services. If one times
-out, run it again later.
+The road import downloads from Overpass and may be retried after a timeout.
+Boundary import uses the reviewed GeoJSON in the repository. To refresh it
+deliberately from OSM, run `bun run scripts/fetch-boundaries.ts`, review the
+change, then import it.
 
 **Never run `seed-demo.ts` in production.** It creates fake accounts that can
 sign in. It refuses to run when `NODE_ENV=production`, which every container

@@ -6,6 +6,7 @@ import {
   MapPinPlus,
   MessageSquarePlus,
   Plus,
+  SlidersHorizontal,
   TrafficCone,
 } from "lucide-react";
 import type { Map as MapLibreMap } from "maplibre-gl";
@@ -31,6 +32,7 @@ import {
   TrafficLayer,
   type TrafficReport,
 } from "@/components/traffic/traffic-layer";
+import { IconButton } from "@/components/ui/button";
 import { Menu, MenuItem } from "@/components/ui/menu";
 import { useGeolocation } from "@/hooks/use-geolocation";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -38,7 +40,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { cx } from "@/lib/cx";
 import { PROVINCE_BOUNDS } from "@/lib/map/config";
 import { orpc } from "@/lib/orpc";
-import { CategoryChips } from "./category-chips";
+import { CategoryRail } from "./category-chips";
 import { CommunityLayer } from "./community-layer";
 import { DEFAULT_LAYERS, LayersSheet, type MapLayers } from "./layers-sheet";
 import { LocationLayer } from "./location-layer";
@@ -168,7 +170,7 @@ export function MapScreen() {
         padding: desktop
           ? { left: 432, top: 24, right: 24, bottom: 24 }
           : {
-              top: 120,
+              top: 172,
               bottom: Math.min(340, height * 0.42),
               left: 16,
               right: 16,
@@ -286,7 +288,7 @@ export function MapScreen() {
       <MapCanvas
         label={t("title")}
         bounds={PROVINCE_BOUNDS}
-        padding={{ top: 140, bottom: 110, left: 24, right: 24 }}
+        padding={{ top: 176, bottom: 110, left: 24, right: 24 }}
         className="absolute inset-0"
         onReady={(map) => {
           mapRef.current = map;
@@ -336,7 +338,7 @@ export function MapScreen() {
               <span className="glass max-w-48 truncate rounded-full px-2.5 py-1 text-[12px] font-medium text-ink">
                 {searchMarker.name}
               </span>
-              <span className="mt-1 size-3 rounded-full bg-ink shadow-md ring-[3px] ring-card" />
+              <span className="mt-1 size-3 rounded-full bg-accent shadow-md ring-[3px] ring-card" />
             </span>
           </MapMarker>
         ) : null}
@@ -357,7 +359,7 @@ export function MapScreen() {
           />
         ) : null}
 
-        {/* Top: search, account, categories. */}
+        {/* Top: search, filters, categories. */}
         {picking ? null : (
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20 pt-[max(10px,env(safe-area-inset-top))] md:pt-4">
             <div className="flex items-start gap-3 px-3 md:px-4">
@@ -372,26 +374,40 @@ export function MapScreen() {
                 <MapSearch
                   onPick={onPick}
                   className="min-w-0 flex-1"
-                  trailing={desktop ? null : <AccountMenu />}
+                  trailing={null}
                 />
               </div>
-              <CategoryChips
-                selected={categories}
-                onChange={(next) =>
-                  void setCategories(next.length ? next : null)
-                }
-                className="pointer-events-auto hidden min-w-0 flex-1 md:flex"
-              />
-              <div className="glass pointer-events-auto hidden h-12 shrink-0 items-center gap-1 rounded-full px-1 md:flex">
+
+              {/* A phone has one width to spend: the filters get a disc beside
+                  the search and the categories the row below it. */}
+              <div className="pointer-events-auto flex shrink-0 items-center gap-2 md:hidden">
+                <IconButton
+                  label={t("filters.open")}
+                  variant="glass"
+                  size="lg"
+                  onClick={() => setLayersOpen(true)}
+                >
+                  <SlidersHorizontal strokeWidth={1.75} />
+                </IconButton>
+                <AccountMenu compact />
+              </div>
+
+              <div className="glass pointer-events-auto ml-auto hidden h-12 shrink-0 items-center gap-1 rounded-full px-1 md:flex">
                 <NotificationBell />
                 <AccountMenu />
               </div>
             </div>
-            <CategoryChips
-              selected={categories}
-              onChange={(next) => void setCategories(next.length ? next : null)}
-              className="pointer-events-auto mt-2 md:hidden"
-            />
+
+            <div className="pointer-events-auto mt-2.5 px-3 md:px-4">
+              <CategoryRail
+                selected={categories}
+                onChange={(next) =>
+                  void setCategories(next.length ? next : null)
+                }
+                className="w-full md:w-fit md:max-w-full"
+              />
+            </div>
+
             <OfflineNotice className="mt-2 px-3 md:ml-[432px]" />
           </div>
         )}
@@ -489,6 +505,10 @@ export function MapScreen() {
         onOpenChange={setLayersOpen}
         layers={layers}
         onChange={setLayers}
+        categories={categories}
+        onCategoriesChange={(next) =>
+          void setCategories(next.length ? next : null)
+        }
       />
 
       {picking ? null : <TabBar />}

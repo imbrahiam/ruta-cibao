@@ -38,6 +38,7 @@ import {
 } from "@/db/schema";
 import { env } from "@/lib/env";
 import { streetAt } from "@/lib/map/roads";
+import { formatPhone } from "@/lib/phone";
 
 /** Stable ids from names, so a second run updates rather than duplicates. */
 function idFor(kind: string, name: string): string {
@@ -88,6 +89,10 @@ const ago = (hours: number) => new Date(Date.now() - hours * HOUR);
  * differently from a visitor's in half a dozen places, and a demo where
  * everybody is verified shows none of it. `staffRole` gives the moderation desk
  * and the weekly report somebody to belong to.
+ *
+ * Each one has a fictional 809-555-01xx number so the demo can be signed into
+ * as any of them: list the numbers in `LOCAL_DEMO_PHONES` and the code is
+ * `LOCAL_DEMO_OTP` (local development only, refused in production).
  */
 const PEOPLE = [
   {
@@ -95,54 +100,63 @@ const PEOPLE = [
     municipality: "sabaneta",
     tier: "citizen",
     staff: "admin",
+    phone: "+18095550101",
   },
   {
     name: "Ramón Ureña",
     municipality: "sabaneta",
     tier: "citizen",
     staff: "moderator",
+    phone: "+18095550102",
   },
   {
     name: "Yudelka Tavárez",
     municipality: "moncion",
     tier: "citizen",
     staff: "moderator",
+    phone: "+18095550103",
   },
   {
     name: "Franklin Rodríguez",
     municipality: "sabaneta",
     tier: "citizen",
     staff: "none",
+    phone: "+18095550104",
   },
   {
     name: "Miguelina Cruz",
     municipality: "moncion",
     tier: "citizen",
     staff: "none",
+    phone: "+18095550105",
   },
   {
     name: "José Antonio Fermín",
     municipality: "villa-los-almacigos",
     tier: "citizen",
     staff: "none",
+    phone: "+18095550106",
   },
   {
     name: "Rosa Jiménez",
     municipality: "sabaneta",
     tier: "citizen",
     staff: "none",
+    phone: "+18095550107",
   },
   {
     name: "Wilson Bencosme",
     municipality: "moncion",
     tier: "visitor",
     staff: "none",
+    phone: "+18095550108",
   },
   {
     name: "Katherine Almonte",
     municipality: "sabaneta",
     tier: "visitor",
     staff: "none",
+    phone: "+18095550109",
   },
 ] as const;
 
@@ -279,10 +293,22 @@ async function main() {
 
     await db
       .insert(user)
-      .values({ id, name: person.name, email, emailVerified: true })
+      .values({
+        id,
+        name: person.name,
+        email,
+        emailVerified: true,
+        phoneNumber: person.phone,
+        phoneNumberVerified: true,
+      })
       .onConflictDoUpdate({
         target: user.id,
-        set: { name: person.name, email },
+        set: {
+          name: person.name,
+          email,
+          phoneNumber: person.phone,
+          phoneNumberVerified: true,
+        },
       });
 
     await db
@@ -542,10 +568,13 @@ async function main() {
   }
 
   console.log("notifications: 3");
-  console.log("\ndemo data ready. Sign in as any of:");
-  for (const person of PEOPLE.filter((p) => p.staff !== "none")) {
+  console.log(
+    "\ndemo data ready. Sign in by phone (code = LOCAL_DEMO_OTP when the number is in LOCAL_DEMO_PHONES):",
+  );
+  for (const person of PEOPLE) {
+    const role = person.staff === "none" ? person.tier : person.staff;
     console.log(
-      `  ${idFor("user", person.name)}@demo.rutacibao.local  (${person.staff})`,
+      `  ${formatPhone(person.phone)}  ${role.padEnd(9)}  ${person.name} (${person.municipality})`,
     );
   }
 }

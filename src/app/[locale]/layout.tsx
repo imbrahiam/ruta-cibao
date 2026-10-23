@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Fraunces, Geist_Mono, Inter } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Providers } from "@/components/providers";
@@ -9,9 +9,10 @@ import { type Locale, routing } from "@/i18n/routing";
 import "../globals.css";
 
 /*
- * Inter for everything, Geist Mono for small uppercase labels and figures.
- * `next/font` downloads both at build time and serves them from this origin,
- * so a phone on a weak signal makes no request to a font CDN.
+ * Inter for everything, Fraunces for display and section headlines, Geist Mono
+ * for small uppercase labels and figures. `next/font` downloads all three at
+ * build time and serves them from this origin, so a phone on a weak signal
+ * makes no request to a font CDN.
  */
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
@@ -27,11 +28,17 @@ const geistMono = Geist_Mono({
   weight: ["500"],
 });
 
+const fraunces = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-fraunces",
+  display: "swap",
+  axes: ["opsz", "SOFT"],
+});
+
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fafaf7" },
-    { media: "(prefers-color-scheme: dark)", color: "#121211" },
-  ],
+  // Light by default; a person who picks dark gets dark chrome inside the app,
+  // and the browser bar staying paper-coloured is the lesser mismatch.
+  themeColor: "#fafaf7",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -83,7 +90,7 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale === "es" ? "es-DO" : locale}
-      className={`${inter.variable} ${geistMono.variable}`}
+      className={`${inter.variable} ${fraunces.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
       <body>

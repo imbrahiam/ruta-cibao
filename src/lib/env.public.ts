@@ -21,6 +21,9 @@ const publicSchema = z.object({
    */
   NEXT_PUBLIC_BASEMAP_PMTILES_URL: optional,
 
+  /** The small province archive offered as an explicit offline download. */
+  NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL: optional,
+
   /**
    * The VAPID public key. Absent means the account screen offers no push
    * toggle at all, rather than one that fails at the browser prompt.
@@ -31,5 +34,7 @@ const publicSchema = z.object({
 export const publicEnv = publicSchema.parse({
   NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   NEXT_PUBLIC_BASEMAP_PMTILES_URL: process.env.NEXT_PUBLIC_BASEMAP_PMTILES_URL,
+  NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL:
+    process.env.NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL,
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
 });

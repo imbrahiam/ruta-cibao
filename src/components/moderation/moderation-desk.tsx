@@ -114,7 +114,7 @@ export function ModerationDesk() {
                   className={cx(
                     "press flex h-10 w-full items-center gap-2.5 rounded-full px-3.5 text-[15px] whitespace-nowrap lg:h-11 lg:rounded-[12px]",
                     active
-                      ? "bg-ink text-paper"
+                      ? "bg-accent text-on-accent shadow-sm"
                       : "bg-card text-ink-2 shadow-ring hover:text-ink lg:bg-transparent lg:shadow-none lg:hover:bg-paper-3",
                   )}
                 >

@@ -18,9 +18,8 @@ import { COUNTRY_BOUNDS } from "@/lib/map/config";
  * PostGIS already speaks this format and the alternative is a parser nobody
  * asked for.
  *
- * Boundaries: Oficina Nacional de Estadística via OCHA COD-AB (CC BY-IGO).
- * Imported by
- * `scripts/import-boundaries.ts`.
+ * Boundaries: OpenStreetMap administrative relations (ODbL 1.0), matching the
+ * Protomaps basemap. Imported by `scripts/import-boundaries.ts`.
  */
 export const MUNICIPAL_BOUNDARIES_TAG = "municipal-boundaries";
 
@@ -46,14 +45,17 @@ async function collection() {
     .from(municipalities)
     .where(isNotNull(municipalities.boundary));
 
-  // Everything in the country that is not the province, so the map can dim it
-  // and the three municipalities read as the subject rather than a region of
-  // a general-purpose map.
+  // One union serves both jobs: the province's actual outline, and a nearby
+  // context mask. Returning the union separately avoids drawing the envelope's
+  // rectangular edge as though it were an administrative boundary.
   const [west, south, east, north] = COUNTRY_BOUNDS;
-  const [outside] = rows.length
+  const [province] = rows.length
     ? await db
         .select({
-          geometry: sql<string>`ST_AsGeoJSON(ST_Difference(
+          geometry: sql<string>`ST_AsGeoJSON(
+            ST_SimplifyPreserveTopology(ST_Union(${municipalities.boundary}), 0.0001)
+          , 5)`,
+          outside: sql<string>`ST_AsGeoJSON(ST_Difference(
             ST_MakeEnvelope(${west}, ${south}, ${east}, ${north}, 4326),
             ST_SimplifyPreserveTopology(ST_Union(${municipalities.boundary}), 0.0001)
           ), 5)`,
@@ -75,8 +77,9 @@ async function collection() {
       },
       geometry: JSON.parse(row.geometry) as unknown,
     })),
+    province: province ? (JSON.parse(province.geometry) as unknown) : null,
     // A GeoJSON foreign member: readers that do not know it ignore it.
-    outside: outside ? (JSON.parse(outside.geometry) as unknown) : null,
+    outside: province ? (JSON.parse(province.outside) as unknown) : null,
   };
 }
 

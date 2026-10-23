@@ -44,7 +44,7 @@ export function Logo({
   return (
     <span className={cx("inline-flex items-center gap-2.5", className)}>
       <LogoMark />
-      <span className="text-[15px] font-medium tracking-[-0.02em] text-ink">
+      <span className="font-display text-[18px] leading-none font-medium tracking-[-0.015em] text-ink">
         {label}
       </span>
     </span>

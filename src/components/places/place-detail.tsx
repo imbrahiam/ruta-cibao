@@ -18,7 +18,7 @@ import {
 import { useFormatter, useTranslations } from "next-intl";
 import { type ReactNode, useState } from "react";
 import { useAuth } from "@/components/auth/auth-context";
-import { Button } from "@/components/ui/button";
+import { Button, IconButton } from "@/components/ui/button";
 import { Placeholder } from "@/components/ui/loading";
 import { Menu, MenuItem } from "@/components/ui/menu";
 import { Tag } from "@/components/ui/tag";
@@ -129,50 +129,48 @@ function PlaceBody({
   return (
     <article className="pb-6">
       <header className="px-5 pt-2 pr-14 md:pt-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-[14px] text-ink-2">
-            <span
-              className="flex size-6 items-center justify-center rounded-full text-white"
-              style={{ backgroundColor: place.category.color }}
-            >
-              <CategoryIcon icon={place.category.icon} className="size-3.5" />
-            </span>
-            {place.category.name}
-          </span>
-          <span aria-hidden className="text-ink-4">
-            ·
-          </span>
-          <span className="text-[14px] text-ink-2">
-            {place.municipality.name}
-          </span>
-        </div>
-        <h2 className="t-h3 mt-2 text-ink">{place.name}</h2>
+        <span
+          className="inline-flex min-h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium"
+          style={{
+            color: place.category.color,
+            backgroundColor: `color-mix(in srgb, ${place.category.color} 10%, var(--card))`,
+          }}
+        >
+          <CategoryIcon icon={place.category.icon} className="size-3.5" />
+          {place.category.name}
+        </span>
+        <h2 className="mt-2 text-[24px] leading-tight font-semibold tracking-[-0.025em] text-ink">
+          {place.name}
+        </h2>
+        <p className="t-small mt-2 flex items-center gap-1.5 text-ink-2">
+          <MapPin strokeWidth={1.5} className="size-3.5" />
+          {place.municipality.name}
+        </p>
         <TrustLine trust={place.trust} />
       </header>
 
-      <div className="scrollbar-none -mb-1 flex gap-2 overflow-x-auto px-5 pt-4 pb-1">
-        <Button variant="accent" onClick={directions}>
-          <Navigation strokeWidth={1.75} />
+      <div className="mt-4 flex items-center gap-2 px-5">
+        <Button
+          variant="accent"
+          className="min-h-11 min-w-0 flex-1"
+          onClick={directions}
+        >
+          <Navigation strokeWidth={1.75} className="hidden min-[380px]:block" />
           {t("directions")}
         </Button>
         <SaveButton placeId={place.id} />
-        <button
-          type="button"
-          aria-label={t("share")}
+        <IconButton
+          label={t("share")}
           onClick={share}
-          className="press inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-card text-ink shadow-ring hover:bg-paper-2 pointer-coarse:size-11"
+          className="min-h-11 min-w-11"
         >
-          <Share2 strokeWidth={1.5} className="size-[18px]" />
-        </button>
+          <Share2 strokeWidth={1.5} />
+        </IconButton>
         <Menu
           trigger={
-            <button
-              type="button"
-              aria-label={t("more")}
-              className="press inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-card text-ink shadow-ring hover:bg-paper-2 pointer-coarse:size-11"
-            >
-              <Ellipsis strokeWidth={1.5} className="size-[18px]" />
-            </button>
+            <IconButton label={t("more")} className="min-h-11 min-w-11">
+              <Ellipsis strokeWidth={1.5} />
+            </IconButton>
           }
         >
           <MenuItem onClick={needMember(() => setReporting(true))}>
@@ -337,8 +335,10 @@ function SaveButton({ placeId }: { placeId: string }) {
   );
 
   return (
-    <Button
-      variant="secondary"
+    <IconButton
+      label={isSaved ? t("savedLabel") : t("save")}
+      className="min-h-11 min-w-11"
+      variant={isSaved ? "accent" : "secondary"}
       aria-pressed={isSaved}
       disabled={toggle.isPending}
       onClick={() => {
@@ -347,12 +347,11 @@ function SaveButton({ placeId }: { placeId: string }) {
       }}
     >
       {isSaved ? (
-        <BookmarkCheck strokeWidth={1.75} className="text-accent" />
+        <BookmarkCheck strokeWidth={1.75} />
       ) : (
         <Bookmark strokeWidth={1.5} />
       )}
-      {isSaved ? t("savedLabel") : t("save")}
-    </Button>
+    </IconButton>
   );
 }
 

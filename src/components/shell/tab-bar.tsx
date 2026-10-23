@@ -53,7 +53,9 @@ function Bar({
                 aria-current={active ? "page" : undefined}
                 className={cx(
                   "press flex h-11 w-full max-w-[76px] flex-col items-center justify-center gap-0.5 rounded-full text-[12px] leading-none font-medium tracking-[-0.005em] transition-colors",
-                  active ? "bg-ink text-paper" : "text-ink-2 hover:text-ink",
+                  active
+                    ? "bg-accent text-on-accent shadow-sm"
+                    : "text-ink-2 hover:text-ink",
                 )}
               >
                 <Icon

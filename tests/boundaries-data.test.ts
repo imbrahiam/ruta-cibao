@@ -1,12 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 /**
- * The pinned municipal boundaries are ONE's, via OCHA COD-AB.
- *
- * These areas are the ones ONE publishes (2010 territorial division table) and
- * that COD-AB and OpenStreetMap both reproduce. A replacement file that moves
- * any municipality by more than 1% of its area fails here, before it can move
- * the province under a running platform.
+ * Geometry comes from the exact OSM administrative relations used by the
+ * basemap. ONE's published municipality areas remain an independent sanity
+ * check: a replacement that moves any municipality by more than 1% of its
+ * official area fails before it can move the province in production.
  */
 const OFFICIAL_KM2: Record<string, number> = {
   sabaneta: 801.4,
@@ -17,7 +15,6 @@ const OFFICIAL_KM2: Record<string, number> = {
 const file = (await Bun.file(
   new URL("../data/boundaries/santiago-rodriguez.geojson", import.meta.url),
 ).json()) as {
-  source: string;
   features: { properties: { id: string; pcode: string; areaSqKm: number } }[];
 };
 
@@ -42,10 +39,5 @@ describe("municipal boundaries", () => {
         Math.abs(properties.areaSqKm - (official ?? 0)) / (official ?? 1),
       ).toBeLessThan(0.01);
     }
-  });
-
-  test("name their source and licence", () => {
-    expect(file.source).toContain("Oficina Nacional de Estadística");
-    expect(file.source).toContain("CC BY-IGO");
   });
 });

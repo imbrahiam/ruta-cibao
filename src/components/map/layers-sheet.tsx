@@ -27,6 +27,7 @@ import {
   saveBasemap,
   storableBasemapUrl,
 } from "@/lib/offline/basemap";
+import { CategoryGrid } from "./category-chips";
 
 export type MapLayers = { traffic: boolean; routes: boolean; cases: boolean };
 
@@ -41,65 +42,117 @@ export function LayersSheet({
   onOpenChange,
   layers,
   onChange,
+  categories,
+  onCategoriesChange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   layers: MapLayers;
   onChange: (next: MapLayers) => void;
+  categories: string[];
+  onCategoriesChange: (next: string[]) => void;
 }) {
   const t = useTranslations("map.layers");
   const { theme, setTheme } = useTheme();
+  const [section, setSection] = useState<"places" | "layers">("places");
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title={t("title")}>
-      <ul className="divide-y divide-line/60 rounded-card bg-paper-2">
-        <LayerRow
-          icon={<TrafficCone strokeWidth={1.5} />}
-          title={t("traffic")}
-          body={t("trafficHint")}
-          checked={layers.traffic}
-          onChange={(value) => onChange({ ...layers, traffic: value })}
-        />
-        <LayerRow
-          icon={<Footprints strokeWidth={1.5} />}
-          title={t("routes")}
-          body={t("routesHint")}
-          checked={layers.routes}
-          onChange={(value) => onChange({ ...layers, routes: value })}
-        />
-        <LayerRow
-          icon={<MessagesSquare strokeWidth={1.5} />}
-          title={t("cases")}
-          body={t("casesHint")}
-          checked={layers.cases}
-          onChange={(value) => onChange({ ...layers, cases: value })}
-        />
-      </ul>
-
-      <h3 className="t-label mt-6 mb-2.5 text-ink-3">{t("appearance")}</h3>
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("title")}
+      footer={
+        <div className="flex w-full items-center gap-3">
+          <Button
+            variant="ghost"
+            onClick={() => {
+              onCategoriesChange([]);
+              onChange(DEFAULT_LAYERS);
+            }}
+          >
+            {t("reset")}
+          </Button>
+          <Button
+            variant="accent"
+            className="flex-1"
+            onClick={() => onOpenChange(false)}
+          >
+            {t("viewMap")}
+          </Button>
+        </div>
+      }
+    >
       <Segmented
-        label={t("appearance")}
-        value={(theme as "system" | "light" | "dark") ?? "system"}
-        onChange={setTheme}
-        className="w-full"
+        label={t("title")}
+        value={section}
+        onChange={setSection}
+        className="mb-5 w-full"
         options={[
-          { value: "system", label: t("system") },
-          { value: "light", label: t("light") },
-          { value: "dark", label: t("dark") },
+          { value: "places", label: t("categories") },
+          { value: "layers", label: t("content") },
         ]}
       />
-      <p className="t-small mt-2 flex items-center gap-1.5 text-ink-3">
-        {theme === "dark" ? (
-          <Moon className="size-3.5" />
-        ) : theme === "light" ? (
-          <Sun className="size-3.5" />
-        ) : (
-          <Monitor className="size-3.5" />
-        )}
-        {t("appearanceHint")}
-      </p>
+      {section === "places" ? (
+        <div>
+          <p className="t-small mb-4 text-ink-2">{t("categoryHint")}</p>
+          <CategoryGrid
+            selected={categories}
+            onChange={onCategoriesChange}
+            className="pb-1"
+          />
+        </div>
+      ) : (
+        <div>
+          <ul className="divide-y divide-line/60 rounded-card bg-paper-2">
+            <LayerRow
+              icon={<TrafficCone strokeWidth={1.5} />}
+              title={t("traffic")}
+              body={t("trafficHint")}
+              checked={layers.traffic}
+              onChange={(value) => onChange({ ...layers, traffic: value })}
+            />
+            <LayerRow
+              icon={<Footprints strokeWidth={1.5} />}
+              title={t("routes")}
+              body={t("routesHint")}
+              checked={layers.routes}
+              onChange={(value) => onChange({ ...layers, routes: value })}
+            />
+            <LayerRow
+              icon={<MessagesSquare strokeWidth={1.5} />}
+              title={t("cases")}
+              body={t("casesHint")}
+              checked={layers.cases}
+              onChange={(value) => onChange({ ...layers, cases: value })}
+            />
+          </ul>
 
-      <OfflineMap />
+          <h3 className="t-label mt-6 mb-2.5 text-ink-3">{t("appearance")}</h3>
+          <Segmented
+            label={t("appearance")}
+            value={(theme as "system" | "light" | "dark") ?? "light"}
+            onChange={setTheme}
+            className="w-full"
+            options={[
+              { value: "light", label: t("light") },
+              { value: "dark", label: t("dark") },
+              { value: "system", label: t("system") },
+            ]}
+          />
+          <p className="t-small mt-2 flex items-center gap-1.5 text-ink-3">
+            {theme === "dark" ? (
+              <Moon className="size-3.5" />
+            ) : theme === "light" ? (
+              <Sun className="size-3.5" />
+            ) : (
+              <Monitor className="size-3.5" />
+            )}
+            {t("appearanceHint")}
+          </p>
+
+          <OfflineMap />
+        </div>
+      )}
     </Sheet>
   );
 }
@@ -120,7 +173,7 @@ function LayerRow({
   return (
     <li>
       <div className="flex items-center gap-3 px-4 py-3.5">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-card text-ink-2 shadow-ring [&_svg]:size-[18px]">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-card text-accent [&_svg]:size-[18px]">
           {icon}
         </span>
         <span className="min-w-0 flex-1">
@@ -145,7 +198,9 @@ function LayerRow({
  */
 function OfflineMap() {
   const t = useTranslations("map.layers.offline");
-  const url = storableBasemapUrl(publicEnv.NEXT_PUBLIC_BASEMAP_PMTILES_URL);
+  const url = storableBasemapUrl(
+    publicEnv.NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL,
+  );
   const [state, setState] = useState<
     "unknown" | "saved" | "absent" | "saving" | "unsupported"
   >("unknown");

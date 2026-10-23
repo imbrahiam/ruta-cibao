@@ -27,6 +27,10 @@
   --accent-hover: #175a44;
   --accent-soft: #1f6b521a;
   --on-accent: #ffffff;
+  /* Deep pine: the one coloured surface (landing hero band, footer). Text on
+     it is paper, 11.9:1. */
+  --pine: #183f32;
+  --on-pine: #f3f2ee;
 
   --success: #2e9e6b;
   --warning: #c98a1b;
@@ -55,36 +59,6 @@
   --tabbar-h: calc(64px + env(safe-area-inset-bottom, 0px));
 
   color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ink: #f3f2ee;
-    --ink-2: #b4b1a8;
-    --ink-3: #85827a;
-    --ink-4: #57554f;
-    --paper: #121211;
-    --paper-2: #1a1a18;
-    --paper-3: #242421;
-    --line: #2e2e2b;
-    --card: #1c1c1a;
-    --accent: #5fbf9a;
-    --accent-hover: #7dd0b0;
-    --accent-soft: #5fbf9a24;
-    --on-accent: #121211;
-    --locate: #5c7dff;
-    --ring: 0 0 0 1px rgba(255, 255, 255, 0.08);
-    --shadow-sm:
-      0 0 0 1px rgba(255, 255, 255, 0.07), 0 4px 14px rgba(0, 0, 0, 0.35);
-    --shadow-md:
-      0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 18px rgba(0, 0, 0, 0.4);
-    --shadow-lg:
-      0 0 0 1px rgba(255, 255, 255, 0.06), 0 14px 36px rgba(0, 0, 0, 0.45),
-      0 40px 90px rgba(0, 0, 0, 0.45);
-    --glass: rgb(28 28 26 / 0.72);
-    --scrim: rgb(0 0 0 / 0.5);
-    color-scheme: dark;
-  }
 }
 
 :root[data-theme="dark"] {
@@ -131,6 +105,8 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
+  --color-pine: var(--pine);
+  --color-on-pine: var(--on-pine);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
@@ -144,6 +120,7 @@
   --shadow-lg: var(--shadow-lg);
 
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
   --ease-out: var(--ease-out);
@@ -166,25 +143,31 @@
 
 /* ── Type roles ─────────────────────────────────────────────────────────── */
 
+/* Display and section headlines are Fraunces: the warmth of the first design
+   on Genesis' grid. Soft, optical-sized, never bold. */
 @utility t-display {
-  font-size: 36px;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 50;
+  font-size: 38px;
   font-weight: 450;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   line-height: 1.04;
   text-wrap: balance;
   @media (width >= 50.625rem) {
-    font-size: 56px;
+    font-size: 60px;
   }
 }
 
 @utility t-h2 {
-  font-size: 28px;
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 50;
+  font-size: 29px;
   font-weight: 450;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
   line-height: 1.1;
   text-wrap: balance;
   @media (width >= 50.625rem) {
-    font-size: 36px;
+    font-size: 38px;
   }
 }
 

@@ -234,13 +234,17 @@
       "creditsTitle": "Datos del mapa",
       "osm": "y sus colaboradores, bajo licencia ODbL.",
       "protomaps": "para el mapa base.",
-      "one": "Límites municipales: Oficina Nacional de Estadística (CC BY-IGO)."
+      "one": "Límites municipales: colaboradores de OpenStreetMap, bajo licencia ODbL."
     },
     "actions": {
       "reportTraffic": "Reportar tránsito",
       "addPlace": "Agregar un lugar"
     },
     "all": "Todo",
+    "filters": {
+      "open": "Capas y filtros del mapa",
+      "categories": "Filtrar lugares por categoría"
+    },
     "search": {
       "label": "Buscar en el mapa",
       "placeholder": "Buscar lugares o direcciones",
@@ -268,7 +272,12 @@
       "case": "Consulta: {title}"
     },
     "layers": {
-      "title": "Capas del mapa",
+      "title": "Personalizar el mapa",
+      "categories": "Tipos de lugar",
+      "content": "Contenido del mapa",
+      "categoryHint": "Elige uno o varios tipos de lugar para verlos en el mapa.",
+      "reset": "Restablecer",
+      "viewMap": "Ver mapa",
       "traffic": "Tránsito",
       "trafficHint": "Lo que reportan vecinos sobre las vías",
       "routes": "Rutas de ecoturismo",
@@ -1151,15 +1160,23 @@
     "eyebrow": "Santiago Rodríguez · Mapa cívico",
     "title": "El mapa de la provincia, hecho por su gente",
     "lede": "Lugares, vías, rutas y consultas de Sabaneta, Monción y Villa Los Almácigos en un solo mapa, revisado por su municipio.",
+    "region": "Santiago Rodríguez",
+    "question": "¿Qué buscas hoy?",
+    "photoAlt": "La presa de Monción entre las montañas de Santiago Rodríguez",
+    "search": "Buscar lugares",
+    "searchPlaceholder": "Río, colmado, clínica…",
+    "searchSubmit": "Buscar",
+    "tasks": "Acciones principales",
+    "report": "Reportar un problema",
     "openMap": "Abrir el mapa",
     "explore": "Explorar lugares",
     "mapLabel": "Mapa de la provincia con sus lugares",
     "stats": {
       "places": "{count, plural, one {lugar en el mapa} other {lugares en el mapa}}",
-      "routes": "{count, plural, one {ruta de ecoturismo} other {rutas de ecoturismo}}",
-      "resolved": "{count, plural, one {caso resuelto este mes} other {casos resueltos este mes}}"
+      "municipalities": "{count, plural, one {municipio} other {municipios}}"
     },
     "pulse": "{count, plural, one {# reporte en las vías} other {# reportes en las vías}}{blocking, plural, =0 {} one {, # bloquea el paso} other {, # bloquean el paso}}",
+    "pulseShort": "{count, plural, one {# reporte ahora} other {# reportes ahora}}",
     "pulseClear": "Las vías están despejadas ahora",
     "features": {
       "eyebrow": "Qué puedes hacer",
@@ -1212,7 +1229,9 @@
     "places": {
       "eyebrow": "Para visitar",
       "title": "Lugares que valen el viaje",
-      "all": "Ver todos los lugares"
+      "all": "Ver todos los lugares",
+      "previous": "Ver lugares anteriores",
+      "next": "Ver más lugares"
     },
     "territory": {
       "eyebrow": "El territorio",

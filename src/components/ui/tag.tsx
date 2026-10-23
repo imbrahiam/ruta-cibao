@@ -50,7 +50,7 @@ export function Chip({
       className={cx(
         "press inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 pb-px text-[14px] whitespace-nowrap pointer-coarse:h-11 [&_svg]:size-4 [&_svg]:shrink-0",
         selected
-          ? cx("bg-ink font-medium text-paper", floating && "shadow-sm")
+          ? cx("bg-accent font-medium text-on-accent", floating && "shadow-sm")
           : floating
             ? "glass text-ink-2 hover:text-ink"
             : "bg-card text-ink-2 shadow-ring hover:text-ink",

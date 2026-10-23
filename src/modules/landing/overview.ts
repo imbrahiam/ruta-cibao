@@ -60,6 +60,7 @@ export async function landingPulse() {
     [routeCount],
     [resolvedMonth],
     [resolvedWeek],
+    [municipalityCount],
     open,
     blocked,
   ] = await Promise.all([
@@ -89,6 +90,7 @@ export async function landingPulse() {
           gte(trafficReports.resolvedAt, startOfWeek),
         ),
       ),
+    db.select({ value: count() }).from(municipalities),
     db
       .select({
         id: trafficReports.id,
@@ -121,6 +123,7 @@ export async function landingPulse() {
   return {
     places: placeCount?.value ?? 0,
     routes: routeCount?.value ?? 0,
+    municipalities: municipalityCount?.value ?? 0,
     resolvedThisMonth: resolvedMonth?.value ?? 0,
     resolvedThisWeek: resolvedWeek?.value ?? 0,
     open: open.map((report) => ({

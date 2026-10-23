@@ -87,14 +87,16 @@ const serwist = new Serwist({
         plugins: [new ExpirationPlugin({ maxEntries: 200 })],
       }),
     },
-    // The province basemap, once the person has chosen to save it. The
-    // renderer reads the file by byte range; a saved copy is the whole file,
-    // and the plugin cuts each range out of it. Until it is saved nothing is
-    // stored here — a ranged 206 is never cacheable — so every request simply
-    // goes to the network.
+    // Only archives explicitly marked by the offline downloader go through
+    // Cache Storage. The display archive can contain the whole world;
+    // intercepting its range request with CacheFirst would download the entire
+    // file on first view. A saved province archive is a complete response, and
+    // the plugin slices each requested byte range from that local copy.
     {
       matcher: ({ sameOrigin, url }) =>
-        sameOrigin && url.pathname.endsWith(".pmtiles"),
+        sameOrigin &&
+        url.pathname.endsWith(".pmtiles") &&
+        url.searchParams.get("offline") === "1",
       handler: new CacheFirst({
         cacheName: BASEMAP_CACHE,
         plugins: [new RangeRequestsPlugin()],

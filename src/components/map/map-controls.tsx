@@ -21,6 +21,10 @@ const CONTROL =
  * The map's own controls: one family of glass discs, stacked where a right
  * thumb rests. Zoom buttons only where there is no pinch (a pointer device);
  * on a phone they would be two more things to miss.
+ *
+ * The layers disc is desktop-only too: on a phone the same sheet opens from
+ * the filter disc beside the search, where a thumb already is, and two doors
+ * to one room is one too many.
  */
 export function MapControls({
   geo,
@@ -46,7 +50,7 @@ export function MapControls({
     >
       <button
         type="button"
-        className={cx(CONTROL, "rounded-full")}
+        className={cx(CONTROL, "hidden rounded-full text-accent md:flex")}
         aria-label={t("layers")}
         onClick={onLayers}
       >

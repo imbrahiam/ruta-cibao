@@ -25,9 +25,10 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { publicEnv } from "@/lib/env.public";
-import { COUNTRY_BOUNDS, MAX_ZOOM, MIN_ZOOM } from "@/lib/map/config";
+import { MAX_ZOOM, MIN_ZOOM } from "@/lib/map/config";
 import type { MapTheme } from "@/lib/map/palette";
 import { basemapStyle } from "@/lib/map/style";
+import { isBasemapSaved, storableBasemapUrl } from "@/lib/offline/basemap";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 /**
@@ -69,14 +70,15 @@ function installProtocol() {
 const ATTRIBUTION =
   '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a> · <a href="https://protomaps.com" target="_blank" rel="noopener">Protomaps</a>';
 
-function styleFor(theme: MapTheme) {
-  return basemapStyle({
-    theme,
-    pmtilesUrl:
-      publicEnv.NEXT_PUBLIC_BASEMAP_PMTILES_URL ??
-      "/basemap/santiago-rodriguez.pmtiles",
-    attribution: ATTRIBUTION,
-  });
+function displayBasemapUrl() {
+  return (
+    publicEnv.NEXT_PUBLIC_BASEMAP_PMTILES_URL ??
+    "/basemap/santiago-rodriguez.pmtiles"
+  );
+}
+
+function styleFor(theme: MapTheme, pmtilesUrl = displayBasemapUrl()) {
+  return basemapStyle({ theme, pmtilesUrl, attribution: ATTRIBUTION });
 }
 
 export function MapCanvas({
@@ -105,7 +107,7 @@ export function MapCanvas({
   const theme: MapTheme = resolvedTheme === "dark" ? "dark" : "light";
   const [map, setMap] = useState<MapLibreMap | null>(null);
   const [styleEpoch, setStyleEpoch] = useState(0);
-  const appliedTheme = useRef<MapTheme>(theme);
+  const appliedStyle = useRef({ theme, pmtilesUrl: displayBasemapUrl() });
   const readyRef = useRef(onReady);
   readyRef.current = onReady;
 
@@ -118,7 +120,10 @@ export function MapCanvas({
 
     const instance = new MapLibreMap({
       container: container.current,
-      style: styleFor(appliedTheme.current),
+      style: styleFor(
+        appliedStyle.current.theme,
+        appliedStyle.current.pmtilesUrl,
+      ),
       bounds,
       center,
       zoom,
@@ -127,10 +132,6 @@ export function MapCanvas({
       },
       minZoom: MIN_ZOOM,
       maxZoom: MAX_ZOOM,
-      maxBounds: [
-        [COUNTRY_BOUNDS[0] - 1.5, COUNTRY_BOUNDS[1] - 1],
-        [COUNTRY_BOUNDS[2] + 1.5, COUNTRY_BOUNDS[3] + 1],
-      ],
       // High-density phones would otherwise shade seven pixels per CSS pixel.
       pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       interactive,
@@ -161,9 +162,33 @@ export function MapCanvas({
   }, []);
 
   useEffect(() => {
-    if (!map || appliedTheme.current === theme) return;
-    appliedTheme.current = theme;
-    map.setStyle(styleFor(theme), { diff: false });
+    if (!map) return;
+    let cancelled = false;
+
+    const syncStyle = async () => {
+      const offlineUrl = storableBasemapUrl(
+        publicEnv.NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL,
+      );
+      const useOffline =
+        !navigator.onLine &&
+        offlineUrl !== undefined &&
+        (await isBasemapSaved(offlineUrl));
+      if (cancelled) return;
+      const pmtilesUrl = useOffline ? offlineUrl : displayBasemapUrl();
+      const current = appliedStyle.current;
+      if (current.theme === theme && current.pmtilesUrl === pmtilesUrl) return;
+      appliedStyle.current = { theme, pmtilesUrl };
+      map.setStyle(styleFor(theme, pmtilesUrl), { diff: false });
+    };
+
+    void syncStyle();
+    window.addEventListener("online", syncStyle);
+    window.addEventListener("offline", syncStyle);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("online", syncStyle);
+      window.removeEventListener("offline", syncStyle);
+    };
   }, [map, theme]);
 
   return (

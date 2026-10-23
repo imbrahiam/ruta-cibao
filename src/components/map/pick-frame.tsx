@@ -97,14 +97,14 @@ export function PickFrame({
         {marker === "pin" ? (
           <span className="relative -mt-[46px] flex flex-col items-center">
             <span
-              className="flex size-9 items-center justify-center rounded-full bg-ink shadow-lg ring-[3px] ring-card transition-transform duration-200 ease-out"
+              className="flex size-9 items-center justify-center rounded-full bg-accent shadow-lg ring-[3px] ring-card transition-transform duration-200 ease-out"
               style={{ transform: moving ? "translateY(-8px)" : undefined }}
             >
-              <span className="size-2.5 rounded-full bg-card" />
+              <span className="size-2.5 rounded-full bg-on-accent" />
             </span>
-            <span className="h-3 w-0.5 rounded-full bg-ink" />
+            <span className="h-3 w-0.5 rounded-full bg-accent" />
             <span
-              className="mt-0.5 h-1.5 w-3 rounded-[50%] bg-ink/25 blur-[1px] transition-transform duration-200"
+              className="mt-0.5 h-1.5 w-3 rounded-[50%] bg-accent/25 blur-[1px] transition-transform duration-200"
               style={{ transform: moving ? "scale(0.7)" : undefined }}
             />
           </span>

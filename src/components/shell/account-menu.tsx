@@ -65,21 +65,40 @@ export function Avatar({
   );
 }
 
-export function AccountMenu({ align = "end" }: { align?: "start" | "end" }) {
+export function AccountMenu({
+  align = "end",
+  compact = false,
+}: {
+  align?: "start" | "end";
+  /** A glass disc instead of a labelled button: for the map's top row. */
+  compact?: boolean;
+}) {
   // The locale-aware router reads the current path, which is request data on
   // a dynamic route; the placeholder keeps the slot in the static shell.
   return (
     <Suspense
       fallback={
-        <span aria-hidden className="size-10 rounded-full bg-paper-3" />
+        <span
+          aria-hidden
+          className={cx(
+            "rounded-full bg-paper-3",
+            compact ? "size-12" : "size-10",
+          )}
+        />
       }
     >
-      <AccountMenuInner align={align} />
+      <AccountMenuInner align={align} compact={compact} />
     </Suspense>
   );
 }
 
-function AccountMenuInner({ align }: { align: "start" | "end" }) {
+function AccountMenuInner({
+  align,
+  compact,
+}: {
+  align: "start" | "end";
+  compact: boolean;
+}) {
   const t = useTranslations("account.menu");
   const tNav = useTranslations("nav");
   const { viewer, isSignedIn, isStaff, isLoading } = useAuth();
@@ -88,10 +107,31 @@ function AccountMenuInner({ align }: { align: "start" | "end" }) {
   const queryClient = useQueryClient();
 
   if (isLoading) {
-    return <span aria-hidden className="size-10 rounded-full bg-paper-3" />;
+    return (
+      <span
+        aria-hidden
+        className={cx(
+          "rounded-full bg-paper-3",
+          compact ? "size-12" : "size-10",
+        )}
+      />
+    );
   }
 
   if (!isSignedIn || !viewer) {
+    if (compact) {
+      return (
+        <ButtonLink
+          href="/entrar"
+          variant="secondary"
+          size="lg"
+          aria-label={tNav("signIn")}
+          className="glass size-12 rounded-full px-0"
+        >
+          <CircleUserRound strokeWidth={1.5} className="size-5" aria-hidden />
+        </ButtonLink>
+      );
+    }
     return (
       <ButtonLink href="/entrar" variant="primary" size="sm">
         {tNav("signIn")}
@@ -108,7 +148,12 @@ function AccountMenuInner({ align }: { align: "start" | "end" }) {
         <button
           type="button"
           aria-label={t("open")}
-          className="press flex size-10 items-center justify-center rounded-full hover:bg-paper-3 pointer-coarse:size-11"
+          className={cx(
+            "press flex items-center justify-center rounded-full",
+            compact
+              ? "glass size-12"
+              : "size-10 hover:bg-paper-3 pointer-coarse:size-11",
+          )}
         >
           <Avatar name={name} image={viewer.image} />
         </button>
@@ -166,14 +211,14 @@ function AccountMenuInner({ align }: { align: "start" | "end" }) {
           {t("theme")}
         </BaseMenu.GroupLabel>
         <BaseMenu.RadioGroup
-          value={theme ?? "system"}
+          value={theme ?? "light"}
           onValueChange={(value) => setTheme(String(value))}
         >
           {(
             [
-              ["system", Monitor],
               ["light", Sun],
               ["dark", Moon],
+              ["system", Monitor],
             ] as const
           ).map(([value, Icon]) => (
             <BaseMenu.RadioItem

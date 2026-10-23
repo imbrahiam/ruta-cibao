@@ -15,13 +15,13 @@ real connection to confirm.
 
 | Pattern | What people expect | What Ruta Cibao does | Where |
 | --- | --- | --- | --- |
-| Full-bleed map | Map takes the whole screen; chrome floats over it | No header on `/mapa`; search and chips float; nav is a bottom bar | `src/app/[locale]/(map)/layout.tsx` |
-| Search | A pill at the top that opens a full-screen search | Same: the pill opens a drawer with the input focused, `enterKeyHint="search"` | `src/components/map/map-search.tsx` |
-| Category filters | One row of icon + label chips that scrolls sideways | Same, with an edge fade and a "Todo" chip so filtering can never empty the map | `src/components/map/category-chips.tsx` |
+| Full-bleed map | Map takes the whole screen; chrome floats over it | No header on `/mapa`; search, filter disc and the category rail float; nav is a bottom bar | `src/app/[locale]/(map)/layout.tsx` |
+| Search | A pill at the top that opens a full-screen search | Same: the pill opens a drawer with the input focused, `enterKeyHint="search"`; a filter disc sits beside it | `src/components/map/map-search.tsx` |
+| Category filters | One row of icon + label filters that scrolls sideways, the active one underlined | Same, with an edge fade and "Todo" first so filtering can never empty the map; the icon sits over the label on a phone and beside it on a desktop | `src/components/map/category-chips.tsx` |
 | Place details | Bottom sheet with a peek and a full state; tapping another pin swaps the content | Same, and the sheet never remounts, so it slides once and then only cross-fades | `src/components/map/place-drawer.tsx` |
 | Primary action on a place | One prominent button (directions), the rest behind an overflow | "Cómo llegar" opens the platform's own maps app; save, share and report sit behind "…" | `place-drawer.tsx` |
 | Choosing a location | Fixed pin; the map moves under it ("drop a pin" in Uber, Google) | Same, with the crosshair raised so the confirm card does not cover it | `src/components/map/pick-location.tsx` |
-| Map controls | Locate button bottom-right, layers bottom-left | Same | `map-actions.tsx`, `map-layers.tsx` |
+| Map controls | Locate button bottom-right, layers one tap away | Locate and zoom bottom-right; on a phone the layers sheet opens from the filter disc beside the search, on a desktop from the layers disc | `src/components/map/map-controls.tsx` |
 | Back gesture | Android back closes the sheet, not the app | The open place and report live in the URL with `history: push` | `map-screen.tsx` |
 | Shareable state | A link reopens exactly this view | Every view setting is a URL parameter; defaults write nothing | `map-screen.tsx`, `use-view-preferences.ts` |
 | Sign-in code | Numeric keypad, autofill from SMS, resend timer | `inputMode="numeric"`, `autoComplete="one-time-code"`, countdown before resend; passkeys when available | `src/components/onboarding/sign-in-form.tsx` |
