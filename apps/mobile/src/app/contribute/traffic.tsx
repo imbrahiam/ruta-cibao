@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useTranslations } from "use-intl";
 import { useBoundaries } from "@/features/map/data";
+import { useLocationPermission } from "@/features/map/use-location-permission";
 import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
@@ -108,9 +109,9 @@ export default function ReportTrafficScreen() {
   const selected = categories.data?.find((item) => item.id === category);
   const canSend = Boolean(category) && where.state !== "outside";
 
+  const location = useLocationPermission();
   const locate = async () => {
-    const permission = await Location.requestForegroundPermissionsAsync();
-    if (permission.status !== "granted") return;
+    if (!(await location.request())) return;
     const position = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
     });
@@ -153,7 +154,7 @@ export default function ReportTrafficScreen() {
             paddingRight: 0,
           }}
         />
-        <Mapbox.LocationPuck />
+        {location.granted ? <Mapbox.LocationPuck /> : null}
         {line ? (
           <Mapbox.ShapeSource id="traffic-preview" shape={line}>
             <Mapbox.LineLayer

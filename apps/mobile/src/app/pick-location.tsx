@@ -16,6 +16,7 @@ import Svg, { Path } from "react-native-svg";
 import { useTranslations } from "use-intl";
 import { useBoundaries } from "@/features/map/data";
 import { setPickedLocation } from "@/features/map/picked-location";
+import { useLocationPermission } from "@/features/map/use-location-permission";
 import { Button } from "@/ui/button";
 import { haptic } from "@/ui/pressable";
 import { IconButton } from "@/ui/surfaces";
@@ -62,9 +63,9 @@ export default function PickLocationScreen() {
     transform: [{ scale: 1 - lift.get() * 0.3 }],
   }));
 
+  const location = useLocationPermission();
   const locate = async () => {
-    const permission = await Location.requestForegroundPermissionsAsync();
-    if (permission.status !== "granted") {
+    if (!(await location.request())) {
       toast.show({ title: t("locationDenied"), tone: "info" });
       return;
     }
@@ -126,7 +127,7 @@ export default function PickLocationScreen() {
             paddingRight: 0,
           }}
         />
-        <Mapbox.LocationPuck />
+        {location.granted ? <Mapbox.LocationPuck /> : null}
       </Mapbox.MapView>
 
       <View
