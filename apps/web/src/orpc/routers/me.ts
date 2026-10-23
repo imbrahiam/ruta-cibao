@@ -1,7 +1,20 @@
+import { ORPCError } from "@orpc/server";
 import { formatPhone } from "@ruta/shared/phone";
+import { consumeRateLimit, getRequestClientKey } from "@/lib/rate-limit";
 import { requireModerator } from "@/modules/access/permissions";
 import { updateProfile } from "@/modules/access/profile";
+import {
+  accountDeletionStatus,
+  requestAccountDeletion,
+} from "@/modules/account/deletion";
 import { impl, member } from "../base";
+
+/** Receipts are unguessable UUIDs, but the lookup is public: bound it anyway. */
+const RECEIPT_LOOKUPS = {
+  scope: "deletion-receipt",
+  limit: 60,
+  windowMs: 60_000,
+};
 
 export const meRouter = {
   get: impl.me.get.handler(async ({ context }) => {
@@ -58,4 +71,27 @@ export const meRouter = {
   updateProfile: impl.me.updateProfile
     .use(member)
     .handler(({ context, input }) => updateProfile(context.viewer, input)),
+
+  requestDeletion: impl.me.requestDeletion
+    .use(member)
+    .handler(async ({ context, input }) => {
+      const { session } = await context.getSession();
+      if (!session) throw new ORPCError("UNAUTHORIZED");
+      return requestAccountDeletion(context.viewer, session, input);
+    }),
+
+  /** Public: the receipt is the credential, and it reveals nothing but a status. */
+  deletionStatus: impl.me.deletionStatus.handler(async ({ context, input }) => {
+    const allowance = await consumeRateLimit(
+      getRequestClientKey(context.headers),
+      RECEIPT_LOOKUPS,
+    );
+    if (!allowance.allowed) {
+      throw new ORPCError("TOO_MANY_REQUESTS", {
+        message: "Too many lookups. Try again shortly.",
+        data: { reason: "rate_limited" },
+      });
+    }
+    return accountDeletionStatus(input.deletionId);
+  }),
 };

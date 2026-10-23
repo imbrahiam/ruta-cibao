@@ -1,4 +1,3 @@
-import { appTargetHref } from "@ruta/shared/app-target";
 import { ORPCError } from "@orpc/server";
 import {
   type BrowseRoutesInput,
@@ -6,6 +5,7 @@ import {
   routeOutput,
   type SubmitRouteInput,
 } from "@ruta/contracts";
+import { appTargetHref } from "@ruta/shared/app-target";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { type Db, db } from "@/db";
 import { categories, ecoRoutes, municipalities } from "@/db/schema";
@@ -20,6 +20,7 @@ import {
 } from "@/modules/access/permissions";
 import type { MemberViewer, Viewer } from "@/modules/access/viewer";
 import { notify } from "@/modules/notifications/notify";
+import { notBlockedAuthor } from "@/modules/safety/blocks";
 
 export async function submitRoute(
   viewer: MemberViewer,
@@ -106,7 +107,11 @@ export async function browseRoutes(
   viewer: Viewer,
   input: BrowseRoutesInput,
 ) {
-  let visibility = eq(ecoRoutes.status, "published");
+  let visibility =
+    and(
+      eq(ecoRoutes.status, "published"),
+      notBlockedAuthor(ecoRoutes.submittedByUserId, viewer),
+    ) ?? eq(ecoRoutes.status, "published");
   if (input.scope === "mine")
     visibility = eq(ecoRoutes.submittedByUserId, requireMember(viewer).userId);
   if (input.scope === "pending") {
@@ -175,6 +180,20 @@ export async function routeDetail(viewer: Viewer, id: string) {
     .where(eq(ecoRoutes.id, id))
     .limit(1);
   if (!row) throw new ORPCError("NOT_FOUND");
+  if (row.route.status === "published" && row.route.submittedByUserId) {
+    // A route by somebody the viewer blocked reads as missing to them.
+    const [visible] = await db
+      .select({ id: ecoRoutes.id })
+      .from(ecoRoutes)
+      .where(
+        and(
+          eq(ecoRoutes.id, id),
+          notBlockedAuthor(ecoRoutes.submittedByUserId, viewer),
+        ),
+      )
+      .limit(1);
+    if (!visible) throw new ORPCError("NOT_FOUND");
+  }
   if (
     row.route.status !== "published" &&
     (viewer.kind === "anonymous" ||

@@ -2,6 +2,8 @@ import type { ApiOutputs } from "@ruta/contracts";
 import type { MunicipalBoundaries } from "@ruta/shared/boundaries";
 import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
 import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
+import { targetKey, useHiddenTargets } from "@/features/safety/hidden-targets";
 import { orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
 
@@ -19,19 +21,44 @@ const AREA = {
 
 /** Live traffic reports, refreshed every minute while the map is open. */
 export function useTraffic(enabled: boolean) {
+  const hidden = useHiddenTargets();
+  const select = useCallback(
+    (reports: ApiOutputs["traffic"]["active"]) =>
+      hidden.size === 0
+        ? reports
+        : reports.filter(
+            (report) => !hidden.has(targetKey("traffic", report.id)),
+          ),
+    [hidden],
+  );
   return useQuery({
     ...orpc.traffic.active.queryOptions({ input: { ...AREA, limit: 200 } }),
     enabled,
     refetchInterval: 60_000,
+    select,
   });
 }
 
 /** Published routes and located consultations, drawn as their own layers. */
 export function useCommunity(enabled: boolean) {
+  const hidden = useHiddenTargets();
+  const select = useCallback(
+    (data: ApiOutputs["routes"]["map"]) =>
+      hidden.size === 0
+        ? data
+        : {
+            ...data,
+            features: data.features.filter(
+              (feature) => !hidden.has(targetKey(feature.kind, feature.id)),
+            ),
+          },
+    [hidden],
+  );
   return useQuery({
     ...orpc.routes.map.queryOptions({ input: AREA }),
     enabled,
     staleTime: 5 * 60_000,
+    select,
   });
 }
 
@@ -77,10 +104,25 @@ async function getJson<T>(path: string): Promise<T> {
  * points is cheaper as a single cached response than as a tile pyramid.
  */
 export function usePlaceCollection() {
+  const hidden = useHiddenTargets();
+  const select = useCallback(
+    (collection: PlaceCollection): PlaceCollection =>
+      hidden.size === 0
+        ? collection
+        : {
+            ...collection,
+            features: collection.features.filter(
+              (feature) =>
+                !hidden.has(targetKey("place", feature.properties.slug)),
+            ),
+          },
+    [hidden],
+  );
   return useQuery({
     queryKey: ["map", "places"],
     queryFn: () => getJson<PlaceCollection>("/api/places/geojson"),
     staleTime: 5 * 60_000,
+    select,
   });
 }
 

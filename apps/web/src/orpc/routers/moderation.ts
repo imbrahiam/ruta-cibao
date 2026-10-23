@@ -2,8 +2,10 @@ import { ORPCError } from "@orpc/server";
 import { setResidencyVerified } from "@/modules/access/profile";
 import {
   decideBusinessClaim,
+  decideContentReport,
   decidePhoto,
   decidePlace,
+  decidePublication,
   decideReport,
   ModerationError,
   removeTrafficReport,
@@ -12,6 +14,7 @@ import {
   liveTrafficReports,
   pendingClaims,
   pendingConsultations,
+  pendingContentReports,
   pendingPhotos,
   pendingPlaces,
   pendingReports,
@@ -50,7 +53,7 @@ export const moderationRouter = {
 
   queue: impl.moderation.queue
     .use(moderator)
-    // One procedure, six queues, and only the requested one is read. The empty
+    // One procedure, seven queues, and only the requested one is read. The empty
     // arrays keep the response shape constant, so the client renders from one
     // type rather than six optional ones.
     .handler(async ({ context, input }) => ({
@@ -78,6 +81,10 @@ export const moderationRouter = {
         input.queue === "traffic"
           ? await liveTrafficReports(context.viewer, input)
           : [],
+      contentReports:
+        input.queue === "contentReports"
+          ? await pendingContentReports(context.viewer, input)
+          : [],
     })),
 
   decidePlace: impl.moderation.decidePlace
@@ -96,6 +103,20 @@ export const moderationRouter = {
     .use(moderator)
     .handler(({ context, input }) =>
       decidePhoto(context.viewer, input).catch(asOrpcError),
+    ),
+
+  /** Actions or dismisses a report about content; actioning hides it for everyone. */
+  decideContentReport: impl.moderation.decideContentReport
+    .use(moderator)
+    .handler(({ context, input }) =>
+      decideContentReport(context.viewer, input).catch(asOrpcError),
+    ),
+
+  /** Publishes or hides a case, or the free text of a traffic report. */
+  decidePublication: impl.moderation.decidePublication
+    .use(moderator)
+    .handler(({ context, input }) =>
+      decidePublication(context.viewer, input).catch(asOrpcError),
     ),
 
   decideClaim: impl.moderation.decideClaim

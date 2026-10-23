@@ -14,6 +14,7 @@ import {
 import { hashLookup } from "@/lib/crypto";
 import { residentVerified } from "@/modules/access/resident";
 import type { Viewer } from "@/modules/access/viewer";
+import { notBlockedAuthor } from "@/modules/safety/blocks";
 
 /**
  * What is on the road right now, inside the viewport.
@@ -78,6 +79,7 @@ export async function activeTrafficReports(
     .select({
       id: trafficReports.id,
       description: trafficReports.description,
+      descriptionModerationStatus: trafficReports.descriptionModerationStatus,
       location: trafficReports.location,
       path: trafficReports.path,
       createdAt: trafficReports.createdAt,
@@ -127,6 +129,7 @@ export async function activeTrafficReports(
     .leftJoin(user, eq(user.id, trafficReports.reportedByUserId))
     .where(
       and(
+        notBlockedAuthor(trafficReports.reportedByUserId, viewer),
         or(
           and(
             eq(trafficReports.status, "active"),
@@ -217,7 +220,14 @@ export async function activeTrafficReports(
       categoryName: row.categoryName,
       categoryIcon: row.categoryIcon,
       categoryColor: row.categoryColor,
-      description: row.description,
+      // The free text reaches other people only once reviewed; its author
+      // always sees their own, with the state it is in.
+      description:
+        row.descriptionModerationStatus === "published" ||
+        (viewerId !== null && row.reportedByUserId === viewerId)
+          ? row.description
+          : null,
+      descriptionModerationStatus: row.descriptionModerationStatus,
       lng: row.location.x,
       lat: row.location.y,
       path,

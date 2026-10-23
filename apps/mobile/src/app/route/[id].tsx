@@ -22,6 +22,7 @@ import { useMemo } from "react";
 import { Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslations } from "use-intl";
+import { ContentMenu } from "@/features/safety/content-menu";
 import { orpc } from "@/lib/api";
 import { Button } from "@/ui/button";
 import { Icon } from "@/ui/icon";
@@ -296,6 +297,13 @@ export default function RouteScreen() {
           haptic="none"
         />
       </View>
+      <View style={[styles.backEnd, { top: insets.top + space.sm }]}>
+        <ContentMenu
+          target={{ kind: "route", ref: data.id }}
+          variant="glass"
+          onHidden={() => router.back()}
+        />
+      </View>
     </View>
   );
 }
@@ -364,4 +372,5 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   back: { position: "absolute", left: space.md },
+  backEnd: { position: "absolute", right: space.md },
 });

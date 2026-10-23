@@ -26,12 +26,17 @@ import {
   confirmPlace,
   placeTrust,
 } from "@/modules/places/trust";
+import { notBlockedAuthor } from "@/modules/safety/blocks";
 import { impl, member } from "../base";
 
 function asPhotoError(error: unknown): never {
   if (error instanceof PhotoError) {
     throw new ORPCError(
-      error.reason === "not_found" ? "NOT_FOUND" : "BAD_REQUEST",
+      error.reason === "not_found"
+        ? "NOT_FOUND"
+        : error.reason === "conflict"
+          ? "CONFLICT"
+          : "BAD_REQUEST",
       {
         message: "That photo cannot be accepted.",
         data: { reason: error.reason },
@@ -42,7 +47,9 @@ function asPhotoError(error: unknown): never {
 }
 
 export const placesRouter = {
-  browse: impl.places.browse.handler(({ input }) => browsePlaces(input)),
+  browse: impl.places.browse.handler(async ({ context, input }) =>
+    browsePlaces(await context.getViewer(), input),
+  ),
 
   contributions: impl.places.contributions
     .use(member)
@@ -55,6 +62,7 @@ export const placesRouter = {
    * guessable URL.
    */
   detail: impl.places.detail.handler(async ({ context, input }) => {
+    const viewer = await context.getViewer();
     const [row] = await context.db
       .select({
         id: places.id,
@@ -76,7 +84,14 @@ export const placesRouter = {
       .from(places)
       .innerJoin(categories, eq(categories.id, places.categoryId))
       .innerJoin(municipalities, eq(municipalities.id, places.municipalityId))
-      .where(and(eq(places.slug, input.slug), eq(places.status, "published")))
+      .where(
+        and(
+          eq(places.slug, input.slug),
+          eq(places.status, "published"),
+          // Somebody the viewer blocked wrote it: it reads as missing.
+          notBlockedAuthor(places.createdByUserId, viewer),
+        ),
+      )
       .limit(1);
 
     if (!row) {
@@ -85,9 +100,8 @@ export const placesRouter = {
       });
     }
 
-    const viewer = await context.getViewer();
     const [photos, trust, mine] = await Promise.all([
-      placePhotoUrls(context.db, row.id),
+      placePhotoUrls(context.db, viewer, row.id),
       placeTrust(context.db, row.id, row.publishedAt),
       viewer.kind === "anonymous"
         ? Promise.resolve([])
@@ -134,6 +148,7 @@ export const placesRouter = {
    * the whole table to answer a question about a few hundred metres.
    */
   nearby: impl.places.nearby.handler(async ({ context, input }) => {
+    const viewer = await context.getViewer();
     const origin = sql`ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography`;
 
     return context.db
@@ -152,6 +167,7 @@ export const placesRouter = {
       .where(
         and(
           eq(places.status, "published"),
+          notBlockedAuthor(places.createdByUserId, viewer),
           sql`ST_DWithin(${places.location}::geography, ${origin}, ${input.radiusMeters})`,
         ),
       )
@@ -180,6 +196,7 @@ export const placesRouter = {
    * first, however close a fuzzy match on something else happens to be.
    */
   search: impl.places.search.handler(async ({ context, input }) => {
+    const viewer = await context.getViewer();
     const term = input.query.trim();
     const normalised = sql`unaccent(lower(${term}))`;
     const target = sql`unaccent(lower(${places.name}))`;
@@ -202,6 +219,7 @@ export const placesRouter = {
         .where(
           and(
             eq(places.status, "published"),
+            notBlockedAuthor(places.createdByUserId, viewer),
             // The category too: someone looking for care types "salud"
             // or "clínica", not the hospital's name, and a resident who
             // wants lunch types "comedor".
@@ -265,6 +283,7 @@ export const placesRouter = {
           // A place pulled from the map should leave the list too, rather
           // than sitting there as a link to a page that will not open.
           eq(places.status, "published"),
+          notBlockedAuthor(places.createdByUserId, context.viewer),
         ),
       )
       .orderBy(desc(savedPlaces.createdAt));

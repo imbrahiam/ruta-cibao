@@ -1,7 +1,14 @@
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
-import { notifications, pushSubscriptions } from "@/db/schema";
-import { encryptSensitive } from "@/lib/crypto";
-import { isPushEnabled } from "@/lib/push";
+import { notifications } from "@/db/schema";
+import { recordAudit } from "@/lib/audit";
+import {
+  subscribeNativePush,
+  unsubscribeNativePush,
+} from "@/modules/notifications/devices";
+import {
+  getNotificationPreferences,
+  setNotificationPreferences,
+} from "@/modules/notifications/preferences";
 import { impl, member } from "../base";
 
 export const notificationsRouter = {
@@ -49,72 +56,51 @@ export const notificationsRouter = {
   markRead: impl.notifications.markRead
     .use(member)
     .handler(async ({ context, input }) => {
-      const scope = input.id
-        ? and(
-            eq(notifications.userId, context.viewer.userId),
-            eq(notifications.id, input.id),
-          )
-        : and(
-            eq(notifications.userId, context.viewer.userId),
-            isNull(notifications.readAt),
+      const scope = and(
+        eq(notifications.userId, context.viewer.userId),
+        isNull(notifications.readAt),
+        input.id ? eq(notifications.id, input.id) : undefined,
+      );
+      return context.db.transaction(async (tx) => {
+        const updated = await tx
+          .update(notifications)
+          .set({ readAt: new Date() })
+          .where(scope)
+          .returning({ id: notifications.id });
+        for (const notification of updated) {
+          await recordAudit(
+            {
+              actorUserId: context.viewer.userId,
+              action: "notification.read",
+              subjectType: "notification",
+              subjectId: notification.id,
+            },
+            tx,
           );
-
-      const updated = await context.db
-        .update(notifications)
-        .set({ readAt: new Date() })
-        .where(scope)
-        .returning({ id: notifications.id });
-
-      return { updated: updated.length };
+        }
+        return { updated: updated.length };
+      });
     }),
 
-  /**
-   * Registers a browser for push.
-   *
-   * The keys are per-device secrets — anyone holding them can push to that
-   * device — so they are encrypted at rest like any other credential. The
-   * endpoint is the natural key: re-subscribing the same browser updates its
-   * row instead of accumulating duplicates.
-   */
-  subscribePush: impl.notifications.subscribePush
+  subscribeNativePush: impl.notifications.subscribeNativePush
     .use(member)
-    .handler(async ({ context, input }) => {
-      if (!isPushEnabled()) return { enabled: false };
+    .handler(({ context, input }) =>
+      subscribeNativePush(context.viewer, input),
+    ),
 
-      await context.db
-        .insert(pushSubscriptions)
-        .values({
-          userId: context.viewer.userId,
-          endpoint: input.endpoint,
-          p256dhCiphertext: encryptSensitive(input.p256dh),
-          authCiphertext: encryptSensitive(input.auth),
-          userAgent: input.userAgent ?? null,
-        })
-        .onConflictDoUpdate({
-          target: pushSubscriptions.endpoint,
-          set: {
-            userId: context.viewer.userId,
-            p256dhCiphertext: encryptSensitive(input.p256dh),
-            authCiphertext: encryptSensitive(input.auth),
-          },
-        });
-
-      return { enabled: true };
-    }),
-
-  unsubscribePush: impl.notifications.unsubscribePush
+  unsubscribeNativePush: impl.notifications.unsubscribeNativePush
     .use(member)
-    .handler(async ({ context, input }) => {
-      const removed = await context.db
-        .delete(pushSubscriptions)
-        .where(
-          and(
-            eq(pushSubscriptions.userId, context.viewer.userId),
-            eq(pushSubscriptions.endpoint, input.endpoint),
-          ),
-        )
-        .returning({ id: pushSubscriptions.id });
+    .handler(({ context, input }) =>
+      unsubscribeNativePush(context.viewer, input),
+    ),
 
-      return { removed: removed.length };
-    }),
+  getPreferences: impl.notifications.getPreferences
+    .use(member)
+    .handler(({ context }) => getNotificationPreferences(context.viewer)),
+
+  setPreferences: impl.notifications.setPreferences
+    .use(member)
+    .handler(({ context, input }) =>
+      setNotificationPreferences(context.viewer, input),
+    ),
 };

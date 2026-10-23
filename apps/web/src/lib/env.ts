@@ -79,11 +79,8 @@ const serverSchema = z
       )
       .transform((value) => (value === undefined ? undefined : value === "1")),
 
-    // Web Push. Without a keypair, push notifications are disabled and the
-    // in-app notification centre still works. Generate with: bunx web-push generate-vapid-keys
-    VAPID_PUBLIC_KEY: optionalString(),
-    VAPID_PRIVATE_KEY: optionalString(),
-    VAPID_SUBJECT: z.string().min(1).default("mailto:soporte@rutacibao.do"),
+    // Enhanced Expo Push security; local development keeps in-app delivery.
+    EXPO_PUSH_ACCESS_TOKEN: optionalString(),
 
     // Object storage. MinIO locally and on the VPS; any S3-compatible service
     // works, which is what lets the same image run on Railway with R2.
@@ -128,6 +125,10 @@ const serverSchema = z
       .transform((value) => value === "1"),
     JOBS_SCHEMA: z.string().min(1).default("pgboss"),
 
+    // Where the worker reaches the web app (compose network address). Falls
+    // back to APP_URL. Used to refresh public caches after a removal.
+    INTERNAL_APP_URL: optionalString().pipe(z.url().optional()),
+
     // Set to 1 only when a reverse proxy you control sets X-Forwarded-For.
     // Trusting that header without one lets any client forge its own IP and
     // walk straight through the rate limiter.
@@ -138,6 +139,13 @@ const serverSchema = z
   })
   .superRefine((value, context) => {
     if (value.NODE_ENV !== "production") return;
+    if (!value.EXPO_PUSH_ACCESS_TOKEN) {
+      context.addIssue({
+        code: "custom",
+        path: ["EXPO_PUSH_ACCESS_TOKEN"],
+        message: "required in production",
+      });
+    }
     if (value.LOCAL_DEMO_OTP || value.LOCAL_DEMO_PHONES) {
       context.addIssue({
         code: "custom",

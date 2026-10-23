@@ -26,17 +26,18 @@ export type PickResult =
   | { status: "denied" };
 
 /**
- * Asks for the camera or the library only at the moment of use, then shrinks
- * the image (and drops its EXIF, location included) before it leaves the phone.
+ * Asks for the camera only at the moment of use, then shrinks the image (and
+ * drops its EXIF, location included) before it leaves the phone. The library
+ * uses the system photo picker, which runs out of process and needs no
+ * permission, so choosing from it never shows a prompt.
  */
 export async function pickPhoto(
   source: "camera" | "library",
 ): Promise<PickResult> {
-  const permission =
-    source === "camera"
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) return { status: "denied" };
+  if (source === "camera") {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return { status: "denied" };
+  }
 
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ["images"],

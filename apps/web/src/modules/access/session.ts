@@ -14,9 +14,12 @@ export type AccountContact = {
   emailVerified: boolean;
 };
 
+/** The Better Auth session behind a request: what step-up and freshness checks need. */
+export type SessionInfo = { id: string; createdAt: Date };
+
 export type ResolvedSession =
-  | { viewer: Viewer & { kind: "anonymous" }; contact: null }
-  | { viewer: Viewer; contact: AccountContact };
+  | { viewer: Viewer & { kind: "anonymous" }; contact: null; session?: null }
+  | { viewer: Viewer; contact: AccountContact; session: SessionInfo };
 
 /**
  * Resolves the Better Auth session behind a request into a viewer.
@@ -28,9 +31,16 @@ export async function resolveSession(
   headers: Headers,
 ): Promise<ResolvedSession> {
   const session = await getAuth().api.getSession({ headers });
-  if (!session?.user) return { viewer: { kind: "anonymous" }, contact: null };
+  if (!session?.user) {
+    return { viewer: { kind: "anonymous" }, contact: null, session: null };
+  }
 
   const account = session.user;
+  // A banned account (one being deleted, or restricted by an administrator)
+  // acts as nobody, even if a session somehow outlived the ban.
+  if (account.banned) {
+    return { viewer: { kind: "anonymous" }, contact: null, session: null };
+  }
   // The phone-only placeholder (and any other non-deliverable stand-in) is
   // not an address: it is neither shown nor counted as a verified contact.
   const email = isDeliverableAddress(account.email) ? account.email : null;
@@ -51,6 +61,15 @@ export async function resolveSession(
     image: account.image ?? null,
     contactVerified: contact.phoneVerified || contact.emailVerified,
   });
-  if (viewer.kind === "anonymous") return { viewer, contact: null };
-  return { viewer, contact };
+  if (viewer.kind === "anonymous") {
+    return { viewer, contact: null, session: null };
+  }
+  return {
+    viewer,
+    contact,
+    session: {
+      id: session.session.id,
+      createdAt: new Date(session.session.createdAt),
+    },
+  };
 }

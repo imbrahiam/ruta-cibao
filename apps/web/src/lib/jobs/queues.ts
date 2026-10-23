@@ -22,6 +22,9 @@ export const QUEUES = {
   /** Drop expired realtime events, idempotency keys and rate-limit buckets. */
   platformCleanup: "platform.cleanup",
   notificationDeliver: "notification.deliver",
+  nativePushReceipts: "notification.native-push-receipts",
+  /** Remove everything an account contributed, then the account itself. */
+  accountDeletion: "account.deletion",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -45,6 +48,8 @@ export type JobPayloads = {
     push: boolean;
     email: boolean;
   };
+  [QUEUES.nativePushReceipts]: Record<string, never>;
+  [QUEUES.accountDeletion]: { deletionId: string };
 };
 
 /**
@@ -60,6 +65,12 @@ export const SCHEDULES: ReadonlyArray<{
   cron: string;
   reason: string;
 }> = [
+  {
+    queue: QUEUES.nativePushReceipts,
+    cron: "*/5 * * * *",
+    reason:
+      "Check accepted native push tickets once their 15-minute receipt window opens.",
+  },
   {
     queue: QUEUES.trafficExpire,
     cron: "*/10 * * * *",

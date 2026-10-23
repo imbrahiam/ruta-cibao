@@ -271,6 +271,11 @@ function createAuth() {
 
     emailAndPassword: { enabled: false },
 
+    // Deleting an account is `me.requestDeletion`, which captures what has to be
+    // cleaned up before anything is removed. Better Auth's own delete endpoint
+    // would drop the user row first and orphan that work, so it stays off.
+    user: { deleteUser: { enabled: false } },
+
     databaseHooks: {
       user: {
         create: {

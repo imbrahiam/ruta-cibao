@@ -12,6 +12,7 @@ import { lineString, point } from "../types";
 import { user } from "./auth";
 import { categories } from "./catalog";
 import { municipalities } from "./geography";
+import { publicationStatus } from "./safety";
 
 /**
  * Where a traffic report is in its short life.
@@ -91,6 +92,13 @@ export const trafficReports = pgTable(
     path: lineString(),
     /** Optional: the category already says most of it. */
     description: text(),
+    /**
+     * The category, location and freshness publish at once; the free text waits
+     * here. Other people see `description` only once it is `published`.
+     */
+    descriptionModerationStatus: publicationStatus()
+      .notNull()
+      .default("pending"),
 
     /** Null for a seeded or orphaned report; the trail survives the account. */
     reportedByUserId: text().references(() => user.id, {

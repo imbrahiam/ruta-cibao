@@ -21,16 +21,23 @@ export const photoUploads = pgTable(
     placeId: uuid()
       .notNull()
       .references(() => places.id, { onDelete: "cascade" }),
+    requestId: uuid().notNull(),
+    requestHash: text().notNull(),
     sizeBytes: integer().notNull(),
     contentType: text().notNull(),
     finalKey: text(),
     status: text().$type<"pending" | "published">(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp({ withTimezone: true }).notNull(),
+    temporaryDeletedAt: timestamp({ withTimezone: true }),
   },
   (table) => [
     index("photo_uploads_user_idx").on(table.userId, table.expiresAt),
     index("photo_uploads_expiry_idx").on(table.expiresAt),
+    uniqueIndex("photo_uploads_user_request_idx").on(
+      table.userId,
+      table.requestId,
+    ),
   ],
 );
 

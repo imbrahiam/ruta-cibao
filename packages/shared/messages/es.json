@@ -48,19 +48,46 @@
     "privacyTitle": "Tu información merece cuidado.",
     "privacyIntro": "Ruta Cibao utiliza la información necesaria para iniciar sesión, gestionar tus aportes y darles seguimiento. No solicitamos cédula para la participación ordinaria.",
     "privacySections": {
-      "account": { "title": "Cuenta y contacto", "body": "Usamos tu teléfono o correo verificado para autenticarte y enviarte los mensajes que correspondan. Tu municipio de residencia es una elección de perfil, no una prueba de identidad legal." },
-      "content": { "title": "Lo que publicas", "body": "Los aportes publicados pueden incluir tu nombre de perfil, texto, fotos y ubicación del contenido. Evita publicar teléfonos ajenos, domicilios privados o información sensible. Lugares, rutas y fotos pasan por revisión; los avisos de tránsito pueden aparecer inmediatamente." },
-      "permissions": { "title": "Permisos bajo tu control", "body": "La ubicación se solicita para acciones como localizarte o validar un sello. Las fotos se solicitan al adjuntar imágenes y las notificaciones al activarlas. Puedes denegar permisos y seguir consultando el contenido público. No ofrecemos seguimiento de ubicación en segundo plano." },
-      "providers": { "title": "Servicios y seguridad", "body": "La plataforma utiliza proveedores para mapas, autenticación por código, correo, almacenamiento y notificaciones. Los datos privados requieren autorización. Nunca incluyas códigos de acceso en reportes o solicitudes de soporte." },
-      "retention": { "title": "Eliminación y conservación", "body": "Puedes solicitar la eliminación desde Cuenta en la app. El proceso elimina datos personales y aportes propios, preservando respuestas institucionales y registros de auditoría sin información personal cuando corresponda. Las copias de seguridad caducan en un máximo de 90 días. El contenido público descargado se actualiza cuando el dispositivo vuelve a conectarse." }
+      "account": {
+        "title": "Cuenta y contacto",
+        "body": "Usamos tu teléfono o correo verificado para autenticarte y enviarte los mensajes que correspondan. Tu municipio de residencia es una elección de perfil, no una prueba de identidad legal."
+      },
+      "content": {
+        "title": "Lo que publicas",
+        "body": "Los aportes publicados pueden incluir tu nombre de perfil, texto, fotos y ubicación del contenido. Evita publicar teléfonos ajenos, domicilios privados o información sensible. Lugares, rutas y fotos pasan por revisión; los avisos de tránsito pueden aparecer inmediatamente."
+      },
+      "permissions": {
+        "title": "Permisos bajo tu control",
+        "body": "La ubicación se solicita para acciones como localizarte o validar un sello. Las fotos se solicitan al adjuntar imágenes y las notificaciones al activarlas. Puedes denegar permisos y seguir consultando el contenido público. No ofrecemos seguimiento de ubicación en segundo plano."
+      },
+      "providers": {
+        "title": "Servicios y seguridad",
+        "body": "La plataforma utiliza proveedores para mapas, autenticación por código, correo, almacenamiento y notificaciones. Los datos privados requieren autorización. Nunca incluyas códigos de acceso en reportes o solicitudes de soporte."
+      },
+      "retention": {
+        "title": "Eliminación y conservación",
+        "body": "Puedes solicitar la eliminación desde Cuenta en la app. El proceso elimina datos personales y aportes propios, preservando respuestas institucionales y registros de auditoría sin información personal cuando corresponda. Las copias de seguridad caducan en un máximo de 90 días. El contenido público descargado se actualiza cuando el dispositivo vuelve a conectarse."
+      }
     },
     "termsTitle": "Participar con respeto.",
     "termsIntro": "Ruta Cibao conecta información local y participación comunitaria. No sustituye canales oficiales de emergencia, asesoría profesional ni las indicaciones de las autoridades.",
     "termsSections": {
-      "community": { "title": "Reglas de comunidad", "body": "Publica información veraz y pertinente. No se permiten amenazas, acoso, discriminación, publicidad engañosa, datos personales de terceros ni contenido que ponga a alguien en riesgo. Reporta el contenido que incumpla estas reglas." },
-      "safety": { "title": "Antes de salir", "body": "Los avisos de tránsito y las rutas describen información aportada y pueden cambiar. Comprueba las condiciones locales, permisos de acceso y tu preparación. No uses la app mientras conduces." },
-      "review": { "title": "Revisión y participación", "body": "Los aportes pueden ser revisados, rechazados o retirados. Apoyar una consulta expresa una prioridad por cuenta: no es una elección vinculante ni acredita identidad legal. Una respuesta municipal depende de las personas autorizadas para atenderla." },
-      "source": { "title": "Código y derechos", "body": "El código propio se distribuye bajo su licencia MIT. Las fotografías, datos y servicios de terceros conservan sus respectivas licencias. Comparte únicamente material propio o autorizado." }
+      "community": {
+        "title": "Reglas de comunidad",
+        "body": "Publica información veraz y pertinente. No se permiten amenazas, acoso, discriminación, publicidad engañosa, datos personales de terceros ni contenido que ponga a alguien en riesgo. Reporta el contenido que incumpla estas reglas."
+      },
+      "safety": {
+        "title": "Antes de salir",
+        "body": "Los avisos de tránsito y las rutas describen información aportada y pueden cambiar. Comprueba las condiciones locales, permisos de acceso y tu preparación. No uses la app mientras conduces."
+      },
+      "review": {
+        "title": "Revisión y participación",
+        "body": "Los aportes pueden ser revisados, rechazados o retirados. Apoyar una consulta expresa una prioridad por cuenta: no es una elección vinculante ni acredita identidad legal. Una respuesta municipal depende de las personas autorizadas para atenderla."
+      },
+      "source": {
+        "title": "Código y derechos",
+        "body": "El código propio se distribuye bajo su licencia MIT. Las fotografías, datos y servicios de terceros conservan sus respectivas licencias. Comparte únicamente material propio o autorizado."
+      }
     },
     "supportTitle": "Estamos para orientarte.",
     "supportIntro": "Para pedir ayuda, abre Cuenta → Soporte en la app. Describe la pantalla y el problema, sin incluir códigos de acceso ni información privada de otras personas.",
@@ -208,6 +235,233 @@
     "province": "toda la provincia",
     "view": "Ver contenido",
     "security": "Verificar acceso seguro",
+    "cases": {
+      "title": "Consultas ciudadanas",
+      "lede": "Casos que los vecinos llevaron al ayuntamiento. Empieza por los que esperan respuesta.",
+      "statusGroup": "Estado de la consulta",
+      "all": "Todas",
+      "category": "Tema",
+      "allCategories": "Todos los temas",
+      "shown": "Mostrando {shown} de {total}",
+      "more": "Ver más",
+      "loadingMore": "Cargando más…",
+      "emptyHint": "Prueba con otro estado, tema o municipio.",
+      "colCase": "Consulta",
+      "colMunicipality": "Municipio",
+      "colStatus": "Estado",
+      "colSupport": "Apoyos",
+      "colReplies": "Respuestas",
+      "colDate": "Fecha",
+      "replies": "{count, plural, =0 {Sin respuestas} one {# respuesta} other {# respuestas}}",
+      "openedOn": "Abierta el {date}",
+      "back": "Volver a las consultas",
+      "officialAnonymous": "Ayuntamiento",
+      "repliedBy": "{name} · {date}",
+      "statusAfterReply": "Estado tras esta respuesta: {status}",
+      "noResponses": "Todavía no hay respuestas oficiales.",
+      "location": "Ubicación marcada",
+      "viewOnMap": "Ver en el mapa",
+      "replyTitle": "Responder en nombre del ayuntamiento",
+      "replyBody": "Respuesta",
+      "replyHint": "{count} de 2000 caracteres. Mínimo 10. La respuesta es pública.",
+      "statusAfter": "Estado en que queda la consulta",
+      "statusAfterHint": "Elige el estado que el ayuntamiento promete con esta respuesta. No se elige solo.",
+      "statusHelp": {
+        "in_review": "Se está revisando el caso.",
+        "answered": "Ya recibió una respuesta.",
+        "resolved": "El problema quedó resuelto.",
+        "rejected": "El ayuntamiento no puede atenderlo."
+      },
+      "errBodyShort": "La respuesta necesita al menos 10 caracteres.",
+      "errBodyLong": "La respuesta no puede pasar de 2000 caracteres.",
+      "errStatus": "Elige el estado en que queda la consulta.",
+      "replied": "Respuesta enviada.",
+      "sending": "Enviando…",
+      "publicationTitle": "Visibilidad pública",
+      "publication": {
+        "pending": "Sin publicar",
+        "published": "Publicada",
+        "hidden": "Oculta"
+      },
+      "publicationHelp": {
+        "pending": "Solo la ve quien la abrió y el equipo. Publícala para que los vecinos puedan verla y apoyarla.",
+        "published": "Todos los vecinos pueden verla.",
+        "hidden": "Está oculta para los vecinos. Puedes publicarla de nuevo."
+      },
+      "publish": "Publicar consulta",
+      "hide": "Ocultar consulta",
+      "hideConfirm": "Confirmar y ocultar",
+      "hideReasonHint": "Quien abrió la consulta recibirá este motivo (mínimo 10 caracteres).",
+      "errReason": "Escribe un motivo de al menos 10 caracteres.",
+      "publicationDone": "Visibilidad actualizada.",
+      "pendingQueue": "Pendientes de publicación"
+    },
+    "weeklyReport": {
+      "title": "Informes semanales",
+      "intro": "Un informe por municipio y semana, con su PDF para imprimir o compartir.",
+      "colWeek": "Semana",
+      "colStatus": "Estado",
+      "colSummary": "Resumen",
+      "colActions": "Acciones",
+      "openFor": "Ver el informe de {municipality}, {week}",
+      "downloadFor": "Descargar el PDF de {municipality}, {week}",
+      "renderFor": "Generar o reintentar el PDF de {municipality}, {week}",
+      "pdfReady": "El PDF está listo.",
+      "pdfStillPending": "El PDF todavía se está preparando. Inténtalo de nuevo en un minuto."
+    },
+    "cat": {
+      "intro": "Los tipos que se ofrecen en los formularios y mapas. Cada cambio queda registrado.",
+      "kindGroup": "Tipo de categoría",
+      "empty": "Todavía no hay categorías de este tipo.",
+      "inactive": "Inactiva",
+      "editFor": "Editar {name}",
+      "newTitle": "Nueva categoría de {kind}",
+      "editTitle": "Editar {name}",
+      "hex": "Código de color",
+      "hexHint": "Seis dígitos hexadecimales, por ejemplo #1F6B52.",
+      "pickColor": "Elegir color",
+      "choose": "Elige una opción",
+      "sortHint": "El número menor aparece primero.",
+      "activeHint": "Las categorías inactivas dejan de ofrecerse en los formularios.",
+      "saving": "Guardando…",
+      "errName": "Escribe un nombre de entre 2 y 80 caracteres.",
+      "errColor": "Escribe un color hexadecimal, por ejemplo #1F6B52.",
+      "errSeverity": "Elige el impacto en el tránsito.",
+      "errSortOrder": "El orden es un número entero entre 0 y 1000.",
+      "duplicate": "Ya existe una categoría con ese nombre en este tipo."
+    },
+    "queue": {
+      "intro": {
+        "places": "Lugares y negocios enviados por vecinos, a la espera de publicación.",
+        "claims": "Personas que dicen ser dueñas de un negocio. Revisa la evidencia antes de aprobar.",
+        "photos": "Fotografías subidas a lugares, a la espera de publicación.",
+        "reports": "Correcciones que los vecinos piden sobre lugares ya publicados.",
+        "routes": "Rutas trazadas por vecinos, a la espera de publicación.",
+        "traffic": "Avisos activos en el mapa. El texto libre se revisa antes de mostrarse; retira los avisos que ya no correspondan.",
+        "contentReports": "Reportes de vecinos sobre contenido publicado. Las amenazas y los datos personales aparecen primero.",
+        "consultations": "Consultas enviadas por vecinos que esperan decisión antes de mostrarse. Solo se publican si las apruebas."
+      },
+      "colItem": "Elemento",
+      "colDetail": "Detalle",
+      "colDecision": "Decisión",
+      "count": "{count, plural, one {# elemento} other {# elementos}}",
+      "mayBeMore": "Se muestran los primeros {count}. Puede haber más: decide algunos y actualiza la lista.",
+      "emptyTitle": "Todo al día",
+      "decided": "Decisión guardada.",
+      "actionOn": "{action}: {title}",
+      "decisionGroup": "Decisión sobre {title}",
+      "noteHintMin": "Explica tu decisión (mínimo {min} caracteres).",
+      "noteHintOptional": "Opcional. Queda anotada con tu decisión.",
+      "reasonShort": "Escribe al menos {min} caracteres; faltan {missing}.",
+      "photoRejectConfirm": "¿Rechazar esta fotografía? No se publicará y no podrás deshacerlo desde aquí.",
+      "submittedBy": "Enviado por {name}",
+      "submittedByAnon": "Enviado por un vecino",
+      "reportedBy": "Reportado por {name}",
+      "reportedByAnon": "Reportado por un vecino",
+      "uploadedBy": "Subida por {name}",
+      "uploadedByAnon": "Subida por un vecino",
+      "claimedBy": "Solicitado por {name}",
+      "claimedByAnon": "Solicitado por un vecino",
+      "residentBadge": "Residente verificado",
+      "residentNot": "Residencia sin verificar",
+      "receivedAt": "Recibido el {date} a las {time}",
+      "expiresAt": "Vence el {date} a las {time}",
+      "address": "Dirección",
+      "description": "Descripción",
+      "coordinates": "Coordenadas",
+      "noAddress": "Sin dirección indicada",
+      "noDescription": "Sin descripción",
+      "noDetails": "Sin detalles",
+      "locationSource": {
+        "map": "Marcado en el mapa",
+        "gps": "Ubicación por GPS"
+      },
+      "openInMaps": "Abrir en OpenStreetMap",
+      "newTab": "(se abre en una pestaña nueva)",
+      "place": "Lugar",
+      "details": "Detalles",
+      "reportReason": {
+        "incorrect_information": "Información incorrecta",
+        "closed": "El lugar cerró",
+        "duplicate": "Lugar duplicado",
+        "wrong_location": "Ubicación equivocada",
+        "other": "Otro motivo"
+      },
+      "evidence": "Evidencia presentada",
+      "contactPhone": "Teléfono",
+      "whatsapp": "WhatsApp",
+      "openingHours": "Horario",
+      "notProvided": "No indicado",
+      "photoAlt": "Fotografía enviada para {place}",
+      "photoUnavailable": "No se pudo cargar la imagen.",
+      "distance": "Distancia",
+      "duration": "Duración",
+      "durationMinutes": "{minutes} min",
+      "durationHours": "{hours} h {minutes} min",
+      "difficulty": "Dificultad",
+      "difficultyLevel": {
+        "easy": "Fácil",
+        "moderate": "Moderada",
+        "hard": "Difícil"
+      },
+      "services": "Servicios",
+      "noServices": "Sin servicios indicados",
+      "service": {
+        "water": "Agua",
+        "food": "Comida",
+        "lodging": "Hospedaje",
+        "guide": "Guía",
+        "parking": "Parqueo",
+        "restrooms": "Baños"
+      },
+      "pathAlt": "Trazado de la ruta: {points, plural, one {# punto registrado} other {# puntos registrados}}, de inicio a fin, {distance}.",
+      "pathStart": "Inicio",
+      "pathEnd": "Fin",
+      "trafficText": "Texto del aviso",
+      "trafficTextStatus": {
+        "pending": "Texto en revisión",
+        "published": "Texto publicado",
+        "hidden": "Texto oculto"
+      },
+      "noText": "Sin texto añadido",
+      "publishText": "Publicar texto",
+      "hideText": "Ocultar texto",
+      "removeNotice": "Retirar el aviso del mapa",
+      "priority": "Prioridad alta",
+      "priorityHint": "Se revisa primero: amenaza o datos personales.",
+      "contentReason": {
+        "abuse": "Insulto, acoso o contenido ofensivo",
+        "personal_information": "Muestra datos personales de alguien",
+        "unsafe": "Amenaza o pone a alguien en riesgo",
+        "other": "Otro motivo"
+      },
+      "subjectKind": {
+        "place": "Lugar",
+        "photo": "Fotografía",
+        "route": "Ruta",
+        "traffic": "Aviso de tránsito",
+        "consultation": "Consulta"
+      },
+      "reportedContent": "Contenido reportado",
+      "reportReasonLabel": "Motivo del reporte",
+      "subjectVisible": "Visible para otras personas",
+      "subjectHidden": "Ya no es visible",
+      "openReports": "{count, plural, one {# reporte abierto sobre este contenido} other {# reportes abiertos sobre este contenido}}",
+      "decisionClosesAll": "Tu decisión cierra todos los reportes abiertos sobre este contenido.",
+      "actionContent": "Retirar contenido",
+      "dismissReport": "Descartar reporte",
+      "untitled": "Sin título",
+      "hideCase": "Ocultar",
+      "caseBody": "Texto de la consulta",
+      "supportCount": "{count, plural, one {# apoyo} other {# apoyos}}",
+      "openedBy": "Abierta por {name}",
+      "openedByAnon": "Abierta por un vecino",
+      "publicationLabel": {
+        "pending": "En revisión",
+        "published": "Publicada",
+        "hidden": "Oculta"
+      }
+    },
     "shell": {
       "nav": "Secciones de la mesa",
       "overview": "Resumen",
@@ -897,6 +1151,27 @@
       "institutional_author": "Es contenido de una cuenta oficial: puedes reportarlo, pero no ocultarla.",
       "rate_limited": "Has hecho muchas acciones seguidas. Intenta de nuevo más tarde.",
       "generic": "No pudimos completar la acción. Intenta de nuevo."
+    }
+  },
+  "safetyUi": {
+    "menuLabel": "Más opciones",
+    "menuTitle": "Este contenido",
+    "blockedRowHint": "Personas cuyos aportes no ves",
+    "unblockTitle": "¿Dejar de ocultar a {name}?",
+    "unblockBody": "Volverás a ver sus lugares, rutas, avisos y casos.",
+    "unblockedFailed": "No pudimos deshacerlo. Intenta de nuevo.",
+    "pendingCaseTitle": "En revisión"
+  },
+  "errors": {
+    "deletion": {
+      "recent_authentication_required": "Por seguridad, confirma tu teléfono o correo de nuevo para eliminar la cuenta.",
+      "last_administrator": "Nombra a otra persona como administradora antes de eliminar esta cuenta.",
+      "rate_limited": "Demasiadas consultas seguidas. Intenta de nuevo en un momento.",
+      "not_found": "No encontramos una solicitud de eliminación con ese comprobante."
+    },
+    "idempotency": {
+      "conflict": "Esa solicitud ya se usó con otro contenido. Vuelve a intentarlo.",
+      "in_flight": "Tu solicitud se está procesando. Espera un momento."
     }
   }
 }

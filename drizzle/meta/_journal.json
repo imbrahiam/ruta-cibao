@@ -218,6 +218,34 @@
       "when": 1792749002162,
       "tag": "0030_canonical_targets",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1792750000000,
+      "tag": "0031_photo_upload_idempotency",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1792750100000,
+      "tag": "0032_native_notifications",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1792750200000,
+      "tag": "0033_safety",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1792750300000,
+      "tag": "0034_account_deletion",
+      "breakpoints": true
     }
   ]
 }

@@ -6,6 +6,7 @@ import {
   BadgeCheck,
   Bell,
   Bookmark,
+  EyeOff,
   Info,
   LogOut,
   ShieldCheck,
@@ -39,6 +40,8 @@ function initials(name: string): string {
 export default function AccountScreen() {
   const t = useTranslations("account");
   const notificationSettings = useTranslations("notificationSettings");
+  const ts = useTranslations("safety");
+  const tu = useTranslations("safetyUi");
   const { colors } = useTheme();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -155,6 +158,14 @@ export default function AccountScreen() {
             icon={Bell}
             onPress={() => router.push("/account/notifications")}
             testID="account-notifications"
+          />
+          <ListRow
+            title={ts("blocks.title")}
+            subtitle={tu("blockedRowHint")}
+            icon={EyeOff}
+            iconTint="textTertiary"
+            onPress={() => router.push("/account/blocked")}
+            testID="account-blocked"
           />
         </ListSection>
       ) : null}

@@ -147,6 +147,11 @@ export const contributionsOutput = z.array(
       "claim",
     ]),
     note: z.string().nullable(),
+    /**
+     * Whether other people can see what was written: a case's publication, or
+     * a traffic report's free text. Null where the notion does not apply.
+     */
+    publication: z.enum(["pending", "published", "hidden"]).nullable(),
     /** Null when there is nothing to open. */
     href: z.string().nullable(),
     createdAt: z.date(),
@@ -275,15 +280,24 @@ export const confirmPlaceInput = z.object({
 });
 
 export const photoUploadInput = z.object({
+  requestId: z.uuid(),
   placeId: z.uuid(),
   contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
   sizeBytes: z.number().int().positive().max(MAX_PHOTO_BYTES),
 });
 
-export const photoUploadOutput = z.object({
-  uploadUrl: z.string(),
-  storageKey: z.string(),
-});
+export const photoUploadOutput = z.discriminatedUnion("status", [
+  z.object({
+    status: z.literal("upload"),
+    uploadUrl: z.string(),
+    storageKey: z.string(),
+  }),
+  z.object({
+    status: z.enum(["pending", "published"]),
+    uploadUrl: z.null(),
+    storageKey: z.string(),
+  }),
+]);
 
 export const attachPhotoInput = z.object({
   placeId: z.uuid(),
@@ -408,6 +422,7 @@ export const placesContract = {
       }),
     )
     .input(photoUploadInput)
+    .errors({ CONFLICT: { data: z.object({ reason: z.literal("conflict") }) } })
     .output(photoUploadOutput),
 
   /** Tells the app about a photo that finished uploading. */

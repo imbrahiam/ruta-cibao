@@ -1,12 +1,13 @@
 import type { QueueInput } from "@ruta/contracts";
 import { formatPhone } from "@ruta/shared/phone";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   businessClaims,
   categories,
   consultations,
   consultationVotes,
+  contentReports,
   memberProfiles,
   municipalities,
   placePhotos,
@@ -17,6 +18,7 @@ import {
 import { imageUrl } from "@/lib/storage";
 import type { ModeratorViewer } from "@/modules/access/permissions";
 import { residentVerified } from "@/modules/access/resident";
+import { resolveContentTarget } from "@/modules/safety/targets";
 
 /**
  * What is waiting for a decision.
@@ -154,73 +156,97 @@ export async function pendingReports(
 export async function queueCounts(viewer: ModeratorViewer) {
   const scope = viewer.scope;
 
-  const [placeRows, reportRows, photoRows, claimRows, caseRows, trafficRows] =
-    await Promise.all([
-      db
-        .select({ id: places.id })
-        .from(places)
-        .where(
-          and(
-            eq(places.status, "pending"),
-            scope === "all" ? undefined : inArray(places.municipalityId, scope),
-          ),
+  const [
+    placeRows,
+    reportRows,
+    photoRows,
+    claimRows,
+    caseRows,
+    trafficRows,
+    contentReportRows,
+  ] = await Promise.all([
+    db
+      .select({ id: places.id })
+      .from(places)
+      .where(
+        and(
+          eq(places.status, "pending"),
+          scope === "all" ? undefined : inArray(places.municipalityId, scope),
         ),
-      db
-        .select({ id: placeReports.id })
-        .from(placeReports)
-        .innerJoin(places, eq(places.id, placeReports.placeId))
-        .where(
-          and(
-            eq(placeReports.status, "pending"),
-            scope === "all" ? undefined : inArray(places.municipalityId, scope),
-          ),
+      ),
+    db
+      .select({ id: placeReports.id })
+      .from(placeReports)
+      .innerJoin(places, eq(places.id, placeReports.placeId))
+      .where(
+        and(
+          eq(placeReports.status, "pending"),
+          scope === "all" ? undefined : inArray(places.municipalityId, scope),
         ),
-      db
-        .select({ id: placePhotos.id })
-        .from(placePhotos)
-        .innerJoin(places, eq(places.id, placePhotos.placeId))
-        .where(
-          and(
-            eq(placePhotos.status, "pending"),
-            scope === "all" ? undefined : inArray(places.municipalityId, scope),
-          ),
+      ),
+    db
+      .select({ id: placePhotos.id })
+      .from(placePhotos)
+      .innerJoin(places, eq(places.id, placePhotos.placeId))
+      .where(
+        and(
+          eq(placePhotos.status, "pending"),
+          scope === "all" ? undefined : inArray(places.municipalityId, scope),
         ),
-      db
-        .select({ id: businessClaims.id })
-        .from(businessClaims)
-        .innerJoin(places, eq(places.id, businessClaims.placeId))
-        .where(
-          and(
-            eq(businessClaims.status, "pending"),
-            scope === "all" ? undefined : inArray(places.municipalityId, scope),
-          ),
+      ),
+    db
+      .select({ id: businessClaims.id })
+      .from(businessClaims)
+      .innerJoin(places, eq(places.id, businessClaims.placeId))
+      .where(
+        and(
+          eq(businessClaims.status, "pending"),
+          scope === "all" ? undefined : inArray(places.municipalityId, scope),
         ),
-      db
-        .select({ id: consultations.id })
-        .from(consultations)
-        .where(
-          and(
-            inArray(consultations.status, ["open", "in_review"]),
-            scope === "all"
-              ? undefined
-              : inArray(consultations.municipalityId, scope),
+      ),
+    db
+      .select({ id: consultations.id })
+      .from(consultations)
+      .where(
+        and(
+          or(
+            eq(consultations.publicationStatus, "pending"),
+            and(
+              eq(consultations.publicationStatus, "published"),
+              inArray(consultations.status, ["open", "in_review"]),
+            ),
           ),
+          scope === "all"
+            ? undefined
+            : inArray(consultations.municipalityId, scope),
         ),
-      // Live rather than pending: nothing here is waiting for permission, and the
-      // number a moderator needs is how much is currently on the map.
-      db
-        .select({ id: trafficReports.id })
-        .from(trafficReports)
-        .where(
-          and(
-            eq(trafficReports.status, "active"),
-            sql`${trafficReports.expiresAt} > now()`,
-            scope === "all"
-              ? undefined
-              : inArray(trafficReports.municipalityId, scope),
-          ),
+      ),
+    // Live rather than pending: nothing here is waiting for permission, and the
+    // number a moderator needs is how much is currently on the map.
+    db
+      .select({ id: trafficReports.id })
+      .from(trafficReports)
+      .where(
+        and(
+          eq(trafficReports.status, "active"),
+          sql`${trafficReports.expiresAt} > now()`,
+          scope === "all"
+            ? undefined
+            : inArray(trafficReports.municipalityId, scope),
         ),
-    ]);
+      ),
+    db
+      .select({ id: contentReports.id })
+      .from(contentReports)
+      .where(
+        and(
+          eq(contentReports.status, "open"),
+          scope === "all"
+            ? undefined
+            : inArray(contentReports.municipalityId, scope),
+        ),
+      ),
+  ]);
 
   return {
     places: placeRows.length,
@@ -229,6 +255,7 @@ export async function queueCounts(viewer: ModeratorViewer) {
     claims: claimRows.length,
     consultations: caseRows.length,
     traffic: trafficRows.length,
+    contentReports: contentReportRows.length,
   };
 }
 
@@ -368,6 +395,7 @@ export async function pendingConsultations(
       title: consultations.title,
       body: consultations.body,
       status: consultations.status,
+      publicationStatus: consultations.publicationStatus,
       createdAt: consultations.createdAt,
       categoryName: categories.name,
       categoryIcon: categories.icon,
@@ -392,13 +420,25 @@ export async function pendingConsultations(
     )
     .where(
       and(
-        inArray(consultations.status, ["open", "in_review"]),
+        // Waiting for a publication decision, or published and waiting for
+        // an answer. A hidden case is out of the queue.
+        or(
+          eq(consultations.publicationStatus, "pending"),
+          and(
+            eq(consultations.publicationStatus, "published"),
+            inArray(consultations.status, ["open", "in_review"]),
+          ),
+        ),
         scope === "all"
           ? undefined
           : inArray(consultations.municipalityId, scope),
       ),
     )
-    .orderBy(asc(consultations.createdAt))
+    // Cases waiting to be published first, then oldest first.
+    .orderBy(
+      sql`(${consultations.publicationStatus} = 'pending') desc`,
+      asc(consultations.createdAt),
+    )
     .limit(input.limit);
 
   return rows.map((row) => ({
@@ -425,6 +465,7 @@ export async function liveTrafficReports(
     .select({
       id: trafficReports.id,
       description: trafficReports.description,
+      descriptionModerationStatus: trafficReports.descriptionModerationStatus,
       location: trafficReports.location,
       createdAt: trafficReports.createdAt,
       expiresAt: trafficReports.expiresAt,
@@ -455,12 +496,17 @@ export async function liveTrafficReports(
           : inArray(trafficReports.municipalityId, scope),
       ),
     )
-    .orderBy(desc(trafficReports.createdAt))
+    // Free text waiting for review first, then newest.
+    .orderBy(
+      sql`(${trafficReports.descriptionModerationStatus} = 'pending' and ${trafficReports.description} is not null) desc`,
+      desc(trafficReports.createdAt),
+    )
     .limit(input.limit);
 
   return rows.map((row) => ({
     id: row.id,
     description: row.description,
+    descriptionModerationStatus: row.descriptionModerationStatus,
     lng: row.location.x,
     lat: row.location.y,
     createdAt: row.createdAt.toISOString(),
@@ -473,4 +519,92 @@ export async function liveTrafficReports(
     reportedBy: row.reportedBy,
     reporterResidentVerified: row.reporterResidentVerified,
   }));
+}
+
+/**
+ * Reports about other people's content, threats and private information first.
+ *
+ * Several reports about the same content collapse into one row with a count,
+ * because the decision is about the content, not about each reporter.
+ */
+export async function pendingContentReports(
+  viewer: ModeratorViewer,
+  input: QueueInput,
+) {
+  const scope = scopedMunicipalities(viewer, input.municipalityId);
+  if (scope !== "all" && scope.length === 0) return [];
+
+  const priority = sql<number>`(case when ${contentReports.reason} in ('personal_information', 'unsafe') then 0 else 1 end)`;
+  const rows = await db
+    .select({
+      id: contentReports.id,
+      kind: contentReports.subjectKind,
+      ref: contentReports.subjectRef,
+      reason: contentReports.reason,
+      details: contentReports.details,
+      createdAt: contentReports.createdAt,
+      municipalityId: municipalities.id,
+      municipalityName: municipalities.name,
+      reportedBy: memberProfiles.displayName,
+      openReportCount: sql<number>`(
+        select count(*)::int from ${contentReports} as sibling
+        where sibling.subject_kind = ${contentReports.subjectKind}
+          and sibling.subject_ref = ${contentReports.subjectRef}
+          and sibling.status = 'open'
+      )`,
+    })
+    .from(contentReports)
+    .innerJoin(
+      municipalities,
+      eq(municipalities.id, contentReports.municipalityId),
+    )
+    .leftJoin(
+      memberProfiles,
+      eq(memberProfiles.userId, contentReports.reporterUserId),
+    )
+    .where(
+      and(
+        eq(contentReports.status, "open"),
+        scope === "all"
+          ? undefined
+          : inArray(contentReports.municipalityId, scope),
+      ),
+    )
+    .orderBy(priority, asc(contentReports.createdAt))
+    .limit(Math.min(input.limit * 5, 250));
+
+  // One row per piece of content: the highest-priority report represents it.
+  const seen = new Set<string>();
+  const distinct = rows
+    .filter((row) => {
+      const key = `${row.kind}:${row.ref}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, input.limit);
+
+  return Promise.all(
+    distinct.map(async (row) => {
+      const subject = await resolveContentTarget(db, {
+        kind: row.kind,
+        ref: row.ref,
+      });
+      return {
+        id: row.id,
+        subject: { kind: row.kind, ref: row.ref },
+        subjectTitle: subject?.title ?? null,
+        subjectVisible: subject?.publiclyVisible ?? false,
+        reason: row.reason,
+        priority:
+          row.reason === "personal_information" || row.reason === "unsafe",
+        details: row.details,
+        createdAt: row.createdAt.toISOString(),
+        municipalityId: row.municipalityId,
+        municipalityName: row.municipalityName,
+        reportedBy: row.reportedBy,
+        openReportCount: row.openReportCount,
+      };
+    }),
+  );
 }

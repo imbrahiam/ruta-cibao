@@ -1,10 +1,10 @@
 /**
  * Sending someone a notification.
  *
- * One call, three destinations, and only the in-app one is guaranteed. Push
- * needs a VAPID keypair and a registered device; email needs a Resend key.
- * Both are optional, and the notification centre is what makes that acceptable
- * — nothing is lost when a channel is off, it just arrives later.
+ * One call, three destinations, and only the in-app one is guaranteed. Native
+ * push needs an Expo access token and a registered device; email needs a Resend
+ * key. External channels respect the recipient's current preferences without
+ * removing their durable in-app history.
  *
  * The stored row holds a catalogue key and its parameters rather than a
  * rendered sentence. Rendering happens at read time, so a notification written
@@ -12,12 +12,19 @@
  * tomorrow, and the catalogue stays the single source of user-facing text.
  */
 
+import { type AppTarget, parseAppTarget } from "@ruta/shared/app-target";
 import { catalogues } from "@ruta/shared/messages";
-import { eq } from "drizzle-orm";
-import { createTranslator } from "next-intl";
-import { type DbTransaction, db } from "@/db";
-import { notifications, user } from "@/db/schema";
 import { renderNotification } from "@ruta/shared/open-keys";
+import { and, eq, gt } from "drizzle-orm";
+import { createTranslator } from "next-intl";
+import { z } from "zod";
+import { type DbTransaction, db } from "@/db";
+import {
+  notificationPreferences,
+  notifications,
+  trafficReports,
+  user,
+} from "@/db/schema";
 import { routing } from "@/i18n/routing";
 import { recordAudit } from "@/lib/audit";
 import { env } from "@/lib/env";
@@ -104,47 +111,87 @@ export async function deliverNotification(input: {
   if (!row) return;
   const notification = row.notification;
 
-  // Rendered once, here, for the channels that carry text rather than a key.
-  // Two translators, because they answer different questions: the scoped one
-  // writes the app's own chrome, and the rooted one resolves a stored key,
-  // which is a full catalogue path and would otherwise be looked up under
-  // `notifications.notifications.…`.
-  const messages = catalogues[routing.defaultLocale];
-  const catalogue = createTranslator({
-    locale: routing.defaultLocale,
-    messages,
-  });
-  const title = catalogue("notifications.title");
-  const body = renderNotification(
-    catalogue,
-    notification.messageKey,
-    notification.params,
-  );
-
-  const wantsPush = input.push;
+  const [preferences] = await db
+    .select()
+    .from(notificationPreferences)
+    .where(eq(notificationPreferences.userId, notification.userId))
+    .limit(1);
+  const allowsCaseUpdate =
+    !notification.messageKey.startsWith("notifications.consultation") ||
+    preferences?.caseUpdatesEnabled !== false;
+  let allowsTraffic = true;
+  if (notification.messageKey === "notifications.trafficNearby") {
+    allowsTraffic = false;
+    let target: AppTarget | null = null;
+    try {
+      target = parseAppTarget(notification.href ?? "");
+    } catch {
+      // An obsolete or malformed target must not bypass explicit subscriptions.
+    }
+    if (
+      preferences?.trafficEnabled &&
+      target?.kind === "traffic" &&
+      z.uuid().safeParse(target.ref).success
+    ) {
+      const [report] = await db
+        .select({
+          municipalityId: trafficReports.municipalityId,
+          categoryId: trafficReports.categoryId,
+        })
+        .from(trafficReports)
+        .where(
+          and(
+            eq(trafficReports.id, target.ref),
+            eq(trafficReports.status, "active"),
+            gt(trafficReports.expiresAt, new Date()),
+          ),
+        )
+        .limit(1);
+      allowsTraffic = Boolean(
+        report &&
+          preferences.municipalityIds.includes(report.municipalityId) &&
+          (preferences.categoryIds.length === 0 ||
+            preferences.categoryIds.includes(report.categoryId)),
+      );
+    }
+  }
+  const wantsPush = input.push && allowsCaseUpdate && allowsTraffic;
   const wantsEmail =
-    input.email && isEmailConfigured() && isDeliverableAddress(row.email);
+    input.email &&
+    allowsCaseUpdate &&
+    allowsTraffic &&
+    preferences?.emailEnabled !== false &&
+    isEmailConfigured() &&
+    isDeliverableAddress(row.email);
 
-  // Delivery is best-effort: a dead push endpoint or a mail outage must not
-  // roll back the thing that caused the notification in the first place.
+  const deliverEmail = async () => {
+    if (!wantsEmail) return;
+    const catalogue = createTranslator({
+      locale: routing.defaultLocale,
+      messages: catalogues[routing.defaultLocale],
+    });
+    const body = renderNotification(
+      catalogue,
+      notification.messageKey,
+      notification.params,
+    );
+    await sendEmail({
+      to: row.email,
+      subject: catalogue("notifications.title"),
+      text: `${body}\n\n${notification.href ? new URL(notification.href, env.APP_URL).toString() : ""}`.trim(),
+      html: `<p>${escapeHtml(body)}</p>${notification.href ? `<p><a href="${escapeHtml(new URL(notification.href, env.APP_URL).toString())}">${escapeHtml(catalogue("notifications.open"))}</a></p>` : ""}`,
+    });
+  };
+
+  // An external outage retries the outbox job, never the original civic mutation.
   const results = await Promise.allSettled([
     wantsPush
       ? sendPushToUser(notification.userId, {
-          title,
-          body,
+          notificationId: notification.id,
           href: notification.href ?? undefined,
-          tag: notification.id,
         })
       : Promise.resolve(0),
-
-    wantsEmail
-      ? sendEmail({
-          to: row.email,
-          subject: title,
-          text: `${body}\n\n${notification.href ? new URL(notification.href, env.APP_URL).toString() : ""}`.trim(),
-          html: `<p>${escapeHtml(body)}</p>${notification.href ? `<p><a href="${escapeHtml(new URL(notification.href, env.APP_URL).toString())}">${escapeHtml(catalogue("notifications.open"))}</a></p>` : ""}`,
-        })
-      : Promise.resolve(),
+    deliverEmail(),
   ]);
   if (results.some((result) => result.status === "rejected"))
     throw new Error("Notification delivery incomplete");

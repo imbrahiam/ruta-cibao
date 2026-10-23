@@ -17,10 +17,17 @@ export default function CategoryScreen() {
   const places = useQuery(
     orpc.places.browse.queryOptions({ input: { category: id, limit: 48 } }),
   );
+  // A deep link carries only the id; the name then comes from the taxonomy.
+  const categories = useQuery({
+    ...orpc.places.categories.queryOptions(),
+    enabled: !name,
+  });
+  const title =
+    name ?? categories.data?.find((item) => item.id === id)?.name ?? "";
 
   return (
     <>
-      <Stack.Screen options={{ title: name ?? "" }} />
+      <Stack.Screen options={{ title }} />
       <FlashList
         data={places.data?.items ?? []}
         keyExtractor={(item) => item.id}

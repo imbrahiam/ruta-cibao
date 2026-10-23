@@ -28,10 +28,22 @@ export const openConsultationInput = z.object({
 
 export type OpenConsultationInput = z.infer<typeof openConsultationInput>;
 
+/**
+ * Whether other people can see a case. Separate from the workflow `status`: a
+ * new case is `pending` until staff review it, visible to its author and to
+ * staff only.
+ */
+export const publicationStatusSchema = z.enum([
+  "pending",
+  "published",
+  "hidden",
+]);
+
 export const openConsultationOutput = z.object({
   id: z.string(),
   slug: z.string(),
   status: z.literal("open"),
+  publicationStatus: z.literal("pending"),
 });
 
 export const consultationStatusSchema = z.enum([
@@ -68,6 +80,8 @@ const consultationSummary = z.object({
   slug: z.string(),
   title: z.string(),
   status: consultationStatusSchema,
+  /** Only the author ever sees anything but `published`. */
+  publicationStatus: publicationStatusSchema,
   categoryId: z.string(),
   categoryName: z.string(),
   categoryIcon: z.string(),

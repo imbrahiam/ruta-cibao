@@ -8,8 +8,10 @@ import {
   consultationVotes,
   memberProfiles,
   municipalities,
+  userBlocks,
 } from "@/db/schema";
 import type { Viewer } from "@/modules/access/viewer";
+import { notBlockedAuthor } from "@/modules/safety/blocks";
 import { ConsultationError } from "./open-consultation";
 
 /**
@@ -60,7 +62,19 @@ export async function browseConsultations(
   // screen renders the same component whether or not the session resolved yet.
   if (input.mine && !viewerId) return { items: [], total: 0 };
 
+  // Other people's cases are listed once published; a person's own cases
+  // appear whatever their review state, so the author can follow them. A case
+  // authored by somebody the viewer blocked is left out of the shared list.
+  const visibility =
+    input.mine && viewerId
+      ? undefined
+      : and(
+          eq(consultations.publicationStatus, "published"),
+          notBlockedAuthor(consultations.openedByUserId, viewer),
+        );
+
   const filters = and(
+    visibility,
     input.municipality
       ? eq(consultations.municipalityId, input.municipality)
       : undefined,
@@ -78,6 +92,7 @@ export async function browseConsultations(
         slug: consultations.slug,
         title: consultations.title,
         status: consultations.status,
+        publicationStatus: consultations.publicationStatus,
         createdAt: consultations.createdAt,
         answeredAt: consultations.answeredAt,
         categoryId: categories.id,
@@ -135,6 +150,7 @@ export async function consultationDetail(db: Db, viewer: Viewer, slug: string) {
       title: consultations.title,
       body: consultations.body,
       status: consultations.status,
+      publicationStatus: consultations.publicationStatus,
       location: consultations.location,
       createdAt: consultations.createdAt,
       answeredAt: consultations.answeredAt,
@@ -164,6 +180,27 @@ export async function consultationDetail(db: Db, viewer: Viewer, slug: string) {
     .limit(1);
 
   if (!row) throw new ConsultationError("not_found");
+
+  // Pending and hidden cases are for their author alone here; staff review
+  // them through the moderation queue. What a blocked author wrote reads as
+  // missing to the person who blocked them.
+  const isAuthor = viewerId !== null && row.openedByUserId === viewerId;
+  if (row.publicationStatus !== "published" && !isAuthor) {
+    throw new ConsultationError("not_found");
+  }
+  if (row.publicationStatus === "published" && !isAuthor && viewerId) {
+    const [blocked] = await db
+      .select({ id: userBlocks.id })
+      .from(userBlocks)
+      .where(
+        and(
+          eq(userBlocks.blockingUserId, viewerId),
+          eq(userBlocks.blockedUserId, row.openedByUserId ?? ""),
+        ),
+      )
+      .limit(1);
+    if (blocked) throw new ConsultationError("not_found");
+  }
 
   const responses = await db
     .select({

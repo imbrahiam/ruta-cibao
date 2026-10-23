@@ -1,0 +1,46 @@
+# Suggest a place with a photo from the library, as a signed-in member.
+# The simulator library must hold at least one photo (`xcrun simctl addmedia`).
+# maestro test -e NAME="Mirador de prueba" apps/mobile/e2e/flows/submit-place-photo.yaml
+appId: do.rutacibao.app.dev
+---
+- tapOn: "Aportes"
+- tapOn:
+    id: "contribute-open"
+- tapOn:
+    id: "contribute-place"
+- waitForAnimationToEnd
+- tapOn: "Parque o plaza"
+- tapOn:
+    id: "place-name"
+- inputText: ${NAME}
+- tapOn:
+    id: "place-description"
+- inputText: "Mirador sobre el valle, con bancos y sombra por la tarde."
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "place-location"
+    direction: DOWN
+- tapOn:
+    id: "place-location"
+- waitForAnimationToEnd
+- tapOn:
+    id: "pick-confirm"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element: "Añadir una foto"
+    direction: DOWN
+- tapOn: "Añadir una foto"
+- tapOn: "Elegir de la galería"
+- waitForAnimationToEnd
+# The system picker: newest photo first.
+- tapOn:
+    point: "17%,22%"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element: "Enviar para revisión"
+    direction: DOWN
+- tapOn: "Enviar para revisión"
+- extendedWaitUntil:
+    visible: "Aportes"
+    timeout: 30000

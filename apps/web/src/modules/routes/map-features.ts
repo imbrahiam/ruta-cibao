@@ -1,10 +1,16 @@
-import { appTargetHref } from "@ruta/shared/app-target";
 import type { CommunityFeature, MapFeaturesInput } from "@ruta/contracts";
+import { appTargetHref } from "@ruta/shared/app-target";
 import { and, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import { categories, consultations, ecoRoutes } from "@/db/schema";
+import type { Viewer } from "@/modules/access/viewer";
+import { notBlockedAuthor } from "@/modules/safety/blocks";
 
-export async function mapFeatures(db: Db, bounds: MapFeaturesInput) {
+export async function mapFeatures(
+  db: Db,
+  viewer: Viewer,
+  bounds: MapFeaturesInput,
+) {
   const box = sql`ST_MakeEnvelope(${bounds.west}, ${bounds.south}, ${bounds.east}, ${bounds.north}, 4326)`;
   const [routes, cases] = await Promise.all([
     db
@@ -19,6 +25,7 @@ export async function mapFeatures(db: Db, bounds: MapFeaturesInput) {
       .where(
         and(
           eq(ecoRoutes.status, "published"),
+          notBlockedAuthor(ecoRoutes.submittedByUserId, viewer),
           sql`${ecoRoutes.path} && ${box}`,
         ),
       )
@@ -36,6 +43,8 @@ export async function mapFeatures(db: Db, bounds: MapFeaturesInput) {
       .innerJoin(categories, eq(categories.id, consultations.categoryId))
       .where(
         and(
+          eq(consultations.publicationStatus, "published"),
+          notBlockedAuthor(consultations.openedByUserId, viewer),
           sql`${consultations.location} && ${box}`,
           sql`${consultations.status} not in ('rejected', 'resolved')`,
         ),

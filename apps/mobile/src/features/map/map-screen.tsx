@@ -79,6 +79,16 @@ export function MapScreen() {
   const selectedTraffic =
     traffic.data?.find((report) => report.id === trafficId) ?? null;
 
+  // Blocking an author removes their places from the collection; a sheet still
+  // open on one of them would describe something that is no longer there.
+  useEffect(() => {
+    if (!selected || !places.data) return;
+    const stillThere = places.data.features.some(
+      (feature) => feature.properties.id === selected.properties.id,
+    );
+    if (!stillThere) setSelected(null);
+  }, [selected, places.data]);
+
   const visible = useMemo(() => {
     if (!places.data) return undefined;
     return {

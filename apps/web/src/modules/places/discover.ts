@@ -1,5 +1,5 @@
-import { appTargetHref } from "@ruta/shared/app-target";
 import type { BrowsePlacesInput } from "@ruta/contracts";
+import { appTargetHref } from "@ruta/shared/app-target";
 import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -12,10 +12,13 @@ import {
   places,
   trafficReports,
 } from "@/db/schema";
+import type { Viewer } from "@/modules/access/viewer";
+import { notBlockedAuthor } from "@/modules/safety/blocks";
 
-export async function browsePlaces(input: BrowsePlacesInput) {
+export async function browsePlaces(viewer: Viewer, input: BrowsePlacesInput) {
   const where = and(
     eq(places.status, "published"),
+    notBlockedAuthor(places.createdByUserId, viewer),
     input.category ? eq(places.categoryId, input.category) : undefined,
     input.municipality
       ? eq(places.municipalityId, input.municipality)
@@ -110,6 +113,8 @@ export async function listContributions(userId: string) {
           id: trafficReports.id,
           name: categories.name,
           status: trafficReports.status,
+          description: trafficReports.description,
+          descriptionStatus: trafficReports.descriptionModerationStatus,
           note: trafficReports.reviewNote,
           createdAt: trafficReports.createdAt,
         })
@@ -124,6 +129,7 @@ export async function listContributions(userId: string) {
           name: consultations.title,
           slug: consultations.slug,
           status: consultations.status,
+          publication: consultations.publicationStatus,
           createdAt: consultations.createdAt,
         })
         .from(consultations)
@@ -146,11 +152,13 @@ export async function listContributions(userId: string) {
         .limit(100),
     ]);
 
-  const placeHref = (slug: string) => appTargetHref({ kind: "place", ref: slug });
+  const placeHref = (slug: string) =>
+    appTargetHref({ kind: "place", ref: slug });
 
   return [
     ...submittedPlaces.map((item) => ({
       ...item,
+      publication: null,
       kind: "place" as const,
       // An unpublished place has no page to open yet, so it gets no link
       // rather than one that leads to "ese lugar no existe".
@@ -158,18 +166,22 @@ export async function listContributions(userId: string) {
     })),
     ...reports.map((item) => ({
       ...item,
+      publication: null,
       kind: "report" as const,
       note: null,
       href: placeHref(item.slug),
     })),
     ...photos.map((item) => ({
       ...item,
+      publication: null,
       kind: "photo" as const,
       note: null,
       href: placeHref(item.slug),
     })),
-    ...traffic.map((item) => ({
+    ...traffic.map(({ description, descriptionStatus, ...item }) => ({
       ...item,
+      // Only reports with free text have anything held back for review.
+      publication: description ? descriptionStatus : null,
       kind: "traffic" as const,
       // Only a live report can be opened; a lapsed one is off the map, which is
       // the whole point of it lapsing.
@@ -186,6 +198,7 @@ export async function listContributions(userId: string) {
     })),
     ...claims.map((item) => ({
       ...item,
+      publication: null,
       kind: "claim" as const,
       href: placeHref(item.slug),
     })),

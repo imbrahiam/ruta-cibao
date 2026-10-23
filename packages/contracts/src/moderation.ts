@@ -25,6 +25,7 @@ export const moderationQueue = z.enum([
   "claims",
   "consultations",
   "traffic",
+  "contentReports",
 ]);
 
 export type ModerationQueueName = z.infer<typeof moderationQueue>;
@@ -121,12 +122,15 @@ export const pendingPhotoShape = z.object({
   uploadedBy: z.string().nullable(),
 });
 
+const publicationShape = z.enum(["pending", "published", "hidden"]);
+
 export const pendingCaseShape = z.object({
   id: z.string(),
   slug: z.string(),
   title: z.string(),
   body: z.string(),
   status: consultationStatusSchema,
+  publicationStatus: publicationShape,
   createdAt: z.iso.datetime(),
   categoryName: z.string(),
   categoryIcon: z.string(),
@@ -140,6 +144,7 @@ export const pendingCaseShape = z.object({
 export const liveTrafficShape = z.object({
   id: z.string(),
   description: z.string().nullable(),
+  descriptionModerationStatus: publicationShape,
   lng: z.number(),
   lat: z.number(),
   createdAt: z.iso.datetime(),
@@ -153,6 +158,28 @@ export const liveTrafficShape = z.object({
   reporterResidentVerified: z.boolean(),
 });
 
+export const contentReportShape = z.object({
+  id: z.uuid(),
+  subject: z.object({
+    kind: z.enum(["place", "photo", "route", "traffic", "consultation"]),
+    ref: z.string(),
+  }),
+  /** A short label for the reviewer: a place name, a case title, a category. */
+  subjectTitle: z.string().nullable(),
+  /** Whether the content is currently shown to other people. */
+  subjectVisible: z.boolean(),
+  reason: z.enum(["abuse", "personal_information", "unsafe", "other"]),
+  /** Threats and private information are reviewed first. */
+  priority: z.boolean(),
+  details: z.string().nullable(),
+  createdAt: z.iso.datetime(),
+  municipalityId: z.string(),
+  municipalityName: z.string(),
+  reportedBy: z.string().nullable(),
+  /** How many open reports this same content has. */
+  openReportCount: z.number().int().positive(),
+});
+
 export const moderationCountsOutput = z.object({
   places: z.number(),
   reports: z.number(),
@@ -160,6 +187,7 @@ export const moderationCountsOutput = z.object({
   claims: z.number(),
   consultations: z.number(),
   traffic: z.number(),
+  contentReports: z.number(),
 });
 
 /**
@@ -173,7 +201,46 @@ export const moderationQueueOutput = z.object({
   claims: z.array(pendingClaimShape),
   consultations: z.array(pendingCaseShape),
   traffic: z.array(liveTrafficShape),
+  contentReports: z.array(contentReportShape),
 });
+
+export const decideContentReportInput = z.object({
+  requestId: z.uuid(),
+  reportId: z.uuid(),
+  decision: z.enum(["actioned", "dismissed"]),
+  reason: z.string().trim().min(10).max(500),
+});
+export const decideContentReportOutput = z.object({
+  status: z.enum(["actioned", "dismissed"]),
+});
+
+/** Publish or hide a case, or the free text of a traffic report. */
+export const decidePublicationInput = z
+  .object({
+    requestId: z.uuid(),
+    target: z.object({
+      kind: z.enum(["consultation", "traffic"]),
+      ref: z.uuid(),
+    }),
+    status: z.enum(["published", "hidden"]),
+    /** Required when hiding: the author is told why. */
+    reason: z.string().trim().max(500).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.status === "hidden" && (value.reason?.length ?? 0) < 10) {
+      context.addIssue({
+        code: "custom",
+        path: ["reason"],
+        message: "moderation.noteRequired",
+      });
+    }
+  });
+export const decidePublicationOutput = z.object({
+  status: z.enum(["published", "hidden"]),
+});
+
+export type DecideContentReportInput = z.infer<typeof decideContentReportInput>;
+export type DecidePublicationInput = z.infer<typeof decidePublicationInput>;
 
 export const setResidencyVerifiedInput = z.object({
   requestId: z.uuid(),
@@ -269,6 +336,28 @@ export const moderationContract = {
     )
     .input(removeTrafficInput)
     .output(okOutput),
+
+  decideContentReport: oc
+    .meta(
+      openapi({
+        method: "POST",
+        path: "/moderation/content-reports/{reportId}",
+        summary: "Action or dismiss a report about content",
+      }),
+    )
+    .input(decideContentReportInput)
+    .output(decideContentReportOutput),
+
+  decidePublication: oc
+    .meta(
+      openapi({
+        method: "POST",
+        path: "/moderation/publication",
+        summary: "Publish or hide a case or a traffic report's text",
+      }),
+    )
+    .input(decidePublicationInput)
+    .output(decidePublicationOutput),
 
   setResidencyVerified: oc
     .meta(

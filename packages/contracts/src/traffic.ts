@@ -67,7 +67,12 @@ export const trafficReportShape = z.object({
   categoryName: z.string(),
   categoryIcon: z.string(),
   categoryColor: z.string(),
+  /**
+   * Free text, shown to others only once reviewed; its author always sees it.
+   */
   description: z.string().nullable(),
+  /** Where the free text is in review. Category and place are never held back. */
+  descriptionModerationStatus: z.enum(["pending", "published", "hidden"]),
   lng: z.number(),
   lat: z.number(),
   /**

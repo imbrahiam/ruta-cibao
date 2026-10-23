@@ -6,7 +6,13 @@
  * `ref` is a place slug, a route id, a consultation slug, a traffic report id,
  * or a weekly report id.
  */
-export const TARGET_KINDS = ["place", "route", "consultation", "traffic", "report"] as const;
+export const TARGET_KINDS = [
+  "place",
+  "route",
+  "consultation",
+  "traffic",
+  "report",
+] as const;
 
 export type TargetKind = (typeof TARGET_KINDS)[number];
 
@@ -21,7 +27,8 @@ export function appTargetHref(target: AppTarget): string {
 
 /** Reads a canonical href back into a target; anything else is not a target. */
 export function parseAppTarget(href: string): AppTarget | null {
-  const path = href.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, "").split(/[?#]/)[0] ?? "";
+  const path =
+    href.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, "").split(/[?#]/)[0] ?? "";
   if (path === "/contributions") return { kind: "contributions" };
   const match = /^\/s\/([a-z]+)\/([^/]+)$/.exec(path);
   if (!match) return null;

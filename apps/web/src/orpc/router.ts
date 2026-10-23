@@ -10,6 +10,7 @@ import { passportRouter } from "./routers/passport";
 import { placesRouter } from "./routers/places";
 import { reportsRouter } from "./routers/reports";
 import { routesRouter } from "./routers/routes";
+import { safetyRouter } from "./routers/safety";
 import { trafficRouter } from "./routers/traffic";
 
 /**
@@ -36,4 +37,5 @@ export const router = impl.router({
   reports: reportsRouter,
   catalog: catalogRouter,
   routes: routesRouter,
+  safety: safetyRouter,
 });

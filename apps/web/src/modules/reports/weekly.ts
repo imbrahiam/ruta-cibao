@@ -1,6 +1,6 @@
-import { appTargetHref } from "@ruta/shared/app-target";
 import type { WeeklyMetrics } from "@ruta/contracts";
 import { weeklyMetrics } from "@ruta/contracts";
+import { appTargetHref } from "@ruta/shared/app-target";
 import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {

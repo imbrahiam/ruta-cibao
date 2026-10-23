@@ -1,8 +1,8 @@
 import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
-import { MessageSquareText, Plus, ThumbsUp } from "lucide-react-native";
-import { useState } from "react";
+import { Clock, MessageSquareText, Plus, ThumbsUp } from "lucide-react-native";
+import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
@@ -11,6 +11,7 @@ import {
   STATUS_STYLE,
   STATUSES,
 } from "@/features/consultations/status";
+import { targetKey, useHiddenTargets } from "@/features/safety/hidden-targets";
 import { useAgo } from "@/i18n/ago";
 import { orpc } from "@/lib/api";
 import { categoryIcon, Icon } from "@/ui/icon";
@@ -23,6 +24,7 @@ import { radius, space, useTheme } from "@/ui/theme";
 export default function ConsultationsScreen() {
   const t = useTranslations("consultations");
   const tc = useTranslations("common");
+  const ts = useTranslations("safety");
   const ago = useAgo();
   const { colors } = useTheme();
   const asMember = useMemberAction();
@@ -38,6 +40,14 @@ export default function ConsultationsScreen() {
         limit: 48,
       },
     }),
+  );
+  const hidden = useHiddenTargets();
+  const items = useMemo(
+    () =>
+      (list.data?.items ?? []).filter(
+        (item) => !hidden.has(targetKey("consultation", item.slug)),
+      ),
+    [list.data, hidden],
   );
 
   return (
@@ -58,7 +68,7 @@ export default function ConsultationsScreen() {
         }}
       />
       <FlashList
-        data={list.data?.items ?? []}
+        data={items}
         keyExtractor={(item) => item.id}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: colors.background }}
@@ -188,6 +198,15 @@ export default function ConsultationsScreen() {
               <Text variant="headline" numberOfLines={3}>
                 {item.title}
               </Text>
+              {item.publicationStatus === "published" ? null : (
+                <View style={styles.cardTop}>
+                  <Badge
+                    label={ts(`publication.${item.publicationStatus}`)}
+                    tone="warning"
+                    icon={Clock}
+                  />
+                </View>
+              )}
               <View style={styles.cardBottom}>
                 <View style={styles.support}>
                   <Icon

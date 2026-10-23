@@ -4,6 +4,7 @@ import { CircleCheck, Clock, Ruler, X } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import { useFormatter, useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
+import { ContentMenu } from "@/features/safety/content-menu";
 import { useAgo } from "@/i18n/ago";
 import { orpc } from "@/lib/api";
 import { Button } from "@/ui/button";
@@ -25,6 +26,7 @@ export function TrafficSummary({
 }) {
   const t = useTranslations("traffic");
   const tc = useTranslations("common");
+  const ts = useTranslations("safety");
   const format = useFormatter();
   const ago = useAgo();
   const toast = useToast();
@@ -69,13 +71,22 @@ export function TrafficSummary({
             {report.municipalityName} · {ago(report.createdAt)}
           </Text>
         </View>
-        <IconButton
-          icon={X}
-          label={tc("close")}
-          onPress={onClose}
-          size={32}
-          haptic="none"
-        />
+        <View style={styles.headerActions}>
+          {report.isMine ? null : (
+            <ContentMenu
+              target={{ kind: "traffic", ref: report.id }}
+              size={32}
+              onHidden={onClose}
+            />
+          )}
+          <IconButton
+            icon={X}
+            label={tc("close")}
+            onPress={onClose}
+            size={32}
+            haptic="none"
+          />
+        </View>
       </View>
 
       <View style={styles.badges}>
@@ -107,6 +118,13 @@ export function TrafficSummary({
       </View>
 
       {report.description ? <Text>{report.description}</Text> : null}
+      {report.isMine &&
+      report.description &&
+      report.descriptionModerationStatus !== "published" ? (
+        <Text variant="footnote" tone="tertiary">
+          {ts(`publication.${report.descriptionModerationStatus}Text`)}
+        </Text>
+      ) : null}
 
       {report.isMine || cleared ? null : (
         <View style={styles.ask}>
@@ -185,6 +203,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   flex: { flex: 1 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: space.sm },
   badges: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   ask: { gap: space.sm },
   actions: { flexDirection: "row", gap: space.sm },

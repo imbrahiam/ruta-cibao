@@ -15,8 +15,10 @@
 
 import { db } from "@/db";
 import { clearExpiredIdempotencyKeys } from "@/lib/idempotency";
+import { checkNativePushReceipts } from "@/lib/push";
 import { clearExpiredRateLimits } from "@/lib/rate-limit";
 import { clearExpiredRealtimeEvents } from "@/lib/realtime";
+import { runAccountDeletion } from "@/modules/account/deletion";
 import { deliverNotification } from "@/modules/notifications/notify";
 import { cleanupPhotoUploads } from "@/modules/places/photos";
 import { renderWeeklyReportPdf } from "@/modules/reports/render-pdf";
@@ -61,6 +63,8 @@ const handlers: Handlers = {
   },
 
   [QUEUES.notificationDeliver]: (input) => deliverNotification(input),
+  [QUEUES.nativePushReceipts]: () => checkNativePushReceipts(),
+  [QUEUES.accountDeletion]: ({ deletionId }) => runAccountDeletion(deletionId),
 };
 
 export function runJob<Q extends QueueName>(

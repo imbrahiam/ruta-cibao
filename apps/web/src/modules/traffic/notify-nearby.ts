@@ -1,110 +1,82 @@
 import { appTargetHref } from "@ruta/shared/app-target";
-import { and, eq, isNotNull, sql } from "drizzle-orm";
-import { union } from "drizzle-orm/pg-core";
+import { and, arrayContains, eq, gt, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { categories, places, savedPlaces, trafficReports } from "@/db/schema";
+import {
+  categories,
+  notificationPreferences,
+  trafficReports,
+} from "@/db/schema";
 import { notify } from "@/modules/notifications/notify";
 
 /**
- * Telling the people a report is actually near.
+ * Fan out only to explicit municipality/category subscribers. Saved places,
+ * contributions and a person's location never imply notification consent.
  *
- * "Cerca de ti" is a promise, and the platform has no idea where anybody is —
- * deliberately. It never stores a location for a person, and asking every
- * phone to report one so it could send a notification would be a much larger
- * thing to build than the notification is worth.
- *
- * What it does hold is where people have shown an interest in being: the places
- * they kept, and the places they put on the map themselves. Somebody who saved
- * the clinic in Monción and submitted the colmado two streets over has told the
- * platform where their life happens, without ever being tracked. That is the
- * proximity this uses, and it is honest about its edges — a resident who has
- * saved nothing gets no notification, which is the right failure: silence
- * rather than a guess.
- *
- * The fan-out runs on the queue, not on the request. A landslide on a Sunday
- * afternoon can touch a few hundred people, and the person who reported it
- * should not be holding a spinner while their neighbours' phones buzz.
+ * The queued job writes durable inbox/outbox rows in the same transaction.
+ * Share locks serialize report removal and preference mutes with that fan-out;
+ * external delivery also rechecks the latest preferences before sending.
  */
-
-/** Close enough that a driver would want to know before they set off. */
-const NEARBY_METERS = 3_000;
-
-/**
- * A ceiling, not a target.
- *
- * The province has three municipalities; a report that reaches this many people
- * is either the biggest thing that happened this month or a bug, and both are
- * better discovered than acted on.
- */
-const MAX_RECIPIENTS = 200;
-
 export async function notifyNearbyOfTraffic(reportId: string): Promise<number> {
-  const [report] = await db
-    .select({
-      id: trafficReports.id,
-      status: trafficReports.status,
-      description: trafficReports.description,
-      location: trafficReports.location,
-      reportedByUserId: trafficReports.reportedByUserId,
-      categoryName: categories.name,
-    })
-    .from(trafficReports)
-    .innerJoin(categories, eq(categories.id, trafficReports.categoryId))
-    .where(eq(trafficReports.id, reportId))
-    .limit(1);
-
-  // A report cleared or removed between the send and the run is not news.
-  if (report?.status !== "active") return 0;
-
-  const origin = sql`ST_SetSRID(ST_MakePoint(${report.location.x}, ${report.location.y}), 4326)::geography`;
-
-  const isNear = sql`ST_DWithin(${places.location}::geography, ${origin}, ${NEARBY_METERS})`;
-
-  // `union` rather than two queries: a person is one recipient however many
-  // reasons they have to be one, and set union is where that de-duplication
-  // belongs.
-  const recipients = await union(
-    db
-      .select({ userId: savedPlaces.userId })
-      .from(savedPlaces)
-      .innerJoin(places, eq(places.id, savedPlaces.placeId))
-      .where(and(eq(places.status, "published"), isNear)),
-
-    db
-      .select({ userId: sql<string>`${places.createdByUserId}` })
-      .from(places)
+  return db.transaction(async (tx) => {
+    const [report] = await tx
+      .select({
+        id: trafficReports.id,
+        categoryId: trafficReports.categoryId,
+        municipalityId: trafficReports.municipalityId,
+        reportedByUserId: trafficReports.reportedByUserId,
+        categoryName: categories.name,
+      })
+      .from(trafficReports)
+      .innerJoin(categories, eq(categories.id, trafficReports.categoryId))
       .where(
         and(
-          eq(places.status, "published"),
-          isNotNull(places.createdByUserId),
-          isNear,
+          eq(trafficReports.id, reportId),
+          eq(trafficReports.status, "active"),
+          gt(trafficReports.expiresAt, new Date()),
+          eq(categories.kind, "traffic"),
+          eq(categories.isActive, true),
         ),
-      ),
-  ).limit(MAX_RECIPIENTS);
+      )
+      .for("share");
+    if (!report) return 0;
 
-  const description = report.description?.trim()
-    ? `${report.categoryName}: ${report.description.trim()}`
-    : report.categoryName;
+    const recipients = await tx
+      .select({ userId: notificationPreferences.userId })
+      .from(notificationPreferences)
+      .where(
+        and(
+          eq(notificationPreferences.trafficEnabled, true),
+          arrayContains(notificationPreferences.municipalityIds, [
+            report.municipalityId,
+          ]),
+          or(
+            sql`cardinality(${notificationPreferences.categoryIds}) = 0`,
+            arrayContains(notificationPreferences.categoryIds, [
+              report.categoryId,
+            ]),
+          ),
+          report.reportedByUserId
+            ? ne(notificationPreferences.userId, report.reportedByUserId)
+            : undefined,
+        ),
+      )
+      .for("share");
 
-  let sent = 0;
-
-  for (const row of recipients) {
-    // Telling somebody about their own report is noise.
-    if (!row.userId || row.userId === report.reportedByUserId) continue;
-
-    await notify({
-      dedupeKey: `traffic:${report.id}:${row.userId}`,
-      userId: row.userId,
-      messageKey: "notifications.trafficNearby",
-      params: { description },
-      href: appTargetHref({ kind: "traffic", ref: report.id }),
-      // No email. This is a thing that will be over in a few hours, and an
-      // inbox is the wrong place for it.
-      channels: { push: true, email: false },
-    });
-
-    sent += 1;
-  }
-
-  return sent;
+    for (const recipient of recipients) {
+      await notify(
+        {
+          dedupeKey: `traffic:${report.id}:${recipient.userId}`,
+          userId: recipient.userId,
+          messageKey: "notifications.trafficNearby",
+          // Reports publish before their free text is reviewed. Never copy it
+          // into notifications, including the durable in-app inbox.
+          params: { description: report.categoryName },
+          href: appTargetHref({ kind: "traffic", ref: report.id }),
+          channels: { push: true, email: false },
+        },
+        tx,
+      );
+    }
+    return recipients.length;
+  });
 }

@@ -28,9 +28,8 @@ COPY . .
 # build argument, which is what makes "changing an env value" enough to point a
 # deployment at a different maps key or switch the renderer.
 #
-# None is a secret. A browser maps key is restricted by referrer on the
-# provider's side and a VAPID *public* key is public by definition; the private
-# halves stay in the runtime environment and never appear here.
+# Public browser map values are restricted by referrer; private credentials
+# stay in the runtime environment and never appear here.
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ARG NEXT_PUBLIC_MAP_RENDERER=maplibre
 ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
@@ -39,7 +38,6 @@ ARG NEXT_PUBLIC_RASTER_TILE_URL=
 ARG NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION=
 ARG NEXT_PUBLIC_MAPTILER_KEY=
 ARG NEXT_PUBLIC_BASEMAP_PMTILES_URL=
-ARG NEXT_PUBLIC_VAPID_PUBLIC_KEY=
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
@@ -49,8 +47,7 @@ ENV NODE_ENV=production \
     NEXT_PUBLIC_RASTER_TILE_URL=${NEXT_PUBLIC_RASTER_TILE_URL} \
     NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION=${NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION} \
     NEXT_PUBLIC_MAPTILER_KEY=${NEXT_PUBLIC_MAPTILER_KEY} \
-    NEXT_PUBLIC_BASEMAP_PMTILES_URL=${NEXT_PUBLIC_BASEMAP_PMTILES_URL} \
-    NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+    NEXT_PUBLIC_BASEMAP_PMTILES_URL=${NEXT_PUBLIC_BASEMAP_PMTILES_URL}
 RUN bun run build \
     && find .next/standalone/node_modules/@img -maxdepth 1 -type d -name "*linuxmusl*" -exec rm -rf {} +
 

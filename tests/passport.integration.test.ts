@@ -103,6 +103,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         getSession: async () => ({
           viewer: { kind: "anonymous" as const },
           contact: null,
+          session: null,
         }),
       };
       await expect(

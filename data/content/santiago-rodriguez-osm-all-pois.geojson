@@ -1,0 +1,4351 @@
+{
+  "type": "FeatureCollection",
+  "provenance": {
+    "source": "OpenStreetMap",
+    "license": "Open Data Commons Open Database License (ODbL) 1.0",
+    "attribution": "© OpenStreetMap contributors",
+    "retrievedAt": "2026-10-23T15:44:02Z",
+    "territory": "Provincia Santiago Rodríguez, República Dominicana"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1518627,
+          19.4116439
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1360245156,
+        "name": "Almacén Ferretería Reyes",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": "809-579-0682",
+        "openingHours": "Mo-Fr 08:00-12:00, 14:00-18:00",
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "contact:email": "ferreteriareyes@gmail.com",
+          "name": "Almacén Ferretería Reyes",
+          "opening_hours": "Mo-Fr 08:00-12:00, 14:00-18:00",
+          "operator": "Nelson Reyes",
+          "payment:cash": "yes",
+          "payment:credit_cards": "yes",
+          "payment:debit_cards": "yes",
+          "payment:mastercard": "yes",
+          "payment:visa": "yes",
+          "phone": "8095790682",
+          "shop": "hardware"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1498271,
+          19.4104223
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064559,
+        "name": "Ayuntamiento de Monción",
+        "categoryId": "gobierno",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Juan Pablo Duarte",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle Juan Pablo Duarte",
+          "amenity": "townhall",
+          "building": "yes",
+          "name": "Ayuntamiento de Monción",
+          "townhall:type": "city"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1508573,
+          19.4107816
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4600227190,
+        "name": "Banreservas",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "bank",
+          "name": "Banreservas",
+          "name:es": "Banreservas"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.156874,
+          19.4122542
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064544,
+        "name": "Bomberos de Monción",
+        "categoryId": "gobierno",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Juan Pablo Duarte",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle Juan Pablo Duarte",
+          "amenity": "fire_station",
+          "building": "yes",
+          "name": "Bomberos de Monción"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1502733,
+          19.4120711
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359507523,
+        "name": "Cerro Bar",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "nightclub",
+          "building": "yes",
+          "min_age": "18",
+          "name": "Cerro Bar"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1550734,
+          19.4112653
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359382093,
+        "name": "Clínica Dr. Morel",
+        "categoryId": "salud",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "clinic",
+          "building": "yes",
+          "healthcare": "clinic",
+          "name": "Clínica Dr. Morel"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1522245,
+          19.410755
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1360245106,
+        "name": "Colmado El Manguito",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "name": "Colmado El Manguito",
+          "shop": "convenience"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1609884,
+          19.4113377
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4665691495,
+        "name": "Colmado El Mello",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Colmado El Mello",
+          "name:es": "Colmado El Mello",
+          "shop": "supermarket"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1492004,
+          19.4144656
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359507526,
+        "name": "Colmado Radame",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "name": "Colmado Radame",
+          "shop": "convenience"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1633948,
+          19.4188628
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359716292,
+        "name": "Comedor Magalis",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "fast_food",
+          "building": "restaurant",
+          "fast_food": "cafeteria",
+          "name": "Comedor Magalis"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.151881,
+          19.4113951
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5406065922,
+        "name": "Comedor peralta",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "fast_food",
+          "name": "Comedor peralta"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.0804595,
+          19.4665411
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 366125649,
+        "name": "Contraembalse Moncion",
+        "categoryId": "parque",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Contraembalse Moncion",
+          "waterway": "dam"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1509356,
+          19.4105535
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359382135,
+        "name": "Cooperativa Mamoncito",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "bank",
+          "building": "yes",
+          "name": "Cooperativa Mamoncito"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1529631,
+          19.4113568
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1360245111,
+        "name": "D'Amigos Café",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "restaurant",
+          "building": "yes",
+          "name": "D'Amigos Café"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1505978,
+          19.4105784
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1360245154,
+        "name": "Danilo Food Truck",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "fast_food",
+          "building": "yes",
+          "name": "Danilo Food Truck"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1635629,
+          19.4135697
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064540,
+        "name": "EcoPetróleo",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Carretera Monción - Los Quemados",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:postcode": "62902",
+          "addr:street": "Carretera Monción - Los Quemados",
+          "amenity": "fuel",
+          "brand": "EcoPetróleo",
+          "building": "roof",
+          "layer": "1",
+          "name": "EcoPetróleo",
+          "operator": "EcoPetróleo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1503783,
+          19.4106076
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4600226891,
+        "name": "El Cerón",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "bar",
+          "name": "El Cerón"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1505491,
+          19.4113222
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4600226892,
+        "name": "El Mediterraneo",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle San Antonio",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle San Antonio",
+          "amenity": "bar",
+          "brewery": "various",
+          "min_age": "18",
+          "name": "El Mediterraneo",
+          "name:es": "El Mediterraneo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1505072,
+          19.4105558
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359382138,
+        "name": "El Patio",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "bar",
+          "building": "yes",
+          "name": "El Patio"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1506945,
+          19.4116686
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1360245155,
+        "name": "El Pollo Comida Rapida",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "fast_food",
+          "building": "yes",
+          "cuisine": "burger;fries;sandwich;salad",
+          "diet:local": "yes",
+          "name": "El Pollo Comida Rapida",
+          "name:en": "The Chicken Fast Food"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.0804391,
+          19.4221869
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4600226893,
+        "name": "Entrada Central Moncion",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Entrada Central Moncion",
+          "name:es": "Entrada Central Moncion",
+          "tourism": "information"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1481067,
+          19.4145734
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064554,
+        "name": "Escuela La Trinitaria",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle 24 de Abril",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle 24 de Abril",
+          "amenity": "school",
+          "name": "Escuela La Trinitaria"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1528316,
+          19.4156914
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064545,
+        "name": "Escuela Presidente Profesor Juan Bosch",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle 24 de Abril",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle 24 de Abril",
+          "amenity": "school",
+          "name": "Escuela Presidente Profesor Juan Bosch"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1624657,
+          19.410605
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359717645,
+        "name": "Farmacia Moncion",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "name": "Farmacia Moncion",
+          "shop": "chemist"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1506696,
+          19.4103392
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359382137,
+        "name": "Farmacia Monción",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "pharmacy",
+          "building": "yes",
+          "dispensing": "yes",
+          "drive_through": "no",
+          "healthcare": "pharmacy",
+          "name": "Farmacia Monción"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1554962,
+          19.4101032
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1361565200,
+        "name": "Farmacia Monción",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "name": "Farmacia Monción",
+          "shop": "chemist"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1630803,
+          19.4090035
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1372208532,
+        "name": "Ferreteria Las Heneas",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "name": "Ferreteria Las Heneas",
+          "operator": "Ferreteria Las Heneas",
+          "shop": "hardware"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1509583,
+          19.4107881
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4834488422,
+        "name": "Heladeia Cafeteria Uvis",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "cafe",
+          "name": "Heladeia Cafeteria Uvis",
+          "name:es": "Heladeia Cafeteria Uvis"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.150489,
+          19.4112448
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 13568200952,
+        "name": "Helados Bon",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle San Antonio",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle San Antonio",
+          "amenity": "ice_cream",
+          "name": "Helados Bon"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1507391,
+          19.411126
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 13568200961,
+        "name": "Helados Splash",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Colón",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Calle Colón",
+          "amenity": "ice_cream",
+          "name": "Helados Splash"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1619108,
+          19.4101896
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064538,
+        "name": "Hospital Municipal de Monción",
+        "categoryId": "salud",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Octavio Henderson",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle Octavio Henderson",
+          "amenity": "hospital",
+          "healthcare": "hospital",
+          "name": "Hospital Municipal de Monción"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1498975,
+          19.4108083
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 493307800,
+        "name": "Iglesia Católica de Monción",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Juan Pablo Duarte",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle Juan Pablo Duarte",
+          "amenity": "place_of_worship",
+          "building": "yes",
+          "name": "Iglesia Católica de Monción",
+          "religion": "christian"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1502747,
+          19.4113421
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1479036745,
+        "name": "Juzgado de paz",
+        "categoryId": "gobierno",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle San Antonio",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle San Antonio",
+          "amenity": "courthouse",
+          "building": "townhall",
+          "building:levels": "1",
+          "government": "register_office",
+          "name": "Juzgado de paz",
+          "office": "government"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1496809,
+          19.4072137
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4600227290,
+        "name": "La Alameda",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "La Alameda",
+          "name:es": "La Alameda",
+          "tourism": "information"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1497796,
+          19.4046855
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4600188797,
+        "name": "La Loma",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "La Loma",
+          "name:es": "La Loma",
+          "tourism": "information"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1479003,
+          19.409911
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064560,
+        "name": "Liceo Juan Pablo Duarte",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Sor Betania",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle Sor Betania",
+          "amenity": "school",
+          "name": "Liceo Juan Pablo Duarte"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1470077,
+          19.4480331
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 11985342898,
+        "name": "Monasterio Carmelita N.S. de América y San José",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Los Pinos, Cacique, Monción",
+        "phone": "829-344-0250",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:postcode": "02",
+          "addr:street": "Los Pinos, Cacique, Monción",
+          "amenity": "monastery",
+          "denomination": "catholic",
+          "name": "Monasterio Carmelita N.S. de América y San José",
+          "phone": "829-344-0250/ 795-1620",
+          "religion": "christian"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1646349,
+          19.4248809
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 13568229711,
+        "name": "Monumento a Cristo",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "artwork_type": "statue",
+          "name": "Monumento a Cristo",
+          "tourism": "artwork"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.164628,
+          19.4244933
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 13568229710,
+        "name": "Monumento Moncion",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "artwork_type": "mural",
+          "name": "Monumento Moncion",
+          "tourism": "artwork"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1629972,
+          19.4109928
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064537,
+        "name": "Parque Barrio Nuevo",
+        "categoryId": "parque",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Los Héroes",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle Los Héroes",
+          "leisure": "park",
+          "name": "Parque Barrio Nuevo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1501753,
+          19.4108604
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 493307705,
+        "name": "Parque Central de Monción",
+        "categoryId": "parque",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Juan Pablo Duarte",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle Juan Pablo Duarte",
+          "leisure": "park",
+          "name": "Parque Central de Monción"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1497069,
+          19.4092894
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064566,
+        "name": "Parque Las Flores",
+        "categoryId": "parque",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Tomás Genao",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle Tomás Genao",
+          "leisure": "park",
+          "name": "Parque Las Flores"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1496181,
+          19.4149894
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064553,
+        "name": "Play Municipal de Monción",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "leisure": "pitch",
+          "name": "Play Municipal de Monción",
+          "sport": "baseball"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.150243,
+          19.4115702
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1360209737,
+        "name": "Policia Municipal de Monción",
+        "categoryId": "gobierno",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "police",
+          "building": "yes",
+          "name": "Policia Municipal de Monción"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1190648,
+          19.4056983
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 49190186,
+        "name": "Presa de Monción",
+        "categoryId": "parque",
+        "categoryKind": "place",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "name": "Presa de Monción",
+          "source": "digitalglobe",
+          "waterway": "dam"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1507366,
+          19.4111673
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 8864186036,
+        "name": "Pulse Club",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "nightclub",
+          "contact:facebook": "https://www.facebook.com/pulse.rd01/",
+          "contact:instagram": "https://www.instagram.com/pulseclubrd/",
+          "min_age": "18",
+          "name": "Pulse Club"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.163083,
+          19.4184131
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359716268,
+        "name": "Red Gym",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "leisure": "fitness_centre",
+          "name": "Red Gym"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1500061,
+          19.4114575
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1479036744,
+        "name": "Repuestos Ivan",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "name": "Repuestos Ivan",
+          "operator": "Ivan Racing",
+          "shop": "motorcycle_repair"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.0947873,
+          19.4366486
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 48456295,
+        "name": "Río Mao",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "boat": "no",
+          "name": "Río Mao",
+          "source": "digitalglobe",
+          "waterway": "river"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.165087,
+          19.4150598
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4665755594,
+        "name": "Rotonda de Cepillo",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "historic": "monument",
+          "name": "Rotonda de Cepillo",
+          "name:es": "Rotonda de Cepillo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1626778,
+          19.4069637
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4943248421,
+        "name": "Seminario Nuestra Señora Las Mercedes",
+        "categoryId": "hospedaje",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "camino a duran",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "camino a duran",
+          "name": "Seminario Nuestra Señora Las Mercedes",
+          "tourism": "hostel"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1517791,
+          19.4109687
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359507522,
+        "name": "Supermercado Espinal",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "name": "Supermercado Espinal",
+          "shop": "supermarket"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.156974,
+          19.4119056
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1177064543,
+        "name": "Texaco",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Juan Pablo Duarte",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Monción",
+          "addr:street": "Calle Juan Pablo Duarte",
+          "brand": "Texaco",
+          "brand:wikidata": "Q775060",
+          "building": "yes",
+          "name": "Texaco",
+          "shop": "convenience"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1569391,
+          19.4119813
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1359716266,
+        "name": "Texaco",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "fuel",
+          "brand": "Texaco",
+          "brand:wikidata": "Q775060",
+          "name": "Texaco"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1507969,
+          19.4107687
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4888134321,
+        "name": "Tienda 20 & 10",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": "Calle Duarte",
+        "phone": "809-977-2010",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Calle Duarte",
+          "name": "Tienda 20 & 10",
+          "name:es": "Tienda 20 & 10",
+          "phone": "8099772010",
+          "shop": "gift"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.1524237,
+          19.4108134
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 1360245107,
+        "name": "Tienda Madera",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "moncion",
+        "municipalityName": "Monción",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "yes",
+          "name": "Tienda Madera",
+          "shop": "clothes"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3591765,
+          19.4625857
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728384889,
+        "name": "Aferme Gas",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Sabaneta - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Sabaneta - Villa Los Almácigos",
+          "amenity": "fuel",
+          "name": "Aferme Gas",
+          "name:es": "Aferme Gas"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3415746,
+          19.4842798
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 9191782917,
+        "name": "Alta Gama Vapeshop",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "contact:instagram": "https://www.instagram.com/altagamavapeshop/",
+          "name": "Alta Gama Vapeshop",
+          "shop": "e-cigarette"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.2652764,
+          19.3866737
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 367820246,
+        "name": "Arroyo Palmarejo",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Arroyo Palmarejo",
+          "waterway": "stream",
+          "wikidata": "Q23764483"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3439298,
+          19.4772703
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047234529,
+        "name": "ASOCIACION LA NACIONAL",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "amenity": "bank",
+          "atm": "yes",
+          "name": "ASOCIACION LA NACIONAL"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3423884,
+          19.4755249
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 2037619248,
+        "name": "Ayuntamiento",
+        "categoryId": "gobierno",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "townhall",
+          "name": "Ayuntamiento"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3455717,
+          19.4755101
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4710625598,
+        "name": "Banco Ademi",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Calle Dr. Dario Gomez",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Calle Dr. Dario Gomez",
+          "amenity": "bank",
+          "name": "Banco Ademi",
+          "name:es": "Banco Ademi"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3440547,
+          19.4758495
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047233728,
+        "name": "Banco ADOPEM",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Calle Dr. Dario Gomez",
+        "phone": null,
+        "openingHours": "Mo-Sa 08:00-18:00",
+        "website": null,
+        "tags": {
+          "addr:street": "Calle Dr. Dario Gomez",
+          "amenity": "bank",
+          "atm": "no",
+          "name": "Banco ADOPEM",
+          "opening_hours": "Mo-Sa 08:00-18:00"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3387462,
+          19.4779599
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047237705,
+        "name": "Banco AGRICOLA",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "amenity": "bank",
+          "name": "Banco AGRICOLA"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.343925,
+          19.4762417
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5229212724,
+        "name": "Banreservas",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "bank",
+          "name": "Banreservas"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.2649258,
+          19.387157
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 3832563027,
+        "name": "Bodega Rodrigue ¨Tulo¨",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Palmarejo",
+        "phone": null,
+        "openingHours": "06:30-21:00",
+        "website": null,
+        "tags": {
+          "addr:city": "Santiago Rodriguez",
+          "addr:street": "Palmarejo",
+          "name": "Bodega Rodrigue ¨Tulo¨",
+          "opening_hours": "06:30-21:00",
+          "shop": "supermarket"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3433808,
+          19.475707
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 2037618770,
+        "name": "Bomberos",
+        "categoryId": "gobierno",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "fire_station",
+          "name": "Bomberos"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3606088,
+          19.4611728
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728384589,
+        "name": "Cabañas Turísticas Dominicantica Spanish",
+        "categoryId": "hospedaje",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Sabaneta - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Sabaneta - Villa Los Almácigos",
+          "name": "Cabañas Turísticas Dominicantica Spanish",
+          "name:es": "Cabañas Turísticas Dominicantica Spanish",
+          "tourism": "motel"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3393651,
+          19.4769469
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573858890,
+        "name": "Cafetería",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "cafe",
+          "name": "Cafetería"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3397094,
+          19.4776944
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573859685,
+        "name": "Cafetería",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "cafe",
+          "name": "Cafetería"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.2640817,
+          19.3863381
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 3715356481,
+        "name": "Capilla San Pedro",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Palmarejo",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Santiago Rodriguez",
+          "addr:street": "Palmarejo",
+          "amenity": "place_of_worship",
+          "denomination": "roman_catholic",
+          "name": "Capilla San Pedro",
+          "religion": "christian"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3421249,
+          19.4752535
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573843590,
+        "name": "Capri",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "nightclub",
+          "name": "Capri"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3403324,
+          19.4777218
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4740497219,
+        "name": "Caribe Express",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Caribe Express",
+          "shop": "travel_agency"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3251486,
+          19.4814419
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 689237416,
+        "name": "Centro Educativo Profa. Clara Luz Lora",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": "809-580-4283",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "school",
+          "name": "Centro Educativo Profa. Clara Luz Lora",
+          "phone": "+1 809-580-4283"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3420931,
+          19.4767403
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047231120,
+        "name": "CENTRO MEDICO GRAN PODER DE DIOS",
+        "categoryId": "salud",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Calle San Ignacio",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Calle San Ignacio",
+          "amenity": "clinic",
+          "name": "CENTRO MEDICO GRAN PODER DE DIOS"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3439128,
+          19.4759147
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573858891,
+        "name": "chao",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "cafe",
+          "name": "chao"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3383622,
+          19.4780565
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 11618613790,
+        "name": "Clínica Villafaña Jiménez",
+        "categoryId": "salud",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración #61",
+        "phone": "809-580-2480",
+        "openingHours": "24/7",
+        "website": null,
+        "tags": {
+          "addr:housenumber": "61",
+          "addr:street": "Av. Próceres de la Restauración",
+          "amenity": "clinic",
+          "email": "cvillafanajimenez@gmail.con",
+          "internet_access": "wlan",
+          "level": "2",
+          "name": "Clínica Villafaña Jiménez",
+          "opening_hours": "24/7",
+          "phone": "8095802480"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.2636985,
+          19.3864782
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 3715353552,
+        "name": "Club Centro Progresista Palmarejo",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Palmarejo",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Santiago Rodriguez",
+          "addr:street": "Palmarejo",
+          "amenity": "bar",
+          "name": "Club Centro Progresista Palmarejo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.2636529,
+          19.38647
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 379907704,
+        "name": "Clud centro progresista palmarejo",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Palmarejo",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Santiago Rodriguez",
+          "addr:street": "Palmarejo",
+          "amenity": "bar",
+          "name": "Clud centro progresista palmarejo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.337254,
+          19.4787828
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047240239,
+        "name": "Colegio Francisco Bueno Zapata",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": "809-580-4207",
+        "openingHours": "Mo-Fr 07:00-09:00, 10:00-12:00",
+        "website": "http://www.colegiofbz.com",
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "amenity": "school",
+          "contact:facebook": "Franciscobuenozapata",
+          "internet_access": "wlan",
+          "level": "1",
+          "name": "Colegio Francisco Bueno Zapata",
+          "opening_hours": "Mo-Fr 07:00-09:00, 10:00-12:00",
+          "phone": "8095804207",
+          "website": "http://www.colegiofbz.com"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3408327,
+          19.4758739
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 2037620480,
+        "name": "Colegio Parroquial",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "school",
+          "name": "Colegio Parroquial"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3384187,
+          19.4782968
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047239036,
+        "name": "COOPSANO",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "amenity": "bank",
+          "name": "COOPSANO"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3601317,
+          19.4620761
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728383191,
+        "name": "Coopsano Club",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Sabaneta - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Sabaneta - Villa Los Almácigos",
+          "amenity": "bank",
+          "name": "Coopsano Club",
+          "name:es": "Coopsano Club"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3413209,
+          19.4761672
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 2037620422,
+        "name": "Correos",
+        "categoryId": "gobierno",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "post_office",
+          "name": "Correos"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3405658,
+          19.4775707
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4740503067,
+        "name": "D'Laura",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "amenity": "cafe",
+          "name": "D'Laura",
+          "name:es": "D'Laura"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.342256,
+          19.4773564
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573858889,
+        "name": "Doble AA",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Doble AA",
+          "shop": "supermarket"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.361556,
+          19.4601531
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728383190,
+        "name": "EcoPetróleo",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Sabaneta - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Sabaneta - Villa Los Almácigos",
+          "amenity": "fuel",
+          "name": "EcoPetróleo",
+          "name:es": "EcoPetróleo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3373539,
+          19.4750718
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573859585,
+        "name": "El Gordo",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "fast_food",
+          "name": "El Gordo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3947546,
+          19.4332282
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573858893,
+        "name": "El Mosquito",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "El Mosquito",
+          "shop": "car_repair"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3422724,
+          19.4767476
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4377990193,
+        "name": "El Patio Restaurant",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Calle San Ignacio",
+        "phone": "809-382-0294",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Calle San Ignacio",
+          "amenity": "restaurant",
+          "cuisine": "local",
+          "name": "El Patio Restaurant",
+          "name:es": "El Patio Restaurant",
+          "phone": "8093820294"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3406335,
+          19.4775659
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4740503065,
+        "name": "Electrónica J&E",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "name": "Electrónica J&E",
+          "name:es": "Electrónica J&E",
+          "shop": "electronics"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3408521,
+          19.4778758
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 689237412,
+        "name": "Escuela Ana Joaquina Hidalgo",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "school",
+          "name": "Escuela Ana Joaquina Hidalgo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3678841,
+          19.4471236
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 689010663,
+        "name": "Escuela El Guanal",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "school",
+          "name": "Escuela El Guanal"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3472113,
+          19.479009
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 689010682,
+        "name": "Escuela Pública José María Sierra",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": "809-580-2459",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "school",
+          "name": "Escuela Pública José María Sierra",
+          "phone": "1-809-580-2459"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3394203,
+          19.4776229
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4166685560,
+        "name": "Esso",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "fuel",
+          "name": "Esso"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3207957,
+          19.4801476
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4710577694,
+        "name": "Estación Isla",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Mao - Sabaneta",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Mao - Sabaneta",
+          "amenity": "fuel",
+          "name": "Estación Isla",
+          "name:es": "Estación Isla"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3456878,
+          19.4792626
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 117576636,
+        "name": "Estadio Armando Sosa Leyba",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "building": "no",
+          "leisure": "stadium",
+          "name": "Estadio Armando Sosa Leyba",
+          "sport": "baseball"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3426323,
+          19.4773065
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573843589,
+        "name": "Expreso Sabaneta",
+        "categoryId": "transporte",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "highway": "bus_stop",
+          "name": "Expreso Sabaneta"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3401185,
+          19.4768618
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573859785,
+        "name": "Farmacia",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "pharmacy",
+          "name": "Farmacia"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3412896,
+          19.4775797
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4740497215,
+        "name": "Ferretería Genere",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "name": "Ferretería Genere",
+          "name:es": "Ferretería Genere",
+          "shop": "hardware"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3409857,
+          19.476645
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573858892,
+        "name": "Gran Poder de Dios",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "pharmacy",
+          "name": "Gran Poder de Dios"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3423324,
+          19.4756477
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4166685558,
+        "name": "Heladeria Bon",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "cafe",
+          "cuisine": "ice_cream",
+          "name": "Heladeria Bon"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3418717,
+          19.4787053
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 689224699,
+        "name": "Hospital General Santiago Rodríguez",
+        "categoryId": "salud",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "hospital",
+          "healthcare": "hospital",
+          "name": "Hospital General Santiago Rodríguez"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3416197,
+          19.4782191
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573843588,
+        "name": "Hospital Regional",
+        "categoryId": "salud",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "hospital",
+          "name": "Hospital Regional"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3391566,
+          19.4777027
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047235081,
+        "name": "HOTEL DON CHUCHO",
+        "categoryId": "hospedaje",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "name": "HOTEL DON CHUCHO",
+          "tourism": "hotel"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.332176,
+          19.4802544
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047243323,
+        "name": "HOTEL LA PLAZA",
+        "categoryId": "hospedaje",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "name": "HOTEL LA PLAZA",
+          "tourism": "hotel"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3397385,
+          19.4778461
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047235080,
+        "name": "Hotel Marién",
+        "categoryId": "hospedaje",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "name": "Hotel Marién",
+          "tourism": "hotel"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3445847,
+          19.4756214
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047214658,
+        "name": "HOTEL METROPOLITANO",
+        "categoryId": "hospedaje",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Calle Dr. Dario Gomez",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Calle Dr. Dario Gomez",
+          "internet_access": "yes",
+          "internet_access:fee": "no",
+          "name": "HOTEL METROPOLITANO",
+          "tourism": "hotel"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.341219,
+          19.4756564
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 2037619928,
+        "name": "Iglesia De Las Mercedes",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "place_of_worship",
+          "name": "Iglesia De Las Mercedes",
+          "religion": "christian"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.34213,
+          19.4750764
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4166685559,
+        "name": "La Capri",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "nightclub",
+          "name": "La Capri"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.328311,
+          19.469532
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5108011934,
+        "name": "La Hacienda Bar & Restaurante",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Carretera Santiago Rodriguez Maguana",
+        "phone": "809-382-0294",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Carretera Santiago Rodriguez Maguana",
+          "amenity": "restaurant",
+          "cuisine": "local",
+          "name": "La Hacienda Bar & Restaurante",
+          "phone": "8093820294"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3407128,
+          19.4775456
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4740503062,
+        "name": "Laboratorio Clínico Rodríguez Taveras",
+        "categoryId": "salud",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "amenity": "clinic",
+          "name": "Laboratorio Clínico Rodríguez Taveras",
+          "name:es": "Laboratorio Clínico Rodríguez Taveras"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3400594,
+          19.4816646
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 689224701,
+        "name": "Liceo Secundario Librado Eugenio Belliard",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": "809-580-2145",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "school",
+          "name": "Liceo Secundario Librado Eugenio Belliard",
+          "phone": "+1 809-580-2145"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3423904,
+          19.475796
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4166685557,
+        "name": "Ñey Pica Pollo",
+        "categoryId": "comedor",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "restaurant",
+          "name": "Ñey Pica Pollo"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3432781,
+          19.475868
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5579409422,
+        "name": "oficina Edenorte Santiago Rodriguez",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "oficina Edenorte Santiago Rodriguez",
+          "office": "company"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.2823441,
+          19.4957868
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 14100139568,
+        "name": "Parador Fotográfico Caimito",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "artwork_type": "sculpture",
+          "name": "Parador Fotográfico Caimito",
+          "tourism": "artwork"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3111387,
+          19.453749
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 14100122920,
+        "name": "Parador Fotográfico Mata del Jobo",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "artwork_type": "sculpture",
+          "name": "Parador Fotográfico Mata del Jobo",
+          "tourism": "artwork"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.341797,
+          19.4756636
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 415676032,
+        "name": "Parque Central",
+        "categoryId": "parque",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "leisure": "park",
+          "name": "Parque Central"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3507671,
+          19.4722202
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728288492,
+        "name": "Petronan",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Sabaneta - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Sabaneta - Villa Los Almácigos",
+          "amenity": "fuel",
+          "name": "Petronan",
+          "name:es": "Petronan"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.263535,
+          19.3862982
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 3715361292,
+        "name": "Play softball Abraham Torres",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Palmarejo",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Santiago Rodriguez",
+          "addr:street": "Palmarejo",
+          "leisure": "pitch",
+          "name": "Play softball Abraham Torres",
+          "sport": "baseball"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.2633376,
+          19.3862123
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 379907782,
+        "name": "Play softball Abraham Torres",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "leisure": "pitch",
+          "name": "Play softball Abraham Torres",
+          "sport": "baseball"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3417286,
+          19.4761217
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 2037618695,
+        "name": "Policia Nacional",
+        "categoryId": "gobierno",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "police",
+          "name": "Policia Nacional"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3405105,
+          19.4775777
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4740503070,
+        "name": "R&M Computer",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "name": "R&M Computer",
+          "name:es": "R&M Computer",
+          "shop": "computer"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.2651769,
+          19.3868904
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 3832572437,
+        "name": "Repuesto Estevez",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Palmarejo",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:city": "Santiago Rodriguez",
+          "addr:street": "Palmarejo",
+          "name": "Repuesto Estevez",
+          "operator": "Josi",
+          "shop": "car_repair"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.2776071,
+          19.5003491
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 367879349,
+        "name": "Río Cana",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Río Cana",
+          "waterway": "river"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3356216,
+          19.4113038
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 48657584,
+        "name": "Río Yaguajal",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Río Yaguajal",
+          "source": "DigitalGlobe",
+          "waterway": "river"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.371898,
+          19.5014568
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 274561962,
+        "name": "Río Yaguajal",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Río Yaguajal",
+          "source": "DigitalGlobe",
+          "waterway": "river",
+          "wikidata": "Q23756849"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3948041,
+          19.4331761
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573843591,
+        "name": "Said",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Said",
+          "shop": "bookmaker"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3404348,
+          19.4775936
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4740503072,
+        "name": "Salón Bucles",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Av. Próceres de la Restauración",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Av. Próceres de la Restauración",
+          "name": "Salón Bucles",
+          "name:es": "Salón Bucles",
+          "shop": "beauty"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3453189,
+          19.47484
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 5047227321,
+        "name": "SANTA CLARA",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Calle Pedro Thomas",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Calle Pedro Thomas",
+          "name": "SANTA CLARA",
+          "shop": "funeral_directors"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3464083,
+          19.4746861
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6573858888,
+        "name": "Supermercado",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Supermercado",
+          "shop": "supermarket"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3284808,
+          19.4805597
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4740504244,
+        "name": "Supermercado Leduc",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Mao - Sabaneta",
+        "phone": "809-580-9224",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Mao - Sabaneta",
+          "name": "Supermercado Leduc",
+          "name:es": "Supermercado Leduc",
+          "phone": "8095809224",
+          "shop": "supermarket"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3396391,
+          19.476512
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4710625599,
+        "name": "Texaco",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Avenida Duarte",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Avenida Duarte",
+          "amenity": "fuel",
+          "name": "Texaco",
+          "name:es": "Texaco"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3401793,
+          19.4819779
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 11618651569,
+        "name": "UASD Centro Santiago Rodríguez",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Calle José Cabrera #2do nivel",
+        "phone": "809-580-2600",
+        "openingHours": "Mo-Sa 07:00-22:00",
+        "website": "https://www.uasd.edu.do/",
+        "tags": {
+          "addr:housenumber": "2do nivel",
+          "addr:street": "Calle José Cabrera",
+          "amenity": "college",
+          "contact:facebook": "UASDsubcentroSantiagoRodriguez",
+          "contact:twitter": "UASDStgoRguez",
+          "email": "uasdsantiagorodriguez@uasd.edu.do",
+          "internet_access": "wlan",
+          "level": "2",
+          "name": "UASD Centro Santiago Rodríguez",
+          "opening_hours": "Mo-Sa 07:00-22:00",
+          "phone": "8095802600",
+          "website": "https://www.uasd.edu.do/"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.3086971,
+          19.4830449
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 10262424309,
+        "name": "Villa Paula",
+        "categoryId": "hospedaje",
+        "categoryKind": "business",
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": "Los Puentes de Tomines/ Entrada Blanco uceta #6",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:housenumber": "6",
+          "addr:postcode": "64000",
+          "addr:street": "Los Puentes de Tomines/ Entrada Blanco uceta",
+          "name": "Villa Paula",
+          "tourism": "guest_house"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.342604,
+          19.4772633
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 6907159728,
+        "name": "Zona Digital",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "sabaneta",
+        "municipalityName": "Sabaneta",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "contact:facebook": "https://www.facebook.com/zonadigitalsr/",
+          "name": "Zona Digital",
+          "shop": "mobile_phone"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.438524,
+          19.4195309
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 49164865,
+        "name": "Arroyo Los Almácigos",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "name": "Arroyo Los Almácigos",
+          "source": "yahoo",
+          "waterway": "stream"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4413868,
+          19.4079428
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728288491,
+        "name": "Banreservas",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "El Pino - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "El Pino - Villa Los Almácigos",
+          "amenity": "bank",
+          "name": "Banreservas",
+          "name:es": "Banreservas"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4406148,
+          19.4083685
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728384389,
+        "name": "CoopBueno",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "El Pino - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "El Pino - Villa Los Almácigos",
+          "amenity": "bank",
+          "name": "CoopBueno",
+          "name:es": "Coop Bueno"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4443961,
+          19.4094719
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728383089,
+        "name": "Estación Esso La Novia de Villa",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "El Pino - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "El Pino - Villa Los Almácigos",
+          "amenity": "fuel",
+          "name": "Estación Esso La Novia de Villa",
+          "name:es": "Estación Esso La Novia de Villa"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4395626,
+          19.4135676
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 228155936,
+        "name": "Estadio de Villa Los Almácigos",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "leisure": "stadium",
+          "name": "Estadio de Villa Los Almácigos",
+          "source": "Bing"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4380026,
+          19.4108471
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4710625494,
+        "name": "Farmacia Ananías",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "Sabaneta - Villa Los Almácigos",
+        "phone": "809-579-0387",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Sabaneta - Villa Los Almácigos",
+          "amenity": "pharmacy",
+          "name": "Farmacia Ananías",
+          "name:es": "Farmacia Ananías",
+          "phone": "8095790387"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.444111,
+          19.4090874
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728383090,
+        "name": "Ferretería L&N",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "El Pino - Villa Los Almácigos",
+        "phone": "809-579-0197",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "El Pino - Villa Los Almácigos",
+          "name": "Ferretería L&N",
+          "name:es": "Ferretería L&N",
+          "phone": "8095790197",
+          "shop": "hardware"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4437535,
+          19.4105901
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 688997805,
+        "name": "Hospital Regional Villa Los Almácigos",
+        "categoryId": "salud",
+        "categoryKind": "place",
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "hospital",
+          "healthcare": "hospital",
+          "name": "Hospital Regional Villa Los Almácigos"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4353363,
+          19.4073498
+        ]
+      },
+      "properties": {
+        "osmType": "way",
+        "osmId": 688997822,
+        "name": "Liceo Pedro Henríquez Ureña",
+        "categoryId": "educacion",
+        "categoryKind": "place",
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": null,
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "amenity": "school",
+          "name": "Liceo Pedro Henríquez Ureña"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4445903,
+          19.4100888
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728383189,
+        "name": "Nelson Racing",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "El Pino - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "El Pino - Villa Los Almácigos",
+          "name": "Nelson Racing",
+          "name:es": "Nelson Racing",
+          "shop": "car_repair"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4411832,
+          19.4078125
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728384189,
+        "name": "Pinturas Reservas",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "El Pino - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "El Pino - Villa Los Almácigos",
+          "name": "Pinturas Reservas",
+          "name:es": "Pinturas Reservas",
+          "shop": "hardware"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4401707,
+          19.4090016
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728384489,
+        "name": "Policía Nacional",
+        "categoryId": "gobierno",
+        "categoryKind": "place",
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "Sabaneta - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Sabaneta - Villa Los Almácigos",
+          "amenity": "police",
+          "name": "Policía Nacional"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4411142,
+          19.4079221
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728383989,
+        "name": "Supermercado Báez",
+        "categoryId": "colmado",
+        "categoryKind": "business",
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "El Pino - Villa Los Almácigos",
+        "phone": "809-579-0125",
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "El Pino - Villa Los Almácigos",
+          "name": "Supermercado Báez",
+          "name:es": "Supermercado Báez",
+          "phone": "8095790125",
+          "shop": "supermarket"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4378245,
+          19.4107258
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4710663589,
+        "name": "Texaco",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "Sabaneta - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "Sabaneta - Villa Los Almácigos",
+          "amenity": "fuel",
+          "name": "Texaco",
+          "name:es": "Texaco"
+        }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.4426662,
+          19.408231
+        ]
+      },
+      "properties": {
+        "osmType": "node",
+        "osmId": 4728288490,
+        "name": "Variedades Malgó",
+        "categoryId": null,
+        "categoryKind": null,
+        "municipalityId": "villa-los-almacigos",
+        "municipalityName": "Villa Los Almácigos",
+        "address": "El Pino - Villa Los Almácigos",
+        "phone": null,
+        "openingHours": null,
+        "website": null,
+        "tags": {
+          "addr:street": "El Pino - Villa Los Almácigos",
+          "name": "Variedades Malgó",
+          "name:es": "Variedades Malgó",
+          "shop": "gift"
+        }
+      }
+    }
+  ]
+}

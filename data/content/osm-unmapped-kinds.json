@@ -1,0 +1,248 @@
+{
+  "waterway=river": [
+    {
+      "osmType": "way",
+      "osmId": 48456295,
+      "name": "Río Mao",
+      "municipalityId": "moncion",
+      "coordinates": [-71.0947873, 19.4366486],
+      "tags": {
+        "boat": "no",
+        "name": "Río Mao",
+        "source": "digitalglobe",
+        "waterway": "river"
+      }
+    },
+    {
+      "osmType": "way",
+      "osmId": 367879349,
+      "name": "Río Cana",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.2776071, 19.5003491],
+      "tags": {
+        "name": "Río Cana",
+        "waterway": "river"
+      }
+    },
+    {
+      "osmType": "way",
+      "osmId": 48657584,
+      "name": "Río Yaguajal",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.3356216, 19.4113038],
+      "tags": {
+        "name": "Río Yaguajal",
+        "source": "DigitalGlobe",
+        "waterway": "river"
+      }
+    },
+    {
+      "osmType": "way",
+      "osmId": 274561962,
+      "name": "Río Yaguajal",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.371898, 19.5014568],
+      "tags": {
+        "name": "Río Yaguajal",
+        "source": "DigitalGlobe",
+        "waterway": "river",
+        "wikidata": "Q23756849"
+      }
+    }
+  ],
+  "shop=gift": [
+    {
+      "osmType": "node",
+      "osmId": 4888134321,
+      "name": "Tienda 20 & 10",
+      "municipalityId": "moncion",
+      "coordinates": [-71.1507969, 19.4107687],
+      "tags": {
+        "addr:street": "Calle Duarte",
+        "name": "Tienda 20 & 10",
+        "name:es": "Tienda 20 & 10",
+        "phone": "8099772010",
+        "shop": "gift"
+      }
+    },
+    {
+      "osmType": "node",
+      "osmId": 4728288490,
+      "name": "Variedades Malgó",
+      "municipalityId": "villa-los-almacigos",
+      "coordinates": [-71.4426662, 19.408231],
+      "tags": {
+        "addr:street": "El Pino - Villa Los Almácigos",
+        "name": "Variedades Malgó",
+        "name:es": "Variedades Malgó",
+        "shop": "gift"
+      }
+    }
+  ],
+  "shop=clothes": [
+    {
+      "osmType": "way",
+      "osmId": 1360245107,
+      "name": "Tienda Madera",
+      "municipalityId": "moncion",
+      "coordinates": [-71.1524237, 19.4108134],
+      "tags": {
+        "building": "yes",
+        "name": "Tienda Madera",
+        "shop": "clothes"
+      }
+    }
+  ],
+  "shop=e-cigarette": [
+    {
+      "osmType": "node",
+      "osmId": 9191782917,
+      "name": "Alta Gama Vapeshop",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.3415746, 19.4842798],
+      "tags": {
+        "contact:instagram": "https://www.instagram.com/altagamavapeshop/",
+        "name": "Alta Gama Vapeshop",
+        "shop": "e-cigarette"
+      }
+    }
+  ],
+  "waterway=stream": [
+    {
+      "osmType": "way",
+      "osmId": 367820246,
+      "name": "Arroyo Palmarejo",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.2652764, 19.3866737],
+      "tags": {
+        "name": "Arroyo Palmarejo",
+        "waterway": "stream",
+        "wikidata": "Q23764483"
+      }
+    },
+    {
+      "osmType": "way",
+      "osmId": 49164865,
+      "name": "Arroyo Los Almácigos",
+      "municipalityId": "villa-los-almacigos",
+      "coordinates": [-71.438524, 19.4195309],
+      "tags": {
+        "name": "Arroyo Los Almácigos",
+        "source": "yahoo",
+        "waterway": "stream"
+      }
+    }
+  ],
+  "shop=travel_agency": [
+    {
+      "osmType": "node",
+      "osmId": 4740497219,
+      "name": "Caribe Express",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.3403324, 19.4777218],
+      "tags": {
+        "name": "Caribe Express",
+        "shop": "travel_agency"
+      }
+    }
+  ],
+  "shop=electronics": [
+    {
+      "osmType": "node",
+      "osmId": 4740503065,
+      "name": "Electrónica J&E",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.3406335, 19.4775659],
+      "tags": {
+        "addr:street": "Av. Próceres de la Restauración",
+        "name": "Electrónica J&E",
+        "name:es": "Electrónica J&E",
+        "shop": "electronics"
+      }
+    }
+  ],
+  "office=company": [
+    {
+      "osmType": "node",
+      "osmId": 5579409422,
+      "name": "oficina Edenorte Santiago Rodriguez",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.3432781, 19.475868],
+      "tags": {
+        "name": "oficina Edenorte Santiago Rodriguez",
+        "office": "company"
+      }
+    }
+  ],
+  "shop=computer": [
+    {
+      "osmType": "node",
+      "osmId": 4740503070,
+      "name": "R&M Computer",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.3405105, 19.4775777],
+      "tags": {
+        "addr:street": "Av. Próceres de la Restauración",
+        "name": "R&M Computer",
+        "name:es": "R&M Computer",
+        "shop": "computer"
+      }
+    }
+  ],
+  "shop=bookmaker": [
+    {
+      "osmType": "node",
+      "osmId": 6573843591,
+      "name": "Said",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.3948041, 19.4331761],
+      "tags": {
+        "name": "Said",
+        "shop": "bookmaker"
+      }
+    }
+  ],
+  "shop=beauty": [
+    {
+      "osmType": "node",
+      "osmId": 4740503072,
+      "name": "Salón Bucles",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.3404348, 19.4775936],
+      "tags": {
+        "addr:street": "Av. Próceres de la Restauración",
+        "name": "Salón Bucles",
+        "name:es": "Salón Bucles",
+        "shop": "beauty"
+      }
+    }
+  ],
+  "shop=funeral_directors": [
+    {
+      "osmType": "node",
+      "osmId": 5047227321,
+      "name": "SANTA CLARA",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.3453189, 19.47484],
+      "tags": {
+        "addr:street": "Calle Pedro Thomas",
+        "name": "SANTA CLARA",
+        "shop": "funeral_directors"
+      }
+    }
+  ],
+  "shop=mobile_phone": [
+    {
+      "osmType": "node",
+      "osmId": 6907159728,
+      "name": "Zona Digital",
+      "municipalityId": "sabaneta",
+      "coordinates": [-71.342604, 19.4772633],
+      "tags": {
+        "contact:facebook": "https://www.facebook.com/zonadigitalsr/",
+        "name": "Zona Digital",
+        "shop": "mobile_phone"
+      }
+    }
+  ]
+}

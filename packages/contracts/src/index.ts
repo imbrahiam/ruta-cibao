@@ -16,6 +16,7 @@ import { passportContract } from "./passport";
 import { placesContract } from "./places";
 import { reportsContract } from "./reports";
 import { routesContract } from "./routes";
+import { safetyContract } from "./safety";
 import { trafficContract } from "./traffic";
 
 /**
@@ -45,6 +46,7 @@ export const contract = {
   reports: reportsContract,
   catalog: catalogContract,
   routes: routesContract,
+  safety: safetyContract,
 };
 
 export type Contract = typeof contract;
@@ -62,4 +64,5 @@ export * from "./passport";
 export * from "./places";
 export * from "./reports";
 export * from "./routes";
+export * from "./safety";
 export * from "./traffic";

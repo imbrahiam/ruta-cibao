@@ -53,9 +53,10 @@ function clientFor(viewer: Viewer, expectedUser?: string) {
       getViewer: async () => viewer,
       getSession: async () =>
         viewer.kind === "anonymous"
-          ? { viewer, contact: null }
+          ? { viewer, contact: null, session: null }
           : {
               viewer,
+              session: { id: "verification-session", createdAt: new Date() },
               contact: {
                 phoneNumber: null,
                 phoneVerified: false,

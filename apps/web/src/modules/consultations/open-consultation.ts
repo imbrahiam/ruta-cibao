@@ -12,7 +12,6 @@ import {
 } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
-import { publishRealtimeEvent } from "@/lib/realtime";
 import type { MemberViewer } from "@/modules/access/viewer";
 
 /**
@@ -118,6 +117,7 @@ export async function openConsultation(
             ? { x: input.location.lng, y: input.location.lat }
             : null,
           openedByUserId: viewer.userId,
+          publicationStatus: "pending",
         })
         .returning({ id: consultations.id, slug: consultations.slug });
 
@@ -143,16 +143,8 @@ export async function openConsultation(
         tx,
       );
 
-      await publishRealtimeEvent(
-        {
-          channel: CONSULTATIONS_CHANNEL,
-          municipalityId,
-          subjectType: "consultation",
-          subjectId: created.id,
-          action: "created",
-        },
-        tx,
-      );
+      // No realtime event yet: the case is pending, and is announced when
+      // staff publish it (see `decidePublication`).
       return { ...created, municipalityId };
     },
   });
@@ -161,6 +153,7 @@ export async function openConsultation(
     id: outcome.result.id,
     slug: outcome.result.slug,
     status: "open" as const,
+    publicationStatus: "pending" as const,
   };
 }
 
@@ -182,12 +175,25 @@ export async function supportConsultation(
         id: consultations.id,
         status: consultations.status,
         municipalityId: consultations.municipalityId,
+        publicationStatus: consultations.publicationStatus,
+        openedByUserId: consultations.openedByUserId,
       })
       .from(consultations)
       .where(eq(consultations.id, input.consultationId))
       .limit(1);
 
-    if (!consultation) throw new ConsultationError("not_found");
+    // Only a published case can be supported by other people; what is pending
+    // or hidden reads as missing, so its existence is not disclosed.
+    if (
+      !consultation ||
+      (consultation.publicationStatus !== "published" &&
+        !(
+          consultation.publicationStatus === "pending" &&
+          consultation.openedByUserId === viewer.userId
+        ))
+    ) {
+      throw new ConsultationError("not_found");
+    }
     // A resolved or rejected case is a closed conversation. Letting support
     // accumulate on it would only produce a number nobody will ever act on.
     if (

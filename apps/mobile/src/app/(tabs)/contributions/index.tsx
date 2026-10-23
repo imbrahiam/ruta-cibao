@@ -151,6 +151,7 @@ function Switcher({
 function MyContributions({ header }: { header: React.ReactElement }) {
   const t = useTranslations("contributions");
   const tc = useTranslations("common");
+  const ts = useTranslations("safety");
   const { colors } = useTheme();
   const ago = useAgo();
   const list = useQuery(orpc.places.contributions.queryOptions());
@@ -225,6 +226,33 @@ function MyContributions({ header }: { header: React.ReactElement }) {
             <Text variant="headline" numberOfLines={2}>
               {item.name}
             </Text>
+            {item.publication && item.publication !== "published" ? (
+              item.kind === "consultation" ? (
+                <View style={styles.row}>
+                  <Badge
+                    label={ts(`publication.${item.publication}`)}
+                    tone="warning"
+                    icon={Clock}
+                  />
+                  <Text
+                    variant="footnote"
+                    tone="tertiary"
+                    style={styles.flex}
+                    numberOfLines={2}
+                  >
+                    {item.publication === "pending"
+                      ? ts("publication.pendingCase")
+                      : ts("publication.hiddenCase")}
+                  </Text>
+                </View>
+              ) : item.kind === "traffic" ? (
+                <Text variant="footnote" tone="tertiary">
+                  {item.publication === "pending"
+                    ? ts("publication.pendingText")
+                    : ts("publication.hiddenText")}
+                </Text>
+              ) : null
+            ) : null}
             {item.note ? (
               <View style={[styles.note, { backgroundColor: colors.inset }]}>
                 <Text variant="footnote" tone="tertiary" weight="600">

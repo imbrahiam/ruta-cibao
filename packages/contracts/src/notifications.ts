@@ -27,18 +27,44 @@ export const markNotificationsReadOutput = z.object({
   updated: z.number().int(),
 });
 
-export const subscribePushInput = z.object({
-  endpoint: z.url(),
-  p256dh: z.string().min(1),
-  auth: z.string().min(1),
-  userAgent: z.string().max(500).optional(),
+export const subscribeNativePushInput = z.object({
+  requestId: z.uuid(),
+  installationId: z.uuid(),
+  platform: z.enum(["ios", "android"]),
+  token: z
+    .string()
+    .regex(/^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]+\]$/)
+    .max(256),
 });
 
-export const subscribePushOutput = z.object({ enabled: z.boolean() });
+export const unsubscribeNativePushInput = z.object({
+  requestId: z.uuid(),
+  installationId: z.uuid(),
+});
 
-export const unsubscribePushInput = z.object({ endpoint: z.url() });
+export const notificationPreferencesOutput = z.object({
+  municipalityIds: z.array(z.string().min(1).max(80)).max(3),
+  categoryIds: z.array(z.string().min(1).max(80)).max(100),
+  trafficEnabled: z.boolean(),
+  caseUpdatesEnabled: z.boolean(),
+  emailEnabled: z.boolean(),
+});
 
-export const unsubscribePushOutput = z.object({ removed: z.number().int() });
+export const setNotificationPreferencesInput =
+  notificationPreferencesOutput.extend({
+    requestId: z.uuid(),
+  });
+
+export type SubscribeNativePushInput = z.infer<typeof subscribeNativePushInput>;
+export type UnsubscribeNativePushInput = z.infer<
+  typeof unsubscribeNativePushInput
+>;
+export type SetNotificationPreferencesInput = z.infer<
+  typeof setNotificationPreferencesInput
+>;
+export type NotificationPreferences = z.infer<
+  typeof notificationPreferencesOutput
+>;
 
 export const notificationsContract = {
   list: oc
@@ -63,25 +89,46 @@ export const notificationsContract = {
     .input(markNotificationsReadInput)
     .output(markNotificationsReadOutput),
 
-  subscribePush: oc
+  subscribeNativePush: oc
     .meta(
       openapi({
         method: "POST",
-        path: "/notifications/push",
-        summary: "Register a device for push",
+        path: "/notifications/native-push",
+        summary: "Register a native installation",
       }),
     )
-    .input(subscribePushInput)
-    .output(subscribePushOutput),
+    .input(subscribeNativePushInput)
+    .output(z.object({ enabled: z.boolean() })),
 
-  unsubscribePush: oc
+  unsubscribeNativePush: oc
     .meta(
       openapi({
         method: "DELETE",
-        path: "/notifications/push",
-        summary: "Remove a device",
+        path: "/notifications/native-push",
+        summary: "Unbind your native installation",
       }),
     )
-    .input(unsubscribePushInput)
-    .output(unsubscribePushOutput),
+    .input(unsubscribeNativePushInput)
+    .output(z.object({ removed: z.number().int() })),
+
+  getPreferences: oc
+    .meta(
+      openapi({
+        method: "GET",
+        path: "/notifications/preferences",
+        summary: "Your notification preferences",
+      }),
+    )
+    .output(notificationPreferencesOutput),
+
+  setPreferences: oc
+    .meta(
+      openapi({
+        method: "PUT",
+        path: "/notifications/preferences",
+        summary: "Update your notification preferences",
+      }),
+    )
+    .input(setNotificationPreferencesInput)
+    .output(notificationPreferencesOutput),
 };

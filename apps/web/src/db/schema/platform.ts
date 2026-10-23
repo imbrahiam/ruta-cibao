@@ -1,10 +1,12 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { user } from "./auth";
@@ -115,27 +117,68 @@ export const notifications = pgTable(
   ],
 );
 
-/**
- * Browser push endpoints.
- *
- * The keys are per-device secrets that let anyone holding them push to that
- * device, so they are encrypted at rest like any other credential.
- */
-export const pushSubscriptions = pgTable(
-  "push_subscriptions",
+/** Native installation credentials never appear in audit or queue payloads. */
+export const nativePushDevices = pgTable(
+  "native_push_devices",
   {
-    id: uuid().primaryKey().defaultRandom(),
+    installationId: uuid().primaryKey(),
     userId: text()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    endpoint: text().notNull().unique(),
-    p256dhCiphertext: text().notNull(),
-    authCiphertext: text().notNull(),
-    userAgent: text(),
+    platform: text().$type<"ios" | "android">().notNull(),
+    tokenCiphertext: text().notNull(),
+    tokenHash: text().notNull().unique(),
+    enabled: boolean().notNull().default(true),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index("push_subscriptions_user_idx").on(table.userId)],
+  (table) => [
+    index("native_push_devices_user_idx").on(table.userId, table.enabled),
+  ],
 );
+
+/** Provider acceptance and receipts are not a human read acknowledgement. */
+export const nativePushTickets = pgTable(
+  "native_push_tickets",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    notificationId: uuid()
+      .notNull()
+      .references(() => notifications.id, { onDelete: "cascade" }),
+    installationId: uuid()
+      .notNull()
+      .references(() => nativePushDevices.installationId, {
+        onDelete: "cascade",
+      }),
+    tokenHash: text().notNull(),
+    expoTicketId: text().unique(),
+    status: text().$type<"pending" | "ok" | "error">().notNull(),
+    errorCode: text(),
+    checkAfter: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("native_push_tickets_delivery_idx").on(
+      table.notificationId,
+      table.installationId,
+      table.tokenHash,
+    ),
+    index("native_push_tickets_receipt_idx").on(table.status, table.checkAfter),
+  ],
+);
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  userId: text()
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  municipalityIds: text().array().notNull().default([]),
+  categoryIds: text().array().notNull().default([]),
+  trafficEnabled: boolean().notNull().default(false),
+  caseUpdatesEnabled: boolean().notNull().default(true),
+  emailEnabled: boolean().notNull().default(true),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
 
 export type AuditEvent = typeof auditEvents.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;

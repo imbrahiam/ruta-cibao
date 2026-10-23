@@ -155,6 +155,11 @@ export async function reportTraffic(
             street?.path.map((point) => ({ x: point.lng, y: point.lat })) ??
             null,
           description: input.description || null,
+          // The category, place and freshness warn people at once; the free
+          // text is held for review. Nothing to review when there is none.
+          descriptionModerationStatus: input.description
+            ? "pending"
+            : "published",
           reportedByUserId: viewer.userId,
           expiresAt,
         })

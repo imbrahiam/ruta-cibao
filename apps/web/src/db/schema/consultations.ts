@@ -11,6 +11,7 @@ import { point } from "../types";
 import { user } from "./auth";
 import { categories } from "./catalog";
 import { municipalities } from "./geography";
+import { publicationStatus } from "./safety";
 
 /**
  * Where a citizen case stands with the municipality.
@@ -64,6 +65,12 @@ export const consultations = pgTable(
     location: point(),
 
     status: consultationStatus().notNull().default("open"),
+    /**
+     * Whether other people may see the case. Separate from `status`, which is
+     * the municipality's workflow: a new case is `pending` until staff review
+     * it, and only the author and staff see it until then.
+     */
+    publicationStatus: publicationStatus().notNull().default("pending"),
     /** Null once the account is gone; the case and its answers survive it. */
     openedByUserId: text().references(() => user.id, { onDelete: "set null" }),
 

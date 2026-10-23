@@ -1,8 +1,8 @@
-import { appTargetHref } from "@ruta/shared/app-target";
 import type { RespondConsultationInput } from "@ruta/contracts";
+import { appTargetHref } from "@ruta/shared/app-target";
+import { keyParam } from "@ruta/shared/open-keys";
 import { eq } from "drizzle-orm";
 import { consultationResponses, consultations } from "@/db/schema";
-import { keyParam } from "@ruta/shared/open-keys";
 import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { publishRealtimeEvent } from "@/lib/realtime";
@@ -47,6 +47,7 @@ export async function respondToConsultation(
           municipalityId: consultations.municipalityId,
           openedByUserId: consultations.openedByUserId,
           answeredAt: consultations.answeredAt,
+          publicationStatus: consultations.publicationStatus,
         })
         .from(consultations)
         .where(eq(consultations.id, input.consultationId))
@@ -56,6 +57,10 @@ export async function respondToConsultation(
       if (!consultation) throw new ConsultationError("not_found");
       // Read the row first: the row is what says which ayuntamiento this is.
       assertModerates(viewer, consultation.municipalityId);
+      // A hidden case is closed to everyone, staff replies included.
+      if (consultation.publicationStatus === "hidden") {
+        throw new ConsultationError("not_found");
+      }
 
       const now = new Date();
       // "There is an answer to read" is a claim about the reply, not about the
@@ -97,17 +102,20 @@ export async function respondToConsultation(
         tx,
       );
 
-      await publishRealtimeEvent(
-        {
-          channel: CONSULTATIONS_CHANNEL,
-          municipalityId: consultation.municipalityId,
-          subjectType: "consultation",
-          subjectId: consultation.id,
-          action: "updated",
-          payload: { status: input.statusAfter },
-        },
-        tx,
-      );
+      // Nothing is announced for a case nobody else can see yet.
+      if (consultation.publicationStatus === "published") {
+        await publishRealtimeEvent(
+          {
+            channel: CONSULTATIONS_CHANNEL,
+            municipalityId: consultation.municipalityId,
+            subjectType: "consultation",
+            subjectId: consultation.id,
+            action: "updated",
+            payload: { status: input.statusAfter },
+          },
+          tx,
+        );
+      }
 
       if (consultation.openedByUserId) {
         await notify(
@@ -122,7 +130,10 @@ export async function respondToConsultation(
               // for it rather than the Spanish word — see `keyParam`.
               status: keyParam(`consultations.status.${input.statusAfter}`),
             },
-            href: appTargetHref({ kind: "consultation", ref: consultation.slug }),
+            href: appTargetHref({
+              kind: "consultation",
+              ref: consultation.slug,
+            }),
             dedupeKey: `consultation:${input.requestId}`,
             channels: { push: true, email: true },
           },

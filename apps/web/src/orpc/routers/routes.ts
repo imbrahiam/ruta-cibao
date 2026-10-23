@@ -10,8 +10,8 @@ import {
 import { impl, member, moderator } from "../base";
 
 export const routesRouter = {
-  map: impl.routes.map.handler(({ context, input }) =>
-    mapFeatures(context.db, input),
+  map: impl.routes.map.handler(async ({ context, input }) =>
+    mapFeatures(context.db, await context.getViewer(), input),
   ),
   categories: impl.routes.categories.handler(({ context }) =>
     context.db

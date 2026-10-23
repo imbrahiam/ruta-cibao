@@ -1,7 +1,8 @@
 import Mapbox from "@rnmapbox/maps";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import {
+  Clock,
   Landmark,
   MessageSquareText,
   Share2,
@@ -12,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFormatter, useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
 import { STATUS_STYLE } from "@/features/consultations/status";
+import { ContentMenu } from "@/features/safety/content-menu";
 import { orpc } from "@/lib/api";
 import { Button } from "@/ui/button";
 import { categoryIcon, Icon } from "@/ui/icon";
@@ -26,6 +28,8 @@ export default function ConsultationScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const t = useTranslations("consultations");
   const tc = useTranslations("common");
+  const ts = useTranslations("safety");
+  const tu = useTranslations("safetyUi");
   const format = useFormatter();
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -107,6 +111,7 @@ export default function ConsultationScreen() {
 
   const status = STATUS_STYLE[data.status];
   const closed = data.status === "resolved" || data.status === "rejected";
+  const published = data.publicationStatus === "published";
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -114,16 +119,27 @@ export default function ConsultationScreen() {
         options={{
           title: "",
           headerRight: () => (
-            <IconButton
-              icon={Share2}
-              label={tc("share")}
-              size={36}
-              onPress={() =>
-                Share.share({
-                  message: `${data.title} — ${data.municipalityName}`,
-                })
-              }
-            />
+            <View style={styles.headerActions}>
+              {data.isMine ? null : (
+                <ContentMenu
+                  target={{ kind: "consultation", ref: data.slug }}
+                  size={36}
+                  onHidden={() => router.back()}
+                />
+              )}
+              {data.publicationStatus === "published" ? (
+                <IconButton
+                  icon={Share2}
+                  label={tc("share")}
+                  size={36}
+                  onPress={() =>
+                    Share.share({
+                      message: `${data.title} — ${data.municipalityName}`,
+                    })
+                  }
+                />
+              ) : null}
+            </View>
           ),
         }}
       />
@@ -164,6 +180,26 @@ export default function ConsultationScreen() {
           </Text>
         </View>
         <Text style={styles.body}>{data.body}</Text>
+        {published ? null : (
+          <Card style={styles.notice} testID="consultation-publication-notice">
+            <View style={styles.row}>
+              <Badge
+                label={
+                  data.publicationStatus === "pending"
+                    ? tu("pendingCaseTitle")
+                    : ts("publication.hidden")
+                }
+                tone="warning"
+                icon={Clock}
+              />
+            </View>
+            <Text variant="subhead" tone="secondary">
+              {data.publicationStatus === "pending"
+                ? ts("publication.pendingCase")
+                : ts("publication.hiddenCase")}
+            </Text>
+          </Card>
+        )}
 
         {data.location ? (
           <View style={styles.map}>
@@ -283,7 +319,7 @@ export default function ConsultationScreen() {
         </View>
       </ScrollView>
 
-      {!closed ? (
+      {!closed && published ? (
         <View
           style={[
             styles.footer,
@@ -329,6 +365,8 @@ const styles = StyleSheet.create({
   center: { justifyContent: "center" },
   pad: { padding: space.md, gap: space.md, paddingTop: 120 },
   flex: { flex: 1 },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  notice: { gap: space.sm },
   content: { paddingHorizontal: space.md, gap: space.md },
   meta: { flexDirection: "row", alignItems: "center", gap: space.sm },
   catIcon: {

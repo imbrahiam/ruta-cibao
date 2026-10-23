@@ -34,6 +34,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
 import { focusOnMap } from "@/features/map/focus";
+import { ContentMenu } from "@/features/safety/content-menu";
 import { orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
 import { mediaUrl } from "@/lib/ids";
@@ -427,6 +428,18 @@ export default function PlaceScreen() {
           haptic="none"
         />
       </View>
+      {place.isMine ? null : (
+        <View
+          style={[styles.floatingEnd, { top: insets.top + space.sm }]}
+          pointerEvents="box-none"
+        >
+          <ContentMenu
+            target={{ kind: "place", ref: place.slug }}
+            variant="glass"
+            onHidden={() => router.back()}
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -678,4 +691,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   floating: { position: "absolute", left: space.md },
+  floatingEnd: { position: "absolute", right: space.md },
 });
