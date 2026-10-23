@@ -243,10 +243,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
             showProvince(false);
           }
         }}
-        onRegionChangeComplete={(next) => {
-          console.log("DEBUGMAP region", JSON.stringify(next), width);
-          setRegion(next);
-        }}
+        onRegionChangeComplete={setRegion}
         onPress={(event) => {
           if (event.nativeEvent.action === "marker-press") return;
           onSelectPlace(null);
