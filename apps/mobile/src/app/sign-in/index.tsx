@@ -22,6 +22,8 @@ import { space, useTheme } from "@/ui/theme";
 type Method = "phone" | "email";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/** Height of the sticky send button bar above the keyboard. */
+const FOOTER = 72;
 
 export default function SignInScreen() {
   const t = useTranslations("signIn");
@@ -76,8 +78,10 @@ export default function SignInScreen() {
           haptic="none"
         />
       </View>
+      {/* The offset clears the field's helper/error line plus the sticky
+          send button, so an error is never hidden behind it. */}
       <KeyboardAwareScrollView
-        bottomOffset={96}
+        bottomOffset={FOOTER + 52}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           styles.content,
@@ -124,7 +128,6 @@ export default function SignInScreen() {
             textContentType="telephoneNumber"
             autoComplete="tel-national"
             autoFocus
-            returnKeyType="send"
             onSubmitEditing={send}
           />
         ) : (
@@ -184,7 +187,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: space.lg,
     gap: space.lg,
-    paddingBottom: space.xl,
+    paddingBottom: FOOTER + space.xl,
   },
   heading: { gap: space.sm },
   footer: { paddingHorizontal: space.lg, paddingTop: space.sm },

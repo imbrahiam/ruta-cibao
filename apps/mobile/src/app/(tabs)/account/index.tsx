@@ -46,8 +46,14 @@ export default function AccountScreen() {
   )?.name;
 
   const signOut = async () => {
-    await authClient.signOut();
-    queryClient.clear();
+    try {
+      await authClient.signOut();
+    } finally {
+      // Reset (not clear): drops every private result and refetches what is on
+      // screen, so this tab re-renders as signed out instead of keeping the
+      // last member data in its observers.
+      await queryClient.resetQueries();
+    }
     toast.show({ title: t("signedOut") });
   };
 
@@ -130,7 +136,7 @@ export default function AccountScreen() {
             title={t("saved")}
             icon={Bookmark}
             iconTint="warning"
-            onPress={() => router.push("/explore/saved")}
+            onPress={() => router.push("/account/saved")}
           />
           <ListRow
             title={t("passport")}
