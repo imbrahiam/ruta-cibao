@@ -143,6 +143,49 @@
     "locationDeniedBody": "Puedes activarla en Ajustes, o seguir usando el mapa sin ella.",
     "locationFailed": "No pudimos obtener tu ubicación"
   },
+  "routes": {
+    "missing": "No encontramos esta ruta",
+    "distance": "Distancia",
+    "duration": "Duración",
+    "difficulty": "Dificultad",
+    "services": "Servicios en la ruta",
+    "service": {
+      "water": "Agua",
+      "food": "Comida",
+      "lodging": "Hospedaje",
+      "guide": "Guía",
+      "parking": "Parqueo",
+      "restrooms": "Baños"
+    },
+    "safetyTitle": "Antes de salir",
+    "safetyBody": "Avisa a alguien de tu recorrido, lleva agua y revisa el clima. Las condiciones del camino pueden cambiar con la lluvia.",
+    "toStart": "Cómo llegar al inicio"
+  },
+  "explore": {
+    "title": "Explorar",
+    "searchPlaceholder": "Buscar en la provincia",
+    "saved": "Guardados",
+    "savedEmpty": "Aún no has guardado lugares",
+    "savedEmptyBody": "Toca Guardar en cualquier lugar para tenerlo a mano.",
+    "savedSignedOut": "Entra para ver tus lugares guardados",
+    "signIn": "Entrar",
+    "results": "{count, plural, =0 {Sin resultados} one {# resultado} other {# resultados}}",
+    "noResults": "No encontramos nada",
+    "noResultsBody": "Prueba con otra palabra o cambia el municipio.",
+    "highlights": "Para conocer",
+    "categories": "Categorías",
+    "placesCount": "{count, plural, one {# lugar} other {# lugares}}",
+    "businesses": "Negocios locales",
+    "routes": "Rutas ecoturísticas",
+    "noRoutes": "Todavía no hay rutas publicadas en esta zona.",
+    "emptyCategory": "No hay lugares en esta categoría todavía",
+    "duration": "{hours, plural, =0 {} other {# h}} {minutes, plural, =0 {} other {# min}}",
+    "difficulty": {
+      "easy": "Fácil",
+      "moderate": "Moderada",
+      "hard": "Exigente"
+    }
+  },
   "place": {
     "missingTitle": "No encontramos este lugar",
     "missingBody": "Puede que lo hayan retirado o que no haya conexión.",
