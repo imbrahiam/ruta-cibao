@@ -11,6 +11,7 @@ import { Field } from "@/ui/field";
 import { Icon } from "@/ui/icon";
 import { ListSection } from "@/ui/list";
 import { PressableScale } from "@/ui/pressable";
+import { SheetHeader } from "@/ui/sheet-header";
 import { Text } from "@/ui/text";
 import { space, TOUCH, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
@@ -56,9 +57,7 @@ export default function ReportPlaceSheet() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Text variant="title3" accessibilityRole="header">
-        {t("reportTitle")}
-      </Text>
+      <SheetHeader title={t("reportTitle")} />
       <ListSection>
         {REASONS.map((item) => (
           <PressableScale

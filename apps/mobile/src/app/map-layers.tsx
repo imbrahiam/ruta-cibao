@@ -14,6 +14,7 @@ import {
 import { ListRow, ListSection } from "@/ui/list";
 import { haptic } from "@/ui/pressable";
 import { Segmented } from "@/ui/segmented";
+import { SheetHeader } from "@/ui/sheet-header";
 import { Text } from "@/ui/text";
 import { space, useTheme } from "@/ui/theme";
 
@@ -42,11 +43,15 @@ export default function MapLayersSheet() {
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.content}
     >
-      <Text variant="title3" accessibilityRole="header">
-        {t("title")}
-      </Text>
+      <SheetHeader title={t("title")} />
       <View style={styles.block}>
-        <Text variant="footnote" tone="tertiary" uppercase>
+        <Text
+          variant="footnote"
+          tone="tertiary"
+          uppercase
+          style={styles.label}
+          accessibilityRole="header"
+        >
           {t("basemap")}
         </Text>
         <Segmented
@@ -95,4 +100,6 @@ export default function MapLayersSheet() {
 const styles = StyleSheet.create({
   content: { padding: space.md, paddingTop: space.lg, gap: space.lg },
   block: { gap: space.sm },
+  /** Same inset and tracking as `ListSection` titles below it. */
+  label: { paddingHorizontal: space.md, letterSpacing: 0.4 },
 });

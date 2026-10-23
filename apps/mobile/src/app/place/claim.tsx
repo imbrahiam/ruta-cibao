@@ -1,6 +1,7 @@
 import { formatPhoneInput } from "@ruta/shared/phone";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
+import { X } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { StyleSheet } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -9,6 +10,7 @@ import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
 import { Field } from "@/ui/field";
+import { IconButton } from "@/ui/surfaces";
 import { Text } from "@/ui/text";
 import { space, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
@@ -57,7 +59,20 @@ export default function ClaimBusinessScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Stack.Screen options={{ title: t("claimTitle") }} />
+      <Stack.Screen
+        options={{
+          title: t("claimTitle"),
+          headerLeft: () => (
+            <IconButton
+              icon={X}
+              label={tc("cancel")}
+              size={36}
+              onPress={() => router.back()}
+              haptic="none"
+            />
+          ),
+        }}
+      />
       <Text variant="title2" accessibilityRole="header">
         {name}
       </Text>

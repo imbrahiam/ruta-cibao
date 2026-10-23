@@ -10,6 +10,7 @@ import { StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { Icon } from "@/ui/icon";
 import { PressableScale } from "@/ui/pressable";
+import { SheetHeader } from "@/ui/sheet-header";
 import { Text } from "@/ui/text";
 import { type Palette, radius, space, useTheme } from "@/ui/theme";
 
@@ -42,10 +43,7 @@ export default function ContributeSheet() {
   const { colors } = useTheme();
   return (
     <View style={[styles.sheet, { backgroundColor: colors.background }]}>
-      <Text variant="title2" accessibilityRole="header">
-        {t("title")}
-      </Text>
-      <Text tone="secondary">{t("lede")}</Text>
+      <SheetHeader title={t("title")} lede={t("lede")} />
       <View style={styles.options}>
         {OPTIONS.map((option) => (
           <PressableScale
@@ -88,9 +86,8 @@ const styles = StyleSheet.create({
     padding: space.md,
     paddingTop: space.lg,
     paddingBottom: space.xxl,
-    gap: space.sm,
   },
-  options: { gap: space.sm + 2, marginTop: space.md },
+  options: { gap: space.sm + 2, marginTop: space.lg },
   option: {
     flexDirection: "row",
     alignItems: "center",
