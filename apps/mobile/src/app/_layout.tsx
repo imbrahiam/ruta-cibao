@@ -55,6 +55,18 @@ function RootStack() {
           sheetCornerRadius: 24,
         }}
       />
+      <Stack.Screen name="place/[slug]" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="place/report"
+        options={{
+          presentation: "formSheet",
+          headerShown: false,
+          sheetAllowedDetents: [0.75, 1],
+          sheetGrabberVisible: true,
+          sheetCornerRadius: 24,
+        }}
+      />
+      <Stack.Screen name="place/claim" options={{ presentation: "modal" }} />
       <Stack.Screen
         name="sign-in"
         options={{
