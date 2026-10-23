@@ -34,7 +34,7 @@ export default function SavedScreen() {
         refreshControl={
           <RefreshControl
             refreshing={saved.isRefetching}
-            onRefresh={() => saved.refetch()}
+            onRefresh={() => void saved.refetch()}
             tintColor={colors.accent}
           />
         }

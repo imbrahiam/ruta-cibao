@@ -4,15 +4,16 @@ import Mapbox, {
   type ShapeSource,
 } from "@rnmapbox/maps";
 import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
-import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
+import {
+  forwardRef,
+  type ReactNode,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+} from "react";
 import { StyleSheet } from "react-native";
 import { palettes, type Scheme } from "@/ui/theme";
-import type {
-  Boundaries,
-  CategorySummary,
-  PlaceCollection,
-  PlaceFeature,
-} from "./data";
+import type { Boundaries, PlaceCollection, PlaceFeature } from "./data";
 import { MAP_GLYPHS } from "./glyphs";
 import { SelectedPin } from "./selected-pin";
 
@@ -49,7 +50,16 @@ export type Padding = {
 };
 
 export type ProvinceMapHandle = {
-  flyTo: (coordinate: [number, number], zoom?: number) => void;
+  /**
+   * `animated: false` jumps instead of easing: for focus arriving from another
+   * screen, where a screen transition would cut the ease short. `bottom`
+   * overrides the bottom padding when the sheet is about to open taller.
+   */
+  flyTo: (
+    coordinate: [number, number],
+    zoom?: number,
+    options?: { animated?: boolean; bottom?: number },
+  ) => void;
   showProvince: () => void;
 };
 
@@ -57,12 +67,13 @@ export type ProvinceMapProps = {
   scheme: Scheme;
   places: PlaceCollection | undefined;
   boundaries: Boundaries | undefined;
-  categories: CategorySummary[];
   selectedId: string | null;
   showUserLocation: boolean;
   basemap: "standard" | "satellite";
   padding: Padding;
   onSelectPlace: (place: PlaceFeature | null) => void;
+  /** Civic overlays (traffic, routes, cases), drawn under the place pins. */
+  children?: ReactNode;
 };
 
 const [WEST, SOUTH, EAST, NORTH] = PROVINCE_BOUNDS;
@@ -83,12 +94,12 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
       scheme,
       places,
       boundaries,
-      categories,
       selectedId,
       showUserLocation,
       basemap,
       padding,
       onSelectPlace,
+      children,
     },
     ref,
   ) {
@@ -96,26 +107,42 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
     const source = useRef<ShapeSource>(null);
     const colors = palettes[scheme];
 
+    /**
+     * A camera move asked for before the map has loaded (a share link opening
+     * the app cold, a report focused from another tab) is lost to the initial
+     * `defaultSettings` framing. Hold the latest one and play it on load.
+     */
+    const loaded = useRef(false);
+    const pending = useRef<(() => void) | null>(null);
+    const whenLoaded = (move: () => void) => {
+      if (loaded.current) move();
+      else pending.current = move;
+    };
+
     useImperativeHandle(ref, () => ({
-      flyTo: (coordinate, zoom = 14.5) =>
-        camera.current?.setCamera({
-          centerCoordinate: coordinate,
-          zoomLevel: zoom,
-          animationDuration: 700,
-          animationMode: "easeTo",
-          padding: {
-            paddingTop: padding.top,
-            paddingBottom: padding.bottom,
-            paddingLeft: padding.left,
-            paddingRight: padding.right,
-          },
-        }),
+      flyTo: (coordinate, zoom = 14.5, { animated = true, bottom } = {}) =>
+        whenLoaded(() =>
+          camera.current?.setCamera({
+            centerCoordinate: coordinate,
+            zoomLevel: zoom,
+            animationDuration: animated ? 700 : 0,
+            animationMode: animated ? "easeTo" : "moveTo",
+            padding: {
+              paddingTop: padding.top,
+              paddingBottom: bottom ?? padding.bottom,
+              paddingLeft: padding.left,
+              paddingRight: padding.right,
+            },
+          }),
+        ),
       showProvince: () =>
-        camera.current?.fitBounds(
-          [EAST, NORTH],
-          [WEST, SOUTH],
-          [padding.top, padding.right, padding.bottom, padding.left],
-          700,
+        whenLoaded(() =>
+          camera.current?.fitBounds(
+            [EAST, NORTH],
+            [WEST, SOUTH],
+            [padding.top, padding.right, padding.bottom, padding.left],
+            700,
+          ),
         ),
     }));
 
@@ -177,6 +204,11 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
         attributionPosition={{ bottom: padding.bottom + 4, right: 16 }}
         pitchEnabled={false}
         onPress={() => onSelectPlace(null)}
+        onDidFinishLoadingMap={() => {
+          loaded.current = true;
+          pending.current?.();
+          pending.current = null;
+        }}
       >
         <Mapbox.StyleImport
           id="basemap"
@@ -302,6 +334,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
             }}
           />
         </Mapbox.ShapeSource>
+
+        {children}
 
         <Mapbox.ShapeSource
           ref={source}

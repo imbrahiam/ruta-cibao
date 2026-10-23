@@ -321,6 +321,26 @@
     "source": "Código fuente",
     "contest": "Proyecto para TechEmprende SR Conecta 2026."
   },
+  "traffic": {
+    "severity": {
+      "blocking": "Vía bloqueada",
+      "partial": "Paso lento",
+      "minor": "Precaución"
+    },
+    "cleared": "Despejado",
+    "length": "{meters, plural, other {# m de vía}}",
+    "expires": "Vence a las {time}",
+    "reportedBy": "Reportado por {name}",
+    "reportedAnon": "Reportado por un vecino",
+    "resident": "residente verificado",
+    "stillVoices": "{count, plural, one {# vecino dice que sigue ahí} other {# vecinos dicen que sigue ahí}}",
+    "clearedVoices": "{count, plural, one {# dice que ya pasó} other {# dicen que ya pasó}}",
+    "ask": "¿Sigue ahí?",
+    "still": "Sí, sigue ahí",
+    "gone": "Ya pasó",
+    "thanksStill": "Gracias, lo mantendremos en el mapa",
+    "thanksCleared": "Gracias, avisaremos que se despejó"
+  },
   "time": {
     "now": "ahora mismo",
     "minutes": "{count, plural, one {hace # minuto} other {hace # minutos}}",
@@ -374,7 +394,8 @@
     "details": "Ver detalles",
     "locationDenied": "Ubicación desactivada",
     "locationDeniedBody": "Puedes activarla en Ajustes, o seguir usando el mapa sin ella.",
-    "locationFailed": "No pudimos obtener tu ubicación"
+    "locationFailed": "No pudimos obtener tu ubicación",
+    "trafficGone": "Ese reporte ya no está en el mapa"
   },
   "routes": {
     "missing": "No encontramos esta ruta",

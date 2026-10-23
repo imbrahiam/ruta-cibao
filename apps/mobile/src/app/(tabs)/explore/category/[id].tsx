@@ -30,7 +30,7 @@ export default function CategoryScreen() {
         refreshControl={
           <RefreshControl
             refreshing={places.isRefetching}
-            onRefresh={() => places.refetch()}
+            onRefresh={() => void places.refetch()}
             tintColor={colors.accent}
           />
         }
@@ -41,7 +41,10 @@ export default function CategoryScreen() {
               tone="danger"
               title={tc("errorTitle")}
               body={tc("errorBody")}
-              action={{ label: tc("retry"), onPress: () => places.refetch() }}
+              action={{
+                label: tc("retry"),
+                onPress: () => void places.refetch(),
+              }}
             />
           ) : (
             <EmptyState icon={MapPin} title={t("emptyCategory")} />

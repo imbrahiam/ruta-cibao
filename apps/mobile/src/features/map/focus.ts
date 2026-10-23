@@ -1,16 +1,22 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * A request, from anywhere in the app, for the map tab to show one place:
- * search results, a share link, a notification. The map consumes it once.
+ * A request, from anywhere in the app, for the map tab to show one thing: a
+ * place from search results, a traffic report from a share link or a
+ * notification. The map consumes it once, whenever it is mounted and has the
+ * data to resolve it.
  */
-type FocusRequest = { placeId: string; at: number } | null;
+export type FocusRequest = {
+  kind: "place" | "traffic";
+  id: string;
+  at: number;
+} | null;
 
 let current: FocusRequest = null;
 const listeners = new Set<() => void>();
 
-export function focusPlaceOnMap(placeId: string) {
-  current = { placeId, at: Date.now() };
+export function focusOnMap(kind: "place" | "traffic", id: string) {
+  current = { kind, id, at: Date.now() };
   for (const listener of listeners) listener();
 }
 

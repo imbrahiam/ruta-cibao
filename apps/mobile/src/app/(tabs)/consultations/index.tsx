@@ -66,7 +66,7 @@ export default function ConsultationsScreen() {
         refreshControl={
           <RefreshControl
             refreshing={list.isRefetching}
-            onRefresh={() => list.refetch()}
+            onRefresh={() => void list.refetch()}
             tintColor={colors.accent}
           />
         }
@@ -132,7 +132,10 @@ export default function ConsultationsScreen() {
               tone="danger"
               title={tc("errorTitle")}
               body={tc("errorBody")}
-              action={{ label: tc("retry"), onPress: () => list.refetch() }}
+              action={{
+                label: tc("retry"),
+                onPress: () => void list.refetch(),
+              }}
             />
           ) : (
             <EmptyState

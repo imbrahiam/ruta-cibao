@@ -1,6 +1,39 @@
+import type { ApiOutputs } from "@ruta/contracts";
 import type { MunicipalBoundaries } from "@ruta/shared/boundaries";
+import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
 import { useQuery } from "@tanstack/react-query";
+import { orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
+
+export type TrafficReport = ApiOutputs["traffic"]["active"][number];
+export type CommunityFeature = ApiOutputs["routes"]["map"]["features"][number];
+
+const [WEST, SOUTH, EAST, NORTH] = PROVINCE_BOUNDS;
+/** The province plus a margin, so a report on a border road is not cut off. */
+const AREA = {
+  west: WEST - 0.1,
+  south: SOUTH - 0.1,
+  east: EAST + 0.1,
+  north: NORTH + 0.1,
+};
+
+/** Live traffic reports, refreshed every minute while the map is open. */
+export function useTraffic(enabled: boolean) {
+  return useQuery({
+    ...orpc.traffic.active.queryOptions({ input: { ...AREA, limit: 200 } }),
+    enabled,
+    refetchInterval: 60_000,
+  });
+}
+
+/** Published routes and located consultations, drawn as their own layers. */
+export function useCommunity(enabled: boolean) {
+  return useQuery({
+    ...orpc.routes.map.queryOptions({ input: AREA }),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+}
 
 /** A published place as the map layer receives it. */
 export type PlaceFeatureProperties = {

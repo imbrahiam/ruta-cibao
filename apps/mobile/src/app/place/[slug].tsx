@@ -33,7 +33,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
-import { focusPlaceOnMap } from "@/features/map/focus";
+import { focusOnMap } from "@/features/map/focus";
 import { orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
 import { mediaUrl } from "@/lib/ids";
@@ -216,7 +216,7 @@ export default function PlaceScreen() {
               icon={MapIcon}
               label={t("onMap")}
               onPress={() => {
-                focusPlaceOnMap(place.id);
+                focusOnMap("place", place.id);
                 router.dismissTo("/");
               }}
             />
@@ -476,7 +476,6 @@ function Hero({
         renderItem={({ item }) => (
           <Image
             source={item}
-            style={{ width, height: HERO }}
             contentFit="cover"
             transition={200}
             style={{ width, height: HERO, backgroundColor: colors.fill }}

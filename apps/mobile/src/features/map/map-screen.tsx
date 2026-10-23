@@ -1,7 +1,7 @@
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { directionsUrl } from "@ruta/shared/directions";
 import * as Location from "expo-location";
-import { router } from "expo-router";
+import { router, useIsFocused } from "expo-router";
 import {
   Layers,
   LocateFixed,
@@ -10,10 +10,19 @@ import {
   X,
 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useTranslations } from "use-intl";
+import { openTarget } from "@/lib/targets";
 import { Button } from "@/ui/button";
 import { categoryIcon, Icon } from "@/ui/icon";
 import { PressableScale } from "@/ui/pressable";
@@ -23,15 +32,20 @@ import { Chip } from "@/ui/tags";
 import { Text } from "@/ui/text";
 import { floating, radius, space, spring, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
+import { CivicLayers } from "./civic-layers";
 import {
   categoriesOf,
   type PlaceFeature,
+  type TrafficReport,
   useBoundaries,
+  useCommunity,
   usePlaceCollection,
+  useTraffic,
 } from "./data";
 import { consumeFocusRequest, useFocusRequest } from "./focus";
-import { useMapLayers } from "./layers";
+import { setMapLayers, useMapLayers } from "./layers";
 import { ProvinceMap, type ProvinceMapHandle } from "./province-map";
+import { TrafficSummary } from "./traffic-summary";
 
 /** Height of the floating system tab bar the sheet must clear. */
 const TAB_BAR = Platform.select({ ios: 56, default: 80 });
@@ -43,6 +57,7 @@ export function MapScreen() {
   const tc = useTranslations("common");
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const toast = useToast();
   const reduced = useReducedMotion();
   const map = useRef<ProvinceMapHandle>(null);
@@ -58,6 +73,11 @@ export function MapScreen() {
   const [selected, setSelected] = useState<PlaceFeature | null>(null);
   const [locating, setLocating] = useState(false);
   const [showUser, setShowUser] = useState(false);
+  const [trafficId, setTrafficId] = useState<string | null>(null);
+  const traffic = useTraffic(layers.traffic);
+  const community = useCommunity(layers.routes || layers.consultations);
+  const selectedTraffic =
+    traffic.data?.find((report) => report.id === trafficId) ?? null;
 
   const visible = useMemo(() => {
     if (!places.data) return undefined;
@@ -73,7 +93,8 @@ export function MapScreen() {
 
   const bottomInset = insets.bottom + TAB_BAR;
   const peek = PEEK + bottomInset;
-  const snapPoints = useMemo(() => [peek, "52%", "90%"], [peek]);
+  const midSheet = Math.round(height * 0.52);
+  const snapPoints = useMemo(() => [peek, midSheet, "90%"], [peek, midSheet]);
   const topChrome = insets.top + 112;
   const padding = useMemo(
     () => ({ top: topChrome, bottom: peek + 12, left: 28, right: 28 }),
@@ -88,18 +109,71 @@ export function MapScreen() {
     }
   }, []);
 
+  /**
+   * A live report someone else filed carries a question for the reader ("is it
+   * still there?"), so its sheet opens at the middle detent; the camera keeps
+   * the stretch above whichever height the sheet takes.
+   */
+  const showTraffic = useCallback(
+    (report: TrafficReport, animated = true) => {
+      const asks = !report.isMine && report.state !== "cleared";
+      setSelected(null);
+      setTrafficId(report.id);
+      map.current?.flyTo([report.lng, report.lat], 15, {
+        animated,
+        bottom: (asks ? midSheet : peek) + 12,
+      });
+      sheet.current?.snapToIndex(asks ? 1 : 0);
+    },
+    [midSheet, peek],
+  );
+
+  // Resolved only once this tab is on screen: a camera move sent to a map
+  // that is detached (another tab, a link screen still covering it) is lost.
   const focus = useFocusRequest();
+  const isFocused = useIsFocused();
   useEffect(() => {
-    if (!focus || !places.data) return;
+    if (!focus || !isFocused) return;
+    if (focus.kind === "place") {
+      if (!places.data) return;
+      consumeFocusRequest();
+      const place = places.data.features.find(
+        (feature) => feature.properties.id === focus.id,
+      );
+      if (!place) return;
+      setTrafficId(null);
+      setCategory(null);
+      setMunicipality(null);
+      setSelected(place);
+      map.current?.flyTo(place.geometry.coordinates as [number, number], 14.5, {
+        animated: false,
+      });
+      sheet.current?.snapToIndex(0);
+      return;
+    }
+    // A report is a stretch on the traffic layer: show the layer if it was off.
+    if (!layers.traffic) {
+      setMapLayers({ traffic: true });
+      return;
+    }
+    if (!traffic.data) return;
     consumeFocusRequest();
-    const place = places.data.features.find(
-      (feature) => feature.properties.id === focus.placeId,
-    );
-    if (!place) return;
-    setCategory(null);
-    setMunicipality(null);
-    select(place);
-  }, [focus, places.data, select]);
+    const report = traffic.data.find((item) => item.id === focus.id);
+    if (!report) {
+      toast.show({ title: t("trafficGone"), tone: "info" });
+      return;
+    }
+    showTraffic(report, false);
+  }, [
+    focus,
+    isFocused,
+    places.data,
+    traffic.data,
+    layers.traffic,
+    showTraffic,
+    toast,
+    t,
+  ]);
 
   const locate = useCallback(async () => {
     setLocating(true);
@@ -137,13 +211,51 @@ export function MapScreen() {
         scheme={scheme}
         places={layers.places ? visible : undefined}
         boundaries={boundaries.data}
-        categories={categories}
         selectedId={selected?.properties.id ?? null}
         showUserLocation={showUser}
         basemap={layers.basemap}
         padding={padding}
-        onSelectPlace={select}
-      />
+        onSelectPlace={(place) => {
+          setTrafficId(null);
+          select(place);
+        }}
+      >
+        <CivicLayers
+          scheme={scheme}
+          traffic={traffic.data ?? []}
+          community={community.data?.features ?? []}
+          showTraffic={layers.traffic}
+          showRoutes={layers.routes}
+          showConsultations={layers.consultations}
+          selection={{ traffic: trafficId }}
+          onSelectTraffic={(id) => {
+            const report = traffic.data?.find((item) => item.id === id);
+            if (report) showTraffic(report);
+          }}
+          onSelectCommunity={(feature) => openTarget(feature.href)}
+        />
+      </ProvinceMap>
+
+      {/* Keeps the clock and battery legible over busy streets and pins. */}
+      <Svg
+        pointerEvents="none"
+        style={[styles.scrim, { height: insets.top + space.lg }]}
+        width="100%"
+        height={insets.top + space.lg}
+      >
+        <Defs>
+          <LinearGradient id="status-scrim" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={colors.background} stopOpacity={0.92} />
+            <Stop
+              offset="0.6"
+              stopColor={colors.background}
+              stopOpacity={0.6}
+            />
+            <Stop offset="1" stopColor={colors.background} stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#status-scrim)" />
+      </Svg>
 
       <View
         style={[styles.top, { paddingTop: insets.top + space.sm }]}
@@ -246,7 +358,12 @@ export function MapScreen() {
         style={floating(scheme)}
         accessible={false}
       >
-        {selected ? (
+        {selectedTraffic ? (
+          <TrafficSummary
+            report={selectedTraffic}
+            onClose={() => setTrafficId(null)}
+          />
+        ) : selected ? (
           <PlaceSummary
             place={selected}
             municipalityName={
@@ -464,6 +581,7 @@ function PlaceSummary({
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  scrim: { position: "absolute", left: 0, right: 0, top: 0 },
   flex: { flex: 1 },
   top: { position: "absolute", left: 0, right: 0, top: 0, gap: space.sm + 2 },
   searchRow: {

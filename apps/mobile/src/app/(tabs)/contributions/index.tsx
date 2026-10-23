@@ -19,7 +19,7 @@ import { useTranslations } from "use-intl";
 import { useMe } from "@/features/auth/session";
 import { useAgo } from "@/i18n/ago";
 import { orpc } from "@/lib/api";
-import { targetRoute } from "@/lib/targets";
+import { canOpenTarget, openTarget } from "@/lib/targets";
 import { BrandMark } from "@/ui/brand";
 import { Button } from "@/ui/button";
 import { Icon } from "@/ui/icon";
@@ -167,7 +167,7 @@ function MyContributions({ header }: { header: React.ReactElement }) {
       refreshControl={
         <RefreshControl
           refreshing={list.isRefetching}
-          onRefresh={() => list.refetch()}
+          onRefresh={() => void list.refetch()}
           tintColor={colors.accent}
         />
       }
@@ -184,7 +184,7 @@ function MyContributions({ header }: { header: React.ReactElement }) {
             tone="danger"
             title={tc("errorTitle")}
             body={tc("errorBody")}
-            action={{ label: tc("retry"), onPress: () => list.refetch() }}
+            action={{ label: tc("retry"), onPress: () => void list.refetch() }}
           />
         ) : (
           <EmptyState
@@ -200,10 +200,10 @@ function MyContributions({ header }: { header: React.ReactElement }) {
       }
       renderItem={({ item }) => {
         const status = STATUS[item.status];
-        const route = targetRoute(item.href);
+        const href = item.href;
         return (
           <Card
-            onPress={route ? () => router.push(route) : undefined}
+            onPress={canOpenTarget(href) ? () => openTarget(href) : undefined}
             accessibilityLabel={`${t(`kind.${item.kind}`)}: ${item.name}. ${t(`status.${item.status}`)}`}
             style={styles.card}
           >
@@ -286,7 +286,7 @@ function InboxList({ header }: { header: React.ReactElement }) {
       refreshControl={
         <RefreshControl
           refreshing={list.isRefetching}
-          onRefresh={() => list.refetch()}
+          onRefresh={() => void list.refetch()}
           tintColor={colors.accent}
         />
       }
@@ -296,7 +296,7 @@ function InboxList({ header }: { header: React.ReactElement }) {
             icon={Bell}
             tone="danger"
             title={tc("errorTitle")}
-            action={{ label: tc("retry"), onPress: () => list.refetch() }}
+            action={{ label: tc("retry"), onPress: () => void list.refetch() }}
           />
         ) : (
           <EmptyState
@@ -312,8 +312,7 @@ function InboxList({ header }: { header: React.ReactElement }) {
           <PressableScale
             onPress={() => {
               if (unread) markRead.mutate({ id: item.id });
-              const route = targetRoute(item.href);
-              if (route) router.push(route);
+              openTarget(item.href);
             }}
             scaleTo={0.985}
             accessibilityRole="button"

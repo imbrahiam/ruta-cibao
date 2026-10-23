@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useBoundaries, usePlaceCollection } from "@/features/map/data";
-import { focusPlaceOnMap } from "@/features/map/focus";
+import { focusOnMap } from "@/features/map/focus";
 import { categoryIcon, Icon } from "@/ui/icon";
 import { PressableScale } from "@/ui/pressable";
 import { EmptyState } from "@/ui/states";
@@ -108,7 +108,7 @@ export default function SearchScreen() {
         renderItem={({ item }) => (
           <PressableScale
             onPress={() => {
-              focusPlaceOnMap(item.properties.id);
+              focusOnMap("place", item.properties.id);
               router.back();
             }}
             scaleTo={0.985}
