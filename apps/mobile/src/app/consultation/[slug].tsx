@@ -7,13 +7,20 @@ import {
   Share2,
   ThumbsUp,
 } from "lucide-react-native";
-import { ScrollView, Share, StyleSheet, View } from "react-native";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import {
+  ScrollView,
+  Share,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFormatter, useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
 import { STATUS_STYLE } from "@/features/consultations/status";
-import { mapStyles } from "@/features/map/google-style";
+import { basemapProps } from "@/features/map/basemap";
+import { regionAt } from "@/features/map/geometry";
 import { ContentMenu } from "@/features/safety/content-menu";
 import { orpc } from "@/lib/api";
 import { Button } from "@/ui/button";
@@ -26,6 +33,8 @@ import { Text } from "@/ui/text";
 import { radius, space, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
 
+const MAP_HEIGHT = 180;
+
 export default function ConsultationScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const t = useTranslations("consultations");
@@ -35,6 +44,7 @@ export default function ConsultationScreen() {
   const format = useFormatter();
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const toast = useToast();
   const queryClient = useQueryClient();
   const asMember = useMemberAction();
@@ -199,17 +209,13 @@ export default function ConsultationScreen() {
           <View style={styles.map}>
             <MapView
               style={StyleSheet.absoluteFill}
-              provider={PROVIDER_GOOGLE}
-              customMapStyle={mapStyles[scheme]}
-              initialCamera={{
-                center: {
-                  longitude: data.location.lng,
-                  latitude: data.location.lat,
-                },
-                zoom: 15.5,
-                heading: 0,
-                pitch: 0,
-              }}
+              {...basemapProps(scheme)}
+              initialRegion={regionAt(
+                [data.location.lng, data.location.lat],
+                15.5,
+                width,
+                MAP_HEIGHT,
+              )}
               scrollEnabled={false}
               zoomEnabled={false}
               rotateEnabled={false}
@@ -361,7 +367,7 @@ const styles = StyleSheet.create({
   body: { lineHeight: 25 },
   caseDot: { width: 18, height: 18, borderRadius: 9, borderWidth: 3 },
   map: {
-    height: 180,
+    height: MAP_HEIGHT,
     borderRadius: radius.card,
     borderCurve: "continuous",
     overflow: "hidden",

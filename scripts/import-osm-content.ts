@@ -254,6 +254,10 @@ export function slugify(value: string): string {
     .slice(0, 48);
 }
 
+/** Fuel retailers operating in the Dominican Republic. */
+const FUEL_BRANDS =
+  /\b(texaco|shell|esso|isla|sunix|total|puma|gulf|next|ecopetr[oó]leo|uno)\b/i;
+
 /**
  * Maps raw OpenStreetMap tags to taxonomy categories in `categories` table.
  */
@@ -328,6 +332,13 @@ export function categorizeOsmTags(
   // Religión (place)
   if (tags.amenity === "place_of_worship" || tags.amenity === "monastery") {
     return { categoryId: "religion", categoryKind: "place" };
+  }
+
+  // A convenience shop carrying a fuel brand is the forecourt shop of a
+  // station that is already mapped on its own; a second pin a few metres away
+  // labelled as a colmado misleads more than it helps.
+  if (tags.shop === "convenience" && FUEL_BRANDS.test(tags.brand ?? "")) {
+    return null;
   }
 
   // Colmado (business)
@@ -714,7 +725,6 @@ export async function importOsmContent(): Promise<{
       osmType,
       osmId,
       name,
-      categoryId,
       municipalityId,
       address,
       phone,
@@ -722,7 +732,12 @@ export async function importOsmContent(): Promise<{
       tags,
     } = properties;
 
+    // The classifier, not the snapshot, decides the category, so a mapping
+    // fix applies on the next import without re-querying Overpass. A feature
+    // it no longer accepts is removed if an earlier run imported it.
+    const categoryId = categorizeOsmTags(tags)?.categoryId ?? null;
     if (!categoryId || !catIds.has(categoryId)) {
+      duplicateIdsToDelete.push(osmUuid(osmType, osmId));
       continue;
     }
     if (!muniIds.has(municipalityId)) {

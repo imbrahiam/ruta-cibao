@@ -135,7 +135,7 @@ const dark: Palette = {
 export const palettes = { light, dark } as const;
 
 /**
- * The basemap, as tokens: `features/map/google-style.ts` turns these into the
+ * The basemap, as tokens: `features/map/basemap.ts` turns these into the
  * Google Maps style, so re-tinting the map is a change here, not in the style.
  */
 export const mapPalettes = {

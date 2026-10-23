@@ -1,8 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { type QueryClient, useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useCallback } from "react";
+import { unregisterPush } from "@/features/notifications/push";
 import { orpc } from "@/lib/api";
 import { authClient } from "@/lib/auth";
+import { queryClient as defaultQueryClient } from "@/lib/query";
 
 /** Who is using the app, from the server's point of view (`me.get`). */
 export function useMe() {
@@ -38,4 +40,19 @@ export function useMemberAction() {
 export function closeSignIn() {
   router.dismissAll();
   router.back();
+}
+
+/**
+ * Unbinds native push while the session cookie is still valid, signs out of
+ * Better Auth, and resets TanStack Query observers so no private data lingers.
+ */
+export async function signOutLocally(
+  client: QueryClient = defaultQueryClient,
+): Promise<void> {
+  try {
+    await unregisterPush().catch(() => undefined);
+    await authClient.signOut().catch(() => undefined);
+  } finally {
+    await client.resetQueries();
+  }
 }

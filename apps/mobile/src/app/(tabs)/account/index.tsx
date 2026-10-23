@@ -6,19 +6,20 @@ import {
   BadgeCheck,
   Bell,
   Bookmark,
+  CloudDownload,
   EyeOff,
   Info,
   LogOut,
   ShieldCheck,
   Stamp,
+  Trash2,
   UserRound,
 } from "lucide-react-native";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
-import { useMe } from "@/features/auth/session";
-import { unregisterPush } from "@/features/notifications/push";
+import { signOutLocally, useMe } from "@/features/auth/session";
+import { useOfflineStatus } from "@/features/offline/store";
 import { orpc } from "@/lib/api";
-import { authClient } from "@/lib/auth";
 import { BrandMark } from "@/ui/brand";
 import { Button } from "@/ui/button";
 import { Icon } from "@/ui/icon";
@@ -42,6 +43,9 @@ export default function AccountScreen() {
   const notificationSettings = useTranslations("notificationSettings");
   const ts = useTranslations("safety");
   const tu = useTranslations("safetyUi");
+  const td = useTranslations("accountDeletion");
+  const to = useTranslations("offline");
+  const offline = useOfflineStatus();
   const { colors } = useTheme();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -52,17 +56,7 @@ export default function AccountScreen() {
   )?.name;
 
   const signOut = async () => {
-    try {
-      // While the session cookie is still valid, so the server can unbind
-      // this phone from the account. Never blocks signing out.
-      await unregisterPush().catch(() => undefined);
-      await authClient.signOut();
-    } finally {
-      // Reset (not clear): drops every private result and refetches what is on
-      // screen, so this tab re-renders as signed out instead of keeping the
-      // last member data in its observers.
-      await queryClient.resetQueries();
-    }
+    await signOutLocally(queryClient);
     toast.show({ title: t("signedOut") });
   };
 
@@ -169,6 +163,14 @@ export default function AccountScreen() {
 
       <ListSection title={t("about")}>
         <ListRow
+          title={to("rowTitle")}
+          subtitle={to("rowHint")}
+          value={offline.ready ? to("rowReadyValue") : undefined}
+          icon={CloudDownload}
+          onPress={() => router.push("/account/offline")}
+          testID="account-offline"
+        />
+        <ListRow
           title={t("privacy")}
           icon={ShieldCheck}
           onPress={() => router.push("/account/privacy")}
@@ -182,15 +184,26 @@ export default function AccountScreen() {
       </ListSection>
 
       {signedIn ? (
-        <ListSection>
-          <ListRow
-            title={t("signOut")}
-            icon={LogOut}
-            destructive
-            onPress={signOut}
-            testID="account-sign-out"
-          />
-        </ListSection>
+        <>
+          <ListSection>
+            <ListRow
+              title={t("signOut")}
+              icon={LogOut}
+              destructive
+              onPress={signOut}
+              testID="account-sign-out"
+            />
+          </ListSection>
+          <ListSection footer={td("rowHint")}>
+            <ListRow
+              title={td("rowTitle")}
+              icon={Trash2}
+              destructive
+              onPress={() => router.push("/account/delete")}
+              testID="account-delete"
+            />
+          </ListSection>
+        </>
       ) : null}
     </ScrollView>
   );

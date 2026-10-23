@@ -15,3 +15,10 @@ export const APP_SCHEME = String(Constants.expoConfig?.scheme ?? "rutacibao");
 export const APP_VARIANT = String(
   Constants.expoConfig?.extra?.variant ?? "development",
 );
+
+/**
+ * Basemap provider. Google unless the build opts into Apple Maps (iOS only),
+ * which needs no key: see `features/map/basemap.ts`.
+ */
+export const MAP_PROVIDER: "google" | "apple" =
+  process.env.EXPO_PUBLIC_MAP_PROVIDER === "apple" ? "apple" : "google";

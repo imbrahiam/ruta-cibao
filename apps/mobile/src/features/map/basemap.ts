@@ -1,9 +1,43 @@
-import type { MapStyleElement } from "react-native-maps";
+import { Platform } from "react-native";
+import {
+  type MapStyleElement,
+  type MapViewProps,
+  PROVIDER_DEFAULT,
+  PROVIDER_GOOGLE,
+} from "react-native-maps";
+import { MAP_PROVIDER } from "@/lib/config";
 import { mapPalettes, type Scheme } from "@/ui/theme";
 
 /**
- * Basemap style for Google Maps, built from `mapPalettes` in the theme.
+ * Everything a `MapView` needs to draw the basemap, for every map in the app.
  *
+ * Google Maps is the basemap, styled from `mapPalettes`. Apple Maps is the
+ * iOS alternative (`EXPO_PUBLIC_MAP_PROVIDER=apple`) for a build whose Google
+ * key cannot serve tiles: MapKit takes no style JSON, so it gets its muted
+ * variant with the scheme's appearance and no points of interest. Android has
+ * only Google.
+ */
+export function basemapProps(
+  scheme: Scheme,
+  basemap: "standard" | "satellite" = "standard",
+): Partial<MapViewProps> {
+  const satellite = basemap === "satellite";
+  if (MAP_PROVIDER === "apple" && Platform.OS === "ios") {
+    return {
+      provider: PROVIDER_DEFAULT,
+      mapType: satellite ? "hybrid" : "mutedStandard",
+      showsPointsOfInterests: false,
+      userInterfaceStyle: scheme,
+    };
+  }
+  return {
+    provider: PROVIDER_GOOGLE,
+    customMapStyle: satellite ? undefined : mapStyles[scheme],
+    mapType: satellite ? "hybrid" : "standard",
+  };
+}
+
+/*
  * Google's own points of interest and transit are switched off: the places on
  * this map are the ones the province curates, drawn by the app on top, and two
  * competing sets of pins would contradict each other. Roads stay legible
@@ -75,7 +109,7 @@ function styleFor(scheme: Scheme): MapStyleElement[] {
   ];
 }
 
-export const mapStyles: Record<Scheme, MapStyleElement[]> = {
+const mapStyles: Record<Scheme, MapStyleElement[]> = {
   light: styleFor("light"),
   dark: styleFor("dark"),
 };

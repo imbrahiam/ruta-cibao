@@ -35,6 +35,27 @@ export function zoomForRegion(region: Region, width: number): number {
   return Math.log2((360 * width) / (256 * delta));
 }
 
+/**
+ * The region a `width`×`height` view shows at `zoom` around `center`: the
+ * inverse of `zoomForRegion`. Both basemaps honour a region, where only
+ * Google reads a camera's `zoom` (MapKit wants an altitude).
+ */
+export function regionAt(
+  [longitude, latitude]: readonly [number, number],
+  zoom: number,
+  width: number,
+  height: number,
+): Region {
+  const longitudeDelta = (360 * width) / (256 * 2 ** zoom);
+  return {
+    longitude,
+    latitude,
+    longitudeDelta,
+    latitudeDelta:
+      longitudeDelta * (height / width) * Math.cos((latitude * Math.PI) / 180),
+  };
+}
+
 /** `[west, south, east, north]` of a region, for clustering what is on screen. */
 export function regionBounds(region: Region): [number, number, number, number] {
   return [

@@ -4,8 +4,8 @@ import * as Location from "expo-location";
 import { router, useLocalSearchParams } from "expo-router";
 import { LocateFixed, X } from "lucide-react-native";
 import { useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
-import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
+import MapView from "react-native-maps";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -14,8 +14,9 @@ import Animated, {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useTranslations } from "use-intl";
+import { basemapProps } from "@/features/map/basemap";
 import { useBoundaries } from "@/features/map/data";
-import { mapStyles } from "@/features/map/google-style";
+import { regionAt } from "@/features/map/geometry";
 import { setPickedLocation } from "@/features/map/picked-location";
 import { useLocationPermission } from "@/features/map/use-location-permission";
 import { Button } from "@/ui/button";
@@ -40,6 +41,7 @@ export default function PickLocationScreen() {
   const insets = useSafeAreaInsets();
   const toast = useToast();
   const map = useRef<MapView>(null);
+  const { width, height } = useWindowDimensions();
   const boundaries = useBoundaries();
   const initial: [number, number] | null =
     params.lng && params.lat ? [Number(params.lng), Number(params.lat)] : null;
@@ -73,15 +75,14 @@ export default function PickLocationScreen() {
     const position = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
     });
-    map.current?.animateCamera(
-      {
-        center: {
-          longitude: position.coords.longitude,
-          latitude: position.coords.latitude,
-        },
-        zoom: 16.5,
-      },
-      { duration: 600 },
+    map.current?.animateToRegion(
+      regionAt(
+        [position.coords.longitude, position.coords.latitude],
+        16.5,
+        width,
+        height,
+      ),
+      600,
     );
   };
 
@@ -90,17 +91,8 @@ export default function PickLocationScreen() {
       <MapView
         ref={map}
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_GOOGLE}
-        customMapStyle={mapStyles[scheme]}
-        initialCamera={{
-          center: {
-            longitude: center[0],
-            latitude: center[1],
-          },
-          zoom: initial ? 16.5 : 10,
-          heading: 0,
-          pitch: 0,
-        }}
+        {...basemapProps(scheme)}
+        initialRegion={regionAt(center, initial ? 16.5 : 10, width, height)}
         mapPadding={{ top: 0, bottom: cardHeight, left: 0, right: 0 }}
         showsUserLocation={location.granted}
         showsMyLocationButton={false}
@@ -134,12 +126,14 @@ export default function PickLocationScreen() {
           <Svg width={40} height={52} viewBox="0 0 48 60">
             <Path
               d="M24 58 C24 58 4 37.5 4 24 A20 20 0 1 1 44 24 C44 37.5 24 58 24 58 Z"
-              fill={palettes[scheme].accent}
+              fill={palettes[scheme].pin}
               stroke={palettes[scheme].background}
               strokeWidth={3}
             />
           </Svg>
-          <View style={styles.pinDot} />
+          <View
+            style={[styles.pinDot, { backgroundColor: palettes[scheme].onPin }]}
+          />
         </Animated.View>
       </View>
 
@@ -232,7 +226,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#FFFFFF",
   },
   groundShadow: {
     position: "absolute",

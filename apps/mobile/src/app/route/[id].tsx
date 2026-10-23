@@ -18,12 +18,19 @@ import {
   Utensils,
 } from "lucide-react-native";
 import { useMemo, useRef } from "react";
-import { Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import {
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslations } from "use-intl";
-import { lineCoordinates } from "@/features/map/geometry";
-import { mapStyles } from "@/features/map/google-style";
+import { basemapProps } from "@/features/map/basemap";
+import { lineCoordinates, regionAt } from "@/features/map/geometry";
 import { ContentMenu } from "@/features/safety/content-menu";
 import { orpc } from "@/lib/api";
 import { Button } from "@/ui/button";
@@ -32,6 +39,8 @@ import { EmptyState, Skeleton } from "@/ui/states";
 import { Card, IconButton } from "@/ui/surfaces";
 import { Text } from "@/ui/text";
 import { radius, space, useTheme } from "@/ui/theme";
+
+const MAP_HEIGHT = 340;
 
 const SERVICE_ICONS: Record<string, LucideIcon> = {
   water: Droplets,
@@ -57,6 +66,7 @@ export default function RouteScreen() {
     [data],
   );
   const map = useRef<MapView>(null);
+  const { width } = useWindowDimensions();
   const bounds = line && line.length > 1 ? line : null;
 
   if (route.isPending) {
@@ -105,17 +115,13 @@ export default function RouteScreen() {
           <MapView
             ref={map}
             style={StyleSheet.absoluteFill}
-            provider={PROVIDER_GOOGLE}
-            customMapStyle={mapStyles[scheme]}
-            initialCamera={{
-              center: {
-                longitude: start?.lng ?? 0,
-                latitude: start?.lat ?? 0,
-              },
-              zoom: 13,
-              heading: 0,
-              pitch: 0,
-            }}
+            {...basemapProps(scheme)}
+            initialRegion={regionAt(
+              [start?.lng ?? 0, start?.lat ?? 0],
+              13,
+              width,
+              MAP_HEIGHT,
+            )}
             showsCompass={false}
             showsBuildings={false}
             showsIndoors={false}
@@ -319,7 +325,7 @@ function Stat({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { justifyContent: "center" },
-  map: { height: 340 },
+  map: { height: MAP_HEIGHT },
   startDot: { width: 16, height: 16, borderRadius: 8, borderWidth: 3 },
   body: {
     marginTop: -space.lg,

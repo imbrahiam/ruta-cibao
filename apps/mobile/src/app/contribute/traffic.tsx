@@ -6,14 +6,19 @@ import * as Location from "expo-location";
 import { router } from "expo-router";
 import { LocateFixed, X } from "lucide-react-native";
 import { useMemo, useRef, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import MapView, { Polyline, PROVIDER_GOOGLE } from "react-native-maps";
+import {
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import MapView, { Polyline } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useTranslations } from "use-intl";
+import { basemapProps } from "@/features/map/basemap";
 import { useBoundaries } from "@/features/map/data";
-import { lineCoordinates } from "@/features/map/geometry";
-import { mapStyles } from "@/features/map/google-style";
+import { lineCoordinates, regionAt } from "@/features/map/geometry";
 import { useLocationPermission } from "@/features/map/use-location-permission";
 import { askForPushAfterContribution } from "@/features/notifications/push";
 import { orpc } from "@/lib/api";
@@ -52,6 +57,7 @@ export default function ReportTrafficScreen() {
   const [center, setCenter] = useState<[number, number]>(SABANETA);
   const [description, setDescription] = useState("");
   const map = useRef<MapView>(null);
+  const { width, height } = useWindowDimensions();
   const [cardHeight, setCardHeight] = useState(420);
 
   const street = useQuery({
@@ -112,15 +118,14 @@ export default function ReportTrafficScreen() {
     const position = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
     });
-    map.current?.animateCamera(
-      {
-        center: {
-          longitude: position.coords.longitude,
-          latitude: position.coords.latitude,
-        },
-        zoom: 16.5,
-      },
-      { duration: 600 },
+    map.current?.animateToRegion(
+      regionAt(
+        [position.coords.longitude, position.coords.latitude],
+        16.5,
+        width,
+        height,
+      ),
+      600,
     );
   };
 
@@ -129,14 +134,8 @@ export default function ReportTrafficScreen() {
       <MapView
         ref={map}
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_GOOGLE}
-        customMapStyle={mapStyles[scheme]}
-        initialCamera={{
-          center: { longitude: SABANETA[0], latitude: SABANETA[1] },
-          zoom: 15.5,
-          heading: 0,
-          pitch: 0,
-        }}
+        {...basemapProps(scheme)}
+        initialRegion={regionAt(SABANETA, 15.5, width, height)}
         mapPadding={{ top: 0, bottom: cardHeight, left: 0, right: 0 }}
         showsUserLocation={location.granted}
         showsMyLocationButton={false}
@@ -186,11 +185,16 @@ export default function ReportTrafficScreen() {
             <Path
               d="M24 58 C24 58 4 37.5 4 24 A20 20 0 1 1 44 24 C44 37.5 24 58 24 58 Z"
               fill={selected?.color ?? palettes[scheme].warning}
-              stroke="#FFFFFF"
+              stroke={palettes[scheme].onStatus}
               strokeWidth={3}
             />
           </Svg>
-          <View style={styles.pinDot} />
+          <View
+            style={[
+              styles.pinDot,
+              { backgroundColor: palettes[scheme].onStatus },
+            ]}
+          />
         </View>
       </View>
 
@@ -342,7 +346,6 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#FFFFFF",
   },
   card: {
     position: "absolute",

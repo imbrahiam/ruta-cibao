@@ -9,22 +9,18 @@ import {
   useState,
 } from "react";
 import { StyleSheet, useWindowDimensions } from "react-native";
-import MapView, {
-  Marker,
-  Polygon,
-  PROVIDER_GOOGLE,
-  type Region,
-} from "react-native-maps";
+import MapView, { Marker, Polygon, type Region } from "react-native-maps";
 import Supercluster from "supercluster";
 import { mapPalettes, palettes, type Scheme } from "@/ui/theme";
+import { basemapProps } from "./basemap";
 import type { Boundaries, PlaceCollection, PlaceFeature } from "./data";
 import {
   boundsRegion,
   polygonRings,
+  regionAt,
   regionBounds,
   zoomForRegion,
 } from "./geometry";
-import { mapStyles } from "./google-style";
 import { AreaLabel, ClusterBubble, PlaceDot } from "./markers";
 import { SelectedPin } from "./selected-pin";
 
@@ -103,7 +99,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
     ref,
   ) {
     const map = useRef<MapView>(null);
-    const { width } = useWindowDimensions();
+    const { width, height } = useWindowDimensions();
     const colors = palettes[scheme];
     const [region, setRegion] = useState<Region>(() =>
       boundsRegion(PROVINCE_BOUNDS),
@@ -139,19 +135,17 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
             // The padding moves first so the centre lands above the sheet
             // height it is about to have, not the one it has now.
             setBottomOverride(bottom ?? null);
+            const inner = height - padding.top - (bottom ?? padding.bottom);
             requestAnimationFrame(() =>
-              map.current?.animateCamera(
-                {
-                  center: { longitude: coordinate[0], latitude: coordinate[1] },
-                  zoom,
-                },
-                { duration: animated ? 600 : 0 },
+              map.current?.animateToRegion(
+                regionAt(coordinate, zoom, width, inner),
+                animated ? 600 : 0,
               ),
             );
           }),
         showProvince: () => whenReady(() => showProvince()),
       }),
-      [whenReady, showProvince],
+      [whenReady, showProvince, width, height, padding],
     );
 
     const index = useMemo(() => {
@@ -205,9 +199,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
       <MapView
         ref={map}
         style={StyleSheet.absoluteFill}
-        provider={PROVIDER_GOOGLE}
-        customMapStyle={basemap === "standard" ? mapStyles[scheme] : undefined}
-        mapType={basemap === "satellite" ? "hybrid" : "standard"}
+        {...basemapProps(scheme, basemap)}
         initialRegion={boundsRegion(PROVINCE_BOUNDS)}
         mapPadding={{
           top: padding.top,
@@ -256,6 +248,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
             coordinates={rings.coordinates}
             holes={rings.holes}
             fillColor={mapPalettes[scheme].veil}
+            // MapKit ignores a zero width and strokes in black by default.
+            strokeColor="transparent"
             strokeWidth={0}
             tappable={false}
           />
@@ -323,16 +317,26 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
                 coordinate={{ latitude, longitude }}
                 tracksViewChanges={false}
                 anchor={{ x: 0.5, y: 0.5 }}
-                zIndex={5}
+                // Above report dots (7): a town's cluster and a report in the
+                // same town share a spot at province scale, and a count hidden
+                // under a dot reads as a broken map. Zooming in parts them.
+                zIndex={8}
                 accessibilityLabel={String(properties.point_count)}
                 onPress={() => {
                   const next = Math.min(
                     index.getClusterExpansionZoom(properties.cluster_id) + 0.5,
                     CLUSTER_MAX_ZOOM + 1.5,
                   );
-                  map.current?.animateCamera(
-                    { center: { latitude, longitude }, zoom: next },
-                    { duration: 450 },
+                  // Both basemaps fit a region inside the map padding, so it
+                  // is sized for the uncovered part of the screen.
+                  map.current?.animateToRegion(
+                    regionAt(
+                      [longitude, latitude],
+                      next,
+                      width,
+                      height - padding.top - (bottomOverride ?? padding.bottom),
+                    ),
+                    450,
                   );
                 }}
               >
