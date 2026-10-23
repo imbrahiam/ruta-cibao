@@ -62,7 +62,6 @@ export function SavedScreen() {
               name: item.name,
               categoryName: item.categoryName,
               categoryIcon: item.icon,
-              categoryColor: item.color,
               municipalityName: item.municipalityName,
             }}
           />

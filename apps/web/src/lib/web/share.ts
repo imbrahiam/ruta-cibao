@@ -17,8 +17,15 @@ import { router } from "@/orpc/router";
 const anonymous: AppContext = {
   db,
   headers: new Headers(),
-  getSession: async () => ({ viewer: { kind: "anonymous" }, contact: null }),
+  getSession: async () => ({
+    session: null,
+    viewer: { kind: "anonymous" },
+    contact: null,
+  }),
   getViewer: async () => ({ kind: "anonymous" }),
+  requireStaffSession: async () => {
+    throw new ORPCError("UNAUTHORIZED");
+  },
 };
 
 const client = createRouterClient(router, { context: anonymous });

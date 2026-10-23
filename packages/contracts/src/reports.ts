@@ -92,6 +92,20 @@ export const renderReportOutput = z.object({
   queued: z.enum(["queued", "inline", "failed"]),
 });
 
+export const generateReportInput = z.object({
+  requestId: z.uuid(),
+  municipalityId: z.string().min(1).max(80),
+});
+
+export type GenerateReportInput = z.infer<typeof generateReportInput>;
+
+export const generateReportOutput = z.object({
+  reportId: z.uuid(),
+  status: z.enum(["pending", "ready", "failed"]),
+});
+
+export type GenerateReportOutput = z.infer<typeof generateReportOutput>;
+
 /**
  * The weekly report, as an API. Working documents for the ayuntamiento, so
  * every procedure requires moderation authority scoped to the report's
@@ -131,4 +145,16 @@ export const reportsContract = {
     )
     .input(reportIdInput)
     .output(renderReportOutput),
+
+  generate: oc
+    .meta(
+      openapi({
+        method: "POST",
+        path: "/reports/generate",
+        summary:
+          "Generate or retry the most recent completed weekly report for a municipality",
+      }),
+    )
+    .input(generateReportInput)
+    .output(generateReportOutput),
 };

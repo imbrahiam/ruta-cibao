@@ -1,17 +1,19 @@
 import { isDefinedError } from "@orpc/client";
-import Mapbox from "@rnmapbox/maps";
 import { municipalityAt } from "@ruta/shared/boundaries";
 import { STREET_EXTENTS, type StreetExtent } from "@ruta/shared/road-geometry";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { LocateFixed, X } from "lucide-react-native";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
+import MapView, { Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useTranslations } from "use-intl";
 import { useBoundaries } from "@/features/map/data";
+import { lineCoordinates } from "@/features/map/geometry";
+import { mapStyles } from "@/features/map/google-style";
 import { useLocationPermission } from "@/features/map/use-location-permission";
 import { askForPushAfterContribution } from "@/features/notifications/push";
 import { orpc } from "@/lib/api";
@@ -49,7 +51,7 @@ export default function ReportTrafficScreen() {
   const [extent, setExtent] = useState<StreetExtent>(500);
   const [center, setCenter] = useState<[number, number]>(SABANETA);
   const [description, setDescription] = useState("");
-  const [camera, setCamera] = useState<Mapbox.Camera | null>(null);
+  const map = useRef<MapView>(null);
   const [cardHeight, setCardHeight] = useState(420);
 
   const street = useQuery({
@@ -94,17 +96,10 @@ export default function ReportTrafficScreen() {
   );
 
   const path = street.data?.street?.path;
-  const line = useMemo<GeoJSON.Feature | null>(
+  const line = useMemo(
     () =>
       shape === "street" && path && path.length > 1
-        ? {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "LineString",
-              coordinates: path.map((p) => [p.lng, p.lat]),
-            },
-          }
+        ? lineCoordinates(path)
         : null,
     [path, shape],
   );
@@ -117,71 +112,70 @@ export default function ReportTrafficScreen() {
     const position = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
     });
-    camera?.setCamera({
-      centerCoordinate: [position.coords.longitude, position.coords.latitude],
-      zoomLevel: 16.5,
-      animationDuration: 600,
-    });
+    map.current?.animateCamera(
+      {
+        center: {
+          longitude: position.coords.longitude,
+          latitude: position.coords.latitude,
+        },
+        zoom: 16.5,
+      },
+      { duration: 600 },
+    );
   };
 
   return (
     <View style={styles.screen}>
-      <Mapbox.MapView
+      <MapView
+        ref={map}
         style={StyleSheet.absoluteFill}
-        styleURL="mapbox://styles/mapbox/standard"
-        scaleBarEnabled={false}
+        provider={PROVIDER_GOOGLE}
+        customMapStyle={mapStyles[scheme]}
+        initialCamera={{
+          center: { longitude: SABANETA[0], latitude: SABANETA[1] },
+          zoom: 15.5,
+          heading: 0,
+          pitch: 0,
+        }}
+        mapPadding={{ top: 0, bottom: cardHeight, left: 0, right: 0 }}
+        showsUserLocation={location.granted}
+        showsMyLocationButton={false}
+        showsCompass={false}
+        showsBuildings={false}
+        showsIndoors={false}
+        toolbarEnabled={false}
         pitchEnabled={false}
-        logoPosition={{ bottom: 340, left: 16 }}
-        attributionPosition={{ bottom: 340, right: 16 }}
-        onMapIdle={(state) =>
-          setCenter(state.properties.center as [number, number])
-        }
+        rotateEnabled={false}
+        loadingEnabled
+        loadingBackgroundColor={palettes[scheme].background}
+        onRegionChangeComplete={async () => {
+          // The camera target is the padded centre, under the crosshair.
+          const camera = await map.current?.getCamera();
+          if (camera)
+            setCenter([camera.center.longitude, camera.center.latitude]);
+        }}
       >
-        <Mapbox.StyleImport
-          id="basemap"
-          existing
-          config={{
-            lightPreset: scheme === "dark" ? "night" : "day",
-            showPointOfInterestLabels: false,
-            show3dObjects: false,
-          }}
-        />
-        <Mapbox.Camera
-          ref={setCamera}
-          defaultSettings={{ centerCoordinate: SABANETA, zoomLevel: 15.5 }}
-          padding={{
-            paddingBottom: cardHeight,
-            paddingTop: 0,
-            paddingLeft: 0,
-            paddingRight: 0,
-          }}
-        />
-        {location.granted ? <Mapbox.LocationPuck /> : null}
         {line ? (
-          <Mapbox.ShapeSource id="traffic-preview" shape={line}>
-            <Mapbox.LineLayer
-              id="traffic-preview-casing"
-              slot="top"
-              style={{
-                lineColor: "#FFFFFF",
-                lineWidth: 11,
-                lineCap: "round",
-                lineJoin: "round",
-              }}
-            />
-            <Mapbox.LineLayer
-              id="traffic-preview-line"
-              slot="top"
-              style={{
-                lineColor: selected?.color ?? palettes[scheme].warning,
-                lineWidth: 7,
-                lineCap: "round",
-                lineJoin: "round",
-              }}
-            />
-          </Mapbox.ShapeSource>
+          <Polyline
+            coordinates={line}
+            strokeColor={palettes[scheme].background}
+            strokeWidth={11}
+            lineCap="round"
+            lineJoin="round"
+            zIndex={1}
+          />
         ) : null}
-      </Mapbox.MapView>
+        {line ? (
+          <Polyline
+            coordinates={line}
+            strokeColor={selected?.color ?? palettes[scheme].warning}
+            strokeWidth={7}
+            lineCap="round"
+            lineJoin="round"
+            zIndex={2}
+          />
+        ) : null}
+      </MapView>
 
       <View
         pointerEvents="none"

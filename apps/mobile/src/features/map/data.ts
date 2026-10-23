@@ -3,7 +3,7 @@ import type { MunicipalBoundaries } from "@ruta/shared/boundaries";
 import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
-import { targetKey, useHiddenTargets } from "@/features/safety/hidden-targets";
+import { useHiddenTargets } from "@/features/safety/hidden-targets";
 import { orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
 
@@ -24,12 +24,10 @@ export function useTraffic(enabled: boolean) {
   const hidden = useHiddenTargets();
   const select = useCallback(
     (reports: ApiOutputs["traffic"]["active"]) =>
-      hidden.size === 0
+      hidden.traffic.size === 0
         ? reports
-        : reports.filter(
-            (report) => !hidden.has(targetKey("traffic", report.id)),
-          ),
-    [hidden],
+        : reports.filter((report) => !hidden.traffic.has(report.id)),
+    [hidden.traffic],
   );
   return useQuery({
     ...orpc.traffic.active.queryOptions({ input: { ...AREA, limit: 200 } }),
@@ -44,15 +42,17 @@ export function useCommunity(enabled: boolean) {
   const hidden = useHiddenTargets();
   const select = useCallback(
     (data: ApiOutputs["routes"]["map"]) =>
-      hidden.size === 0
+      hidden.routes.size === 0 && hidden.consultations.size === 0
         ? data
         : {
             ...data,
-            features: data.features.filter(
-              (feature) => !hidden.has(targetKey(feature.kind, feature.id)),
+            features: data.features.filter((feature) =>
+              feature.kind === "route"
+                ? !hidden.routes.has(feature.id)
+                : !hidden.consultations.has(feature.id),
             ),
           },
-    [hidden],
+    [hidden.routes, hidden.consultations],
   );
   return useQuery({
     ...orpc.routes.map.queryOptions({ input: AREA }),
@@ -107,16 +107,15 @@ export function usePlaceCollection() {
   const hidden = useHiddenTargets();
   const select = useCallback(
     (collection: PlaceCollection): PlaceCollection =>
-      hidden.size === 0
+      hidden.places.size === 0
         ? collection
         : {
             ...collection,
             features: collection.features.filter(
-              (feature) =>
-                !hidden.has(targetKey("place", feature.properties.slug)),
+              (feature) => !hidden.places.has(feature.properties.slug),
             ),
           },
-    [hidden],
+    [hidden.places],
   );
   return useQuery({
     queryKey: ["map", "places"],

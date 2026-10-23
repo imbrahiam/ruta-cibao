@@ -4,7 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { Icon } from "./icon";
 import { PressableScale } from "./pressable";
 import { Text } from "./text";
-import { type Palette, radius, space, TOUCH, useTheme } from "./theme";
+import { radius, space, TOUCH, useTheme } from "./theme";
 
 export type ListSectionProps = {
   title?: string;
@@ -63,7 +63,6 @@ export type ListRowProps = {
   subtitle?: string;
   value?: string;
   icon?: LucideIcon;
-  iconTint?: keyof Palette | (string & {});
   onPress?: () => void;
   destructive?: boolean;
   /** A trailing control (switch, badge) instead of the chevron. */
@@ -77,7 +76,6 @@ export function ListRow({
   subtitle,
   value,
   icon,
-  iconTint = "accent",
   onPress,
   destructive,
   accessory,
@@ -88,18 +86,12 @@ export function ListRow({
   const body = (
     <View style={styles.row}>
       {icon ? (
-        <View
-          style={[
-            styles.iconWell,
-            {
-              backgroundColor:
-                iconTint in colors
-                  ? colors[iconTint as keyof Palette]
-                  : (iconTint as string),
-            },
-          ]}
-        >
-          <Icon as={icon} size={17} color="#FFFFFF" />
+        <View style={styles.iconSlot}>
+          <Icon
+            as={icon}
+            size={20}
+            color={destructive ? colors.danger : colors.text}
+          />
         </View>
       ) : null}
       <View style={styles.rowText}>
@@ -175,11 +167,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: space.md - 4,
   },
-  iconWell: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    borderCurve: "continuous",
+  /** Leading icons are plain glyphs in ink, aligned on one column. */
+  iconSlot: {
+    width: 24,
     alignItems: "center",
     justifyContent: "center",
   },

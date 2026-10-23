@@ -36,23 +36,12 @@ export default function AboutScreen() {
         </Text>
       </View>
       <ListSection title={t("credits")}>
-        <ListRow
-          title={t("license")}
-          subtitle="MIT"
-          icon={Scale}
-          iconTint="textTertiary"
-        />
-        <ListRow
-          title={t("maps")}
-          subtitle={t("mapsCredit")}
-          icon={MapIcon}
-          iconTint="accent"
-        />
+        <ListRow title={t("license")} subtitle="MIT" icon={Scale} />
+        <ListRow title={t("maps")} subtitle={t("mapsCredit")} icon={MapIcon} />
         {SOURCE_URL ? (
           <ListRow
             title={t("source")}
             icon={Code2}
-            iconTint="pine"
             onPress={() => Linking.openURL(SOURCE_URL)}
           />
         ) : null}

@@ -8,6 +8,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { admin } from "better-auth/plugins/admin";
 import { emailOTP } from "better-auth/plugins/email-otp";
 import { phoneNumber } from "better-auth/plugins/phone-number";
+import { twoFactor } from "better-auth/plugins/two-factor";
 import { eq } from "drizzle-orm";
 import { createTranslator } from "next-intl";
 import { db } from "@/db";
@@ -368,6 +369,17 @@ function createAuth() {
         rpID: appUrl.hostname,
         rpName: "Ruta Cibao",
         origin: env.APP_URL,
+      }),
+      twoFactor({
+        issuer: "Ruta Cibao",
+        allowPasswordless: true,
+        totpOptions: {
+          allowPasswordless: true,
+        },
+        backupCodeOptions: {
+          allowPasswordless: true,
+          storeBackupCodes: "encrypted",
+        },
       }),
       // Internal use only: `/api/auth/admin/*` is refused at the route.
       admin(),

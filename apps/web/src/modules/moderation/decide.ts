@@ -32,6 +32,10 @@ import {
 } from "@/modules/access/permissions";
 import { CONSULTATIONS_CHANNEL } from "@/modules/consultations/open-consultation";
 import { notify } from "@/modules/notifications/notify";
+import {
+  revokeOfflineSnapshots,
+  scheduleOfflineSnapshotRebuild,
+} from "@/modules/offline/snapshot";
 import { resolveContentTarget } from "@/modules/safety/targets";
 import { TRAFFIC_CHANNEL } from "@/modules/traffic/report-traffic";
 
@@ -51,6 +55,14 @@ export class ModerationError extends Error {
   constructor(readonly reason: "not_found" | "already_decided") {
     super(reason);
     this.name = "ModerationError";
+  }
+}
+function revalidatePlaceCaches() {
+  try {
+    revalidateTag(PLACES_GEOJSON_TAG, { expire: 0 });
+    revalidateTag(PLACES_TILES_TAG, { expire: 0 });
+  } catch {
+    // Running outside a Next.js request context (CLI script or test).
   }
 }
 
@@ -134,6 +146,7 @@ export async function decidePlace(
         },
         tx,
       );
+      if (published) await scheduleOfflineSnapshotRebuild(tx);
       return { place, published };
     },
   });
@@ -147,8 +160,7 @@ export async function decidePlace(
     // `{ expire: 0 }` rather than a stale-while-revalidate window: a citizen
     // who was told their place is on the map has to find it there when they
     // look, which is immediately.
-    revalidateTag(PLACES_GEOJSON_TAG, { expire: 0 });
-    revalidateTag(PLACES_TILES_TAG, { expire: 0 });
+    revalidatePlaceCaches();
   }
 
   return { status: "ok" as const };
@@ -266,6 +278,7 @@ export async function decidePhoto(
         tx,
       );
 
+      if (published) await scheduleOfflineSnapshotRebuild(tx);
       return { published };
     },
   });
@@ -375,6 +388,7 @@ export async function decideBusinessClaim(
         },
         tx,
       );
+      if (approved) await scheduleOfflineSnapshotRebuild(tx);
       return { row, approved };
     },
   });
@@ -386,8 +400,7 @@ export async function decideBusinessClaim(
   if (approved) {
     // The contact details are part of what the tiles and the directory serve,
     // so the map has to lose its cached copy the moment they become public.
-    revalidateTag(PLACES_GEOJSON_TAG, { expire: 0 });
-    revalidateTag(PLACES_TILES_TAG, { expire: 0 });
+    revalidatePlaceCaches();
   }
 
   return { status: "ok" as const };
@@ -576,6 +589,8 @@ export async function decideContentReport(
               },
               tx,
             );
+            await revokeOfflineSnapshots("content_report_actioned", tx);
+            await scheduleOfflineSnapshotRebuild(tx);
             break;
           case "photo":
             await tx
@@ -587,6 +602,8 @@ export async function decideContentReport(
                   eq(placePhotos.status, "published"),
                 ),
               );
+            await revokeOfflineSnapshots("content_report_actioned", tx);
+            await scheduleOfflineSnapshotRebuild(tx);
             break;
           case "route":
             await tx
@@ -612,6 +629,8 @@ export async function decideContentReport(
               },
               tx,
             );
+            await revokeOfflineSnapshots("content_report_actioned", tx);
+            await scheduleOfflineSnapshotRebuild(tx);
             break;
           case "traffic": {
             const [reportRow] = await tx
@@ -701,8 +720,7 @@ export async function decideContentReport(
   });
 
   if (!outcome.replayed && outcome.result.revalidatePlaces) {
-    revalidateTag(PLACES_GEOJSON_TAG, { expire: 0 });
-    revalidateTag(PLACES_TILES_TAG, { expire: 0 });
+    revalidatePlaceCaches();
   }
 
   return { status: input.decision };

@@ -30,3 +30,6 @@ coverage
 *.tsbuildinfo
 .DS_Store
 scripts/verify-*.ts
+apps/mobile/*
+!apps/mobile/package.json
+*.pmtiles

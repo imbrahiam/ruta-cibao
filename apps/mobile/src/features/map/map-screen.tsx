@@ -24,6 +24,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useTranslations } from "use-intl";
 import { openTarget } from "@/lib/targets";
 import { Button } from "@/ui/button";
+import { CategoryBadge } from "@/ui/category-badge";
 import { categoryIcon, Icon } from "@/ui/icon";
 import { PressableScale } from "@/ui/pressable";
 import { EmptyState, Skeleton } from "@/ui/states";
@@ -282,7 +283,10 @@ export function MapScreen() {
             style={[
               styles.search,
               floating(scheme),
-              { backgroundColor: colors.surface, borderColor: colors.hairline },
+              {
+                backgroundColor: colors.elevated,
+                borderColor: colors.hairline,
+              },
             ]}
           >
             <Icon as={Search} size={19} color="textSecondary" />
@@ -324,7 +328,7 @@ export function MapScreen() {
                   key={item.id}
                   label={item.name}
                   icon={categoryIcon(item.icon)}
-                  iconColor={item.color}
+                  iconColor={colors.text}
                   selected={category === item.id}
                   onPress={() => {
                     setCategory(category === item.id ? null : item.id);
@@ -359,7 +363,7 @@ export function MapScreen() {
         animationConfigs={reduced ? { duration: 1 } : spring.sheet}
         backgroundStyle={[
           styles.sheetBackground,
-          { backgroundColor: colors.surface, borderColor: colors.hairline },
+          { backgroundColor: colors.elevated, borderColor: colors.hairline },
         ]}
         handleIndicatorStyle={{
           backgroundColor: colors.fillPressed,
@@ -501,14 +505,12 @@ function PlaceRow({
       style={styles.row}
       testID={`place-row-${properties.slug}`}
     >
-      <View style={[styles.rowIcon, { backgroundColor: properties.color }]}>
-        <Icon as={categoryIcon(properties.icon)} size={19} color="#FFFFFF" />
-      </View>
+      <CategoryBadge icon={properties.icon} size={40} />
       <View style={styles.rowText}>
-        <Text variant="headline" numberOfLines={1}>
+        <Text variant="body" weight="600" numberOfLines={1}>
           {properties.name}
         </Text>
-        <Text variant="subhead" tone="tertiary" numberOfLines={1}>
+        <Text variant="footnote" tone="tertiary" numberOfLines={1}>
           {properties.categoryName} · {municipalityName}
         </Text>
       </View>
@@ -533,11 +535,7 @@ function PlaceSummary({
   return (
     <View style={styles.summary} testID="place-summary">
       <View style={styles.summaryHeader}>
-        <View
-          style={[styles.summaryIcon, { backgroundColor: properties.color }]}
-        >
-          <Icon as={categoryIcon(properties.icon)} size={22} color="#FFFFFF" />
-        </View>
+        <CategoryBadge icon={properties.icon} size={48} inverse />
         <View style={styles.rowText}>
           <Text variant="title3" numberOfLines={2} accessibilityRole="header">
             {properties.name}
@@ -630,13 +628,6 @@ const styles = StyleSheet.create({
     gap: space.md - 4,
     paddingVertical: space.sm + 2,
   },
-  rowIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   rowText: { flex: 1, gap: 2 },
   skeletons: { gap: space.md, paddingTop: space.sm },
   skeletonRow: {
@@ -650,13 +641,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "flex-start",
     gap: space.md - 4,
-  },
-  summaryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
   },
   summaryActions: { flexDirection: "row", gap: space.sm },
 });

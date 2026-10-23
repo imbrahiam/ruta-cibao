@@ -25,6 +25,8 @@ export const QUEUES = {
   nativePushReceipts: "notification.native-push-receipts",
   /** Remove everything an account contributed, then the account itself. */
   accountDeletion: "account.deletion",
+  /** Rebuild the versioned first-party offline snapshot artifact. */
+  offlineSnapshot: "offline.snapshot",
 } as const;
 
 export type QueueName = (typeof QUEUES)[keyof typeof QUEUES];
@@ -40,7 +42,7 @@ export type JobPayloads = {
   [QUEUES.trafficNotifyNearby]: { reportId: string };
   [QUEUES.trafficExpire]: Record<string, never>;
   /** Omit the period to mean "the week that just ended". */
-  [QUEUES.reportsWeekly]: { periodStart?: string };
+  [QUEUES.reportsWeekly]: { periodStart?: string; municipalityId?: string };
   [QUEUES.reportsRender]: { reportId: string };
   [QUEUES.platformCleanup]: Record<string, never>;
   [QUEUES.notificationDeliver]: {
@@ -50,6 +52,7 @@ export type JobPayloads = {
   };
   [QUEUES.nativePushReceipts]: Record<string, never>;
   [QUEUES.accountDeletion]: { deletionId: string };
+  [QUEUES.offlineSnapshot]: Record<string, never>;
 };
 
 /**
@@ -88,6 +91,12 @@ export const SCHEDULES: ReadonlyArray<{
     cron: "17 * * * *",
     reason:
       "Hourly, off the hour: nothing else in this system runs at :17, so the sweep never queues behind the reports.",
+  },
+  {
+    queue: QUEUES.offlineSnapshot,
+    cron: "30 4 * * *",
+    reason:
+      "Daily refresh of the versioned offline snapshot artifact during quiet hours.",
   },
 ];
 

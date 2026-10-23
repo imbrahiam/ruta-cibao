@@ -1,6 +1,5 @@
 import "@/i18n/polyfills";
 import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import Mapbox from "@rnmapbox/maps";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -10,14 +9,12 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { NotificationResponseListener } from "@/features/notifications/response-listener";
 import { I18nProvider } from "@/i18n/provider";
-import { MAPBOX_ACCESS_TOKEN } from "@/lib/config";
 import { queryClient, wireQueryLifecycle } from "@/lib/query";
 import { palettes, useScheme } from "@/ui/theme";
 import { ToastProvider } from "@/ui/toast";
 
 SplashScreen.preventAutoHideAsync();
 SplashScreen.setOptions({ duration: 250, fade: true });
-Mapbox.setAccessToken(MAPBOX_ACCESS_TOKEN);
 wireQueryLifecycle();
 
 export const unstable_settings = {

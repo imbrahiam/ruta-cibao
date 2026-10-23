@@ -1,8 +1,9 @@
-import Mapbox from "@rnmapbox/maps";
 import { trafficColor } from "@ruta/shared/traffic";
-import { useMemo } from "react";
+import { Marker, Polyline } from "react-native-maps";
 import { palettes, type Scheme } from "@/ui/theme";
 import type { CommunityFeature, TrafficReport } from "./data";
+import { lineCoordinates } from "./geometry";
+import { CaseDot, ReportDot } from "./markers";
 
 type Selection = { traffic: string | null };
 
@@ -10,9 +11,9 @@ type Selection = { traffic: string | null };
  * What neighbours report on the roads, plus routes and located cases.
  *
  * A reported stretch is drawn on the road itself in its severity colour over a
- * white casing, with a marker carrying the category glyph at its middle, so
- * the colour is never the only signal. Routes are green trails; cases are
- * small discs.
+ * casing in the map's ground colour, with a marker carrying the category glyph
+ * at its middle, so colour is never the only signal. Routes are dashed ink
+ * trails; cases are small hollow rings, quieter than places.
  */
 export function CivicLayers({
   scheme,
@@ -37,244 +38,102 @@ export function CivicLayers({
 }) {
   const colors = palettes[scheme];
 
-  const stretches = useMemo<GeoJSON.FeatureCollection>(
-    () => ({
-      type: "FeatureCollection",
-      features: showTraffic
-        ? traffic
-            .filter((report) => report.path && report.path.length > 1)
-            .map((report) => ({
-              type: "Feature",
-              id: report.id,
-              properties: {
-                id: report.id,
-                color: trafficColor(report.state, report.severity),
-                cleared: report.state === "cleared",
-              },
-              geometry: {
-                type: "LineString",
-                coordinates: (report.path ?? []).map((p) => [p.lng, p.lat]),
-              },
-            }))
-        : [],
-    }),
-    [traffic, showTraffic],
-  );
-
-  const markers = useMemo<GeoJSON.FeatureCollection>(
-    () => ({
-      type: "FeatureCollection",
-      features: showTraffic
-        ? traffic.map((report) => ({
-            type: "Feature",
-            id: report.id,
-            properties: {
-              id: report.id,
-              color: trafficColor(report.state, report.severity),
-              icon: report.categoryIcon,
-              selected: report.id === selection.traffic,
-            },
-            geometry: { type: "Point", coordinates: [report.lng, report.lat] },
-          }))
-        : [],
-    }),
-    [traffic, showTraffic, selection.traffic],
-  );
-
-  const routes = useMemo<GeoJSON.FeatureCollection>(
-    () => ({
-      type: "FeatureCollection",
-      features: showRoutes
+  return (
+    <>
+      {showRoutes
         ? community
             .filter(
               (item) =>
                 item.kind === "route" && item.path && item.path.length > 1,
             )
-            .map((item) => ({
-              type: "Feature",
-              properties: { id: item.id },
-              geometry: {
-                type: "LineString",
-                coordinates: (item.path ?? []).map((p) => [p.lng, p.lat]),
-              },
-            }))
-        : [],
-    }),
-    [community, showRoutes],
-  );
+            .map((item) => (
+              <Polyline
+                key={`route-${item.id}`}
+                coordinates={lineCoordinates(item.path ?? [])}
+                strokeColor={colors.pin}
+                strokeWidth={3}
+                lineDashPattern={[6, 6]}
+                lineCap="round"
+                lineJoin="round"
+                tappable
+                onPress={() => onSelectCommunity(item)}
+                zIndex={2}
+              />
+            ))
+        : null}
 
-  const cases = useMemo<GeoJSON.FeatureCollection>(
-    () => ({
-      type: "FeatureCollection",
-      features: showConsultations
+      {showConsultations
         ? community
             .filter((item) => item.kind === "consultation")
-            .map((item) => ({
-              type: "Feature",
-              properties: { id: item.id, color: item.color },
-              geometry: { type: "Point", coordinates: [item.lng, item.lat] },
-            }))
-        : [],
-    }),
-    [community, showConsultations],
-  );
+            .map((item) => (
+              <Marker
+                key={`case-${item.id}-${scheme}`}
+                coordinate={{ latitude: item.lat, longitude: item.lng }}
+                tracksViewChanges={false}
+                anchor={{ x: 0.5, y: 0.5 }}
+                zIndex={3}
+                accessibilityLabel={item.title}
+                onPress={() => onSelectCommunity(item)}
+              >
+                <CaseDot scheme={scheme} />
+              </Marker>
+            ))
+        : null}
 
-  const byId = useMemo(
-    () => new Map(community.map((item) => [item.id, item])),
-    [community],
-  );
-
-  return (
-    <>
-      <Mapbox.ShapeSource
-        id="community-routes"
-        shape={routes}
-        onPress={(event) => {
-          const item = byId.get(String(event.features[0]?.properties?.id));
-          if (item) onSelectCommunity(item);
-        }}
-        hitbox={{ width: 24, height: 24 }}
-      >
-        <Mapbox.LineLayer
-          id="community-route-casing"
-          slot="top"
-          style={{
-            lineColor: "#FFFFFF",
-            lineWidth: 7,
-            lineCap: "round",
-            lineJoin: "round",
-          }}
-        />
-        <Mapbox.LineLayer
-          id="community-route-line"
-          slot="top"
-          style={{
-            lineColor: colors.success,
-            lineWidth: 4,
-            lineDasharray: [1.6, 1.2],
-            lineCap: "round",
-            lineJoin: "round",
-          }}
-        />
-      </Mapbox.ShapeSource>
-
-      <Mapbox.ShapeSource
-        id="community-cases"
-        shape={cases}
-        onPress={(event) => {
-          const item = byId.get(String(event.features[0]?.properties?.id));
-          if (item) onSelectCommunity(item);
-        }}
-      >
-        <Mapbox.CircleLayer
-          id="community-case-dot"
-          slot="top"
-          minZoomLevel={10}
-          style={{
-            circleRadius: ["interpolate", ["linear"], ["zoom"], 10, 5, 15, 9],
-            circleColor: ["get", "color"],
-            circleStrokeColor: "#FFFFFF",
-            circleStrokeWidth: 2,
-          }}
-        />
-      </Mapbox.ShapeSource>
-
-      <Mapbox.ShapeSource
-        id="traffic-stretches"
-        shape={stretches}
-        onPress={(event) => {
-          const id = event.features[0]?.properties?.id;
-          if (id) onSelectTraffic(String(id));
-        }}
-        hitbox={{ width: 24, height: 24 }}
-      >
-        <Mapbox.LineLayer
-          id="traffic-stretch-casing"
-          slot="top"
-          style={{
-            lineColor: "#FFFFFF",
-            lineWidth: ["interpolate", ["linear"], ["zoom"], 10, 4, 16, 12],
-            lineCap: "round",
-            lineJoin: "round",
-          }}
-        />
-        <Mapbox.LineLayer
-          id="traffic-stretch-line"
-          slot="top"
-          filter={["!", ["get", "cleared"]]}
-          style={{
-            lineColor: ["get", "color"],
-            lineWidth: ["interpolate", ["linear"], ["zoom"], 10, 2.5, 16, 8],
-            lineCap: "round",
-            lineJoin: "round",
-          }}
-        />
-        {/* Native line-dasharray takes no data expressions: cleared stretches get their own layer. */}
-        <Mapbox.LineLayer
-          id="traffic-stretch-line-cleared"
-          slot="top"
-          filter={["get", "cleared"]}
-          style={{
-            lineColor: ["get", "color"],
-            lineWidth: ["interpolate", ["linear"], ["zoom"], 10, 2.5, 16, 8],
-            lineDasharray: [1, 1.5],
-            lineCap: "round",
-            lineJoin: "round",
-          }}
-        />
-      </Mapbox.ShapeSource>
-
-      <Mapbox.ShapeSource
-        id="traffic-markers"
-        shape={markers}
-        onPress={(event) => {
-          const id = event.features[0]?.properties?.id;
-          if (id) onSelectTraffic(String(id));
-        }}
-      >
-        <Mapbox.CircleLayer
-          id="traffic-marker-halo"
-          slot="top"
-          filter={["==", ["get", "selected"], true]}
-          style={{
-            circleRadius: 24,
-            circleColor: ["get", "color"],
-            circleOpacity: 0.22,
-          }}
-        />
-        <Mapbox.CircleLayer
-          id="traffic-marker"
-          slot="top"
-          style={{
-            circleRadius: [
-              "interpolate",
-              ["linear"],
-              ["zoom"],
-              8,
-              7,
-              12,
-              12,
-              16,
-              15,
-            ],
-            circleColor: ["get", "color"],
-            circleStrokeColor: "#FFFFFF",
-            circleStrokeWidth: 2.5,
-          }}
-        />
-        <Mapbox.SymbolLayer
-          id="traffic-marker-glyph"
-          slot="top"
-          minZoomLevel={10}
-          style={{
-            iconImage: ["concat", "glyph-", ["get", "icon"]],
-            iconColor: "#FFFFFF",
-            iconSize: ["interpolate", ["linear"], ["zoom"], 10, 0.2, 16, 0.3],
-            iconAllowOverlap: true,
-            iconIgnorePlacement: true,
-          }}
-        />
-      </Mapbox.ShapeSource>
+      {showTraffic
+        ? traffic.map((report) => {
+            const color = trafficColor(report.state, report.severity);
+            const cleared = report.state === "cleared";
+            const selected = report.id === selection.traffic;
+            const path =
+              report.path && report.path.length > 1
+                ? lineCoordinates(report.path)
+                : null;
+            return [
+              path ? (
+                <Polyline
+                  key={`casing-${report.id}`}
+                  coordinates={path}
+                  strokeColor={colors.background}
+                  strokeWidth={selected ? 11 : 9}
+                  lineCap="round"
+                  lineJoin="round"
+                  zIndex={3}
+                />
+              ) : null,
+              path ? (
+                <Polyline
+                  key={`stretch-${report.id}`}
+                  coordinates={path}
+                  strokeColor={color}
+                  strokeWidth={selected ? 7 : 5}
+                  lineDashPattern={cleared ? [2, 6] : undefined}
+                  lineCap="round"
+                  lineJoin="round"
+                  tappable
+                  onPress={() => onSelectTraffic(report.id)}
+                  zIndex={4}
+                />
+              ) : null,
+              <Marker
+                key={`report-${report.id}-${selected ? "s" : "n"}-${scheme}`}
+                coordinate={{ latitude: report.lat, longitude: report.lng }}
+                tracksViewChanges={false}
+                anchor={{ x: 0.5, y: 0.5 }}
+                zIndex={selected ? 9 : 7}
+                accessibilityLabel={report.categoryName}
+                onPress={() => onSelectTraffic(report.id)}
+              >
+                <ReportDot
+                  icon={report.categoryIcon}
+                  color={color}
+                  selected={selected}
+                  scheme={scheme}
+                />
+              </Marker>,
+            ];
+          })
+        : null}
     </>
   );
 }

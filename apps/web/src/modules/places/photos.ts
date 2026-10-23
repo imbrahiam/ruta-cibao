@@ -17,6 +17,7 @@ import {
 } from "@/lib/storage";
 import { hasStaffAuthority } from "@/modules/access/permissions";
 import type { MemberViewer, Viewer } from "@/modules/access/viewer";
+import { scheduleOfflineSnapshotRebuild } from "@/modules/offline/snapshot";
 import { notBlockedAuthor } from "@/modules/safety/blocks";
 import { issuePhotoKey, keyIssuedTo } from "./photo-key";
 
@@ -357,6 +358,7 @@ export async function attachPhoto(
       },
       tx,
     );
+    if (status === "published") await scheduleOfflineSnapshotRebuild(tx);
     return { status };
   });
 }

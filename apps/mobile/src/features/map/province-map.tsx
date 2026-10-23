@@ -1,46 +1,32 @@
-import Mapbox, {
-  type Camera,
-  type CircleLayerStyle,
-  type ShapeSource,
-} from "@rnmapbox/maps";
 import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
 import {
   forwardRef,
   type ReactNode,
+  useCallback,
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
 } from "react";
-import { StyleSheet } from "react-native";
-import { palettes, type Scheme } from "@/ui/theme";
+import { StyleSheet, useWindowDimensions } from "react-native";
+import MapView, {
+  Marker,
+  Polygon,
+  PROVIDER_GOOGLE,
+  type Region,
+} from "react-native-maps";
+import Supercluster from "supercluster";
+import { mapPalettes, palettes, type Scheme } from "@/ui/theme";
 import type { Boundaries, PlaceCollection, PlaceFeature } from "./data";
-import { MAP_GLYPHS } from "./glyphs";
+import {
+  boundsRegion,
+  polygonRings,
+  regionBounds,
+  zoomForRegion,
+} from "./geometry";
+import { mapStyles } from "./google-style";
+import { AreaLabel, ClusterBubble, PlaceDot } from "./markers";
 import { SelectedPin } from "./selected-pin";
-
-/** Map-ready image ids: every glyph, drawn white and recoloured as an SDF. */
-const GLYPH_IMAGES = Object.fromEntries(
-  Object.entries(MAP_GLYPHS).map(([name, source]) => [
-    `glyph-${name}`,
-    { image: source, sdf: true },
-  ]),
-);
-
-/** A place dot grows with zoom: a speck at province scale, a tappable disc in town. */
-function dotRadius(extra: number): CircleLayerStyle["circleRadius"] {
-  return [
-    "interpolate",
-    ["linear"],
-    ["zoom"],
-    8,
-    5 + extra / 2,
-    11,
-    9 + extra,
-    14,
-    13 + extra,
-    17,
-    15 + extra,
-  ];
-}
 
 export type Padding = {
   top: number;
@@ -77,16 +63,29 @@ export type ProvinceMapProps = {
 };
 
 const [WEST, SOUTH, EAST, NORTH] = PROVINCE_BOUNDS;
+const PROVINCE_CORNERS = [
+  { latitude: NORTH, longitude: WEST },
+  { latitude: SOUTH, longitude: EAST },
+];
+/**
+ * Places gather into clusters up to this zoom: a town centre has dozens of
+ * places within a few blocks, and every pin at once is noise, not a map.
+ */
+const CLUSTER_MAX_ZOOM = 15;
+/** From this zoom a place's name sits beside its disc… */
+const NAME_ZOOM = 16;
+/** …and only while few enough are on screen to read them. */
+const MAX_NAMED = 24;
+/** Municipality names only while the whole province is in view. */
+const AREA_LABEL_MAX_ZOOM = 11.5;
 
-const EMPTY: GeoJSON.FeatureCollection = {
-  type: "FeatureCollection",
-  features: [],
-};
+type ClusterProps = { cluster: true; cluster_id: number; point_count: number };
 
 /**
- * The province on Mapbox Standard, quietened: no third-party points of interest
- * (the places here are the curated ones), no 3D, Spanish labels. Civic layers
- * sit on top in the style's `top` slot so the basemap never covers them.
+ * The province on Google Maps, styled monochrome: Google's own points of
+ * interest and transit hidden (the places here are the curated ones), the
+ * province outlined and the country around it dimmed. Places cluster at
+ * province scale with supercluster, recomputed only when the camera settles.
  */
 export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
   function ProvinceMap(
@@ -103,48 +102,72 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
     },
     ref,
   ) {
-    const camera = useRef<Camera>(null);
-    const source = useRef<ShapeSource>(null);
+    const map = useRef<MapView>(null);
+    const { width } = useWindowDimensions();
     const colors = palettes[scheme];
+    const [region, setRegion] = useState<Region>(() =>
+      boundsRegion(PROVINCE_BOUNDS),
+    );
+    const [bottomOverride, setBottomOverride] = useState<number | null>(null);
 
     /**
-     * A camera move asked for before the map has loaded (a share link opening
-     * the app cold, a report focused from another tab) is lost to the initial
-     * `defaultSettings` framing. Hold the latest one and play it on load.
+     * A camera move asked for before the map is ready (a share link opening
+     * the app cold, a report focused from another tab) would be lost to the
+     * initial framing. Hold the latest one and play it once ready.
      */
-    const loaded = useRef(false);
+    const ready = useRef(false);
     const pending = useRef<(() => void) | null>(null);
-    const whenLoaded = (move: () => void) => {
-      if (loaded.current) move();
+    const whenReady = useCallback((move: () => void) => {
+      if (ready.current) move();
       else pending.current = move;
-    };
+    }, []);
 
-    useImperativeHandle(ref, () => ({
-      flyTo: (coordinate, zoom = 14.5, { animated = true, bottom } = {}) =>
-        whenLoaded(() =>
-          camera.current?.setCamera({
-            centerCoordinate: coordinate,
-            zoomLevel: zoom,
-            animationDuration: animated ? 700 : 0,
-            animationMode: animated ? "easeTo" : "moveTo",
-            padding: {
-              paddingTop: padding.top,
-              paddingBottom: bottom ?? padding.bottom,
-              paddingLeft: padding.left,
-              paddingRight: padding.right,
-            },
+    const showProvince = useCallback(
+      (animated = true) =>
+        map.current?.fitToCoordinates(PROVINCE_CORNERS, {
+          edgePadding: { top: 24, bottom: 24, left: 24, right: 24 },
+          animated,
+        }),
+      [],
+    );
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        flyTo: (coordinate, zoom = 16, { animated = true, bottom } = {}) =>
+          whenReady(() => {
+            // The padding moves first so the centre lands above the sheet
+            // height it is about to have, not the one it has now.
+            setBottomOverride(bottom ?? null);
+            requestAnimationFrame(() =>
+              map.current?.animateCamera(
+                {
+                  center: { longitude: coordinate[0], latitude: coordinate[1] },
+                  zoom,
+                },
+                { duration: animated ? 600 : 0 },
+              ),
+            );
           }),
-        ),
-      showProvince: () =>
-        whenLoaded(() =>
-          camera.current?.fitBounds(
-            [EAST, NORTH],
-            [WEST, SOUTH],
-            [padding.top, padding.right, padding.bottom, padding.left],
-            700,
-          ),
-        ),
-    }));
+        showProvince: () => whenReady(() => showProvince()),
+      }),
+      [whenReady, showProvince],
+    );
+
+    const index = useMemo(() => {
+      const cluster = new Supercluster<PlaceFeature["properties"]>({
+        radius: 48,
+        maxZoom: CLUSTER_MAX_ZOOM,
+      });
+      cluster.load((places?.features ?? []) as never);
+      return cluster;
+    }, [places]);
+
+    const zoom = zoomForRegion(region, width);
+    const visible = useMemo(
+      () => index.getClusters(regionBounds(region), Math.floor(zoom)),
+      [index, region, zoom],
+    );
 
     const selected = useMemo(
       () =>
@@ -154,355 +177,212 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
       [places, selectedId],
     );
 
-    /** Single places, minus the selected one (it is drawn as a marker on top). */
-    const unclustered = useMemo(
-      () =>
-        [
-          "all",
-          ["!", ["has", "point_count"]],
-          ["!=", ["get", "id"], selectedId ?? ""],
-        ] as const,
-      [selectedId],
+    const outside = useMemo(
+      () => (boundaries?.outside ? polygonRings(boundaries.outside) : []),
+      [boundaries],
     );
-
-    const labels = useMemo<GeoJSON.FeatureCollection>(
-      () => ({
-        type: "FeatureCollection",
-        features: (boundaries?.features ?? []).flatMap((feature) =>
-          feature.properties.label
-            ? [
-                {
-                  type: "Feature",
-                  properties: { name: feature.properties.name },
-                  geometry: {
-                    type: "Point",
-                    coordinates: feature.properties.label,
-                  },
-                },
-              ]
-            : [],
+    const province = useMemo(
+      () => (boundaries?.province ? polygonRings(boundaries.province) : []),
+      [boundaries],
+    );
+    const municipalities = useMemo(
+      () =>
+        (boundaries?.features ?? []).flatMap((feature) =>
+          polygonRings(feature.geometry).map((rings, part) => ({
+            key: `${feature.properties.id}-${part}`,
+            rings,
+          })),
         ),
-      }),
       [boundaries],
     );
 
+    const showNames =
+      zoom >= NAME_ZOOM &&
+      visible.filter((feature) => !("cluster" in feature.properties)).length <=
+        MAX_NAMED;
+
     return (
-      <Mapbox.MapView
+      <MapView
+        ref={map}
         style={StyleSheet.absoluteFill}
-        styleURL={
-          basemap === "satellite"
-            ? "mapbox://styles/mapbox/standard-satellite"
-            : "mapbox://styles/mapbox/standard"
-        }
-        projection="mercator"
-        localizeLabels={{ locale: "es" }}
-        scaleBarEnabled={false}
-        compassEnabled
-        compassFadeWhenNorth
-        compassPosition={{ top: padding.top - 4, right: 16 }}
-        logoPosition={{ bottom: padding.bottom + 4, left: 16 }}
-        attributionPosition={{ bottom: padding.bottom + 4, right: 16 }}
+        provider={PROVIDER_GOOGLE}
+        customMapStyle={basemap === "standard" ? mapStyles[scheme] : undefined}
+        mapType={basemap === "satellite" ? "hybrid" : "standard"}
+        initialRegion={boundsRegion(PROVINCE_BOUNDS)}
+        mapPadding={{
+          top: padding.top,
+          bottom: bottomOverride ?? padding.bottom,
+          left: 0,
+          right: 0,
+        }}
+        minZoomLevel={7}
+        maxZoomLevel={19}
+        showsUserLocation={showUserLocation}
+        showsMyLocationButton={false}
+        showsCompass={false}
+        showsBuildings={false}
+        showsIndoors={false}
+        showsTraffic={false}
+        toolbarEnabled={false}
         pitchEnabled={false}
-        onPress={() => onSelectPlace(null)}
-        onDidFinishLoadingMap={() => {
-          loaded.current = true;
-          pending.current?.();
-          pending.current = null;
+        rotateEnabled={false}
+        moveOnMarkerPress={false}
+        loadingEnabled
+        loadingBackgroundColor={colors.background}
+        loadingIndicatorColor={colors.textTertiary}
+        onMapReady={() => {
+          ready.current = true;
+          map.current?.setMapBoundaries(
+            { latitude: NORTH + 0.5, longitude: EAST + 0.6 },
+            { latitude: SOUTH - 0.5, longitude: WEST - 0.6 },
+          );
+          if (pending.current) {
+            pending.current();
+            pending.current = null;
+          } else {
+            showProvince(false);
+          }
+        }}
+        onRegionChangeComplete={(next) => {
+          console.log("DEBUGMAP region", JSON.stringify(next), width);
+          setRegion(next);
+        }}
+        onPress={(event) => {
+          if (event.nativeEvent.action === "marker-press") return;
+          onSelectPlace(null);
         }}
       >
-        <Mapbox.StyleImport
-          id="basemap"
-          existing
-          config={{
-            lightPreset: scheme === "dark" ? "night" : "day",
-            theme: "faded",
-            showPointOfInterestLabels: false,
-            showTransitLabels: false,
-            show3dObjects: false,
-            showPedestrianRoads: false,
-          }}
-        />
-
-        <Mapbox.Camera
-          ref={camera}
-          defaultSettings={{
-            bounds: {
-              ne: [EAST, NORTH],
-              sw: [WEST, SOUTH],
-              paddingTop: padding.top,
-              paddingBottom: padding.bottom,
-              paddingLeft: padding.left,
-              paddingRight: padding.right,
-            },
-          }}
-          minZoomLevel={7}
-          maxZoomLevel={18}
-          maxBounds={{
-            ne: [EAST + 0.6, NORTH + 0.5],
-            sw: [WEST - 0.6, SOUTH - 0.5],
-          }}
-        />
-
-        <Mapbox.Images images={GLYPH_IMAGES} />
-
-        <Mapbox.ShapeSource
-          id="province-outside"
-          shape={
-            boundaries?.outside
-              ? {
-                  type: "Feature",
-                  properties: {},
-                  geometry: boundaries.outside,
-                }
-              : EMPTY
-          }
-        >
-          <Mapbox.FillLayer
-            id="province-outside-veil"
-            slot="middle"
-            style={{
-              fillColor: colors.background,
-              fillOpacity: [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                7,
-                0.55,
-                12,
-                0.25,
-              ],
-            }}
+        {outside.map((rings, part) => (
+          <Polygon
+            // biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed geometry
+            key={`outside-${part}`}
+            coordinates={rings.coordinates}
+            holes={rings.holes}
+            fillColor={mapPalettes[scheme].veil}
+            strokeWidth={0}
+            tappable={false}
           />
-        </Mapbox.ShapeSource>
+        ))}
 
-        <Mapbox.ShapeSource
-          id="municipalities"
-          shape={
-            boundaries
-              ? { type: "FeatureCollection", features: boundaries.features }
-              : EMPTY
-          }
-        >
-          <Mapbox.LineLayer
-            id="municipality-lines"
-            slot="middle"
-            style={{
-              lineColor: colors.textTertiary,
-              lineWidth: ["interpolate", ["linear"], ["zoom"], 8, 1, 13, 1.6],
-              lineDasharray: [2, 2],
-              lineOpacity: 0.7,
-            }}
+        {municipalities.map(({ key, rings }) => (
+          <Polygon
+            key={key}
+            coordinates={rings.coordinates}
+            holes={rings.holes}
+            fillColor="transparent"
+            strokeColor={colors.textTertiary}
+            strokeWidth={1}
+            lineDashPattern={[4, 4]}
+            tappable={false}
           />
-        </Mapbox.ShapeSource>
+        ))}
 
-        <Mapbox.ShapeSource
-          id="province-outline"
-          shape={
-            boundaries?.province
-              ? {
-                  type: "Feature",
-                  properties: {},
-                  geometry: boundaries.province,
-                }
-              : EMPTY
-          }
-        >
-          <Mapbox.LineLayer
-            id="province-outline-line"
-            slot="middle"
-            style={{
-              lineColor: colors.accent,
-              lineWidth: ["interpolate", ["linear"], ["zoom"], 8, 1.5, 13, 2.5],
-              lineOpacity: 0.85,
-            }}
+        {province.map((rings, part) => (
+          <Polygon
+            // biome-ignore lint/suspicious/noArrayIndexKey: parts of one fixed geometry
+            key={`province-${part}`}
+            coordinates={rings.coordinates}
+            fillColor="transparent"
+            strokeColor={colors.text}
+            strokeWidth={2}
+            tappable={false}
           />
-        </Mapbox.ShapeSource>
+        ))}
 
-        <Mapbox.ShapeSource id="municipality-labels" shape={labels}>
-          <Mapbox.SymbolLayer
-            id="municipality-label"
-            slot="top"
-            maxZoomLevel={11.5}
-            style={{
-              textField: ["upcase", ["get", "name"]],
-              textSize: 11,
-              textLetterSpacing: 0.12,
-              textFont: ["DIN Pro Medium", "Arial Unicode MS Regular"],
-              textColor: colors.textSecondary,
-              textHaloColor: colors.background,
-              textHaloWidth: 1.5,
-            }}
-          />
-        </Mapbox.ShapeSource>
+        {zoom < AREA_LABEL_MAX_ZOOM
+          ? (boundaries?.features ?? []).map((feature) =>
+              feature.properties.label ? (
+                <Marker
+                  key={`area-${feature.properties.id}-${scheme}`}
+                  coordinate={{
+                    longitude: feature.properties.label[0],
+                    latitude: feature.properties.label[1],
+                  }}
+                  tracksViewChanges={false}
+                  tappable={false}
+                  anchor={{ x: 0.5, y: 0.5 }}
+                  zIndex={1}
+                >
+                  <AreaLabel name={feature.properties.name} scheme={scheme} />
+                </Marker>
+              ) : null,
+            )
+          : null}
 
         {children}
 
-        <Mapbox.ShapeSource
-          ref={source}
-          id="places"
-          shape={places ?? EMPTY}
-          cluster
-          clusterRadius={44}
-          clusterMaxZoomLevel={12}
-          onPress={async (event) => {
-            const feature = event.features[0];
-            if (!feature) return;
-            if (feature.properties?.cluster) {
-              const zoom =
-                await source.current?.getClusterExpansionZoom(feature);
-              const coordinates = (feature.geometry as GeoJSON.Point)
-                .coordinates as [number, number];
-              camera.current?.setCamera({
-                centerCoordinate: coordinates,
-                zoomLevel: (zoom ?? 12) + 0.5,
-                animationDuration: 500,
-              });
-              return;
-            }
-            onSelectPlace(feature as PlaceFeature);
-          }}
-        >
-          <Mapbox.CircleLayer
-            id="place-cluster-halo"
-            slot="top"
-            filter={["has", "point_count"]}
-            style={{
-              circleColor: colors.accent,
-              circleOpacity: 0.18,
-              circleRadius: [
-                "step",
-                ["get", "point_count"],
-                24,
-                10,
-                29,
-                50,
-                36,
-              ],
-            }}
-          />
-          <Mapbox.CircleLayer
-            id="place-clusters"
-            slot="top"
-            filter={["has", "point_count"]}
-            style={{
-              circleColor: colors.accent,
-              circleRadius: [
-                "step",
-                ["get", "point_count"],
-                17,
-                10,
-                21,
-                50,
-                27,
-              ],
-              circleStrokeWidth: 2.5,
-              circleStrokeColor: "#FFFFFF",
-            }}
-          />
-          <Mapbox.SymbolLayer
-            id="place-cluster-count"
-            slot="top"
-            filter={["has", "point_count"]}
-            style={{
-              textField: ["get", "point_count_abbreviated"],
-              textSize: 14,
-              textFont: ["DIN Pro Bold", "Arial Unicode MS Bold"],
-              textColor: "#FFFFFF",
-              textAllowOverlap: true,
-              textIgnorePlacement: true,
-            }}
-          />
-          <Mapbox.CircleLayer
-            id="place-shadow"
-            slot="top"
-            filter={unclustered}
-            style={{
-              circleColor: "#000000",
-              circleOpacity: scheme === "dark" ? 0.45 : 0.22,
-              circleBlur: 0.7,
-              circleTranslate: [0, 2],
-              circleRadius: dotRadius(4),
-            }}
-          />
-          <Mapbox.CircleLayer
-            id="place-dots"
-            slot="top"
-            filter={unclustered}
-            style={{
-              circleColor: ["get", "color"],
-              circleRadius: dotRadius(0),
-              circleStrokeWidth: [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                8,
-                1.5,
-                13,
-                2.5,
-              ],
-              circleStrokeColor: "#FFFFFF",
-              circlePitchAlignment: "map",
-            }}
-          />
-          <Mapbox.SymbolLayer
-            id="place-glyphs"
-            slot="top"
-            filter={unclustered}
-            minZoomLevel={10.5}
-            style={{
-              iconImage: ["concat", "glyph-", ["get", "icon"]],
-              iconColor: "#FFFFFF",
-              iconSize: [
-                "interpolate",
-                ["linear"],
-                ["zoom"],
-                10.5,
-                0.2,
-                13,
-                0.27,
-                16,
-                0.32,
-              ],
-              iconAllowOverlap: true,
-              iconIgnorePlacement: true,
-              textField: ["step", ["zoom"], "", 13.5, ["get", "name"]],
-              textSize: 12.5,
-              textFont: ["DIN Pro Medium", "Arial Unicode MS Regular"],
-              textAnchor: "left",
-              textOffset: [1.45, 0],
-              textMaxWidth: 10,
-              textOptional: true,
-              textColor: colors.text,
-              textHaloColor: colors.background,
-              textHaloWidth: 1.6,
-            }}
-          />
-        </Mapbox.ShapeSource>
+        {visible.map((feature) => {
+          const [longitude, latitude] = feature.geometry.coordinates as [
+            number,
+            number,
+          ];
+          const properties = feature.properties as
+            | PlaceFeature["properties"]
+            | ClusterProps;
+          if ("cluster" in properties && properties.cluster) {
+            return (
+              <Marker
+                key={`cluster-${properties.cluster_id}-${scheme}`}
+                coordinate={{ latitude, longitude }}
+                tracksViewChanges={false}
+                anchor={{ x: 0.5, y: 0.5 }}
+                zIndex={5}
+                accessibilityLabel={String(properties.point_count)}
+                onPress={() => {
+                  const next = Math.min(
+                    index.getClusterExpansionZoom(properties.cluster_id) + 0.5,
+                    CLUSTER_MAX_ZOOM + 1.5,
+                  );
+                  map.current?.animateCamera(
+                    { center: { latitude, longitude }, zoom: next },
+                    { duration: 450 },
+                  );
+                }}
+              >
+                <ClusterBubble count={properties.point_count} scheme={scheme} />
+              </Marker>
+            );
+          }
+          const place = properties as PlaceFeature["properties"];
+          if (place.id === selectedId) return null;
+          return (
+            <Marker
+              key={`place-${place.id}-${showNames ? "n" : "d"}-${scheme}`}
+              coordinate={{ latitude, longitude }}
+              tracksViewChanges={false}
+              // The disc's centre sits on the spot even when a name hangs right.
+              anchor={showNames ? { x: 13 / 180, y: 0.5 } : { x: 0.5, y: 0.5 }}
+              zIndex={6}
+              accessibilityLabel={place.name}
+              onPress={() => onSelectPlace(feature as unknown as PlaceFeature)}
+            >
+              <PlaceDot
+                icon={place.icon}
+                name={showNames ? place.name : undefined}
+                scheme={scheme}
+              />
+            </Marker>
+          );
+        })}
 
         {selected ? (
-          <Mapbox.MarkerView
-            key={selected.properties.id}
-            coordinate={selected.geometry.coordinates as [number, number]}
+          <Marker
+            key={`selected-${selected.properties.id}-${scheme}`}
+            coordinate={{
+              longitude: selected.geometry.coordinates[0] ?? 0,
+              latitude: selected.geometry.coordinates[1] ?? 0,
+            }}
             anchor={{ x: 0.5, y: 1 }}
-            allowOverlap
-            allowOverlapWithPuck
+            zIndex={10}
+            accessibilityLabel={selected.properties.name}
           >
             <SelectedPin
-              color={selected.properties.color}
               icon={selected.properties.icon}
               label={selected.properties.name}
             />
-          </Mapbox.MarkerView>
+          </Marker>
         ) : null}
-
-        {showUserLocation ? (
-          <Mapbox.LocationPuck
-            puckBearingEnabled
-            puckBearing="heading"
-            pulsing={{ isEnabled: true }}
-          />
-        ) : null}
-      </Mapbox.MapView>
+      </MapView>
     );
   },
 );

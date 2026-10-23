@@ -1,18 +1,22 @@
 "use client";
 
 import type { ApiOutputs } from "@ruta/contracts";
-import { useQuery } from "@tanstack/react-query";
-import { ChartColumn } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChartColumn, FileText } from "lucide-react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "use-intl";
+import { InlineError } from "@/components/admin/error-panel";
 import {
   MunicipalityFilter,
   useMunicipalityFilter,
 } from "@/components/admin/municipality-filter";
+import { useOutcome } from "@/components/admin/outcome";
 import { QueryState } from "@/components/admin/query-state";
-import { ButtonLink } from "@/components/ui/button";
+import { useStaff } from "@/components/admin/staff-context";
+import { useStaffMutation } from "@/components/admin/use-staff-mutation";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { orpc } from "@/lib/web/api";
+import { api, orpc } from "@/lib/web/api";
 import { PdfActions, ReportStatusTag, useWeekLabel } from "./report-parts";
 
 type Report = ApiOutputs["reports"]["list"][number];
@@ -53,23 +57,65 @@ export function WeeklyReportList() {
   const reports = useTranslations("reports");
   const format = useFormatter();
   const weekLabel = useWeekLabel();
+  const announce = useOutcome();
+  const queryClient = useQueryClient();
+  const { staffScope } = useStaff();
   const municipalityId = useMunicipalityFilter();
+  const municipalities = useQuery(orpc.municipalities.list.queryOptions());
 
   const list = useQuery(
     orpc.reports.list.queryOptions({ input: { municipalityId, limit: 26 } }),
   );
 
+  const targetMunicipalities = municipalityId
+    ? [municipalityId]
+    : Array.isArray(staffScope)
+      ? staffScope
+      : (municipalities.data ?? []).map((item) => item.id);
+
+  const generate = useStaffMutation<{ municipalityIds: string[] }, unknown>(
+    async ({ municipalityIds }) => {
+      for (const id of municipalityIds) {
+        await api.reports.generate({
+          requestId: crypto.randomUUID(),
+          municipalityId: id,
+        });
+      }
+    },
+    {
+      onSuccess: async () => {
+        announce(t("queued"));
+        await queryClient.invalidateQueries({ queryKey: orpc.reports.key() });
+      },
+    },
+  );
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-3">
         <h1 className="t-h2">{w("title")}</h1>
         <p className="t-body-lg text-ink-2">{w("intro")}</p>
-        <p className="t-body flex w-fit items-center gap-2 rounded-card bg-accent-soft px-4 py-3 font-medium text-ink">
+        <p className="t-body flex w-fit items-center gap-2 rounded-card bg-paper-2 px-4 py-3 font-medium text-ink">
           {t("cadence")}
         </p>
       </header>
 
-      <MunicipalityFilter />
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-0 flex-1 basis-56">
+          <MunicipalityFilter />
+        </div>
+        <Button
+          variant="accent"
+          className="min-h-11 md:min-h-0"
+          disabled={generate.isPending || targetMunicipalities.length === 0}
+          onClick={() =>
+            generate.mutate({ municipalityIds: targetMunicipalities })
+          }
+        >
+          <FileText aria-hidden />
+          {generate.isPending ? reports("preparingPdf") : t("generate")}
+        </Button>
+      </div>
+      <InlineError error={generate.error} />
 
       <QueryState query={list}>
         {(items) =>

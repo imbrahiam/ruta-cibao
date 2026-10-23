@@ -20,6 +20,7 @@ import {
 } from "@/modules/access/permissions";
 import type { MemberViewer, Viewer } from "@/modules/access/viewer";
 import { notify } from "@/modules/notifications/notify";
+import { scheduleOfflineSnapshotRebuild } from "@/modules/offline/snapshot";
 import { notBlockedAuthor } from "@/modules/safety/blocks";
 
 export async function submitRoute(
@@ -167,7 +168,11 @@ export async function browseRoutes(
   };
 }
 
-export async function routeDetail(viewer: Viewer, id: string) {
+export async function routeDetail(
+  viewer: Viewer,
+  id: string,
+  requireStaffSession?: () => Promise<void>,
+) {
   const [row] = await db
     .select({
       route: ecoRoutes,
@@ -198,8 +203,10 @@ export async function routeDetail(viewer: Viewer, id: string) {
     row.route.status !== "published" &&
     (viewer.kind === "anonymous" ||
       row.route.submittedByUserId !== viewer.userId)
-  )
+  ) {
     assertModerates(requireModerator(viewer), row.route.municipalityId);
+    await requireStaffSession?.();
+  }
   return routeOutput.parse({
     ...row.route,
     categoryName: row.categoryName,
@@ -264,6 +271,8 @@ export async function decideRoute(
           },
           tx,
         );
+      if (input.status === "published")
+        await scheduleOfflineSnapshotRebuild(tx);
       return {
         userId: route.submittedByUserId,
         municipalityId: route.municipalityId,

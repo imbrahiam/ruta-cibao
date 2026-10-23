@@ -18,8 +18,10 @@ import { clearExpiredIdempotencyKeys } from "@/lib/idempotency";
 import { checkNativePushReceipts } from "@/lib/push";
 import { clearExpiredRateLimits } from "@/lib/rate-limit";
 import { clearExpiredRealtimeEvents } from "@/lib/realtime";
+import { clearExpiredStaffSessionVerifications } from "@/modules/access/staff-session";
 import { runAccountDeletion } from "@/modules/account/deletion";
 import { deliverNotification } from "@/modules/notifications/notify";
+import { buildOfflineSnapshot } from "@/modules/offline/snapshot";
 import { cleanupPhotoUploads } from "@/modules/places/photos";
 import { renderWeeklyReportPdf } from "@/modules/reports/render-pdf";
 import { buildWeeklyReports } from "@/modules/reports/weekly";
@@ -37,10 +39,11 @@ const handlers: Handlers = {
 
   [QUEUES.trafficExpire]: () => expireTrafficReports(),
 
-  [QUEUES.reportsWeekly]: ({ periodStart }) =>
+  [QUEUES.reportsWeekly]: ({ periodStart, municipalityId }) =>
     buildWeeklyReports(
       undefined,
       periodStart ? new Date(periodStart) : undefined,
+      municipalityId,
     ),
 
   [QUEUES.reportsRender]: ({ reportId }) => renderWeeklyReportPdf(reportId),
@@ -51,20 +54,21 @@ const handlers: Handlers = {
    * schedules to explain in the runbook for no operational difference.
    */
   [QUEUES.platformCleanup]: async () => {
-    const [realtime, idempotency, rateLimits, photoUploads] = await Promise.all(
-      [
+    const [realtime, idempotency, rateLimits, photoUploads, staffSessions] =
+      await Promise.all([
         clearExpiredRealtimeEvents(),
         clearExpiredIdempotencyKeys(),
         clearExpiredRateLimits(),
         cleanupPhotoUploads(db),
-      ],
-    );
-    return { realtime, idempotency, rateLimits, photoUploads };
+        clearExpiredStaffSessionVerifications(db),
+      ]);
+    return { realtime, idempotency, rateLimits, photoUploads, staffSessions };
   },
 
   [QUEUES.notificationDeliver]: (input) => deliverNotification(input),
   [QUEUES.nativePushReceipts]: () => checkNativePushReceipts(),
   [QUEUES.accountDeletion]: ({ deletionId }) => runAccountDeletion(deletionId),
+  [QUEUES.offlineSnapshot]: () => buildOfflineSnapshot(),
 };
 
 export function runJob<Q extends QueueName>(

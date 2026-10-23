@@ -1,35 +1,49 @@
-import type { ContentTarget } from "@ruta/contracts";
 import { type QueryClient, useQuery } from "@tanstack/react-query";
 import { useMe } from "@/features/auth/session";
 import { api } from "@/lib/api";
 
 const PAGE = 250;
-const EMPTY: ReadonlySet<string> = new Set();
 
-/** The lookup key of one piece of content in the hidden set. */
-export function targetKey(kind: ContentTarget["kind"], ref: string): string {
-  return `${kind}:${ref}`;
-}
+export type HiddenTargets = {
+  places: Set<string>;
+  traffic: Set<string>;
+  routes: Set<string>;
+  consultations: Set<string>;
+};
 
-async function fetchAllHiddenTargets(): Promise<ReadonlySet<string>> {
-  const hidden = new Set<string>();
+const EMPTY: HiddenTargets = {
+  places: new Set(),
+  traffic: new Set(),
+  routes: new Set(),
+  consultations: new Set(),
+};
+
+async function fetchAllHiddenTargets(): Promise<HiddenTargets> {
+  const hidden: HiddenTargets = {
+    places: new Set(),
+    traffic: new Set(),
+    routes: new Set(),
+    consultations: new Set(),
+  };
   let cursor: string | undefined;
   do {
     const page = await api.safety.hiddenTargets({ cursor, limit: PAGE });
-    for (const item of page.items) hidden.add(targetKey(item.kind, item.ref));
+    for (const item of page.items) {
+      if (item.kind === "place") hidden.places.add(item.ref);
+      else if (item.kind === "traffic") hidden.traffic.add(item.ref);
+      else if (item.kind === "route") hidden.routes.add(item.ref);
+      else if (item.kind === "consultation") hidden.consultations.add(item.ref);
+    }
     cursor = page.nextCursor ?? undefined;
   } while (cursor);
   return hidden;
 }
 
 /**
- * Everything the signed-in person has hidden by blocking an author, as a set
- * of `kind:ref` keys. The server omits that content from personalised reads,
- * but the place map is one shared, cached payload, so the app removes these
- * itself. Signed out, the set is empty and nothing is fetched. While a refresh
- * is in flight (or fails) the previous set stays in force.
+ * Everything the signed-in person has hidden by blocking an author, grouped by
+ * content kind (slugs for places/consultations, ids for traffic/routes).
  */
-export function useHiddenTargets(): ReadonlySet<string> {
+export function useHiddenTargets(): HiddenTargets {
   const { me, signedIn } = useMe();
   const userId = me?.kind === "member" ? me.userId : null;
   const query = useQuery({

@@ -2,9 +2,11 @@ import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { MapPin } from "lucide-react-native";
+import { useMemo } from "react";
 import { RefreshControl, StyleSheet } from "react-native";
 import { useTranslations } from "use-intl";
 import { PlaceListRow } from "@/features/places/place-list-row";
+import { useHiddenTargets } from "@/features/safety/hidden-targets";
 import { orpc } from "@/lib/api";
 import { EmptyState } from "@/ui/states";
 import { space, useTheme } from "@/ui/theme";
@@ -16,6 +18,14 @@ export default function CategoryScreen() {
   const { colors } = useTheme();
   const places = useQuery(
     orpc.places.browse.queryOptions({ input: { category: id, limit: 48 } }),
+  );
+  const hidden = useHiddenTargets();
+  const items = useMemo(
+    () =>
+      (places.data?.items ?? []).filter(
+        (item) => !hidden.places.has(item.slug),
+      ),
+    [places.data, hidden.places],
   );
   // A deep link carries only the id; the name then comes from the taxonomy.
   const categories = useQuery({
@@ -29,7 +39,7 @@ export default function CategoryScreen() {
     <>
       <Stack.Screen options={{ title }} />
       <FlashList
-        data={places.data?.items ?? []}
+        data={items}
         keyExtractor={(item) => item.id}
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: colors.background }}

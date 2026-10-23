@@ -1,5 +1,6 @@
 import { type Db, db } from "@/db";
 import { type ResolvedSession, resolveSession } from "@/modules/access/session";
+import { assertStaffSessionVerified } from "@/modules/access/staff-session";
 import type { Viewer } from "@/modules/access/viewer";
 
 /**
@@ -15,6 +16,7 @@ export type AppContext = {
   headers: Headers;
   getSession: () => Promise<ResolvedSession>;
   getViewer: () => Promise<Viewer>;
+  requireStaffSession: () => Promise<void>;
 };
 
 export function createContext(request: Request): AppContext {
@@ -29,5 +31,9 @@ export function createContext(request: Request): AppContext {
     headers: request.headers,
     getSession,
     getViewer: async () => (await getSession()).viewer,
+    requireStaffSession: async () => {
+      const resolved = await getSession();
+      await assertStaffSessionVerified(resolved);
+    },
   };
 }

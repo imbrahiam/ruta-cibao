@@ -1,4 +1,3 @@
-import Mapbox, { type Camera } from "@rnmapbox/maps";
 import { municipalityAt } from "@ruta/shared/boundaries";
 import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
 import * as Location from "expo-location";
@@ -6,6 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { LocateFixed, X } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import MapView, { PROVIDER_GOOGLE } from "react-native-maps";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useTranslations } from "use-intl";
 import { useBoundaries } from "@/features/map/data";
+import { mapStyles } from "@/features/map/google-style";
 import { setPickedLocation } from "@/features/map/picked-location";
 import { useLocationPermission } from "@/features/map/use-location-permission";
 import { Button } from "@/ui/button";
@@ -38,7 +39,7 @@ export default function PickLocationScreen() {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
-  const camera = useRef<Camera>(null);
+  const map = useRef<MapView>(null);
   const boundaries = useBoundaries();
   const initial: [number, number] | null =
     params.lng && params.lat ? [Number(params.lng), Number(params.lat)] : null;
@@ -72,63 +73,57 @@ export default function PickLocationScreen() {
     const position = await Location.getCurrentPositionAsync({
       accuracy: Location.Accuracy.High,
     });
-    camera.current?.setCamera({
-      centerCoordinate: [position.coords.longitude, position.coords.latitude],
-      zoomLevel: 16,
-      animationDuration: 600,
-    });
+    map.current?.animateCamera(
+      {
+        center: {
+          longitude: position.coords.longitude,
+          latitude: position.coords.latitude,
+        },
+        zoom: 16.5,
+      },
+      { duration: 600 },
+    );
   };
 
   return (
     <View style={styles.screen}>
-      <Mapbox.MapView
+      <MapView
+        ref={map}
         style={StyleSheet.absoluteFill}
-        styleURL="mapbox://styles/mapbox/standard"
-        scaleBarEnabled={false}
+        provider={PROVIDER_GOOGLE}
+        customMapStyle={mapStyles[scheme]}
+        initialCamera={{
+          center: {
+            longitude: center[0],
+            latitude: center[1],
+          },
+          zoom: initial ? 16.5 : 10,
+          heading: 0,
+          pitch: 0,
+        }}
+        mapPadding={{ top: 0, bottom: cardHeight, left: 0, right: 0 }}
+        showsUserLocation={location.granted}
+        showsMyLocationButton={false}
+        showsCompass={false}
+        showsBuildings={false}
+        showsIndoors={false}
+        toolbarEnabled={false}
         pitchEnabled={false}
-        logoPosition={{ bottom: 196, left: 16 }}
-        attributionPosition={{ bottom: 196, right: 16 }}
-        onCameraChanged={(state) => {
-          if (state.gestures.isGestureActive)
-            lift.set(withSpring(1, { duration: 200, dampingRatio: 1 }));
-        }}
-        onMapIdle={(state) => {
+        rotateEnabled={false}
+        loadingEnabled
+        loadingBackgroundColor={colors.background}
+        onPanDrag={() =>
+          lift.set(withSpring(1, { duration: 200, dampingRatio: 1 }))
+        }
+        onRegionChangeComplete={async () => {
           lift.set(withSpring(0, { duration: 350, dampingRatio: 0.6 }));
-          setCenter(state.properties.center as [number, number]);
+          // The camera target is the centre of the padded area, which is
+          // where the crosshair sits; the region's centre is the whole view's.
+          const camera = await map.current?.getCamera();
+          if (camera)
+            setCenter([camera.center.longitude, camera.center.latitude]);
         }}
-      >
-        <Mapbox.StyleImport
-          id="basemap"
-          existing
-          config={{
-            lightPreset: scheme === "dark" ? "night" : "day",
-            showPointOfInterestLabels: false,
-            show3dObjects: false,
-          }}
-        />
-        <Mapbox.Camera
-          ref={camera}
-          defaultSettings={
-            initial
-              ? { centerCoordinate: initial, zoomLevel: 16 }
-              : {
-                  bounds: {
-                    ne: [EAST, NORTH],
-                    sw: [WEST, SOUTH],
-                    paddingBottom: 200,
-                    paddingTop: 80,
-                  },
-                }
-          }
-          padding={{
-            paddingBottom: cardHeight,
-            paddingTop: 0,
-            paddingLeft: 0,
-            paddingRight: 0,
-          }}
-        />
-        {location.granted ? <Mapbox.LocationPuck /> : null}
-      </Mapbox.MapView>
+      />
 
       <View
         pointerEvents="none"
@@ -140,7 +135,7 @@ export default function PickLocationScreen() {
             <Path
               d="M24 58 C24 58 4 37.5 4 24 A20 20 0 1 1 44 24 C44 37.5 24 58 24 58 Z"
               fill={palettes[scheme].accent}
-              stroke="#FFFFFF"
+              stroke={palettes[scheme].background}
               strokeWidth={3}
             />
           </Svg>

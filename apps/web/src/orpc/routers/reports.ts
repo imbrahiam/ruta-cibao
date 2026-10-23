@@ -9,6 +9,7 @@ import {
   assertModerates,
   requireModerator,
 } from "@/modules/access/permissions";
+import { generateWeeklyReportForMunicipality } from "@/modules/reports/weekly";
 import { impl, moderator } from "../base";
 
 /**
@@ -117,6 +118,7 @@ export const reportsRouter = {
       requireModerator(await context.getViewer()),
       row.municipalityId,
     );
+    await context.requireStaffSession();
 
     return {
       id: row.id,
@@ -167,4 +169,10 @@ export const reportsRouter = {
 
       return { queued };
     }),
+
+  generate: impl.reports.generate
+    .use(moderator)
+    .handler(({ context, input }) =>
+      generateWeeklyReportForMunicipality(context.viewer, input),
+    ),
 };

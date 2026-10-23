@@ -135,6 +135,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
             },
           };
         },
+        requireStaffSession: async () => {},
       };
     }
 

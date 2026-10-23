@@ -75,21 +75,18 @@ export default function MapLayersSheet() {
           title={t("traffic")}
           subtitle={t("trafficHint")}
           icon={TriangleAlert}
-          iconTint="warning"
           accessory={toggle("traffic")}
         />
         <ListRow
           title={t("routes")}
           subtitle={t("routesHint")}
           icon={Footprints}
-          iconTint="success"
           accessory={toggle("routes")}
         />
         <ListRow
           title={t("consultations")}
           subtitle={t("consultationsHint")}
           icon={MessageSquareText}
-          iconTint="pine"
           accessory={toggle("consultations")}
         />
       </ListSection>

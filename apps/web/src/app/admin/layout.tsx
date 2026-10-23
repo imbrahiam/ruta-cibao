@@ -13,6 +13,13 @@ export const metadata: Metadata = {
 };
 
 /**
+ * `AdminShell` withholds `{children}` until `me.get` confirms a staff session
+ * on the client, so child page segments do not render in the unauthenticated
+ * prerender shell.
+ */
+export const instant = false;
+
+/**
  * The staff area. Everything beneath is client-rendered behind the session
  * gate; the catalogue slice below is all the browser downloads of the text.
  */

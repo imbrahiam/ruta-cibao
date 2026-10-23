@@ -104,7 +104,6 @@ export function BlockedScreen() {
                   key={item.id}
                   title={name}
                   icon={UserRound}
-                  iconTint="textTertiary"
                   testID={`blocked-${item.id}`}
                   accessory={
                     <Button

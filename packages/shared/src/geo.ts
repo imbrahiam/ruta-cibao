@@ -48,6 +48,9 @@ export const CIBAO_BOUNDS: Bounds = [-71.9, 18.95, -69.85, 19.95];
  */
 export const PROVINCE_BOUNDS: Bounds = [-71.5197, 19.1684, -71.072, 19.5699];
 
+/** Provincial bounds with a small margin (~2 km) for offline snapshot coverage. */
+export const OFFLINE_PROVINCE_BOUNDS: Bounds = [-71.54, 19.15, -71.05, 19.59];
+
 /**
  * Close enough to tell one street from the next.
  *

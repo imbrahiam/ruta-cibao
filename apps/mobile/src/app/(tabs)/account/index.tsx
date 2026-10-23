@@ -144,13 +144,11 @@ export default function AccountScreen() {
           <ListRow
             title={t("saved")}
             icon={Bookmark}
-            iconTint="warning"
             onPress={() => router.push("/account/saved")}
           />
           <ListRow
             title={t("passport")}
             icon={Stamp}
-            iconTint="success"
             onPress={() => router.push("/account/passport")}
           />
           <ListRow
@@ -163,7 +161,6 @@ export default function AccountScreen() {
             title={ts("blocks.title")}
             subtitle={tu("blockedRowHint")}
             icon={EyeOff}
-            iconTint="textTertiary"
             onPress={() => router.push("/account/blocked")}
             testID="account-blocked"
           />
@@ -174,13 +171,11 @@ export default function AccountScreen() {
         <ListRow
           title={t("privacy")}
           icon={ShieldCheck}
-          iconTint="pine"
           onPress={() => router.push("/account/privacy")}
         />
         <ListRow
           title={t("aboutApp")}
           icon={Info}
-          iconTint="textTertiary"
           value={Application.nativeApplicationVersion ?? undefined}
           onPress={() => router.push("/account/about")}
         />
@@ -191,7 +186,6 @@ export default function AccountScreen() {
           <ListRow
             title={t("signOut")}
             icon={LogOut}
-            iconTint="danger"
             destructive
             onPress={signOut}
             testID="account-sign-out"

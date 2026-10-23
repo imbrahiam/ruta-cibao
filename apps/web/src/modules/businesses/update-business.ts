@@ -8,6 +8,7 @@ import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import { publishRealtimeEvent } from "@/lib/realtime";
 import type { MemberViewer } from "@/modules/access/viewer";
+import { scheduleOfflineSnapshotRebuild } from "@/modules/offline/snapshot";
 
 export async function updateBusiness(
   viewer: MemberViewer,
@@ -63,6 +64,7 @@ export async function updateBusiness(
         },
         tx,
       );
+      await scheduleOfflineSnapshotRebuild(tx);
       return { municipalityId: claim.municipalityId };
     },
   });

@@ -1,9 +1,6 @@
-import { COUNTRY_BOUNDS } from "@ruta/shared/geo";
-import { isNotNull, sql } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
-import { db } from "@/db";
-import { municipalities } from "@/db/schema";
+import { readMunicipalBoundaries } from "@/modules/offline/snapshot";
 
 /**
  * The province, as it actually is.
@@ -29,58 +26,7 @@ async function collection() {
   // Administrative boundaries are redrawn by law, not by traffic.
   cacheLife("days");
 
-  const rows = await db
-    .select({
-      id: municipalities.id,
-      name: municipalities.name,
-      // Simplified to ~11 m for the wire: the official polygons are ~260 KB,
-      // which a phone on rural data should not pay for an outline. The
-      // database keeps full precision, and its ST_Contains is the authority on
-      // submit; this copy only draws the map and guesses while dragging.
-      geometry: sql<string>`ST_AsGeoJSON(ST_SimplifyPreserveTopology(${municipalities.boundary}, 0.0001), 5)`,
-      // Inside the polygon by construction, unlike a centroid — a horseshoe
-      // municipality's centroid can land in its neighbour.
-      label: sql<string>`ST_AsGeoJSON(ST_PointOnSurface(${municipalities.boundary}))`,
-    })
-    .from(municipalities)
-    .where(isNotNull(municipalities.boundary));
-
-  // One union serves both jobs: the province's actual outline, and a nearby
-  // context mask. Returning the union separately avoids drawing the envelope's
-  // rectangular edge as though it were an administrative boundary.
-  const [west, south, east, north] = COUNTRY_BOUNDS;
-  const [province] = rows.length
-    ? await db
-        .select({
-          geometry: sql<string>`ST_AsGeoJSON(
-            ST_SimplifyPreserveTopology(ST_Union(${municipalities.boundary}), 0.0001)
-          , 5)`,
-          outside: sql<string>`ST_AsGeoJSON(ST_Difference(
-            ST_MakeEnvelope(${west}, ${south}, ${east}, ${north}, 4326),
-            ST_SimplifyPreserveTopology(ST_Union(${municipalities.boundary}), 0.0001)
-          ), 5)`,
-        })
-        .from(municipalities)
-        .where(isNotNull(municipalities.boundary))
-    : [];
-
-  return {
-    type: "FeatureCollection" as const,
-    features: rows.map((row) => ({
-      type: "Feature" as const,
-      id: row.id,
-      properties: {
-        id: row.id,
-        name: row.name,
-        label: (JSON.parse(row.label) as { coordinates: [number, number] })
-          .coordinates,
-      },
-      geometry: JSON.parse(row.geometry) as unknown,
-    })),
-    province: province ? (JSON.parse(province.geometry) as unknown) : null,
-    // A GeoJSON foreign member: readers that do not know it ignore it.
-    outside: province ? (JSON.parse(province.outside) as unknown) : null,
-  };
+  return readMunicipalBoundaries();
 }
 
 export async function GET() {

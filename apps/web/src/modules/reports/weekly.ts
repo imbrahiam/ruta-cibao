@@ -1,4 +1,5 @@
-import type { WeeklyMetrics } from "@ruta/contracts";
+import { ORPCError } from "@orpc/server";
+import type { GenerateReportInput, WeeklyMetrics } from "@ruta/contracts";
 import { weeklyMetrics } from "@ruta/contracts";
 import { appTargetHref } from "@ruta/shared/app-target";
 import { and, asc, desc, eq, gte, inArray, lt, sql } from "drizzle-orm";
@@ -14,6 +15,14 @@ import {
   weeklyReports,
 } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
+import { env } from "@/lib/env";
+import { withIdempotency } from "@/lib/idempotency";
+import { drainOutbox, enqueueJob } from "@/lib/jobs/outbox";
+import { QUEUES } from "@/lib/jobs/queues";
+import {
+  assertModerates,
+  type ModeratorViewer,
+} from "@/modules/access/permissions";
 import { notify } from "@/modules/notifications/notify";
 import { renderWeeklyReportPdf } from "./render-pdf";
 
@@ -149,7 +158,10 @@ export async function computeMetrics(
     countActions(municipalityId, start, end, ["consultation.opened"]),
     countActions(municipalityId, start, end, ["business_claim.submitted"]),
     countActions(municipalityId, start, end, ["business_claim.approved"]),
-    countActions(municipalityId, start, end, ["member.cedula_verified"]),
+    countActions(municipalityId, start, end, [
+      "member.cedula_verified",
+      "member.residency_verified",
+    ]),
     countActions(municipalityId, start, end, ["route.submitted"]),
     countActions(municipalityId, start, end, ["route.published"]),
   ]);
@@ -363,6 +375,7 @@ export async function buildWeeklyReport(
 export async function buildWeeklyReports(
   reference = new Date(),
   explicitStart?: Date,
+  municipalityId?: string,
 ): Promise<{ built: number; notified: number }> {
   const start = explicitStart ?? previousWeekStart(reference);
   if (
@@ -374,12 +387,13 @@ export async function buildWeeklyReports(
   const targets = await db
     .select({ id: municipalities.id, name: municipalities.name })
     .from(municipalities)
+    .where(municipalityId ? eq(municipalities.id, municipalityId) : undefined)
     .orderBy(asc(municipalities.id));
 
   const staff = await db
     .select({
       userId: memberProfiles.userId,
-      municipalityId: memberProfiles.municipalityId,
+      staffMunicipalityId: memberProfiles.staffMunicipalityId,
       staffRole: memberProfiles.staffRole,
     })
     .from(memberProfiles)
@@ -387,32 +401,125 @@ export async function buildWeeklyReports(
 
   let built = 0;
   let notified = 0;
+  const failures: unknown[] = [];
 
   for (const municipality of targets) {
-    const report = await buildWeeklyReport(municipality.id, start);
-    built += 1;
+    try {
+      const report = await buildWeeklyReport(municipality.id, start);
+      built += 1;
 
-    // Retries also repair reports whose metrics committed before a PDF failure.
-    await renderWeeklyReportPdf(report.id);
+      // Retries also repair reports whose metrics committed before a PDF failure.
+      await renderWeeklyReportPdf(report.id);
 
-    for (const person of staff) {
-      const reads =
-        person.staffRole === "admin" ||
-        person.municipalityId === municipality.id;
-      if (!reads) continue;
+      for (const person of staff) {
+        const reads =
+          person.staffRole === "admin" ||
+          person.staffMunicipalityId === municipality.id;
+        if (!reads) continue;
 
-      await notify({
-        userId: person.userId,
-        dedupeKey: `weekly-report:${report.id}:${person.userId}`,
-        messageKey: "notifications.reportReady",
-        params: { scope: municipality.name },
-        href: appTargetHref({ kind: "report", ref: report.id }),
-        channels: { push: true, email: false },
-      });
+        await notify({
+          userId: person.userId,
+          dedupeKey: `weekly-report:${report.id}:${person.userId}`,
+          messageKey: "notifications.reportReady",
+          params: { scope: municipality.name },
+          href: appTargetHref({ kind: "report", ref: report.id }),
+          channels: { push: true, email: true },
+        });
 
-      notified += 1;
+        notified += 1;
+      }
+    } catch (error) {
+      failures.push(error);
     }
   }
 
+  if (failures.length > 0) {
+    throw failures[0];
+  }
+
   return { built, notified };
+}
+
+export async function generateWeeklyReportForMunicipality(
+  viewer: ModeratorViewer,
+  input: GenerateReportInput,
+): Promise<{ reportId: string; status: "pending" | "ready" | "failed" }> {
+  assertModerates(viewer, input.municipalityId);
+  const start = previousWeekStart();
+  const end = addWeek(start);
+
+  const outcome = await withIdempotency({
+    key: `reports:generate:${viewer.userId}:${input.requestId}`,
+    userId: viewer.userId,
+    request: input,
+    run: async (tx) => {
+      const [municipality] = await tx
+        .select({ id: municipalities.id })
+        .from(municipalities)
+        .where(eq(municipalities.id, input.municipalityId))
+        .limit(1);
+      if (!municipality) {
+        throw new ORPCError("NOT_FOUND", {
+          message: "That municipality does not exist.",
+          data: { reason: "municipality_not_found" },
+        });
+      }
+
+      const [row] = await tx
+        .insert(weeklyReports)
+        .values({
+          municipalityId: municipality.id,
+          periodStart: start,
+          periodEnd: end,
+          status: "pending",
+        })
+        .onConflictDoUpdate({
+          target: [weeklyReports.municipalityId, weeklyReports.periodStart],
+          set: {
+            periodEnd: end,
+            status: sql`case when ${weeklyReports.status} = 'failed' then 'pending'::weekly_report_status else ${weeklyReports.status} end`,
+          },
+        })
+        .returning({ id: weeklyReports.id, status: weeklyReports.status });
+
+      if (!row) throw new Error("Weekly report upsert returned no row.");
+
+      await recordAudit(
+        {
+          actorUserId: viewer.userId,
+          action: "report.generate_requested",
+          subjectType: "weekly_report",
+          subjectId: row.id,
+          municipalityId: municipality.id,
+          metadata: { periodStart: start.toISOString() },
+        },
+        tx,
+      );
+
+      await enqueueJob(tx, QUEUES.reportsWeekly, {
+        municipalityId: municipality.id,
+        periodStart: start.toISOString(),
+      });
+
+      return { reportId: row.id, status: row.status };
+    },
+  });
+
+  if (!outcome.replayed && !env.JOBS_ENABLED) {
+    await drainOutbox().catch(() => {
+      console.error(
+        "inline weekly report generation failed; outbox retains it",
+      );
+    });
+    const [latest] = await db
+      .select({ status: weeklyReports.status })
+      .from(weeklyReports)
+      .where(eq(weeklyReports.id, outcome.result.reportId))
+      .limit(1);
+    if (latest) {
+      return { reportId: outcome.result.reportId, status: latest.status };
+    }
+  }
+
+  return outcome.result;
 }

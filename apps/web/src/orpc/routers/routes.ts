@@ -20,11 +20,18 @@ export const routesRouter = {
       .where(and(eq(categories.kind, "route"), eq(categories.isActive, true)))
       .orderBy(categories.sortOrder),
   ),
-  browse: impl.routes.browse.handler(async ({ context, input }) =>
-    browseRoutes(context.db, await context.getViewer(), input),
-  ),
+  browse: impl.routes.browse.handler(async ({ context, input }) => {
+    if (input.scope === "pending") {
+      await context.requireStaffSession();
+    }
+    return browseRoutes(context.db, await context.getViewer(), input);
+  }),
   detail: impl.routes.detail.handler(async ({ context, input }) =>
-    routeDetail(await context.getViewer(), input.id),
+    routeDetail(
+      await context.getViewer(),
+      input.id,
+      context.requireStaffSession,
+    ),
   ),
   submit: impl.routes.submit
     .use(member)

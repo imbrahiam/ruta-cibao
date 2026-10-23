@@ -1,8 +1,10 @@
 "use client";
 
 import type { ApiOutputs, DecidePublicationInput } from "@ruta/contracts";
+import Link from "next/link";
 import { useId } from "react";
 import { useTranslations } from "use-intl";
+import { ButtonLink } from "@/components/ui/button";
 import { Tag } from "@/components/ui/tag";
 import { api } from "@/lib/web/api";
 import { DecisionBar } from "./decision-bar";
@@ -36,7 +38,14 @@ export function CaseRow({ item }: { item: PendingCase }) {
       titleId={`${id}-title`}
       item={
         <>
-          <ItemTitle id={`${id}-title`}>{item.title}</ItemTitle>
+          <ItemTitle id={`${id}-title`}>
+            <Link
+              href={`/admin/consultations/${item.slug}`}
+              className="underline-offset-2 hover:underline"
+            >
+              {item.title}
+            </Link>
+          </ItemTitle>
           <div className="flex flex-wrap gap-1.5">
             <MunicipalityTag name={item.municipalityName} />
             <Tag tone="accent">{item.categoryName}</Tag>
@@ -61,32 +70,47 @@ export function CaseRow({ item }: { item: PendingCase }) {
         </Facts>
       }
       decision={
-        <DecisionBar
-          id={id}
-          subject={item.title}
-          pending={pending}
-          error={error}
-          decided={decided}
-          primary={{
-            label: t("publish"),
-            onConfirm: () =>
-              decide({
-                target: { kind: "consultation", ref: item.id },
-                status: "published",
-              }),
-          }}
-          secondary={{
-            label: q("hideCase"),
-            variant: "danger",
-            note: { min: 10, max: 500 },
-            onConfirm: (reason) =>
-              decide({
-                target: { kind: "consultation", ref: item.id },
-                status: "hidden",
-                reason,
-              }),
-          }}
-        />
+        <div className="flex flex-col gap-2.5">
+          {item.publicationStatus === "published" ? (
+            <ButtonLink
+              href={`/admin/consultations/${item.slug}`}
+              variant="accent"
+              className="min-h-11 w-full sm:w-auto sm:self-start md:min-h-0"
+            >
+              {t("respond")}
+            </ButtonLink>
+          ) : null}
+          <DecisionBar
+            id={id}
+            subject={item.title}
+            pending={pending}
+            error={error}
+            decided={decided}
+            primary={
+              item.publicationStatus === "published"
+                ? undefined
+                : {
+                    label: t("publish"),
+                    onConfirm: () =>
+                      decide({
+                        target: { kind: "consultation", ref: item.id },
+                        status: "published",
+                      }),
+                  }
+            }
+            secondary={{
+              label: q("hideCase"),
+              variant: "danger",
+              note: { min: 10, max: 500 },
+              onConfirm: (reason) =>
+                decide({
+                  target: { kind: "consultation", ref: item.id },
+                  status: "hidden",
+                  reason,
+                }),
+            }}
+          />
+        </div>
       }
     />
   );

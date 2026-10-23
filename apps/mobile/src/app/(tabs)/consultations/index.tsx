@@ -5,16 +5,17 @@ import { Clock, MessageSquareText, Plus, ThumbsUp } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
-import { useMemberAction } from "@/features/auth/session";
+import { useMe, useMemberAction } from "@/features/auth/session";
 import {
   type ConsultationStatus,
   STATUS_STYLE,
   STATUSES,
 } from "@/features/consultations/status";
-import { targetKey, useHiddenTargets } from "@/features/safety/hidden-targets";
+import { useHiddenTargets } from "@/features/safety/hidden-targets";
 import { useAgo } from "@/i18n/ago";
 import { orpc } from "@/lib/api";
-import { categoryIcon, Icon } from "@/ui/icon";
+import { CategoryBadge } from "@/ui/category-badge";
+import { Icon } from "@/ui/icon";
 import { EmptyState, Skeleton } from "@/ui/states";
 import { Card, IconButton } from "@/ui/surfaces";
 import { Badge, Chip } from "@/ui/tags";
@@ -27,6 +28,7 @@ export default function ConsultationsScreen() {
   const ts = useTranslations("safety");
   const ago = useAgo();
   const { colors } = useTheme();
+  const { signedIn } = useMe();
   const asMember = useMemberAction();
   const [municipality, setMunicipality] = useState<string | null>(null);
   const [status, setStatus] = useState<ConsultationStatus | null>(null);
@@ -41,14 +43,28 @@ export default function ConsultationsScreen() {
       },
     }),
   );
+  const mine = useQuery({
+    ...orpc.consultations.browse.queryOptions({
+      input: {
+        municipality: municipality ?? "",
+        status: status ?? undefined,
+        mine: true,
+        limit: 20,
+      },
+    }),
+    enabled: signedIn,
+  });
   const hidden = useHiddenTargets();
-  const items = useMemo(
-    () =>
-      (list.data?.items ?? []).filter(
-        (item) => !hidden.has(targetKey("consultation", item.slug)),
-      ),
-    [list.data, hidden],
-  );
+  const items = useMemo(() => {
+    const published = (list.data?.items ?? []).filter(
+      (item) => !hidden.consultations.has(item.slug),
+    );
+    const seen = new Set(published.map((item) => item.id));
+    const ownUnpublished = signedIn
+      ? (mine.data?.items ?? []).filter((item) => !seen.has(item.id))
+      : [];
+    return [...ownUnpublished, ...published];
+  }, [list.data, mine.data, signedIn, hidden.consultations]);
 
   return (
     <>
@@ -75,8 +91,11 @@ export default function ConsultationsScreen() {
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
-            refreshing={list.isRefetching}
-            onRefresh={() => void list.refetch()}
+            refreshing={list.isRefetching || mine.isRefetching}
+            onRefresh={() => {
+              void list.refetch();
+              if (signedIn) void mine.refetch();
+            }}
             tintColor={colors.accent}
           />
         }
@@ -169,18 +188,7 @@ export default function ConsultationsScreen() {
               testID={`consultation-${item.slug}`}
             >
               <View style={styles.cardTop}>
-                <View
-                  style={[
-                    styles.catIcon,
-                    { backgroundColor: item.categoryColor },
-                  ]}
-                >
-                  <Icon
-                    as={categoryIcon(item.categoryIcon)}
-                    size={14}
-                    color="#FFFFFF"
-                  />
-                </View>
+                <CategoryBadge icon={item.categoryIcon} size={26} />
                 <Text
                   variant="footnote"
                   tone="tertiary"

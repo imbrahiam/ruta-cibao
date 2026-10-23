@@ -12,6 +12,7 @@ export type AccountContact = {
   /** Null for phone-only accounts: their internal placeholder never leaves. */
   email: string | null;
   emailVerified: boolean;
+  twoFactorEnabled?: boolean;
 };
 
 /** The Better Auth session behind a request: what step-up and freshness checks need. */
@@ -49,6 +50,7 @@ export async function resolveSession(
     phoneVerified: Boolean(account.phoneNumber && account.phoneNumberVerified),
     email,
     emailVerified: Boolean(email && account.emailVerified),
+    twoFactorEnabled: Boolean(account.twoFactorEnabled),
   };
 
   const [profile] = await db

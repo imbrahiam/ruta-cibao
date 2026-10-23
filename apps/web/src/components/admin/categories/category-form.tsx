@@ -2,6 +2,40 @@
 
 import type { ApiInputs, ApiOutputs } from "@ruta/contracts";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  BedDouble,
+  Bike,
+  Building2,
+  Bus,
+  Car,
+  Church,
+  CloudRain,
+  Coffee,
+  Construction,
+  Cross,
+  Droplets,
+  Footprints,
+  Fuel,
+  GraduationCap,
+  Landmark,
+  Lightbulb,
+  type LucideIcon,
+  MapPin,
+  MessagesSquare,
+  Mountain,
+  OctagonX,
+  Pill,
+  Route,
+  ShoppingBasket,
+  Store,
+  Trash2,
+  Trees,
+  TriangleAlert,
+  Utensils,
+  Waves,
+  Wheat,
+  Wrench,
+} from "lucide-react";
 import { useId, useState } from "react";
 import { useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
@@ -18,7 +52,7 @@ type SaveInput = Omit<ApiInputs["catalog"]["save"], "requestId">;
 type Icon = SaveInput["icon"];
 type Severity = NonNullable<SaveInput["severity"]>;
 
-/** The icons the contract accepts; each has a label under `admin`. */
+/** The icons `catalog.save` accepts; icon names are data, never catalogue keys. */
 export const ICONS: readonly Icon[] = [
   "map-pin",
   "mountain",
@@ -30,6 +64,56 @@ export const ICONS: readonly Icon[] = [
   "trees",
   "messages-square",
 ];
+
+const ICON_MAP: Record<string, LucideIcon> = {
+  "map-pin": MapPin,
+  mountain: Mountain,
+  route: Route,
+  store: Store,
+  droplets: Droplets,
+  "triangle-alert": TriangleAlert,
+  construction: Construction,
+  trees: Trees,
+  "messages-square": MessagesSquare,
+  waves: Waves,
+  cross: Cross,
+  "graduation-cap": GraduationCap,
+  landmark: Landmark,
+  bus: Bus,
+  church: Church,
+  wheat: Wheat,
+  "shopping-basket": ShoppingBasket,
+  utensils: Utensils,
+  "bed-double": BedDouble,
+  pill: Pill,
+  fuel: Fuel,
+  "building-2": Building2,
+  wrench: Wrench,
+  car: Car,
+  coffee: Coffee,
+  footprints: Footprints,
+  bike: Bike,
+  "octagon-x": OctagonX,
+  "cloud-rain": CloudRain,
+  "trash-2": Trash2,
+  lightbulb: Lightbulb,
+};
+
+/** Renders the Lucide icon for a stored icon name, using the raw name as accessible label. */
+export function CategoryIcon({ name }: { name: string }) {
+  const IconComponent = ICON_MAP[name] ?? MapPin;
+  return (
+    <span
+      role="img"
+      aria-label={name}
+      className="inline-flex items-center gap-1.5 whitespace-nowrap"
+    >
+      <IconComponent aria-hidden className="size-4 shrink-0 text-ink-2" />
+      <span className="font-mono text-ink">{name}</span>
+    </span>
+  );
+}
+
 const SEVERITIES: readonly Severity[] = ["blocking", "partial", "minor"];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -61,7 +145,7 @@ export function CategoryForm({
   const [icon, setIcon] = useState<Icon>(
     ICONS.find((item) => item === record?.icon) ?? "map-pin",
   );
-  const [color, setColor] = useState(record?.color ?? "#1F6B52");
+  const [color, setColor] = useState(record?.color ?? "#121211");
   const [severity, setSeverity] = useState<Severity | "">(
     record?.severity ?? "",
   );
@@ -158,20 +242,36 @@ export function CategoryForm({
         </Field>
 
         <Field htmlFor={`${uid}-icon`} label={t("icon")}>
-          <Select
-            id={`${uid}-icon`}
-            value={icon}
-            disabled={save.isPending}
-            onChange={(event) =>
-              setIcon(ICONS.find((item) => item === event.target.value) ?? icon)
-            }
-          >
-            {ICONS.map((item) => (
-              <option key={item} value={item}>
-                {t(item)}
-              </option>
-            ))}
-          </Select>
+          <div className="flex items-center gap-3">
+            <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-input bg-card shadow-ring">
+              {(() => {
+                const SelectedIcon = ICON_MAP[icon] ?? MapPin;
+                return (
+                  <SelectedIcon
+                    role="img"
+                    aria-label={icon}
+                    className="size-5 text-ink"
+                  />
+                );
+              })()}
+            </span>
+            <Select
+              id={`${uid}-icon`}
+              value={icon}
+              disabled={save.isPending}
+              onChange={(event) =>
+                setIcon(
+                  ICONS.find((item) => item === event.target.value) ?? icon,
+                )
+              }
+            >
+              {ICONS.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </Select>
+          </div>
         </Field>
 
         <Field

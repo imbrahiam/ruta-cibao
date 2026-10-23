@@ -6,7 +6,7 @@ import { StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useBoundaries, usePlaceCollection } from "@/features/map/data";
 import { focusOnMap } from "@/features/map/focus";
-import { categoryIcon, Icon } from "@/ui/icon";
+import { CategoryBadge } from "@/ui/category-badge";
 import { PressableScale } from "@/ui/pressable";
 import { EmptyState } from "@/ui/states";
 import { Text } from "@/ui/text";
@@ -116,20 +116,12 @@ export default function SearchScreen() {
             accessibilityLabel={`${item.properties.name}, ${item.properties.categoryName}`}
             style={styles.row}
           >
-            <View
-              style={[styles.icon, { backgroundColor: item.properties.color }]}
-            >
-              <Icon
-                as={categoryIcon(item.properties.icon)}
-                size={18}
-                color="#FFFFFF"
-              />
-            </View>
+            <CategoryBadge icon={item.properties.icon} size={40} />
             <View style={styles.text}>
-              <Text variant="headline" numberOfLines={1}>
+              <Text variant="body" weight="600" numberOfLines={1}>
                 {item.properties.name}
               </Text>
-              <Text variant="subhead" tone="tertiary" numberOfLines={1}>
+              <Text variant="footnote" tone="tertiary" numberOfLines={1}>
                 {item.properties.categoryName} ·{" "}
                 {names.get(item.properties.municipality) ?? ""}
               </Text>
@@ -150,13 +142,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: space.md - 4,
     paddingVertical: space.sm + 2,
-  },
-  icon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
   },
   text: { flex: 1, gap: 2 },
 });

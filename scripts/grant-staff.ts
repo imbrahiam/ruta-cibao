@@ -21,8 +21,9 @@ import { parseArgs } from "node:util";
 import { normalizePhone } from "@ruta/shared/phone";
 import { eq, or, sql } from "drizzle-orm";
 import { db, pool } from "@/db";
-import { memberProfiles, municipalities, user } from "@/db/schema";
+import { memberProfiles, municipalities, twoFactor, user } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
+import { revokeUserStaffSessions } from "@/modules/access/staff-session";
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
@@ -67,6 +68,7 @@ try {
       id: user.id,
       emailVerified: user.emailVerified,
       phoneNumberVerified: user.phoneNumberVerified,
+      twoFactorEnabled: user.twoFactorEnabled,
     })
     .from(user)
     .where(
@@ -81,6 +83,18 @@ try {
   if (!account) fail("No account matches the supplied identifier");
   if (role !== "none" && !account.emailVerified && !account.phoneNumberVerified)
     fail("The account has no verified phone or email");
+  if (role !== "none") {
+    const [enrolled] = await db
+      .select({ verified: twoFactor.verified })
+      .from(twoFactor)
+      .where(eq(twoFactor.userId, account.id))
+      .limit(1);
+    if (!account.twoFactorEnabled || !enrolled?.verified) {
+      fail(
+        "The account must complete TOTP two-factor enrollment before receiving staff authority",
+      );
+    }
+  }
 
   const staffMunicipalityId = role === "moderator" ? values.municipality : null;
   if (staffMunicipalityId) {
@@ -123,6 +137,7 @@ try {
       .update(user)
       .set({ role: role === "admin" ? "admin" : "user" })
       .where(eq(user.id, account.id));
+    await revokeUserStaffSessions(tx, account.id);
 
     await recordAudit(
       {

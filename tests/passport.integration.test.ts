@@ -105,6 +105,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
           contact: null,
           session: null,
         }),
+        requireStaffSession: async () => {},
       };
       await expect(
         call(passportRouter.list, {}, { context }),

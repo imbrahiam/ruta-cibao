@@ -64,7 +64,13 @@ export function ItemRow({
 }
 
 /** The item's title: data as written, named for the row via `aria-labelledby`. */
-export function ItemTitle({ id, children }: { id: string; children: string }) {
+export function ItemTitle({
+  id,
+  children,
+}: {
+  id: string;
+  children: ReactNode;
+}) {
   return (
     <h2
       id={id}

@@ -48,9 +48,10 @@ export function AdminOverview() {
                   >
                     <span className="flex items-center gap-3">
                       {Icon ? (
-                        <span className="flex size-10 items-center justify-center rounded-full bg-paper-2 text-ink-2">
-                          <Icon aria-hidden className="size-5" />
-                        </span>
+                        <Icon
+                          aria-hidden
+                          className="size-5 shrink-0 text-ink-2"
+                        />
                       ) : null}
                       <span className="flex flex-col">
                         <span className="text-[16px] font-medium">

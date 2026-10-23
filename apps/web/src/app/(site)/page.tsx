@@ -58,7 +58,7 @@ export default function LandingPage() {
     <>
       <section className="container-page grid items-center gap-12 py-14 md:grid-cols-[1.1fr_0.9fr] md:py-24">
         <div className="animate-rise flex flex-col items-start gap-7">
-          <p className="t-label text-accent">{t("province")}</p>
+          <p className="t-label text-ink-2">{t("province")}</p>
           <h1 className="t-display">{t("headline")}</h1>
           <p className="t-body-lg max-w-[46ch] text-ink-2">{t("intro")}</p>
           <div className="flex flex-col gap-3">
@@ -147,10 +147,14 @@ export default function LandingPage() {
               key={title}
               className="flex flex-col gap-3 rounded-card bg-card p-6 shadow-ring"
             >
-              <span className="flex size-11 items-center justify-center rounded-full bg-accent-soft text-accent">
-                <Icon aria-hidden strokeWidth={1.75} className="size-5" />
-              </span>
-              <h3 className="t-h3">{t(title)}</h3>
+              <div className="flex items-center gap-2.5">
+                <Icon
+                  aria-hidden
+                  strokeWidth={1.75}
+                  className="size-5 shrink-0 text-ink"
+                />
+                <h3 className="t-h3">{t(title)}</h3>
+              </div>
               <p className="t-body text-ink-2">{t(body)}</p>
             </li>
           ))}

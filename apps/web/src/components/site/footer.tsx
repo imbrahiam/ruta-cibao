@@ -4,21 +4,18 @@ import { getT } from "@/lib/web/i18n";
 import { site } from "@/lib/web/site";
 
 const LINK =
-  "inline-flex min-h-11 items-center rounded-full px-1 text-[15px] text-on-pine/80 underline-offset-4 hover:text-on-pine hover:underline";
+  "inline-flex min-h-11 items-center rounded-full px-1 text-[15px] text-ink-2 underline-offset-4 hover:text-ink hover:underline";
 
 export function SiteFooter() {
   const t = getT("landing");
 
   return (
-    <footer className="bg-pine text-on-pine">
+    <footer className="border-t border-line bg-paper-2 text-ink">
       <div className="container-page flex flex-col gap-10 py-12 md:flex-row md:justify-between">
         <div className="flex max-w-sm flex-col gap-4">
-          <Logo
-            label={t("brand")}
-            className="[&_span:last-child]:text-on-pine"
-          />
-          <p className="t-small text-on-pine/75">{t("province")}</p>
-          <p className="t-small text-on-pine/75">{t("notice")}</p>
+          <Logo label={t("brand")} />
+          <p className="t-small text-ink-2">{t("province")}</p>
+          <p className="t-small text-ink-2">{t("notice")}</p>
         </div>
         <nav aria-label={t("footerLabel")}>
           <ul className="flex flex-col gap-0.5">

@@ -39,6 +39,7 @@ import { orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
 import { mediaUrl } from "@/lib/ids";
 import { Button } from "@/ui/button";
+import { CategoryBadge } from "@/ui/category-badge";
 import { categoryIcon, Icon } from "@/ui/icon";
 import { haptic, PressableScale } from "@/ui/pressable";
 import { EmptyState, Skeleton } from "@/ui/states";
@@ -147,11 +148,7 @@ export default function PlaceScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}
         showsVerticalScrollIndicator={false}
       >
-        <Hero
-          photos={photos}
-          color={place.category.color}
-          icon={place.category.icon}
-        />
+        <Hero photos={photos} icon={place.category.icon} />
 
         <View style={[styles.body, { backgroundColor: colors.background }]}>
           <View style={styles.titleBlock}>
@@ -163,18 +160,7 @@ export default function PlaceScreen() {
               {place.name}
             </Text>
             <View style={styles.meta}>
-              <View
-                style={[
-                  styles.categoryDot,
-                  { backgroundColor: place.category.color },
-                ]}
-              >
-                <Icon
-                  as={categoryIcon(place.category.icon)}
-                  size={12}
-                  color="#FFFFFF"
-                />
-              </View>
+              <CategoryBadge icon={place.category.icon} size={22} />
               <Text variant="subhead" tone="secondary">
                 {place.category.name} · {place.municipality.name}
               </Text>
@@ -369,18 +355,7 @@ export default function PlaceScreen() {
                       onPress={() => router.push(`/place/${item.slug}`)}
                       accessibilityLabel={item.name}
                     >
-                      <View
-                        style={[
-                          styles.nearbyIcon,
-                          { backgroundColor: item.category.color },
-                        ]}
-                      >
-                        <Icon
-                          as={categoryIcon(item.category.icon)}
-                          size={18}
-                          color="#FFFFFF"
-                        />
-                      </View>
+                      <CategoryBadge icon={item.category.icon} size={36} />
                       <Text variant="subhead" weight="600" numberOfLines={2}>
                         {item.name}
                       </Text>
@@ -444,15 +419,7 @@ export default function PlaceScreen() {
   );
 }
 
-function Hero({
-  photos,
-  color,
-  icon,
-}: {
-  photos: string[];
-  color: string;
-  icon: string;
-}) {
+function Hero({ photos, icon }: { photos: string[]; icon: string }) {
   const { width } = useWindowDimensions();
   const { colors } = useTheme();
   const t = useTranslations("place");
@@ -460,16 +427,22 @@ function Hero({
 
   if (photos.length === 0) {
     return (
-      <View style={[styles.hero, styles.heroEmpty, { backgroundColor: color }]}>
+      <View
+        style={[
+          styles.hero,
+          styles.heroEmpty,
+          { backgroundColor: colors.surface },
+        ]}
+      >
         <View style={styles.heroIcon}>
           <Icon
             as={categoryIcon(icon)}
             size={56}
-            color="#FFFFFF"
+            color={colors.textTertiary}
             strokeWidth={1.6}
           />
         </View>
-        <Text variant="footnote" style={styles.heroNote}>
+        <Text variant="footnote" tone="secondary">
           {t("noPhotos")}
         </Text>
       </View>
@@ -627,11 +600,9 @@ const styles = StyleSheet.create({
     width: 112,
     height: 112,
     borderRadius: 56,
-    backgroundColor: "rgba(255,255,255,0.18)",
     alignItems: "center",
     justifyContent: "center",
   },
-  heroNote: { color: "rgba(255,255,255,0.85)" },
   pager: {
     position: "absolute",
     right: space.md,
@@ -653,13 +624,6 @@ const styles = StyleSheet.create({
   },
   titleBlock: { gap: space.sm },
   meta: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  categoryDot: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   actions: { flexDirection: "row", gap: space.sm },
   action: {
     minHeight: 64,
@@ -683,13 +647,6 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "center", gap: space.sm },
   nearby: { gap: space.sm, paddingRight: space.md },
   nearbyCard: { width: 156, gap: space.sm },
-  nearbyIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   floating: { position: "absolute", left: space.md },
   floatingEnd: { position: "absolute", right: space.md },
 });

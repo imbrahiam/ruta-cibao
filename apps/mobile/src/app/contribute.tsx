@@ -12,28 +12,21 @@ import { Icon } from "@/ui/icon";
 import { PressableScale } from "@/ui/pressable";
 import { SheetHeader } from "@/ui/sheet-header";
 import { Text } from "@/ui/text";
-import { type Palette, radius, space, useTheme } from "@/ui/theme";
+import { radius, space, useTheme } from "@/ui/theme";
 
 type Option = {
   key: "place" | "traffic" | "consultation";
   icon: LucideIcon;
-  tint: keyof Palette;
   href: Href;
 };
 
 /** Every way to contribute, in one list: adding a kind means adding a row. */
 const OPTIONS: Option[] = [
-  {
-    key: "traffic",
-    icon: TriangleAlert,
-    tint: "warning",
-    href: "/contribute/traffic",
-  },
-  { key: "place", icon: MapPinPlus, tint: "accent", href: "/contribute/place" },
+  { key: "traffic", icon: TriangleAlert, href: "/contribute/traffic" },
+  { key: "place", icon: MapPinPlus, href: "/contribute/place" },
   {
     key: "consultation",
     icon: MessageSquareText,
-    tint: "pine",
     href: "/consultation/new",
   },
 ];
@@ -62,10 +55,8 @@ export default function ContributeSheet() {
               { backgroundColor: colors.surface, borderColor: colors.hairline },
             ]}
           >
-            <View
-              style={[styles.icon, { backgroundColor: colors[option.tint] }]}
-            >
-              <Icon as={option.icon} size={22} color="#FFFFFF" />
+            <View style={[styles.icon, { backgroundColor: colors.elevated }]}>
+              <Icon as={option.icon} size={22} color={colors.text} />
             </View>
             <View style={styles.text}>
               <Text variant="headline">{t(`${option.key}.title`)}</Text>

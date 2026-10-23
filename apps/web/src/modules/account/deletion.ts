@@ -30,6 +30,10 @@ import { deleteObject, putObject } from "@/lib/storage";
 import { refreshPublicCaches } from "@/lib/web-cache";
 import type { SessionInfo } from "@/modules/access/session";
 import type { MemberViewer } from "@/modules/access/viewer";
+import {
+  revokeOfflineSnapshots,
+  scheduleOfflineSnapshotRebuild,
+} from "@/modules/offline/snapshot";
 
 /**
  * Deleting an account for real.
@@ -610,6 +614,8 @@ export async function runAccountDeletion(deletionId: string) {
       },
       tx,
     );
+    await revokeOfflineSnapshots("account_deleted", tx);
+    await scheduleOfflineSnapshotRebuild(tx);
   });
 
   await refreshPublicCaches();

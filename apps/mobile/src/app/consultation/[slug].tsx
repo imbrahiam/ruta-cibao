@@ -1,4 +1,3 @@
-import Mapbox from "@rnmapbox/maps";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import {
@@ -9,19 +8,22 @@ import {
   ThumbsUp,
 } from "lucide-react-native";
 import { ScrollView, Share, StyleSheet, View } from "react-native";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFormatter, useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
 import { STATUS_STYLE } from "@/features/consultations/status";
+import { mapStyles } from "@/features/map/google-style";
 import { ContentMenu } from "@/features/safety/content-menu";
 import { orpc } from "@/lib/api";
 import { Button } from "@/ui/button";
-import { categoryIcon, Icon } from "@/ui/icon";
+import { CategoryBadge } from "@/ui/category-badge";
+import { Icon } from "@/ui/icon";
 import { EmptyState, Skeleton } from "@/ui/states";
 import { Card, IconButton } from "@/ui/surfaces";
 import { Badge } from "@/ui/tags";
 import { Text } from "@/ui/text";
-import { palettes, radius, space, useTheme } from "@/ui/theme";
+import { radius, space, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
 
 export default function ConsultationScreen() {
@@ -151,15 +153,7 @@ export default function ConsultationScreen() {
         ]}
       >
         <View style={styles.meta}>
-          <View
-            style={[styles.catIcon, { backgroundColor: data.categoryColor }]}
-          >
-            <Icon
-              as={categoryIcon(data.categoryIcon)}
-              size={14}
-              color="#FFFFFF"
-            />
-          </View>
+          <CategoryBadge icon={data.categoryIcon} size={26} />
           <Text variant="subhead" tone="secondary" style={styles.flex}>
             {data.categoryName} · {data.municipalityName}
           </Text>
@@ -203,63 +197,48 @@ export default function ConsultationScreen() {
 
         {data.location ? (
           <View style={styles.map}>
-            <Mapbox.MapView
+            <MapView
               style={StyleSheet.absoluteFill}
-              styleURL="mapbox://styles/mapbox/standard"
+              provider={PROVIDER_GOOGLE}
+              customMapStyle={mapStyles[scheme]}
+              initialCamera={{
+                center: {
+                  longitude: data.location.lng,
+                  latitude: data.location.lat,
+                },
+                zoom: 15.5,
+                heading: 0,
+                pitch: 0,
+              }}
               scrollEnabled={false}
               zoomEnabled={false}
               rotateEnabled={false}
               pitchEnabled={false}
-              scaleBarEnabled={false}
+              showsCompass={false}
+              showsBuildings={false}
+              toolbarEnabled={false}
+              loadingEnabled
+              loadingBackgroundColor={colors.background}
             >
-              <Mapbox.StyleImport
-                id="basemap"
-                existing
-                config={{
-                  lightPreset: scheme === "dark" ? "night" : "day",
-                  theme: "faded",
-                  showPointOfInterestLabels: false,
-                  show3dObjects: false,
+              <Marker
+                coordinate={{
+                  longitude: data.location.lng,
+                  latitude: data.location.lat,
                 }}
-              />
-              <Mapbox.Camera
-                defaultSettings={{
-                  centerCoordinate: [data.location.lng, data.location.lat],
-                  zoomLevel: 15,
-                }}
-              />
-              <Mapbox.ShapeSource
-                id="case-point"
-                shape={{
-                  type: "Feature",
-                  properties: {},
-                  geometry: {
-                    type: "Point",
-                    coordinates: [data.location.lng, data.location.lat],
-                  },
-                }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges={false}
               >
-                <Mapbox.CircleLayer
-                  id="case-halo"
-                  slot="top"
-                  style={{
-                    circleRadius: 22,
-                    circleColor: data.categoryColor,
-                    circleOpacity: 0.2,
-                  }}
+                <View
+                  style={[
+                    styles.caseDot,
+                    {
+                      backgroundColor: colors.pin,
+                      borderColor: colors.background,
+                    },
+                  ]}
                 />
-                <Mapbox.CircleLayer
-                  id="case-dot"
-                  slot="top"
-                  style={{
-                    circleRadius: 9,
-                    circleColor: data.categoryColor,
-                    circleStrokeColor: "#FFFFFF",
-                    circleStrokeWidth: 3,
-                  }}
-                />
-              </Mapbox.ShapeSource>
-            </Mapbox.MapView>
+              </Marker>
+            </MapView>
           </View>
         ) : null}
 
@@ -280,12 +259,9 @@ export default function ConsultationScreen() {
                 <View key={response.id} style={styles.event}>
                   <View style={styles.rail}>
                     <View
-                      style={[
-                        styles.railDot,
-                        { backgroundColor: palettes[scheme].pine },
-                      ]}
+                      style={[styles.railDot, { backgroundColor: colors.pin }]}
                     >
-                      <Icon as={Landmark} size={13} color="#FFFFFF" />
+                      <Icon as={Landmark} size={13} color={colors.onPin} />
                     </View>
                     {index < data.responses.length - 1 ? (
                       <View
@@ -383,6 +359,7 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   body: { lineHeight: 25 },
+  caseDot: { width: 18, height: 18, borderRadius: 9, borderWidth: 3 },
   map: {
     height: 180,
     borderRadius: radius.card,

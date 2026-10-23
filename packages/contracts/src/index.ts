@@ -12,11 +12,13 @@ import { meContract } from "./me";
 import { moderationContract } from "./moderation";
 import { municipalitiesContract } from "./municipalities";
 import { notificationsContract } from "./notifications";
+import { offlineContract } from "./offline";
 import { passportContract } from "./passport";
 import { placesContract } from "./places";
 import { reportsContract } from "./reports";
 import { routesContract } from "./routes";
 import { safetyContract } from "./safety";
+import { staffContract } from "./staff";
 import { trafficContract } from "./traffic";
 
 /**
@@ -38,6 +40,7 @@ export const contract = {
   municipalities: municipalitiesContract,
   moderation: moderationContract,
   notifications: notificationsContract,
+  offline: offlineContract,
   places: placesContract,
   passport: passportContract,
   traffic: trafficContract,
@@ -47,6 +50,7 @@ export const contract = {
   catalog: catalogContract,
   routes: routesContract,
   safety: safetyContract,
+  staff: staffContract,
 };
 
 export type Contract = typeof contract;
@@ -60,9 +64,11 @@ export * from "./me";
 export * from "./moderation";
 export * from "./municipalities";
 export * from "./notifications";
+export * from "./offline";
 export * from "./passport";
 export * from "./places";
 export * from "./reports";
 export * from "./routes";
 export * from "./safety";
+export * from "./staff";
 export * from "./traffic";

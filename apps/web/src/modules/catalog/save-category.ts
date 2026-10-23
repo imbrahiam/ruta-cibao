@@ -5,6 +5,7 @@ import { categories } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { withIdempotency } from "@/lib/idempotency";
 import type { ModeratorViewer } from "@/modules/access/permissions";
+import { scheduleOfflineSnapshotRebuild } from "@/modules/offline/snapshot";
 
 export async function saveCategory(
   viewer: ModeratorViewer,
@@ -61,6 +62,7 @@ export async function saveCategory(
         },
         tx,
       );
+      await scheduleOfflineSnapshotRebuild(tx);
       return { id };
     },
   });

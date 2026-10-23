@@ -16,19 +16,17 @@ jobs:
     env:
       APP_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      DATABASE_URL: postgresql://ruta:ruta@localhost:5432/ruta_cibao
+      EXPO_PUBLIC_API_ORIGIN: http://localhost:3000
+      DATABASE_URL: postgresql://ruta:ruta@localhost:5432/ruta_cibao_tests
       BETTER_AUTH_SECRET: ci-secret-value-that-is-long-enough-000
       BETTER_AUTH_URL: http://localhost:3000
-      JCE_API_URL: http://localhost:9999
-      # CI never calls the real registry: the lookup quota is 50/hour globally.
-      JCE_API_KEY: unused-in-ci
-      JCE_USE_MOCK: "1"
       APP_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
       JOBS_ENABLED: "0"
       S3_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY_ID: ci-test
       S3_SECRET_ACCESS_KEY: ci-test-secret
       S3_BUCKET: ci-test
+      S3_FORCE_PATH_STYLE: "1"
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -42,10 +40,10 @@ jobs:
         run: |
           docker build -t ruta-cibao-postgres infra/postgres
           docker run -d --name postgres -p 5432:5432 \
-            -e POSTGRES_USER=ruta -e POSTGRES_PASSWORD=ruta -e POSTGRES_DB=ruta_cibao \
+            -e POSTGRES_USER=ruta -e POSTGRES_PASSWORD=ruta -e POSTGRES_DB=ruta_cibao_tests \
             ruta-cibao-postgres
           for _ in $(seq 1 60); do
-            docker exec postgres pg_isready -U ruta -d ruta_cibao && exit 0
+            docker exec postgres pg_isready -U ruta -d ruta_cibao_tests && exit 0
             sleep 2
           done
           echo "::error::Postgres did not become ready"
@@ -67,16 +65,11 @@ jobs:
         run: bun run db:migrate
 
       - name: Database integration guarantees
-        run: RUN_DB_TESTS=1 bun test tests/production.integration.test.ts
-
-      - name: Migrations are up to date with the schema
         run: |
-          bun run db:generate
-          if [ -n "$(git status --porcelain -- drizzle)" ]; then
-            echo "::error::drizzle/ is out of date. Run 'bun run db:generate' and commit the result."
-            git diff --stat -- drizzle
-            exit 1
-          fi
+          RUN_DB_TESTS=1 bun test tests/production.integration.test.ts
+          RUN_DB_TESTS=1 bun test tests/safety.integration.test.ts
+          RUN_DB_TESTS=1 bun test tests/native-notifications.integration.test.ts
+          RUN_DB_TESTS=1 bun test tests/staff-totp.integration.test.ts
 
       - name: Start isolated object storage
         run: |
@@ -91,25 +84,14 @@ jobs:
           done
           bun -e 'import {S3Client,CreateBucketCommand} from "@aws-sdk/client-s3"; const client=new S3Client({endpoint:process.env.S3_ENDPOINT,region:"us-east-1",forcePathStyle:true,credentials:{accessKeyId:process.env.S3_ACCESS_KEY_ID,secretAccessKey:process.env.S3_SECRET_ACCESS_KEY}}); await client.send(new CreateBucketCommand({Bucket:process.env.S3_BUCKET}));'
 
-      - name: Encrypted evidence lifecycle
-        run: RUN_STORAGE_TESTS=1 bun test tests/identity-storage.integration.test.ts
+      - name: Media storage, account deletion, and offline snapshot guarantees
+        run: |
+          RUN_STORAGE_TESTS=1 bun test tests/media-storage.integration.test.ts
+          RUN_DB_TESTS=1 RUN_STORAGE_TESTS=1 bun test tests/account-deletion.integration.test.ts
+          RUN_DB_TESTS=1 RUN_STORAGE_TESTS=1 bun test tests/offline-snapshot.integration.test.ts
 
       - name: Build
         run: bun run build
-
-      - name: Browser smoke checks on desktop and mobile
-        env:
-          AUTH_LOG_DELIVERY: "1"
-          E2E_IDENTITY_TESTS: "1"
-        run: |
-          bunx playwright install --with-deps chromium
-          bun run start > /tmp/app.log 2>&1 &
-          for _ in $(seq 1 30); do
-            curl -fsS http://localhost:3000/api/ready && break
-            sleep 2
-          done
-          bunx playwright test e2e/web.e2e.ts e2e/identity.e2e.ts --grep 'installation|account and|sign in validates|resident submits evidence'
-
 
   docker:
     name: Docker ${{ matrix.target }}

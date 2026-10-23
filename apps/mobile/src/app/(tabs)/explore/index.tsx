@@ -1,21 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router, Stack } from "expo-router";
-import {
-  Bookmark,
-  Clock,
-  Footprints,
-  Mountain,
-  Search,
-} from "lucide-react-native";
+import { Bookmark, Clock, Mountain, Search } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { PlaceListRow } from "@/features/places/place-list-row";
+import { useHiddenTargets } from "@/features/safety/hidden-targets";
 import { orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
 import { mediaUrl } from "@/lib/ids";
-import { categoryIcon, Icon } from "@/ui/icon";
+import { CategoryBadge } from "@/ui/category-badge";
+import { Icon } from "@/ui/icon";
 import { PressableScale } from "@/ui/pressable";
 import { EmptyState, Skeleton } from "@/ui/states";
 import { Card, IconButton } from "@/ui/surfaces";
@@ -51,8 +47,22 @@ export default function ExploreScreen() {
     }),
   );
 
+  const hidden = useHiddenTargets();
   const needle = fold(query.trim());
-  const items = places.data?.items ?? [];
+  const items = useMemo(
+    () =>
+      (places.data?.items ?? []).filter(
+        (item) => !hidden.places.has(item.slug),
+      ),
+    [places.data, hidden.places],
+  );
+  const routeItems = useMemo(
+    () =>
+      (routes.data?.items ?? []).filter(
+        (route) => !hidden.routes.has(route.id),
+      ),
+    [routes.data, hidden.routes],
+  );
   const matches = useMemo(
     () =>
       needle
@@ -239,18 +249,7 @@ export default function ExploreScreen() {
                             accessibilityLabel={category.name}
                             style={styles.tile}
                           >
-                            <View
-                              style={[
-                                styles.tileIcon,
-                                { backgroundColor: category.color },
-                              ]}
-                            >
-                              <Icon
-                                as={categoryIcon(category.icon)}
-                                size={18}
-                                color="#FFFFFF"
-                              />
-                            </View>
+                            <CategoryBadge icon={category.icon} size={36} />
                             <Text
                               variant="subhead"
                               weight="600"
@@ -278,18 +277,7 @@ export default function ExploreScreen() {
                     onPress={() => router.push(`/place/${item.slug}`)}
                     accessibilityLabel={item.name}
                   >
-                    <View
-                      style={[
-                        styles.tileIcon,
-                        { backgroundColor: item.categoryColor },
-                      ]}
-                    >
-                      <Icon
-                        as={categoryIcon(item.categoryIcon)}
-                        size={18}
-                        color="#FFFFFF"
-                      />
-                    </View>
+                    <CategoryBadge icon={item.categoryIcon} size={36} />
                     <Text variant="subhead" weight="600" numberOfLines={2}>
                       {item.name}
                     </Text>
@@ -304,7 +292,7 @@ export default function ExploreScreen() {
             <Section title={t("routes")}>
               {routes.isPending ? (
                 <Skeleton width={260} height={130} rounded={radius.card} />
-              ) : (routes.data?.items ?? []).length === 0 ? (
+              ) : routeItems.length === 0 ? (
                 <Card style={styles.emptyRoutes}>
                   <Icon as={Mountain} size={22} color="textTertiary" />
                   <Text variant="subhead" tone="secondary" style={styles.flex}>
@@ -312,21 +300,14 @@ export default function ExploreScreen() {
                   </Text>
                 </Card>
               ) : (
-                (routes.data?.items ?? []).map((route) => (
+                routeItems.map((route) => (
                   <Card
                     key={route.id}
                     style={styles.routeCard}
                     onPress={() => router.push(`/route/${route.id}`)}
                     accessibilityLabel={route.name}
                   >
-                    <View
-                      style={[
-                        styles.tileIcon,
-                        { backgroundColor: colors.success },
-                      ]}
-                    >
-                      <Icon as={Footprints} size={18} color="#FFFFFF" />
-                    </View>
+                    <CategoryBadge icon="footprints" size={36} />
                     <Text variant="headline" numberOfLines={2}>
                       {route.name}
                     </Text>

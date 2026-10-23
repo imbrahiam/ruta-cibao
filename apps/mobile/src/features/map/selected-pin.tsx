@@ -10,7 +10,7 @@ import Animated, {
 } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { categoryIcon, Icon } from "@/ui/icon";
-import { ease, useScheme } from "@/ui/theme";
+import { ease, palettes, useScheme } from "@/ui/theme";
 
 const WIDTH = 48;
 const HEIGHT = 50;
@@ -30,16 +30,9 @@ const DROP =
  * grows as it lands. Rare and user-caused, so it may move; with reduced motion
  * it simply appears.
  */
-export function SelectedPin({
-  color,
-  icon,
-  label,
-}: {
-  color: string;
-  icon: string;
-  label: string;
-}) {
+export function SelectedPin({ icon, label }: { icon: string; label: string }) {
   const scheme = useScheme();
+  const colors = palettes[scheme];
   const reduced = useReducedMotion();
   const drop = useSharedValue(reduced ? 1 : 0);
 
@@ -76,13 +69,18 @@ export function SelectedPin({
       <Animated.View style={[styles.shadow, shadow]} />
       <Animated.View style={[styles.pin, pin]}>
         <Svg width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
-          <Path d={DROP} fill={color} stroke="#FFFFFF" strokeWidth={3} />
+          <Path
+            d={DROP}
+            fill={colors.pin}
+            stroke={colors.background}
+            strokeWidth={3}
+          />
         </Svg>
         <View style={styles.glyph}>
           <Icon
             as={categoryIcon(icon)}
             size={20}
-            color="#FFFFFF"
+            color={colors.onPin}
             strokeWidth={2.4}
           />
         </View>

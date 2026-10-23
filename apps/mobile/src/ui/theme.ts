@@ -4,93 +4,173 @@ import { cubicBezier, Easing } from "react-native-reanimated";
 /**
  * Design tokens.
  *
- * Warm paper and near-black ink, one pine accent, and nothing else coloured
- * except status and categories. Every value a component uses comes from here:
- * a one-off hex, radius or shadow is a bug.
+ * Monochrome by default: white and black, a short ladder of greys, and colour
+ * only where it carries meaning (traffic severity, success, warning, error,
+ * "you are here"). Every value a component uses comes from here: a one-off
+ * hex, radius or shadow is a bug.
+ *
+ * To re-skin the app, change the knobs in `brand` below. `accent` drives the
+ * primary buttons, selected chips, links and focus; `pin` drives the place
+ * markers on the map (keep it equal to `ink` for the monochrome map even when
+ * `accent` becomes a colour). The basemap itself is themed by `mapPalettes`.
  *
  * Contrast: text tokens pass WCAG AA (4.5:1) on `background`, `surface` and
  * `inset` in both schemes; `textTertiary` is the lightest text allowed for
- * captions. `textDisabled` is never used for information.
+ * captions. `textDisabled` is never used for information. A new `accent` must
+ * keep 4.5:1 against `onAccent` and 3:1 against `background`.
  */
+export const brand = {
+  light: {
+    paper: "#FFFFFF",
+    ink: "#000000",
+    accent: "#000000",
+    accentPressed: "#333333",
+    onAccent: "#FFFFFF",
+    pin: "#000000",
+    onPin: "#FFFFFF",
+  },
+  dark: {
+    paper: "#000000",
+    ink: "#FFFFFF",
+    accent: "#FFFFFF",
+    accentPressed: "#DDDDDD",
+    onAccent: "#000000",
+    pin: "#FFFFFF",
+    onPin: "#000000",
+  },
+} as const;
+
 const light = {
-  background: "#FAFAF7",
-  surface: "#FFFFFF",
-  inset: "#F2F1EC",
-  fill: "#E9E7E0",
-  fillPressed: "#DEDBD2",
-  separator: "#DEDBD2",
-  hairline: "rgba(18, 18, 17, 0.08)",
+  background: brand.light.paper,
+  /** Things floating over the map or content: sheets, search bar, map buttons. */
+  elevated: brand.light.paper,
+  // Tiles, inputs and grouped rows sit on white as a light grey, the way Uber
+  // and Google Maps separate content in light mode without borders or shadows.
+  surface: "#F3F3F3",
+  inset: "#F6F6F6",
+  fill: "#E8E8E8",
+  fillPressed: "#DCDCDC",
+  separator: "#E8E8E8",
+  hairline: "rgba(0, 0, 0, 0.08)",
 
-  text: "#121211",
-  textSecondary: "#57554F",
-  textTertiary: "#6F6C64",
-  textDisabled: "#B5B2A9",
+  text: brand.light.ink,
+  textSecondary: "#545454",
+  textTertiary: "#6B6B6B",
+  textDisabled: "#AFAFAF",
 
-  accent: "#1F6B52",
-  accentPressed: "#175A44",
-  accentSoft: "rgba(31, 107, 82, 0.10)",
-  onAccent: "#FFFFFF",
+  accent: brand.light.accent,
+  accentPressed: brand.light.accentPressed,
+  accentSoft: "rgba(0, 0, 0, 0.06)",
+  onAccent: brand.light.onAccent,
 
-  pine: "#183F32",
-  onPine: "#F3F2EE",
+  pin: brand.light.pin,
+  onPin: brand.light.onPin,
+  /** Glyphs and text on a status colour (traffic severity, badges). */
+  onStatus: "#FFFFFF",
 
-  success: "#2E9E6B",
-  successInk: "#1E6E4A",
-  successSoft: "rgba(46, 158, 107, 0.12)",
-  warning: "#C98A1B",
-  warningInk: "#8A5A08",
-  warningSoft: "rgba(201, 138, 27, 0.14)",
-  danger: "#D4483A",
-  dangerInk: "#B0352A",
-  dangerSoft: "rgba(212, 72, 58, 0.10)",
+  pine: brand.light.ink,
+  onPine: brand.light.paper,
 
-  locate: "#2F5BFF",
-  glass: "rgba(255, 255, 255, 0.82)",
-  scrim: "rgba(18, 18, 17, 0.28)",
-  shadow: "#121211",
+  success: "#05944F",
+  successInk: "#03703C",
+  successSoft: "rgba(5, 148, 79, 0.10)",
+  warning: "#C77E00",
+  warningInk: "#8A5600",
+  warningSoft: "rgba(255, 192, 67, 0.20)",
+  danger: "#E11900",
+  dangerInk: "#B01400",
+  dangerSoft: "rgba(225, 25, 0, 0.08)",
+
+  locate: "#276EF1",
+  glass: "rgba(255, 255, 255, 0.94)",
+  scrim: "rgba(0, 0, 0, 0.32)",
+  shadow: "#000000",
 } as const;
 
 export type Palette = { [K in keyof typeof light]: string };
 
 const dark: Palette = {
-  background: "#121211",
-  surface: "#1C1C1A",
-  inset: "#1A1A18",
-  fill: "#262623",
-  fillPressed: "#2E2E2B",
-  separator: "#2E2E2B",
-  hairline: "rgba(255, 255, 255, 0.08)",
+  background: brand.dark.paper,
+  elevated: "#1C1C1C",
+  surface: "#1C1C1C",
+  inset: "#141414",
+  fill: "#2B2B2B",
+  fillPressed: "#363636",
+  separator: "#2B2B2B",
+  hairline: "rgba(255, 255, 255, 0.10)",
 
-  text: "#F3F2EE",
-  textSecondary: "#C2BFB6",
-  textTertiary: "#9C998F",
-  textDisabled: "#57554F",
+  text: brand.dark.ink,
+  textSecondary: "#BDBDBD",
+  textTertiary: "#9A9A9A",
+  textDisabled: "#5E5E5E",
 
-  accent: "#5FBF9A",
-  accentPressed: "#7DD0B0",
-  accentSoft: "rgba(95, 191, 154, 0.16)",
-  onAccent: "#121211",
+  accent: brand.dark.accent,
+  accentPressed: brand.dark.accentPressed,
+  accentSoft: "rgba(255, 255, 255, 0.10)",
+  onAccent: brand.dark.onAccent,
 
-  pine: "#183F32",
-  onPine: "#F3F2EE",
+  pin: brand.dark.pin,
+  onPin: brand.dark.onPin,
+  onStatus: "#FFFFFF",
 
-  success: "#4CC28C",
-  successInk: "#7DD8AE",
-  successSoft: "rgba(76, 194, 140, 0.16)",
-  warning: "#E0A33A",
-  warningInk: "#F0C274",
-  warningSoft: "rgba(224, 163, 58, 0.16)",
-  danger: "#F06A5C",
-  dangerInk: "#FF9488",
-  dangerSoft: "rgba(240, 106, 92, 0.16)",
+  pine: brand.dark.ink,
+  onPine: brand.dark.paper,
 
-  locate: "#5C7DFF",
-  glass: "rgba(28, 28, 26, 0.82)",
-  scrim: "rgba(0, 0, 0, 0.5)",
+  success: "#3CCB7F",
+  successInk: "#6EDDA2",
+  successSoft: "rgba(60, 203, 127, 0.16)",
+  warning: "#FFC043",
+  warningInk: "#FFD27A",
+  warningSoft: "rgba(255, 192, 67, 0.16)",
+  danger: "#FF6B57",
+  dangerInk: "#FF9585",
+  dangerSoft: "rgba(255, 107, 87, 0.16)",
+
+  locate: "#5B91F5",
+  glass: "rgba(28, 28, 28, 0.94)",
+  scrim: "rgba(0, 0, 0, 0.55)",
   shadow: "#000000",
 };
 
 export const palettes = { light, dark } as const;
+
+/**
+ * The basemap, as tokens: `features/map/google-style.ts` turns these into the
+ * Google Maps style, so re-tinting the map is a change here, not in the style.
+ */
+export const mapPalettes = {
+  light: {
+    ground: "#F3F3F3",
+    park: "#E6EBE6",
+    water: "#D6DDE3",
+    waterLabel: "#8A97A1",
+    road: "#FFFFFF",
+    roadEdge: "#E3E3E3",
+    highway: "#DADADA",
+    label: "#5E5E5E",
+    labelStrong: "#2B2B2B",
+    labelMuted: "#8A8A8A",
+    labelHalo: "#FFFFFF",
+    adminLine: "#C9C9C9",
+    /** Dims the country around the province. */
+    veil: "rgba(255, 255, 255, 0.5)",
+  },
+  dark: {
+    ground: "#1B1B1B",
+    park: "#1F241F",
+    water: "#0E1418",
+    waterLabel: "#4E5A62",
+    road: "#2E2E2E",
+    roadEdge: "#232323",
+    highway: "#3D3D3D",
+    label: "#8C8C8C",
+    labelStrong: "#CFCFCF",
+    labelMuted: "#7A7A7A",
+    labelHalo: "#1B1B1B",
+    adminLine: "#3A3A3A",
+    veil: "rgba(0, 0, 0, 0.45)",
+  },
+} as const;
 
 export type Scheme = keyof typeof palettes;
 
@@ -212,26 +292,23 @@ export const spring = {
   sheet: { duration: 300, dampingRatio: 0.8 },
 } as const;
 
-/** Elevation for floating things over the map: ring plus soft drop. */
+/** Elevation for floating things over the map: one soft drop, no ring. */
 export function floating(scheme: Scheme) {
   return {
     shadowColor: palettes[scheme].shadow,
-    shadowOpacity: scheme === "dark" ? 0.45 : 0.12,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    shadowOpacity: scheme === "dark" ? 0.5 : 0.14,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
   } as const;
 }
 
-/** Cards sit on paper with a hairline and the faintest lift. */
-export function raised(scheme: Scheme) {
-  return {
-    shadowColor: palettes[scheme].shadow,
-    shadowOpacity: scheme === "dark" ? 0.3 : 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 2,
-  } as const;
+/**
+ * Cards are flat: a grey tile on white, a dark tile on black. Kept as a
+ * function so a component that wants depth asks for it in one place.
+ */
+export function raised(_scheme: Scheme) {
+  return {} as const;
 }
 
 export function useScheme(): Scheme {

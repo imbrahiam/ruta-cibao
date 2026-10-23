@@ -55,7 +55,17 @@ async function handle(request: Request) {
     context: createContext(request),
   });
 
-  return response ?? new Response("Not found", { status: 404 });
+  if (!response) return new Response("Not found", { status: 404 });
+  if (new URL(request.url).pathname === "/api/offline/manifest") {
+    const headers = new Headers(response.headers);
+    headers.set("cache-control", "no-store");
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+  return response;
 }
 
 export const GET = handle;

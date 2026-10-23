@@ -64,6 +64,7 @@ function clientFor(viewer: Viewer, expectedUser?: string) {
                 emailVerified: viewer.contactVerified,
               },
             },
+      requireStaffSession: async () => {},
     },
   });
 }
@@ -230,6 +231,17 @@ try {
   const issue = await citizenApi.consultations.open(caseInput);
   fixtureSubjects.push(issue.id);
   expect(await citizenApi.consultations.open(caseInput)).toEqual(issue);
+  expect(
+    (await citizenApi.consultations.detail({ slug: issue.slug })).title,
+  ).toBe(caseInput.title);
+  await expect(
+    anonApi.consultations.detail({ slug: issue.slug }),
+  ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  await adminApi.moderation.decidePublication({
+    requestId: key(),
+    target: { kind: "consultation", ref: issue.id },
+    status: "published",
+  });
   const supported = await secondApi.consultations.support({
     consultationId: issue.id,
     supported: true,
@@ -360,6 +372,8 @@ try {
   ).toBe(true);
   await citizenApi.traffic.confirm({ reportId: alert.id, verdict: "cleared" });
   await secondApi.traffic.confirm({ reportId: alert.id, verdict: "cleared" });
+  await adminApi.traffic.confirm({ reportId: alert.id, verdict: "cleared" });
+  await outsideApi.traffic.confirm({ reportId: alert.id, verdict: "cleared" });
   const [resolved] = await db
     .select({ status: trafficReports.status })
     .from(trafficReports)

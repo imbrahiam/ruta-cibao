@@ -208,7 +208,7 @@ export async function reportTraffic(
       return {
         id: created.id,
         municipalityId: municipality.id,
-        expiresAt,
+        expiresAt: expiresAt.toISOString(),
         location,
       };
     },
@@ -217,6 +217,6 @@ export async function reportTraffic(
   return {
     id: outcome.result.id,
     status: "active" as const,
-    expiresAt: outcome.result.expiresAt.toISOString(),
+    expiresAt: new Date(outcome.result.expiresAt).toISOString(),
   };
 }

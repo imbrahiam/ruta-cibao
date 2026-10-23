@@ -220,3 +220,35 @@ export const workerHeartbeats = pgTable("worker_heartbeats", {
   id: text().primaryKey(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Versioned first-party offline snapshots stored in the private bucket.
+ *
+ * Only one unrevoked snapshot is current (`isCurrent = true`). A failed
+ * rebuild leaves the previous current row untouched; a privacy or abuse
+ * removal marks every affected version `revokedAt` (and `isCurrent = false`)
+ * so `/api/offline/snapshots/[version]` returns 410 and new downloads pause
+ * until the replacement snapshot succeeds.
+ */
+export const offlineSnapshots = pgTable(
+  "offline_snapshots",
+  {
+    version: text().primaryKey(),
+    schemaVersion: integer().notNull().default(1),
+    storageKey: text().notNull().unique(),
+    sha256: text().notNull(),
+    sizeBytes: integer().notNull(),
+    generatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    isCurrent: boolean().notNull().default(false),
+    revokedAt: timestamp({ withTimezone: true }),
+    revokedReason: text(),
+  },
+  (table) => [
+    index("offline_snapshots_current_idx").on(
+      table.isCurrent,
+      table.generatedAt,
+    ),
+  ],
+);
+
+export type OfflineSnapshotRecord = typeof offlineSnapshots.$inferSelect;

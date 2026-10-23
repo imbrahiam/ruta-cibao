@@ -1,4 +1,4 @@
-import { BRAND_COLORS, MARK } from "@ruta/shared/brand";
+import { MARK } from "@ruta/shared/brand";
 import { cx } from "@/lib/web/cx";
 
 /**
@@ -12,7 +12,7 @@ export function LogoMark({ className }: { className?: string }) {
     <span
       aria-hidden
       className={cx(
-        "inline-flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-pine",
+        "inline-flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-ink text-paper",
         className,
       )}
     >
@@ -24,7 +24,7 @@ export function LogoMark({ className }: { className?: string }) {
       >
         <path
           d={road}
-          stroke={BRAND_COLORS.paper}
+          stroke="currentColor"
           strokeWidth={roadWidth}
           strokeLinecap="round"
         />
@@ -32,17 +32,12 @@ export function LogoMark({ className }: { className?: string }) {
           cx={start.cx}
           cy={start.cy}
           r={start.r}
-          fill={BRAND_COLORS.pine}
-          stroke={BRAND_COLORS.paper}
+          fill="var(--ink)"
+          stroke="currentColor"
           strokeWidth={roadWidth / 2}
         />
-        <path d={pin} fill={BRAND_COLORS.paper} />
-        <circle
-          cx={pinDot.cx}
-          cy={pinDot.cy}
-          r={pinDot.r}
-          fill={BRAND_COLORS.pine}
-        />
+        <path d={pin} fill="currentColor" />
+        <circle cx={pinDot.cx} cy={pinDot.cy} r={pinDot.r} fill="var(--ink)" />
       </svg>
     </span>
   );

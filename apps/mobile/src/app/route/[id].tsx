@@ -1,4 +1,3 @@
-import Mapbox from "@rnmapbox/maps";
 import { directionsUrl } from "@ruta/shared/directions";
 import { useQuery } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -18,10 +17,13 @@ import {
   UserRound,
   Utensils,
 } from "lucide-react-native";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Linking, Platform, ScrollView, StyleSheet, View } from "react-native";
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslations } from "use-intl";
+import { lineCoordinates } from "@/features/map/geometry";
+import { mapStyles } from "@/features/map/google-style";
 import { ContentMenu } from "@/features/safety/content-menu";
 import { orpc } from "@/lib/api";
 import { Button } from "@/ui/button";
@@ -29,7 +31,7 @@ import { Icon } from "@/ui/icon";
 import { EmptyState, Skeleton } from "@/ui/states";
 import { Card, IconButton } from "@/ui/surfaces";
 import { Text } from "@/ui/text";
-import { palettes, radius, space, useTheme } from "@/ui/theme";
+import { radius, space, useTheme } from "@/ui/theme";
 
 const SERVICE_ICONS: Record<string, LucideIcon> = {
   water: Droplets,
@@ -50,29 +52,12 @@ export default function RouteScreen() {
   const route = useQuery(orpc.routes.detail.queryOptions({ input: { id } }));
   const data = route.data;
 
-  const line = useMemo<GeoJSON.Feature | null>(
-    () =>
-      data
-        ? {
-            type: "Feature",
-            properties: {},
-            geometry: {
-              type: "LineString",
-              coordinates: data.path.map((point) => [point.lng, point.lat]),
-            },
-          }
-        : null,
+  const line = useMemo(
+    () => (data ? lineCoordinates(data.path) : null),
     [data],
   );
-  const bounds = useMemo(() => {
-    if (!data) return null;
-    const lngs = data.path.map((p) => p.lng);
-    const lats = data.path.map((p) => p.lat);
-    return {
-      ne: [Math.max(...lngs), Math.max(...lats)] as [number, number],
-      sw: [Math.min(...lngs), Math.min(...lats)] as [number, number],
-    };
-  }, [data]);
+  const map = useRef<MapView>(null);
+  const bounds = line && line.length > 1 ? line : null;
 
   if (route.isPending) {
     return (
@@ -117,83 +102,76 @@ export default function RouteScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}
       >
         <View style={styles.map}>
-          <Mapbox.MapView
+          <MapView
+            ref={map}
             style={StyleSheet.absoluteFill}
-            styleURL="mapbox://styles/mapbox/standard"
-            scaleBarEnabled={false}
+            provider={PROVIDER_GOOGLE}
+            customMapStyle={mapStyles[scheme]}
+            initialCamera={{
+              center: {
+                longitude: start?.lng ?? 0,
+                latitude: start?.lat ?? 0,
+              },
+              zoom: 13,
+              heading: 0,
+              pitch: 0,
+            }}
+            showsCompass={false}
+            showsBuildings={false}
+            showsIndoors={false}
+            toolbarEnabled={false}
             pitchEnabled={false}
             rotateEnabled={false}
-            logoPosition={{ bottom: space.xl + 4, left: 12 }}
-            attributionPosition={{ bottom: space.xl + 4, right: 12 }}
-          >
-            <Mapbox.StyleImport
-              id="basemap"
-              existing
-              config={{
-                lightPreset: scheme === "dark" ? "night" : "day",
-                theme: "faded",
-                showPointOfInterestLabels: false,
-                show3dObjects: false,
-              }}
-            />
-            <Mapbox.Camera
-              defaultSettings={{
-                bounds: {
-                  ...bounds,
-                  paddingTop: insets.top + 56,
-                  paddingBottom: 64,
-                  paddingLeft: 40,
-                  paddingRight: 40,
+            loadingEnabled
+            loadingBackgroundColor={colors.background}
+            onMapReady={() =>
+              map.current?.fitToCoordinates(bounds, {
+                edgePadding: {
+                  top: insets.top + 56,
+                  bottom: 48,
+                  left: 40,
+                  right: 40,
                 },
-              }}
+                animated: false,
+              })
+            }
+          >
+            <Polyline
+              coordinates={line}
+              strokeColor={colors.background}
+              strokeWidth={8}
+              lineCap="round"
+              lineJoin="round"
+              zIndex={1}
             />
-            <Mapbox.ShapeSource id="route" shape={line}>
-              <Mapbox.LineLayer
-                id="route-casing"
-                slot="top"
-                style={{
-                  lineColor: "#FFFFFF",
-                  lineWidth: 8,
-                  lineCap: "round",
-                  lineJoin: "round",
-                }}
-              />
-              <Mapbox.LineLayer
-                id="route-line"
-                slot="top"
-                style={{
-                  lineColor: palettes[scheme].success,
-                  lineWidth: 5,
-                  lineCap: "round",
-                  lineJoin: "round",
-                }}
-              />
-            </Mapbox.ShapeSource>
+            <Polyline
+              coordinates={line}
+              strokeColor={colors.pin}
+              strokeWidth={4.5}
+              lineCap="round"
+              lineJoin="round"
+              zIndex={2}
+            />
             {start ? (
-              <Mapbox.ShapeSource
-                id="route-start"
-                shape={{
-                  type: "Feature",
-                  properties: {},
-                  geometry: {
-                    type: "Point",
-                    coordinates: [start.lng, start.lat],
-                  },
-                }}
+              <Marker
+                coordinate={{ longitude: start.lng, latitude: start.lat }}
+                anchor={{ x: 0.5, y: 0.5 }}
+                tracksViewChanges={false}
+                zIndex={3}
+                accessibilityLabel={t("toStart")}
               >
-                <Mapbox.CircleLayer
-                  id="route-start-dot"
-                  slot="top"
-                  style={{
-                    circleRadius: 8,
-                    circleColor: palettes[scheme].success,
-                    circleStrokeColor: "#FFFFFF",
-                    circleStrokeWidth: 3,
-                  }}
+                <View
+                  style={[
+                    styles.startDot,
+                    {
+                      backgroundColor: colors.pin,
+                      borderColor: colors.background,
+                    },
+                  ]}
                 />
-              </Mapbox.ShapeSource>
+              </Marker>
             ) : null}
-          </Mapbox.MapView>
+          </MapView>
         </View>
 
         <View style={[styles.body, { backgroundColor: colors.background }]}>
@@ -342,6 +320,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   center: { justifyContent: "center" },
   map: { height: 340 },
+  startDot: { width: 16, height: 16, borderRadius: 8, borderWidth: 3 },
   body: {
     marginTop: -space.lg,
     borderTopLeftRadius: radius.panel,

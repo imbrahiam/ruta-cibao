@@ -16,6 +16,7 @@ import { orpc } from "@/lib/web/api";
 import { cx } from "@/lib/web/cx";
 import {
   CategoryForm,
+  CategoryIcon,
   type CategoryKind,
   type CategoryRecord,
 } from "./category-form";
@@ -213,9 +214,9 @@ function CategoryRow({
             {record.name}
           </span>
         </div>
-        <p className="t-small flex gap-1.5 text-ink">
+        <p className="t-small flex items-center gap-1.5 text-ink">
           <span className={label}>{t("icon")}:</span>
-          {t(record.icon)}
+          <CategoryIcon name={record.icon} />
         </p>
         <p className="t-small flex gap-1.5 text-ink">
           <span className={label}>{t("color")}:</span>

@@ -79,7 +79,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       "expo-localization",
       "expo-secure-store",
       ["expo-sqlite", { useSQLCipher: true }],
-      ["@rnmapbox/maps", { RNMapboxMapsImpl: "mapbox" }],
+      [
+        "react-native-maps",
+        {
+          // Client-visible by design; restrict it to the app bundle ids and the
+          // Maps SDKs in Google Cloud.
+          iosGoogleMapsApiKey: process.env.GOOGLE_MAPS_MOBILE_API_KEY,
+          androidGoogleMapsApiKey: process.env.GOOGLE_MAPS_MOBILE_API_KEY,
+        },
+      ],
       ["expo-location", { locationWhenInUsePermission: permissions.location }],
       [
         "expo-image-picker",
@@ -89,16 +97,16 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           microphonePermission: false,
         },
       ],
-      ["expo-notifications", { color: "#1F6B52", defaultChannel: "default" }],
+      ["expo-notifications", { color: "#000000", defaultChannel: "default" }],
       [
         "expo-splash-screen",
         {
           image: "./assets/images/splash-icon.png",
           imageWidth: 96,
-          backgroundColor: "#FAFAF7",
+          backgroundColor: "#FFFFFF",
           dark: {
             image: "./assets/images/splash-icon.png",
-            backgroundColor: "#121211",
+            backgroundColor: "#000000",
           },
         },
       ],

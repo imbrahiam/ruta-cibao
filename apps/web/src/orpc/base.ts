@@ -36,6 +36,7 @@ export const member = middleware.middleware(async ({ context, next }) => {
  */
 export const moderator = middleware.middleware(async ({ context, next }) => {
   const viewer = requireModerator(await context.getViewer());
+  await context.requireStaffSession();
   return next({ context: { viewer } });
 });
 
@@ -48,5 +49,6 @@ export const admin = middleware.middleware(async ({ context, next }) => {
       data: { reason: "admin_required" },
     });
   }
+  await context.requireStaffSession();
   return next({ context: { viewer } });
 });

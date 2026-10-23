@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 /*
- * Ruta Cibao tokens: warm paper, ink, and one accent ("pino").
+ * Ruta Cibao tokens: monochrome ink and warm paper, with colour reserved for
+ * semantic meaning (success, traffic/warning, danger).
  *
  * Every colour, radius, shadow and easing on the web comes from this block.
  * Dark follows the visitor's system setting; there is no toggle to maintain.
@@ -20,12 +21,12 @@
   --line: #dedbd2;
   --card: #ffffff;
 
-  --accent: #1f6b52;
-  --accent-hover: #175a44;
-  --accent-soft: #1f6b521a;
-  --on-accent: #ffffff;
-  /* Deep pine: the one coloured surface (landing band, footer). */
-  --pine: #183f32;
+  --accent: #121211;
+  --accent-hover: #242421;
+  --accent-soft: #12121114;
+  --on-accent: #fafaf7;
+  /* Near-black monochrome band (territory section, footer). */
+  --pine: #121211;
   --on-pine: #f3f2ee;
 
   --success: #2e9e6b;
@@ -62,11 +63,11 @@
     --paper-3: #242421;
     --line: #2e2e2b;
     --card: #1c1c1a;
-    --accent: #5fbf9a;
-    --accent-hover: #7dd0b0;
-    --accent-soft: #5fbf9a24;
+    --accent: #f3f2ee;
+    --accent-hover: #dedbd2;
+    --accent-soft: #f3f2ee1f;
     --on-accent: #121211;
-    --pine: #14352a;
+    --pine: #1a1a18;
     --ring: 0 0 0 1px rgba(255, 255, 255, 0.08);
     --shadow-sm:
       0 0 0 1px rgba(255, 255, 255, 0.07), 0 4px 14px rgba(0, 0, 0, 0.35);

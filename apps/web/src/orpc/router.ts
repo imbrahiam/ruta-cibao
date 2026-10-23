@@ -6,11 +6,13 @@ import { meRouter } from "./routers/me";
 import { moderationRouter } from "./routers/moderation";
 import { municipalitiesRouter } from "./routers/municipalities";
 import { notificationsRouter } from "./routers/notifications";
+import { offlineRouter } from "./routers/offline";
 import { passportRouter } from "./routers/passport";
 import { placesRouter } from "./routers/places";
 import { reportsRouter } from "./routers/reports";
 import { routesRouter } from "./routers/routes";
 import { safetyRouter } from "./routers/safety";
+import { staffRouter } from "./routers/staff";
 import { trafficRouter } from "./routers/traffic";
 
 /**
@@ -29,6 +31,7 @@ export const router = impl.router({
   municipalities: municipalitiesRouter,
   moderation: moderationRouter,
   notifications: notificationsRouter,
+  offline: offlineRouter,
   places: placesRouter,
   passport: passportRouter,
   traffic: trafficRouter,
@@ -38,4 +41,5 @@ export const router = impl.router({
   catalog: catalogRouter,
   routes: routesRouter,
   safety: safetyRouter,
+  staff: staffRouter,
 });

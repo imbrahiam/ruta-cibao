@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { QueueDesk } from "@/components/admin/queue/queue-desk";
 import { isQueueSlug, QUEUE_SLUGS } from "@/components/admin/queue/slugs";
 
+/** Withheld during prerender until `AdminShell` verifies the staff session. */
+export const instant = false;
+
 export function generateStaticParams() {
   return QUEUE_SLUGS.map((queue) => ({ queue }));
 }

@@ -12,7 +12,7 @@ import { categoryIcon, Icon } from "@/ui/icon";
 import { IconButton } from "@/ui/surfaces";
 import { Badge } from "@/ui/tags";
 import { Text } from "@/ui/text";
-import { space } from "@/ui/theme";
+import { space, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
 import type { TrafficReport } from "./data";
 
@@ -32,6 +32,7 @@ export function TrafficSummary({
   const toast = useToast();
   const queryClient = useQueryClient();
   const asMember = useMemberAction();
+  const { colors } = useTheme();
   const color = trafficColor(report.state, report.severity);
   const cleared = report.state === "cleared";
 
@@ -60,7 +61,7 @@ export function TrafficSummary({
           <Icon
             as={categoryIcon(report.categoryIcon)}
             size={22}
-            color="#FFFFFF"
+            color={colors.onStatus}
           />
         </View>
         <View style={styles.flex}>
