@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { detectPlatform, directionsUrl } from "@/lib/map/directions";
+import { detectPlatform, directionsUrl } from "@ruta/shared/directions";
 
 const destination = { lat: 19.4494, lng: -71.1508, label: "Presa de Monción" };
 

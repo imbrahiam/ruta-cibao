@@ -1,0 +1,12 @@
+{
+  "name": "@ruta/shared",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./messages": "./messages/index.ts",
+    "./messages/*.json": "./messages/*.json",
+    "./*": "./src/*.ts"
+  }
+}

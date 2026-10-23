@@ -3,7 +3,7 @@ import {
   TRAFFIC_COLORS,
   trafficColor,
   trafficTone,
-} from "@/lib/map/traffic-colors";
+} from "@ruta/shared/traffic";
 
 /**
  * The road's colour is the whole answer for a driver deciding which way to go,

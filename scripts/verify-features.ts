@@ -2,7 +2,7 @@ import { expect } from "bun:test";
 import { createRouterClient } from "@orpc/server";
 import { eq, inArray, sql } from "drizzle-orm";
 import { PDFDocument } from "pdf-lib";
-import { db, pool } from "../src/db";
+import { db, pool } from "@/db";
 import {
   auditEvents,
   businessClaims,
@@ -18,17 +18,17 @@ import {
   trafficReports,
   user,
   weeklyReports,
-} from "../src/db/schema";
-import { env } from "../src/lib/env";
-import { createReadUrl, deleteObject } from "../src/lib/storage";
-import { toViewer, type Viewer } from "../src/modules/access/viewer";
-import { renderWeeklyReportPdf } from "../src/modules/reports/render-pdf";
+} from "@/db/schema";
+import { env } from "@/lib/env";
+import { createReadUrl, deleteObject } from "@/lib/storage";
+import { toViewer, type Viewer } from "@/modules/access/viewer";
+import { renderWeeklyReportPdf } from "@/modules/reports/render-pdf";
 import {
   buildWeeklyReport,
   computeMetrics,
   previousWeekStart,
-} from "../src/modules/reports/weekly";
-import { router } from "../src/orpc/router";
+} from "@/modules/reports/weekly";
+import { router } from "@/orpc/router";
 
 if (
   !env.JCE_USE_MOCK ||

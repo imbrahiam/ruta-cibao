@@ -23,11 +23,11 @@
  * Road data © OpenStreetMap contributors, ODbL.
  */
 
+import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
 import { sql } from "drizzle-orm";
 import { db, pool } from "@/db";
 import { roads } from "@/db/schema";
 import { env } from "@/lib/env";
-import { PROVINCE_BOUNDS } from "@/lib/map/config";
 
 /**
  * Ways people drive on.

@@ -9,12 +9,15 @@
     "ignoreUnknown": true,
     "includes": [
       "**",
-      "!node_modules",
-      "!.next",
-      "!dist",
-      "!build",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/dist",
+      "!**/build",
       "!drizzle",
-      "!src/db/schema/auth.ts"
+      "!apps/web/src/db/schema/auth.ts",
+      "!apps/mobile/ios",
+      "!apps/mobile/android",
+      "!apps/mobile/.expo"
     ]
   },
   "formatter": {

@@ -20,6 +20,7 @@
  */
 
 import { createHash, randomUUID } from "node:crypto";
+import { formatPhone } from "@ruta/shared/phone";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db, pool } from "@/db";
 import {
@@ -38,7 +39,6 @@ import {
 } from "@/db/schema";
 import { env } from "@/lib/env";
 import { streetAt } from "@/lib/map/roads";
-import { formatPhone } from "@/lib/phone";
 
 /** Stable ids from names, so a second run updates rather than duplicates. */
 function idFor(kind: string, name: string): string {

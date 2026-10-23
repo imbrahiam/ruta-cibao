@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import messages from "@ruta/shared/messages/es.json";
 import { keyParam, renderNotification } from "@/i18n/open-keys";
-import messages from "../messages/es.json";
 
 /**
  * A notification stores a catalogue key, not a sentence, so the sentence only

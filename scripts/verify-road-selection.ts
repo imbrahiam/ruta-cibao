@@ -1,9 +1,9 @@
 import { expect } from "bun:test";
 import { inArray } from "drizzle-orm";
-import { db, pool } from "../src/db";
-import { roads } from "../src/db/schema";
-import { env } from "../src/lib/env";
-import { streetAt } from "../src/lib/map/roads";
+import { db, pool } from "@/db";
+import { roads } from "@/db/schema";
+import { env } from "@/lib/env";
+import { streetAt } from "@/lib/map/roads";
 
 if (!["localhost", "127.0.0.1"].includes(new URL(env.DATABASE_URL).hostname))
   throw new Error("Road verification requires a local database");

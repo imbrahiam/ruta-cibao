@@ -9,11 +9,12 @@
  *   bun run scripts/grant-staff.ts <phone|email|userId> moderator
  *   bun run scripts/grant-staff.ts <phone|email|userId> none
  */
+
+import { normalizePhone } from "@ruta/shared/phone";
 import { eq, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { memberProfiles, user } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
-import { normalizePhone } from "@/lib/phone";
 
 const [identifier, role = "moderator"] = process.argv.slice(2);
 

@@ -6,7 +6,7 @@ import {
   pathLength,
   pathMidpoint,
   windowAround,
-} from "@/lib/map/road-geometry";
+} from "@ruta/shared/road-geometry";
 
 /**
  * A stretch is stored as a line and described to the reader as a number of
