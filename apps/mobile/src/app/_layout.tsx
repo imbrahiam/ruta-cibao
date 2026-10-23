@@ -8,6 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { NotificationResponseListener } from "@/features/notifications/response-listener";
 import { I18nProvider } from "@/i18n/provider";
 import { MAPBOX_ACCESS_TOKEN } from "@/lib/config";
 import { queryClient, wireQueryLifecycle } from "@/lib/query";
@@ -128,6 +129,7 @@ export default function RootLayout() {
                 <ToastProvider>
                   <StatusBar style="auto" />
                   <RootStack />
+                  <NotificationResponseListener />
                 </ToastProvider>
               </BottomSheetModalProvider>
             </ThemeProvider>

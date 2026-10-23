@@ -10,6 +10,13 @@ import {
   setPickedLocation,
   usePickedLocation,
 } from "@/features/map/picked-location";
+import { askForPushAfterContribution } from "@/features/notifications/push";
+import { PhotoStrip } from "@/features/places/photo-strip";
+import {
+  type LocalPhoto,
+  pickPhoto,
+  uploadPlacePhoto,
+} from "@/features/places/photos";
 import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
@@ -20,6 +27,8 @@ import { Chip } from "@/ui/tags";
 import { Text } from "@/ui/text";
 import { space, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
+
+const MAX_PHOTOS = 4;
 
 /** Suggest a place or a business. It is published after municipal review. */
 export default function SubmitPlaceScreen() {
@@ -41,22 +50,70 @@ export default function SubmitPlaceScreen() {
   const [hours, setHours] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<LocalPhoto[]>([]);
+  const [progress, setProgress] = useState<{ done: number; total: number }>();
+  const [failed, setFailed] = useState<{
+    placeId: string;
+    photos: LocalPhoto[];
+  }>();
 
   useEffect(() => setPickedLocation(null), []);
 
   const kind = categories.data?.find((item) => item.id === category)?.kind;
+
+  const finish = () => {
+    queryClient.invalidateQueries({
+      queryKey: orpc.places.contributions.key(),
+    });
+    toast.show({ title: t("place.sent"), body: t("place.sentBody") });
+    router.back();
+  };
+
+  /**
+   * Photos go up after the place is accepted, one at a time. A failed photo
+   * never takes the place back with it: the place stays sent and the photos
+   * can be retried (same request ids, so no duplicate reservation) or dropped.
+   */
+  const uploadPhotos = async (placeId: string, queue: LocalPhoto[]) => {
+    setFailed(undefined);
+    const missed: LocalPhoto[] = [];
+    for (const [index, photo] of queue.entries()) {
+      setProgress({ done: index, total: queue.length });
+      try {
+        await uploadPlacePhoto(placeId, photo);
+      } catch {
+        missed.push(photo);
+      }
+    }
+    setProgress(undefined);
+    if (missed.length === 0) finish();
+    else setFailed({ placeId, photos: missed });
+  };
+
   const submit = useMutation(
     orpc.places.submit.mutationOptions({
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: orpc.places.contributions.key(),
-        });
-        toast.show({ title: t("place.sent"), body: t("place.sentBody") });
-        router.back();
+      onSuccess: (result) => {
+        void askForPushAfterContribution();
+        if (photos.length === 0) finish();
+        else void uploadPhotos(result.id, photos);
       },
       onError: () => setServerError(tc("errorBody")),
     }),
   );
+
+  const addPhoto = async (source: "camera" | "library") => {
+    const result = await pickPhoto(source);
+    if (result.status === "denied") {
+      toast.show({
+        title: t("photos.denied"),
+        body: t("photos.deniedBody"),
+        tone: "info",
+      });
+    } else if (result.status === "picked") {
+      setPhotos((current) => [...current, result.photo].slice(0, MAX_PHOTOS));
+    }
+  };
+  const busy = submit.isPending || progress !== undefined;
 
   const errors = {
     category: submitted && !category ? t("place.errors.category") : undefined,
@@ -146,6 +203,7 @@ export default function SubmitPlaceScreen() {
       ) : null}
 
       <Field
+        testID="place-name"
         label={t("place.name")}
         error={errors.name}
         value={name}
@@ -153,6 +211,7 @@ export default function SubmitPlaceScreen() {
         maxLength={100}
       />
       <Field
+        testID="place-description"
         label={t("place.description")}
         helper={t("place.descriptionHelper")}
         error={errors.description}
@@ -182,6 +241,7 @@ export default function SubmitPlaceScreen() {
           </Text>
         </View>
         <Button
+          testID="place-location"
           label={picked ? t("change") : t("mark")}
           variant="secondary"
           size="sm"
@@ -233,13 +293,60 @@ export default function SubmitPlaceScreen() {
         </View>
       ) : null}
 
-      {serverError ? <Text tone="danger">{serverError}</Text> : null}
-      <Button
-        label={t("place.submit")}
-        loading={submit.isPending}
-        onPress={send}
-        block
+      <PhotoStrip
+        photos={photos}
+        max={MAX_PHOTOS}
+        onAdd={addPhoto}
+        onRemove={(photo) =>
+          setPhotos((current) =>
+            current.filter((item) => item.requestId !== photo.requestId),
+          )
+        }
+        disabled={busy || failed !== undefined}
       />
+
+      {serverError ? <Text tone="danger">{serverError}</Text> : null}
+      {failed ? (
+        <Card style={styles.failed}>
+          <Text variant="headline">
+            {t("photos.failed", { count: failed.photos.length })}
+          </Text>
+          <Text variant="subhead" tone="secondary">
+            {t("photos.failedBody")}
+          </Text>
+          <View style={styles.actions}>
+            <View style={styles.flex}>
+              <Button
+                label={t("photos.finish")}
+                variant="secondary"
+                block
+                onPress={finish}
+              />
+            </View>
+            <View style={styles.flex}>
+              <Button
+                label={t("photos.retry")}
+                block
+                onPress={() => uploadPhotos(failed.placeId, failed.photos)}
+              />
+            </View>
+          </View>
+        </Card>
+      ) : (
+        <Button
+          label={
+            progress
+              ? t("photos.uploading", {
+                  done: progress.done + 1,
+                  total: progress.total,
+                })
+              : t("place.submit")
+          }
+          loading={busy}
+          onPress={send}
+          block
+        />
+      )}
       <Text variant="footnote" tone="tertiary" align="center">
         {t("reviewNote")}
       </Text>
@@ -253,4 +360,6 @@ const styles = StyleSheet.create({
   group: { gap: space.sm },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   location: { flexDirection: "row", alignItems: "center", gap: space.md - 4 },
+  failed: { gap: space.sm },
+  actions: { flexDirection: "row", gap: space.sm, marginTop: space.xs },
 });

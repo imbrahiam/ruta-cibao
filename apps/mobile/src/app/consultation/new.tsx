@@ -10,6 +10,7 @@ import {
   setPickedLocation,
   usePickedLocation,
 } from "@/features/map/picked-location";
+import { askForPushAfterContribution } from "@/features/notifications/push";
 import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
@@ -55,6 +56,7 @@ export default function NewConsultationScreen() {
           queryKey: orpc.consultations.browse.key(),
         });
         toast.show({ title: t("opened"), body: t("openedBody") });
+        void askForPushAfterContribution();
         router.replace(`/consultation/${result.slug}`);
       },
       onError: (error) => {

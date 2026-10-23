@@ -13,6 +13,7 @@ import Svg, { Path } from "react-native-svg";
 import { useTranslations } from "use-intl";
 import { useBoundaries } from "@/features/map/data";
 import { useLocationPermission } from "@/features/map/use-location-permission";
+import { askForPushAfterContribution } from "@/features/notifications/push";
 import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
@@ -71,6 +72,7 @@ export default function ReportTrafficScreen() {
           queryKey: orpc.places.contributions.key(),
         });
         toast.show({ title: t("traffic.sent"), body: t("traffic.sentBody") });
+        void askForPushAfterContribution();
         router.back();
       },
       onError: (error) => {

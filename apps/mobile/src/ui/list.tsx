@@ -123,6 +123,12 @@ export function ListRow({
   );
 
   if (!onPress) {
+    // A row with a control (a switch) must not be one accessibility element,
+    // or VoiceOver reads the label and can never reach the switch inside it.
+    // The label goes on the text instead; the control stays focusable.
+    if (accessory) {
+      return <View testID={testID}>{body}</View>;
+    }
     return (
       <View
         accessible

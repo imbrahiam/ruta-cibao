@@ -4,6 +4,7 @@ import * as Application from "expo-application";
 import { router, Stack } from "expo-router";
 import {
   BadgeCheck,
+  Bell,
   Bookmark,
   Info,
   LogOut,
@@ -14,6 +15,7 @@ import {
 import { ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useMe } from "@/features/auth/session";
+import { unregisterPush } from "@/features/notifications/push";
 import { orpc } from "@/lib/api";
 import { authClient } from "@/lib/auth";
 import { BrandMark } from "@/ui/brand";
@@ -36,6 +38,7 @@ function initials(name: string): string {
 
 export default function AccountScreen() {
   const t = useTranslations("account");
+  const notificationSettings = useTranslations("notificationSettings");
   const { colors } = useTheme();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -47,6 +50,9 @@ export default function AccountScreen() {
 
   const signOut = async () => {
     try {
+      // While the session cookie is still valid, so the server can unbind
+      // this phone from the account. Never blocks signing out.
+      await unregisterPush().catch(() => undefined);
       await authClient.signOut();
     } finally {
       // Reset (not clear): drops every private result and refetches what is on
@@ -143,6 +149,12 @@ export default function AccountScreen() {
             icon={Stamp}
             iconTint="success"
             onPress={() => router.push("/account/passport")}
+          />
+          <ListRow
+            title={notificationSettings("title")}
+            icon={Bell}
+            onPress={() => router.push("/account/notifications")}
+            testID="account-notifications"
           />
         </ListSection>
       ) : null}

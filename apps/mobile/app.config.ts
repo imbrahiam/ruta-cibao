@@ -108,7 +108,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       reactCompiler: true,
     },
     extra: {
+      ...config.extra,
       variant: variant(),
+      eas: {
+        ...config.extra?.eas,
+        ...(process.env.EXPO_PUBLIC_EAS_PROJECT_ID
+          ? { projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID }
+          : {}),
+      },
     },
   };
 };
