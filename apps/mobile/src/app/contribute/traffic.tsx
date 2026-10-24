@@ -23,9 +23,17 @@ import { useBoundaries } from "@/features/map/data";
 import { lineCoordinates, regionAt } from "@/features/map/geometry";
 import { useLocationPermission } from "@/features/map/use-location-permission";
 import { askForPushAfterContribution } from "@/features/notifications/push";
-import { isNetworkError } from "@/features/offline/fallback";
+import {
+  isNetworkError,
+  withOfflineFallback,
+} from "@/features/offline/fallback";
 import { enqueueOutbox } from "@/features/offline/outbox";
-import { orpc } from "@/lib/api";
+import { SavedCopyNotice } from "@/features/offline/saved-copy-notice";
+import {
+  offlineStreetAt,
+  offlineTrafficCategories,
+} from "@/features/offline/traffic";
+import { api, orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
 import { Field } from "@/ui/field";
@@ -56,7 +64,13 @@ export default function ReportTrafficScreen() {
   const queryClient = useQueryClient();
   const id = useMemo(() => requestId(), []);
   const boundaries = useBoundaries();
-  const categories = useQuery(orpc.traffic.categories.queryOptions());
+  const categories = useQuery({
+    queryKey: [...orpc.traffic.categories.queryOptions().queryKey],
+    queryFn: withOfflineFallback(
+      () => api.traffic.categories(),
+      offlineTrafficCategories,
+    ),
+  });
   const [category, setCategory] = useState<string | null>(null);
   const [shape, setShape] = useState<"street" | "point">("street");
   const [extent, setExtent] = useState<StreetExtent>(500);
@@ -66,10 +80,19 @@ export default function ReportTrafficScreen() {
   const { width, height } = useWindowDimensions();
   const [cardHeight, setCardHeight] = useState(420);
 
+  const streetInput = {
+    lng: center[0],
+    lat: center[1],
+    extentMeters: extent,
+  };
   const street = useQuery({
-    ...orpc.traffic.streetAt.queryOptions({
-      input: { lng: center[0], lat: center[1], extentMeters: extent },
-    }),
+    queryKey: [
+      ...orpc.traffic.streetAt.queryOptions({ input: streetInput }).queryKey,
+    ],
+    queryFn: withOfflineFallback(
+      () => api.traffic.streetAt(streetInput),
+      () => offlineStreetAt(streetInput),
+    ),
     enabled: shape === "street",
   });
   const where = municipalityAt(
@@ -96,6 +119,7 @@ export default function ReportTrafficScreen() {
               userId: me.userId,
               procedure: "traffic.report",
               input: reportTrafficInput.parse(input),
+              title: selected?.name,
             });
             toast.show({
               title: to("queuedToast"),
@@ -253,6 +277,13 @@ export default function ReportTrafficScreen() {
         <Text variant="title3" accessibilityRole="header">
           {t("traffic.title")}
         </Text>
+        <SavedCopyNotice
+          date={
+            categories.data?.savedCopyAt ??
+            (shape === "street" ? street.data?.savedCopyAt : undefined) ??
+            boundaries.data?.savedCopyAt
+          }
+        />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}

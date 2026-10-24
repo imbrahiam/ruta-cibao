@@ -889,6 +889,7 @@
     "offline": "Sin conexión",
     "errorTitle": "Algo salió mal",
     "errorBody": "No pudimos cargar esto. Revisa tu conexión e inténtalo de nuevo.",
+    "offlineBody": "Lo verás cuando vuelvas a tener señal.",
     "municipalities": "Municipios",
     "allMunicipalities": "Toda la provincia"
   },

@@ -1,11 +1,22 @@
+import { ORPCError } from "@orpc/client";
 import type { ApiOutputs, OfflinePlace } from "@ruta/contracts";
 import { getOfflineMeta } from "./store";
 
-/** oRPC's fetch transport preserves fetch rejections; HTTP/domain errors are not offline failures. */
+/**
+ * A transport failure, not a server answer. oRPC turns every HTTP response
+ * (including errors) into an `ORPCError` carrying a status; anything else
+ * thrown by the fetch layer means the request never got an answer. React
+ * Native and Expo's fetch disagree on the error class and message, so the
+ * test is "not a server answer" rather than a message match.
+ */
 export function isNetworkError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  if (error instanceof ORPCError) return false;
   return (
-    error instanceof TypeError &&
-    /fetch|network|load failed|internet connection/i.test(error.message)
+    error instanceof TypeError ||
+    /fetch|network|connect|offline|internet|timed? ?out/i.test(
+      `${error.name} ${error.message}`,
+    )
   );
 }
 

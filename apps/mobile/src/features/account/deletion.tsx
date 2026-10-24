@@ -50,6 +50,7 @@ export const PRIVATE_SECURE_STORE_KEYS = [
   "rutacibao_last_login_method",
   "notifications.installation-id",
   "notifications.contribution-prompted",
+  "auth.last-viewer",
 ] as const;
 
 const CHUNK_PREFIX = "ba-chunks:";

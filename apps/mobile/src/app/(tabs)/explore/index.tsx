@@ -175,6 +175,7 @@ export default function ExploreScreen() {
       >
         <SavedCopyNotice
           date={places.data?.savedCopyAt ?? routes.data?.savedCopyAt}
+          style={{ paddingHorizontal: space.md }}
         />
         <ScrollView
           horizontal

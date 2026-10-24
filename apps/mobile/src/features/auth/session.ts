@@ -1,16 +1,41 @@
 import { type QueryClient, useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useCallback } from "react";
 import { unregisterPush } from "@/features/notifications/push";
-import { orpc } from "@/lib/api";
+import { isNetworkError } from "@/features/offline/fallback";
+import { api, orpc } from "@/lib/api";
 import { authClient } from "@/lib/auth";
 import { queryClient as defaultQueryClient } from "@/lib/query";
+
+/** The last answer to `me.get`, so a member without signal stays a member. */
+export const LAST_VIEWER_KEY = "auth.last-viewer";
 
 /** Who is using the app, from the server's point of view (`me.get`). */
 export function useMe() {
   const session = authClient.useSession();
   const me = useQuery({
-    ...orpc.me.get.queryOptions(),
+    queryKey: orpc.me.get.queryKey(),
+    queryFn: async () => {
+      try {
+        const viewer = await api.me.get();
+        await SecureStore.setItemAsync(
+          LAST_VIEWER_KEY,
+          JSON.stringify(viewer),
+        ).catch(() => undefined);
+        return viewer;
+      } catch (error) {
+        // No answer is not "signed out": keep who the person was, as long as
+        // the session cookie is still on the device.
+        const last = isNetworkError(error)
+          ? await SecureStore.getItemAsync(LAST_VIEWER_KEY)
+          : null;
+        if (last && (await authClient.getCookie())) {
+          return JSON.parse(last) as Awaited<ReturnType<typeof api.me.get>>;
+        }
+        throw error;
+      }
+    },
     enabled: !session.isPending,
   });
   return {
@@ -52,6 +77,7 @@ export async function signOutLocally(
   try {
     await unregisterPush().catch(() => undefined);
     await authClient.signOut().catch(() => undefined);
+    await SecureStore.deleteItemAsync(LAST_VIEWER_KEY).catch(() => undefined);
   } finally {
     await client.resetQueries();
   }

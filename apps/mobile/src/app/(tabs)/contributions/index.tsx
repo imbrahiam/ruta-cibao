@@ -12,11 +12,13 @@ import {
   type LucideIcon,
   Plus,
   Sparkles,
+  WifiOff,
 } from "lucide-react-native";
 import { useState } from "react";
 import { RefreshControl, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useMe } from "@/features/auth/session";
+import { isNetworkError } from "@/features/offline/fallback";
 import { useOutbox } from "@/features/offline/outbox";
 import { useAgo } from "@/i18n/ago";
 import { orpc } from "@/lib/api";
@@ -188,13 +190,28 @@ function MyContributions({ header }: { header: React.ReactElement }) {
             ))}
           </View>
         ) : list.isError ? (
-          <EmptyState
-            icon={Inbox}
-            tone="danger"
-            title={tc("errorTitle")}
-            body={tc("errorBody")}
-            action={{ label: tc("retry"), onPress: () => void list.refetch() }}
-          />
+          isNetworkError(list.error) ? (
+            <EmptyState
+              icon={WifiOff}
+              title={tc("offline")}
+              body={tc("offlineBody")}
+              action={{
+                label: tc("retry"),
+                onPress: () => void list.refetch(),
+              }}
+            />
+          ) : (
+            <EmptyState
+              icon={Inbox}
+              tone="danger"
+              title={tc("errorTitle")}
+              body={tc("errorBody")}
+              action={{
+                label: tc("retry"),
+                onPress: () => void list.refetch(),
+              }}
+            />
+          )
         ) : (
           <EmptyState
             icon={Sparkles}
