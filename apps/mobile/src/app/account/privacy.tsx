@@ -21,7 +21,7 @@ export default function PrivacyScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: colors.background }}
+      style={{ backgroundColor: colors.grouped }}
       contentContainerStyle={styles.content}
     >
       <Stack.Screen
@@ -29,7 +29,10 @@ export default function PrivacyScreen() {
       />
       <Text tone="secondary">{t("lede")}</Text>
       {SECTIONS.map((section) => (
-        <Card key={section} style={styles.card}>
+        <Card
+          key={section}
+          style={[styles.card, { backgroundColor: colors.groupedRow }]}
+        >
           <Text variant="headline">{t(`${section}.title`)}</Text>
           <Text variant="subhead" tone="secondary" style={styles.body}>
             {t(`${section}.body`)}

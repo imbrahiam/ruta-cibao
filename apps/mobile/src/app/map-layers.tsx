@@ -39,15 +39,14 @@ export default function MapLayersSheet() {
 
   return (
     <ScrollView
-      style={{ backgroundColor: colors.background }}
+      style={{ backgroundColor: colors.grouped }}
       contentContainerStyle={styles.content}
     >
       <SheetHeader title={t("title")} />
       <View style={styles.block}>
         <Text
           variant="footnote"
-          tone="tertiary"
-          uppercase
+          tone="secondary"
           style={styles.label}
           accessibilityRole="header"
         >
@@ -96,6 +95,6 @@ export default function MapLayersSheet() {
 const styles = StyleSheet.create({
   content: { padding: space.md, paddingTop: space.lg, gap: space.lg },
   block: { gap: space.sm },
-  /** Same inset and tracking as `ListSection` titles below it. */
-  label: { paddingHorizontal: space.md, letterSpacing: 0.4 },
+  /** Same text inset as `ListSection` titles below it. */
+  label: { paddingHorizontal: space.md },
 });

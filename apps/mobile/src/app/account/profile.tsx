@@ -14,7 +14,7 @@ export default function ProfileScreen() {
     <KeyboardAwareScrollView
       bottomOffset={24}
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: colors.background }}
+      style={{ backgroundColor: colors.grouped }}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >

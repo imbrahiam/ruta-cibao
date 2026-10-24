@@ -316,6 +316,9 @@ export const DEFAULT_THEME: ThemeId = "monte";
 function buildPalette(seed: Seed, scheme: "light" | "dark") {
   return {
     background: seed.paper,
+    /** Inset grouped screens and the paper row groups they contain. */
+    grouped: scheme === "light" ? seed.surface : seed.paper,
+    groupedRow: scheme === "light" ? seed.paper : seed.elevated,
     /** Things floating over the map or content: sheets, search bar, map buttons. */
     elevated: seed.elevated,
     surface: seed.surface,

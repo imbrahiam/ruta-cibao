@@ -148,12 +148,15 @@ export default function OfflineScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: colors.background }}
+      style={{ backgroundColor: colors.grouped }}
       contentContainerStyle={styles.content}
     >
       <Stack.Screen options={{ title: t("title") }} />
 
-      <Card style={styles.heroCard} testID="offline-status-card">
+      <Card
+        style={[styles.heroCard, { backgroundColor: colors.groupedRow }]}
+        testID="offline-status-card"
+      >
         <View style={styles.badgeRow}>
           <Badge
             tone={offline.ready ? "success" : "neutral"}
@@ -240,7 +243,7 @@ export default function OfflineScreen() {
           style={[
             styles.noticeCard,
             {
-              backgroundColor: colors.warningSoft,
+              backgroundColor: colors.groupedRow,
               borderColor: colors.hairline,
             },
           ]}
@@ -281,7 +284,7 @@ export default function OfflineScreen() {
           style={[
             styles.noticeCard,
             {
-              backgroundColor: colors.dangerSoft,
+              backgroundColor: colors.groupedRow,
               borderColor: colors.hairline,
             },
           ]}

@@ -26,7 +26,7 @@ export default function AppearanceScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: colors.background }}
+      style={{ backgroundColor: colors.grouped }}
       contentContainerStyle={styles.content}
       testID="appearance-screen"
     >
@@ -55,7 +55,7 @@ export default function AppearanceScreen() {
               style={[
                 styles.card,
                 {
-                  backgroundColor: colors.background,
+                  backgroundColor: colors.groupedRow,
                   borderColor: selected ? colors.accent : colors.hairline,
                 },
               ]}

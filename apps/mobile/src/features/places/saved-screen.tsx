@@ -2,13 +2,13 @@ import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import { Bookmark } from "lucide-react-native";
-import { RefreshControl, StyleSheet } from "react-native";
+import { RefreshControl, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useMe } from "@/features/auth/session";
 import { PlaceListRow } from "@/features/places/place-list-row";
 import { orpc } from "@/lib/api";
 import { EmptyState } from "@/ui/states";
-import { space, useTheme } from "@/ui/theme";
+import { radius, space, useTheme } from "@/ui/theme";
 
 /** Places the person kept. Reached from Explore and from Account. */
 export function SavedScreen() {
@@ -29,7 +29,7 @@ export function SavedScreen() {
         data={signedIn ? (saved.data ?? []) : []}
         keyExtractor={(item) => item.id}
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: colors.background }}
+        style={{ backgroundColor: colors.grouped }}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl
@@ -56,16 +56,18 @@ export function SavedScreen() {
           )
         }
         renderItem={({ item }) => (
-          <PlaceListRow
-            item={{
-              slug: item.slug,
-              name: item.name,
-              categoryName: item.categoryName,
-              categoryIcon: item.icon,
-              categoryColor: item.color,
-              municipalityName: item.municipalityName,
-            }}
-          />
+          <View style={[styles.row, { backgroundColor: colors.groupedRow }]}>
+            <PlaceListRow
+              item={{
+                slug: item.slug,
+                name: item.name,
+                categoryName: item.categoryName,
+                categoryIcon: item.icon,
+                categoryColor: item.color,
+                municipalityName: item.municipalityName,
+              }}
+            />
+          </View>
         )}
       />
     </>
@@ -74,4 +76,10 @@ export function SavedScreen() {
 
 const styles = StyleSheet.create({
   list: { paddingHorizontal: space.md, paddingBottom: space.xxl },
+  row: {
+    borderRadius: radius.card,
+    borderCurve: "continuous",
+    paddingHorizontal: space.md,
+    marginBottom: space.sm,
+  },
 });

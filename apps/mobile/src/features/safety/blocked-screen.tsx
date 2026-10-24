@@ -70,7 +70,7 @@ export function BlockedScreen() {
       />
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: colors.background }}
+        style={{ backgroundColor: colors.grouped }}
         contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl

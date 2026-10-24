@@ -345,7 +345,7 @@ export function DeleteAccountScreen() {
       {receipt ? (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          style={{ backgroundColor: colors.background }}
+          style={{ backgroundColor: colors.grouped }}
           contentContainerStyle={styles.content}
         >
           <View
@@ -383,7 +383,10 @@ export function DeleteAccountScreen() {
             </Text>
           </View>
 
-          <Card style={styles.receiptCard} testID="delete-account-receipt-card">
+          <Card
+            style={[styles.receiptCard, { backgroundColor: colors.groupedRow }]}
+            testID="delete-account-receipt-card"
+          >
             <View style={styles.receiptRow}>
               <Text variant="subhead" weight="600" tone="secondary">
                 {t("receiptLabel")}
@@ -433,7 +436,7 @@ export function DeleteAccountScreen() {
       ) : checkingReceipt || mePending ? (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          style={{ backgroundColor: colors.background }}
+          style={{ backgroundColor: colors.grouped }}
           contentContainerStyle={styles.content}
         >
           <Skeleton height={88} rounded={radius.card} />
@@ -443,7 +446,7 @@ export function DeleteAccountScreen() {
       ) : !signedIn ? (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          style={{ backgroundColor: colors.background }}
+          style={{ backgroundColor: colors.grouped }}
           contentContainerStyle={styles.content}
         >
           <EmptyState
@@ -461,14 +464,14 @@ export function DeleteAccountScreen() {
           bottomOffset={32}
           contentInsetAdjustmentBehavior="automatic"
           keyboardShouldPersistTaps="handled"
-          style={{ backgroundColor: colors.background }}
+          style={{ backgroundColor: colors.grouped }}
           contentContainerStyle={styles.content}
         >
           <Text tone="secondary" style={styles.body}>
             {t("lede")}
           </Text>
 
-          <Card style={styles.card}>
+          <Card style={[styles.card, { backgroundColor: colors.groupedRow }]}>
             <View style={styles.cardHeader}>
               <Icon as={Trash2} size={18} color="danger" />
               <Text variant="headline">{t("deletedTitle")}</Text>
@@ -484,7 +487,7 @@ export function DeleteAccountScreen() {
             </Text>
           </Card>
 
-          <Card style={styles.card}>
+          <Card style={[styles.card, { backgroundColor: colors.groupedRow }]}>
             <View style={styles.cardHeader}>
               <Icon as={Building2} size={18} color="textSecondary" />
               <Text variant="headline">{t("keptTitle")}</Text>
@@ -504,7 +507,10 @@ export function DeleteAccountScreen() {
           </Card>
 
           {!sessionFresh ? (
-            <Card style={styles.card} testID="delete-account-reauth-notice">
+            <Card
+              style={[styles.card, { backgroundColor: colors.groupedRow }]}
+              testID="delete-account-reauth-notice"
+            >
               <View style={styles.cardHeader}>
                 <Icon as={ShieldAlert} size={18} color="warningInk" />
                 <Text variant="headline">{t("reauthNoticeTitle")}</Text>

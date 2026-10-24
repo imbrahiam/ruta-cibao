@@ -29,7 +29,7 @@ export default function PassportScreen() {
         data={passport.data?.items ?? []}
         keyExtractor={(item) => item.id}
         contentInsetAdjustmentBehavior="automatic"
-        style={{ backgroundColor: colors.background }}
+        style={{ backgroundColor: colors.grouped }}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <Text tone="secondary" style={styles.lede}>
@@ -48,7 +48,7 @@ export default function PassportScreen() {
         }
         renderItem={({ item }) => (
           <Card
-            style={styles.card}
+            style={[styles.card, { backgroundColor: colors.groupedRow }]}
             onPress={
               item.place
                 ? () => router.push(`/place/${item.place?.slug}`)

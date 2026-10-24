@@ -15,14 +15,13 @@ export type ListSectionProps = {
 /** An inset grouped section, the way Settings lays out rows. */
 export function ListSection({ title, footer, children }: ListSectionProps) {
   const { colors } = useTheme();
-  const rows = Children.toArray(children).filter(isValidElement);
+  const rows = Children.toArray(children).filter(isValidElement<ListRowProps>);
   return (
     <View style={styles.section}>
       {title ? (
         <Text
           variant="footnote"
-          tone="tertiary"
-          uppercase
+          tone="secondary"
           style={styles.sectionTitle}
           accessibilityRole="header"
         >
@@ -32,7 +31,7 @@ export function ListSection({ title, footer, children }: ListSectionProps) {
       <View
         style={[
           styles.group,
-          { backgroundColor: colors.surface, borderColor: colors.hairline },
+          { backgroundColor: colors.groupedRow, borderColor: colors.hairline },
         ]}
       >
         {rows.map((row, index) => (
@@ -41,7 +40,12 @@ export function ListSection({ title, footer, children }: ListSectionProps) {
               <View
                 style={[
                   styles.separator,
-                  { backgroundColor: colors.separator },
+                  {
+                    backgroundColor: colors.separator,
+                    marginStart: row.props.icon
+                      ? space.md + 24 + (space.md - 4)
+                      : space.md,
+                  },
                 ]}
               />
             ) : null}
@@ -147,7 +151,7 @@ export function ListRow({
 
 const styles = StyleSheet.create({
   section: { gap: space.sm },
-  sectionTitle: { paddingHorizontal: space.md, letterSpacing: 0.4 },
+  sectionTitle: { paddingHorizontal: space.md },
   group: {
     borderRadius: radius.card,
     borderCurve: "continuous",
@@ -156,7 +160,6 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: space.md,
   },
   footer: { paddingHorizontal: space.md },
   row: {

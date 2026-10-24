@@ -65,7 +65,7 @@ export default function AccountScreen() {
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ backgroundColor: colors.background }}
+      style={{ backgroundColor: colors.grouped }}
       contentContainerStyle={styles.content}
     >
       <Stack.Screen options={{ title: t("title") }} />
@@ -110,7 +110,10 @@ export default function AccountScreen() {
         <View
           style={[
             styles.hero,
-            { backgroundColor: colors.surface, borderColor: colors.hairline },
+            {
+              backgroundColor: colors.groupedRow,
+              borderColor: colors.hairline,
+            },
           ]}
         >
           <BrandMark size={64} />

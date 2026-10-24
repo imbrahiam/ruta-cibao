@@ -129,8 +129,8 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
         map.current?.animateToRegion(
           {
             ...boundsRegion(PROVINCE_BOUNDS),
-            latitudeDelta: (NORTH - SOUTH) * 1.08,
-            longitudeDelta: (EAST - WEST) * 1.08,
+            latitudeDelta: (NORTH - SOUTH) * 1.3,
+            longitudeDelta: (EAST - WEST) * 1.3,
           },
           animated ? 500 : 0,
         ),
@@ -333,19 +333,37 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
                 zIndex={8}
                 accessibilityLabel={String(properties.point_count)}
                 onPress={() => {
-                  const next = Math.min(
-                    index.getClusterExpansionZoom(properties.cluster_id) + 0.5,
-                    CLUSTER_MAX_ZOOM + 1.5,
+                  // Like Apple Maps: frame the places the cluster stands for,
+                  // so they open up across the screen instead of one zoom
+                  // step at a time.
+                  const leaves = index.getLeaves(
+                    properties.cluster_id,
+                    Number.POSITIVE_INFINITY,
                   );
-                  // Both basemaps fit a region inside the map padding, so it
-                  // is sized for the uncovered part of the screen.
+                  let west = longitude;
+                  let east = longitude;
+                  let south = latitude;
+                  let north = latitude;
+                  for (const leaf of leaves) {
+                    const [lng, lat] = leaf.geometry.coordinates as [
+                      number,
+                      number,
+                    ];
+                    west = Math.min(west, lng);
+                    east = Math.max(east, lng);
+                    south = Math.min(south, lat);
+                    north = Math.max(north, lat);
+                  }
+                  // Never closer than street level, so a tight cluster in a
+                  // town centre still shows its streets.
+                  const minDelta = 0.004;
                   map.current?.animateToRegion(
-                    regionAt(
-                      [longitude, latitude],
-                      next,
-                      width,
-                      height - padding.top - (bottomOverride ?? padding.bottom),
-                    ),
+                    {
+                      latitude: (south + north) / 2,
+                      longitude: (west + east) / 2,
+                      latitudeDelta: Math.max((north - south) * 1.35, minDelta),
+                      longitudeDelta: Math.max((east - west) * 1.35, minDelta),
+                    },
                     450,
                   );
                 }}
