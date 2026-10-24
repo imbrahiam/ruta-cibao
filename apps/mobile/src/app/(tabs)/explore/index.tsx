@@ -328,25 +328,28 @@ export default function ExploreScreen() {
                               })
                             }
                             accessibilityLabel={category.name}
-                            style={styles.tile}
+                            style={[
+                              styles.tile,
+                              { backgroundColor: colors.surface },
+                            ]}
                           >
                             <CategoryBadge
                               icon={category.icon}
                               color={category.color}
-                              size={36}
+                              size={32}
                             />
-                            <Text
-                              variant="subhead"
-                              weight="600"
-                              numberOfLines={2}
-                            >
-                              {category.name}
-                            </Text>
-                            <Text variant="footnote" tone="tertiary">
-                              {t("placesCount", {
-                                count: counts.get(category.id) ?? 0,
-                              })}
-                            </Text>
+                            <View style={styles.tileText}>
+                              <Text
+                                variant="subhead"
+                                weight="600"
+                                numberOfLines={1}
+                              >
+                                {category.name}
+                              </Text>
+                              <Text variant="footnote" tone="tertiary">
+                                {counts.get(category.id) ?? 0}
+                              </Text>
+                            </View>
                           </Card>
                         </View>
                       ))}
@@ -455,10 +458,10 @@ const styles = StyleSheet.create({
   section: { gap: space.sm + 4 },
   rail: { gap: space.sm + 4, paddingHorizontal: space.md },
   list: { paddingHorizontal: space.md },
-  feature: { width: 280, gap: space.sm },
+  feature: { width: 220, gap: space.sm },
   featureImage: {
-    width: 280,
-    height: 180,
+    width: 220,
+    height: 140,
     borderRadius: radius.card,
     borderCurve: "continuous",
   },
@@ -469,7 +472,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.md - space.xs,
   },
   tileWrap: { width: "50%", padding: space.xs },
-  tile: { gap: space.sm, minHeight: 112 },
+  tile: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space.sm + 2,
+    minHeight: 60,
+    paddingVertical: space.sm + 2,
+  },
+  tileText: { flex: 1, gap: 1 },
   tileIcon: {
     width: 34,
     height: 34,
