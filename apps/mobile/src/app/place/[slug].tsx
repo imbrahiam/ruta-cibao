@@ -4,7 +4,6 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import {
   Bookmark,
   BookmarkCheck,
-  ChevronLeft,
   CircleCheck,
   CircleHelp,
   Clock,
@@ -41,7 +40,7 @@ import { focusOnMap } from "@/features/map/focus";
 import { withOfflineFallback } from "@/features/offline/fallback";
 import { SavedCopyNotice } from "@/features/offline/saved-copy-notice";
 import { offlinePlaceBySlug } from "@/features/offline/store";
-import { ContentMenu } from "@/features/safety/content-menu";
+import { ContentHeaderMenu } from "@/features/safety/content-menu";
 import { api, orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
 import { mediaUrl } from "@/lib/ids";
@@ -50,7 +49,7 @@ import { CategoryBadge } from "@/ui/category-badge";
 import { categoryIcon, Icon } from "@/ui/icon";
 import { haptic, PressableScale } from "@/ui/pressable";
 import { EmptyState, Skeleton } from "@/ui/states";
-import { Card, IconButton } from "@/ui/surfaces";
+import { Card } from "@/ui/surfaces";
 import { Badge, type BadgeTone } from "@/ui/tags";
 import { Text } from "@/ui/text";
 import { radius, space, useTheme } from "@/ui/theme";
@@ -194,7 +193,23 @@ export default function PlaceScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <Stack.Screen options={{ headerShown: false }} />
+      {/* The system header, transparent over the photo: its back button and
+          menu are the platform's own (Liquid Glass on iOS 26). */}
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTransparent: true,
+          title: "",
+          headerBackButtonDisplayMode: "minimal",
+          headerShadowVisible: false,
+        }}
+      />
+      {place.isMine ? null : (
+        <ContentHeaderMenu
+          target={{ kind: "place", ref: place.slug }}
+          onHidden={() => router.back()}
+        />
+      )}
       <Animated.ScrollView
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -473,31 +488,6 @@ export default function PlaceScreen() {
           topBarStyle,
         ]}
       />
-
-      <View
-        style={[styles.floating, { top: insets.top + space.sm }]}
-        pointerEvents="box-none"
-      >
-        <IconButton
-          icon={ChevronLeft}
-          label={tc("back")}
-          variant="glass"
-          onPress={() => router.back()}
-          haptic="none"
-        />
-      </View>
-      {place.isMine ? null : (
-        <View
-          style={[styles.floatingEnd, { top: insets.top + space.sm }]}
-          pointerEvents="box-none"
-        >
-          <ContentMenu
-            target={{ kind: "place", ref: place.slug }}
-            variant="glass"
-            onHidden={() => router.back()}
-          />
-        </View>
-      )}
     </View>
   );
 }

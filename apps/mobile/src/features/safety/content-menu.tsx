@@ -15,7 +15,7 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import type { ContentTarget } from "@ruta/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { Ellipsis } from "lucide-react-native";
 import { Alert, Platform, View } from "react-native";
 import { useTranslations } from "use-intl";
@@ -29,28 +29,11 @@ import { useToast } from "@/ui/toast";
 import { safetyErrorKey } from "./errors";
 import { refreshHiddenTargets } from "./hidden-targets";
 
-/**
- * The "more" control on content someone else wrote: report it, or hide its
- * author. Actions require membership; signed out, they open sign-in first.
- * Hiding an author asks for confirmation, then `onHidden` leaves content that has
- * just disappeared from the person's own views.
- */
-export function ContentMenu({
-  target,
-  onHidden,
-  variant = "plain",
-  size,
-}: {
-  target: ContentTarget;
-  onHidden?: () => void;
-  variant?: IconButtonProps["variant"];
-  size?: number;
-}) {
+/** Report and hide-author actions for content someone else wrote. */
+function useContentActions(target: ContentTarget, onHidden?: () => void) {
   const t = useTranslations("safety");
-  const tu = useTranslations("safetyUi");
   const tc = useTranslations("common");
   const toast = useToast();
-  const { colors, scheme } = useTheme();
   const queryClient = useQueryClient();
   const asMember = useMemberAction();
 
@@ -81,21 +64,93 @@ export function ContentMenu({
   );
 
   const report = () =>
-    router.push({
-      pathname: "/safety/report",
-      params: { kind: target.kind, ref: target.ref },
-    });
+    asMember(() =>
+      router.push({
+        pathname: "/safety/report",
+        params: { kind: target.kind, ref: target.ref },
+      }),
+    );
 
   const confirmBlock = () =>
-    Alert.alert(t("block.title"), t("block.body"), [
-      { text: tc("cancel"), style: "cancel" },
-      {
-        text: t("block.confirm"),
-        style: "destructive",
-        onPress: () => block.mutate({ requestId: requestId(), target }),
-      },
-    ]);
+    asMember(() =>
+      Alert.alert(t("block.title"), t("block.body"), [
+        { text: tc("cancel"), style: "cancel" },
+        {
+          text: t("block.confirm"),
+          style: "destructive",
+          onPress: () => block.mutate({ requestId: requestId(), target }),
+        },
+      ]),
+    );
 
+  return { report, confirmBlock, pending: block.isPending };
+}
+
+/**
+ * The same actions as a system bar menu, for screens with a native header:
+ * on iOS 26 it is a Liquid Glass bar button like the system back button.
+ */
+export function ContentHeaderMenu({
+  target,
+  onHidden,
+}: {
+  target: ContentTarget;
+  onHidden?: () => void;
+}) {
+  const t = useTranslations("safety");
+  const tu = useTranslations("safetyUi");
+  const { report, confirmBlock } = useContentActions(target, onHidden);
+  return (
+    <Stack.Toolbar placement="right">
+      <Stack.Toolbar.Menu
+        icon={Platform.OS === "ios" ? "ellipsis" : undefined}
+        accessibilityLabel={tu("menuLabel")}
+        title={tu("menuLabel")}
+      >
+        <Stack.Toolbar.MenuAction
+          icon={Platform.OS === "ios" ? "flag" : undefined}
+          onPress={report}
+        >
+          {t("report.action")}
+        </Stack.Toolbar.MenuAction>
+        <Stack.Toolbar.MenuAction
+          icon={
+            Platform.OS === "ios" ? "person.crop.circle.badge.minus" : undefined
+          }
+          destructive
+          onPress={confirmBlock}
+        >
+          {t("block.action")}
+        </Stack.Toolbar.MenuAction>
+      </Stack.Toolbar.Menu>
+    </Stack.Toolbar>
+  );
+}
+
+/**
+ * The "more" control on content someone else wrote: report it, or hide its
+ * author. Actions require membership; signed out, they open sign-in first.
+ * Hiding an author asks for confirmation, then `onHidden` leaves content that has
+ * just disappeared from the person's own views.
+ */
+export function ContentMenu({
+  target,
+  onHidden,
+  variant = "plain",
+  size,
+}: {
+  target: ContentTarget;
+  onHidden?: () => void;
+  variant?: IconButtonProps["variant"];
+  size?: number;
+}) {
+  const t = useTranslations("safety");
+  const tu = useTranslations("safetyUi");
+  const { colors, scheme } = useTheme();
+  const { report, confirmBlock, pending } = useContentActions(
+    target,
+    onHidden,
+  );
   const controlSize = Math.max(size ?? 44, Platform.OS === "android" ? 48 : 44);
   if (Platform.OS === "ios") {
     return (
@@ -114,20 +169,20 @@ export function ContentMenu({
           testID="content-menu"
           modifiers={[
             buttonStyle(variant === "glass" ? "glass" : "borderless"),
-            disabled(block.isPending),
+            disabled(pending),
           ]}
         >
           <NativeButton
             label={t("report.action")}
             systemImage="flag"
-            onPress={() => asMember(report)}
+            onPress={report}
           />
           {/* biome-ignore lint/a11y/useValidAriaRole: SwiftUI ButtonRole, not a DOM ARIA role. */}
           <NativeButton
             label={t("block.action")}
             systemImage="person.crop.circle.badge.minus"
             role="destructive"
-            onPress={() => asMember(confirmBlock)}
+            onPress={confirmBlock}
           />
         </Menu>
       </Host>
@@ -162,17 +217,17 @@ export function ContentMenu({
         </DropdownMenu.Trigger>
         <DropdownMenu.Items>
           <DropdownMenuItem
-            enabled={!block.isPending}
-            onClick={() => asMember(report)}
+            enabled={!pending}
+            onClick={report}
           >
             <DropdownMenuItem.Text>
               <ComposeText>{t("report.action")}</ComposeText>
             </DropdownMenuItem.Text>
           </DropdownMenuItem>
           <DropdownMenuItem
-            enabled={!block.isPending}
+            enabled={!pending}
             elementColors={{ textColor: colors.danger }}
-            onClick={() => asMember(confirmBlock)}
+            onClick={confirmBlock}
           >
             <DropdownMenuItem.Text>
               <ComposeText>{t("block.action")}</ComposeText>

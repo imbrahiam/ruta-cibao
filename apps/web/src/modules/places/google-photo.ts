@@ -52,21 +52,38 @@ const mediaResponse = z.object({
   }),
 });
 
+/**
+ * Google calls go out one at a time with a short gap: a list asks for every
+ * thumbnail at once, and the demo key's per-minute quota rejects a burst.
+ */
+let queue: Promise<unknown> = Promise.resolve();
+const SPACING_MS = 120;
+
+export class GoogleQuotaError extends Error {}
+
 async function googleJson(
   path: string,
   init: RequestInit = {},
 ): Promise<unknown> {
-  const response = await fetch(`https://places.googleapis.com/v1/${path}`, {
-    ...init,
-    headers: {
-      "X-Goog-Api-Key": env.GOOGLE_MAPS_SERVER_API_KEY ?? "",
-      ...init.headers,
-    },
-    signal: AbortSignal.timeout(6_000),
-    cache: "no-store",
+  const run = queue.then(async () => {
+    const response = await fetch(`https://places.googleapis.com/v1/${path}`, {
+      ...init,
+      headers: {
+        "X-Goog-Api-Key": env.GOOGLE_MAPS_SERVER_API_KEY ?? "",
+        ...init.headers,
+      },
+      signal: AbortSignal.timeout(6_000),
+      cache: "no-store",
+    });
+    const gap = Promise.withResolvers<void>();
+    setTimeout(gap.resolve, SPACING_MS);
+    await gap.promise;
+    if (response.status === 429) throw new GoogleQuotaError("quota");
+    if (!response.ok) throw new Error("Google Places request failed.");
+    return response.json();
   });
-  if (!response.ok) throw new Error("Google Places request failed.");
-  return response.json();
+  queue = run.catch(() => undefined);
+  return run;
 }
 
 /** Great-circle distance, in metres; a text match alone is not geographic evidence. */

@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { consumeRateLimit, getRequestClientKey } from "@/lib/rate-limit";
-import { googlePlacePhoto } from "@/modules/places/google-photo";
+import {
+  GoogleQuotaError,
+  googlePlacePhoto,
+} from "@/modules/places/google-photo";
 
 export async function GET(
   request: Request,
@@ -48,11 +51,16 @@ export async function GET(
       );
     }
     return new Response(null, { status: 302, headers });
-  } catch {
+  } catch (error) {
     // Provider bodies, URLs and credentials must never enter application logs.
+    // Over quota: tell the app to come back later rather than fail for good.
+    const quota = error instanceof GoogleQuotaError;
     return new Response(null, {
-      status: 502,
-      headers: { "Cache-Control": "no-store" },
+      status: quota ? 503 : 502,
+      headers: {
+        "Cache-Control": "no-store",
+        ...(quota ? { "Retry-After": "60" } : {}),
+      },
     });
   }
 }
