@@ -855,22 +855,41 @@
   },
   "privacy": {
     "title": "Privacidad",
-    "lede": "Ruta Cibao guarda solo lo necesario para que la plataforma funcione. Esto es lo que guardamos y por qué.",
+    "lede": "Guardamos lo necesario para que entres, aportes y des seguimiento.",
+    "showDetails": "Ver detalles de privacidad",
+    "hideDetails": "Ocultar detalles de privacidad",
+    "showDetailsHint": "Muestra la información completa debajo de esta fila.",
+    "hideDetailsHint": "Oculta la información completa de esta pantalla.",
+    "detailsTitle": "En detalle",
     "account": {
-      "title": "Tu cuenta",
+      "title": "Teléfono o correo",
+      "summary": "Para enviarte el código de entrada.",
       "body": "Tu celular o correo, para enviarte el código de entrada, y el nombre que elijas. Tu número nunca se muestra a otras personas."
     },
     "location": {
-      "title": "Tu ubicación",
+      "title": "Ubicación",
+      "summary": "Solo al usarla, nunca en segundo plano.",
       "body": "Solo cuando tocas \"Mi ubicación\" o marcas un punto. No seguimos tu ubicación en segundo plano."
     },
     "contributions": {
       "title": "Tus aportes",
+      "summary": "Públicos al publicarse, con tu nombre de perfil.",
       "body": "Los lugares, reportes y consultas que envías son públicos cuando se publican, con el nombre que elegiste."
     },
     "photos": {
       "title": "Fotos",
+      "summary": "Se revisan y se les quita la ubicación.",
       "body": "Las fotos que subes se revisan antes de publicarse y se les quitan los datos de ubicación de la cámara."
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "summary": "Tú decides si das permiso para recibirlas.",
+      "body": "Pedimos permiso para las notificaciones cuando las activas. Puedes denegarlo y seguir consultando el contenido público."
+    },
+    "backups": {
+      "title": "Copias de seguridad",
+      "summary": "Caducan en un máximo de 90 días.",
+      "body": "Al eliminar tu cuenta se eliminan tus datos personales y aportes propios; pueden conservarse respuestas institucionales y registros de auditoría sin información personal. Las copias de seguridad caducan en un máximo de 90 días. El contenido público descargado se actualiza cuando el dispositivo vuelve a conectarse."
     },
     "device": {
       "title": "En tu teléfono",
@@ -1019,6 +1038,8 @@
     "missingTitle": "No encontramos este lugar",
     "missingBody": "Puede que lo hayan retirado o que no haya conexión.",
     "noPhotos": "Todavía no hay fotos de este lugar",
+    "googlePhoto": "Foto de Google",
+    "googlePhotoAttribution": "Foto: {author} · Google",
     "trust": {
       "new": "Recién añadido",
       "confirmed": "Confirmado por vecinos",

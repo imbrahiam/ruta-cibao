@@ -47,6 +47,32 @@ The phone uploads straight to storage, so the browser has to reach it:
    rejected: larger than 8 MB, or not really a JPEG, PNG or WebP. The object is
    deleted; the person sees the upload error and can try another photo.
 
+## Warm Google place photos before a demo
+
+App photographs take precedence. For published places already matched to Google,
+warm the running web process's six-hour, memory-only photo cache with:
+
+```bash
+bun run scripts/warm-google-photos.ts http://localhost:3000
+```
+
+The script reads matched places from the public GeoJSON endpoint and requests
+their thumbnail routes sequentially, waiting 1.5 seconds between requests. It
+does not follow the redirects or print Google photo URLs. Its summary reports
+HTTP 302 successes and other status counts. Run against the actual demo server:
+a separate resolver process would not warm that server's cache, and each web
+process has its own cache.
+
+Google place IDs may remain in PostgreSQL; photo resource names and photo
+capabilities are never persisted there. Google attribution is shown in native
+place sheets and detail heroes; detail includes the author when already cached.
+Successful no-photo results expire after ten minutes; provider and validation
+errors never create a negative photo cache entry.
+A provider 429 pauses uncached Google calls in that process for 60 seconds;
+thumbnail requests then return HTTP 503 with `Retry-After: 60`, while valid
+cached photos remain usable. Wait for the quota window before another warm-up
+if its summary includes 503. Restarting the web process clears its photo cache.
+
 ## Migrations
 
 ```bash

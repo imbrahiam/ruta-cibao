@@ -181,6 +181,7 @@ export const placeDetailOutput = z.object({
   imageUrl: z.string().nullable(),
   thumbnailUrl: z.string().nullable().optional(),
   thumbnailSource: z.enum(["app", "google"]).nullable().optional(),
+  thumbnailAttribution: z.string().nullable().optional(),
   location: z.object({ lng: z.number(), lat: z.number() }),
   category: z.object({
     id: z.string(),

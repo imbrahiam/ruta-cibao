@@ -4,10 +4,9 @@ import { useTranslations } from "use-intl";
 import { palettes, useThemeId } from "@/ui/theme";
 
 /**
- * Four peers, always labelled, plus search. On iOS 26 the search item is the
- * system's own search field at the end of the tab bar (`role="search"`): it
- * opens its own screen with the keyboard already up. The system tab bar
- * (Liquid Glass) owns the transitions: tabs never slide.
+ * Four peers, always labelled. Search lives at the top of the map instead.
+ * The system tab bar (Liquid Glass on iOS 26) owns the transitions: tabs
+ * never slide.
  */
 export default function TabsLayout() {
   const t = useTranslations("tabs");
@@ -60,10 +59,6 @@ export default function TabsLayout() {
           }}
           md="account_circle"
         />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="search" role="search">
-        <NativeTabs.Trigger.Label>{t("search")}</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="magnifyingglass" md="search" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

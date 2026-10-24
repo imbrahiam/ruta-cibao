@@ -14,6 +14,7 @@ import {
   Picker,
 } from "@expo/ui/swift-ui";
 import {
+  buttonStyle,
   frame,
   labelStyle,
   pickerStyle,
@@ -66,6 +67,7 @@ export function CategoryFilter({
             />
           }
           testID="map-filter"
+          modifiers={[buttonStyle("glass")]}
         >
           <Picker
             label={label}

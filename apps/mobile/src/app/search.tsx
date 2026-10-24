@@ -147,8 +147,7 @@ export default function SearchScreen() {
           <PressableScale
             onPress={() => {
               focusOnMap("place", item.properties.id);
-              // Search is its own tab: go to the map, where the place opens.
-              router.navigate("/");
+              router.back();
             }}
             scaleTo={0.985}
             accessibilityRole="button"

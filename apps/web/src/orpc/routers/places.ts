@@ -10,6 +10,7 @@ import {
 import { recordAudit } from "@/lib/audit";
 import { geocode, isGeocodingEnabled } from "@/lib/geocode";
 import { browsePlaces, listContributions } from "@/modules/places/discover";
+import { cachedGooglePhotoAttribution } from "@/modules/places/google-photo";
 import {
   attachPhoto,
   PhotoError,
@@ -132,6 +133,10 @@ export const placesRouter = {
       address: row.address,
       imageUrl: row.imageUrl,
       ...(await placeThumbnail(row)),
+      thumbnailAttribution:
+        !row.appThumbnailKey && row.googlePlaceId
+          ? cachedGooglePhotoAttribution(row.id)
+          : null,
       location: { lng: row.location.x, lat: row.location.y },
       category: {
         id: row.categoryId,

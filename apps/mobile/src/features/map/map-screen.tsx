@@ -1,4 +1,5 @@
 import BottomSheet from "@gorhom/bottom-sheet";
+import { Image } from "expo-image";
 import * as Location from "expo-location";
 import { router, useIsFocused } from "expo-router";
 import { Layers, LocateFixed, Navigation, X } from "lucide-react-native";
@@ -8,6 +9,8 @@ import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useTranslations } from "use-intl";
+import { API_ORIGIN } from "@/lib/config";
+import { mediaUrl } from "@/lib/ids";
 import { openTarget } from "@/lib/targets";
 import { Button } from "@/ui/button";
 import { CategoryBadge } from "@/ui/category-badge";
@@ -17,7 +20,6 @@ import { IconButton } from "@/ui/surfaces";
 import { Text } from "@/ui/text";
 import { floating, radius, space, spring, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
-import { CategoryFilter } from "./category-filter";
 import { CivicLayers } from "./civic-layers";
 import {
   categoriesOf,
@@ -30,6 +32,7 @@ import {
 } from "./data";
 import { consumeFocusRequest, useFocusRequest } from "./focus";
 import { setMapLayers, useMapLayers } from "./layers";
+import { MapSearchBar } from "./map-search-bar";
 import { ProvinceMap, type ProvinceMapHandle } from "./province-map";
 import { TrafficSummary } from "./traffic-summary";
 
@@ -95,8 +98,13 @@ export function MapScreen() {
   // map runs down to the tab bar.
   const sheetOpen = selected !== null || trafficId !== null;
   const bottomEdge = sheetOpen ? peek : bottomInset;
-  // Nothing floats over the top of the map any more: only the status bar.
-  const topChrome = insets.top + space.md;
+  // `index` only applies on mount: drive the sheet when the selection clears
+  // (a tap on the empty map), or it stays open with nothing in it.
+  useEffect(() => {
+    if (!sheetOpen) sheet.current?.close();
+  }, [sheetOpen]);
+  // The search field and filter float under the status bar.
+  const topChrome = insets.top + space.sm + 52;
   const padding = useMemo(
     () => ({ top: topChrome, bottom: bottomEdge + 12, left: 28, right: 28 }),
     [topChrome, bottomEdge],
@@ -260,8 +268,22 @@ export function MapScreen() {
         <Rect width="100%" height="100%" fill="url(#status-scrim)" />
       </Svg>
 
-      {/* Map controls, one glass pill above the sheet: which places, what
-          the map shows, then where you are. */}
+      <View
+        pointerEvents="box-none"
+        style={[styles.top, { top: insets.top + space.xs }]}
+      >
+        <MapSearchBar
+          categories={categories}
+          category={category}
+          onCategoryChange={(next) => {
+            setCategory(next);
+            setSelected(null);
+          }}
+        />
+      </View>
+
+      {/* Map controls, one glass pill above the sheet: what the map shows,
+          then where you are. */}
       <View
         pointerEvents="box-none"
         style={[styles.controls, { bottom: bottomEdge + space.md }]}
@@ -273,20 +295,6 @@ export function MapScreen() {
             { backgroundColor: colors.glass, borderColor: colors.hairline },
           ]}
         >
-          <CategoryFilter
-            categories={categories}
-            value={category}
-            onChange={(next) => {
-              setCategory(next);
-              setSelected(null);
-            }}
-          />
-          <View
-            style={[
-              styles.controlDivider,
-              { backgroundColor: colors.hairline },
-            ]}
-          />
           <PressableScale
             onPress={() => router.push("/map-layers")}
             accessibilityRole="button"
@@ -374,11 +382,42 @@ function PlaceSummary({
 }) {
   const t = useTranslations("map");
   const tc = useTranslations("common");
+  const tp = useTranslations("place");
   const { properties, geometry } = place;
   const [lng, lat] = geometry.coordinates as [number, number];
+  const [failedThumbnail, setFailedThumbnail] = useState<string | null>(null);
+  const thumbnail = properties.thumb
+    ? mediaUrl(properties.thumb, API_ORIGIN)
+    : null;
 
   return (
     <View style={styles.summary} testID="place-summary">
+      {thumbnail && failedThumbnail !== thumbnail ? (
+        <View>
+          <Image
+            source={thumbnail}
+            recyclingKey={thumbnail}
+            contentFit="cover"
+            style={{
+              width: "100%",
+              aspectRatio: 16 / 9,
+              maxHeight: 140,
+              borderRadius: radius.card,
+            }}
+            onError={() => setFailedThumbnail(thumbnail)}
+            accessible={false}
+          />
+          {properties.thumbnailSource === "google" ? (
+            <Text
+              variant="caption"
+              tone="secondary"
+              style={{ marginTop: space.xs }}
+            >
+              {tp("googlePhoto")}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
       <View style={styles.summaryHeader}>
         <CategoryBadge
           icon={properties.icon}
@@ -437,6 +476,7 @@ function PlaceSummary({
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scrim: { position: "absolute", left: 0, right: 0, top: 0 },
+  top: { position: "absolute", left: 0, right: 0 },
   flex: { flex: 1 },
   searchRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
   searchFlex: { flex: 1 },

@@ -67,10 +67,11 @@ const [WEST, SOUTH, EAST, NORTH] = PROVINCE_BOUNDS;
 const CLUSTER_MAX_ZOOM = 15;
 /** How close choosing a place brings the map: a few blocks around it. */
 const PLACE_ZOOM = 16.5;
-/** From this zoom a place's name sits beside its disc… */
-const NAME_ZOOM = 16;
-/** …and only while few enough are on screen to read them without overlap. */
-const MAX_NAMED = 8;
+/** Names appear only this close, at street level… */
+const NAME_ZOOM = 16.5;
+/** …and only where they do not collide with another name or disc. */
+const LABEL_WIDTH = 180;
+const LABEL_HEIGHT = 34;
 /** Municipality names only while the whole province is in view. */
 const AREA_LABEL_MAX_ZOOM = 11.5;
 
@@ -230,20 +231,57 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
       [boundaries],
     );
 
-    const showNames =
-      zoom >= NAME_ZOOM &&
-      visible.filter((feature) => !("cluster" in feature.properties)).length <=
-        MAX_NAMED;
+    // Which places get their name beside the disc: from street level only,
+    // and only where the label box (disc + text, in screen points) does not
+    // overlap one already placed. Greedy in a stable order so labels do not
+    // jump between renders; the rest stay plain discs until zoomed closer.
+    const named = useMemo(() => {
+      const result = new Set<string>();
+      if (zoom < NAME_ZOOM) return result;
+      const scale = 256 * 2 ** zoom;
+      const boxes: Array<[number, number, number, number]> = [];
+      const singles = visible
+        .filter((feature) => !("cluster" in feature.properties))
+        .map((feature) => {
+          const [lng, lat] = feature.geometry.coordinates as [number, number];
+          const sin = Math.sin((lat * Math.PI) / 180);
+          return {
+            id: (feature.properties as PlaceFeature["properties"]).id,
+            x: ((lng + 180) / 360) * scale,
+            y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale,
+          };
+        })
+        .sort((a, b) => a.id.localeCompare(b.id));
+      for (const place of singles) {
+        const box: [number, number, number, number] = [
+          place.x - 13,
+          place.y - LABEL_HEIGHT / 2,
+          place.x - 13 + LABEL_WIDTH,
+          place.y + LABEL_HEIGHT / 2,
+        ];
+        const clashes = boxes.some(
+          ([x1, y1, x2, y2]) =>
+            box[0] < x2 && box[2] > x1 && box[1] < y2 && box[3] > y1,
+        );
+        if (!clashes) {
+          boxes.push(box);
+          result.add(place.id);
+        }
+      }
+      return result;
+    }, [visible, zoom]);
+    const namesKey = [...named].join(",");
 
     // A marker is snapshotted once it stops tracking changes; if that happens
     // before its name has laid out, the label is lost. Track for a moment
-    // after names appear or the selection changes, then freeze again.
+    // after names change or the selection changes, then freeze again.
     const [settling, setSettling] = useState(true);
+    // biome-ignore lint/correctness/useExhaustiveDependencies: these are the triggers, not values read inside.
     useEffect(() => {
       setSettling(true);
       const timer = setTimeout(() => setSettling(false), 800);
       return () => clearTimeout(timer);
-    }, [showNames, selectedId, look]);
+    }, [namesKey, selectedId, look]);
 
     return (
       <MapView
@@ -422,13 +460,14 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
           }
           const place = properties as PlaceFeature["properties"];
           if (place.id === selectedId) return null;
+          const showName = named.has(place.id);
           return (
             <Marker
-              key={`place-${place.id}-${showNames ? "n" : "d"}-${look}`}
+              key={`place-${place.id}-${showName ? "n" : "d"}-${look}`}
               coordinate={{ latitude, longitude }}
               tracksViewChanges={settling}
               // The disc's centre sits on the spot even when a name hangs right.
-              anchor={showNames ? { x: 13 / 180, y: 0.5 } : { x: 0.5, y: 0.5 }}
+              anchor={showName ? { x: 13 / 180, y: 0.5 } : { x: 0.5, y: 0.5 }}
               zIndex={6}
               accessibilityLabel={place.name}
               onPress={() => onSelectPlace(feature as unknown as PlaceFeature)}
@@ -436,7 +475,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
               <PlaceDot
                 icon={place.icon}
                 color={place.color}
-                name={showNames ? place.name : undefined}
+                name={showName ? place.name : undefined}
                 scheme={scheme}
               />
             </Marker>

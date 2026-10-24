@@ -6,7 +6,7 @@ import {
 } from "@expo/ui/jetpack-compose";
 import { fillMaxWidth, semantics } from "@expo/ui/jetpack-compose/modifiers";
 import { Host, Text as NativeText, Picker } from "@expo/ui/swift-ui";
-import { pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
+import { controlSize, pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
 import { useEffect, useState } from "react";
 import { type LayoutRectangle, Platform, StyleSheet, View } from "react-native";
 import Animated, {
@@ -84,7 +84,8 @@ function NativeSegmented<T extends string>({
         label={accessibilityLabel}
         selection={value}
         onSelectionChange={(next) => onChange(next as T)}
-        modifiers={[pickerStyle("segmented")]}
+        // Large control size: the regular one reads thin on a phone.
+        modifiers={[pickerStyle("segmented"), controlSize("large")]}
       >
         {options.map((option) => (
           <NativeText key={option.value} modifiers={[tag(option.value)]}>

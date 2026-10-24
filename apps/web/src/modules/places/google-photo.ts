@@ -58,14 +58,23 @@ const mediaResponse = z.object({
  */
 let queue: Promise<unknown> = Promise.resolve();
 const SPACING_MS = 120;
+const QUOTA_BACKOFF_MS = 60_000;
+let quotaBackoffUntil = 0;
 
 export class GoogleQuotaError extends Error {}
+
+function requireGoogleQuota() {
+  if (Date.now() < quotaBackoffUntil) throw new GoogleQuotaError("quota");
+}
 
 async function googleJson(
   path: string,
   init: RequestInit = {},
 ): Promise<unknown> {
+  requireGoogleQuota();
   const run = queue.then(async () => {
+    // Requests already queued when quota ran out must not call Google either.
+    requireGoogleQuota();
     const response = await fetch(`https://places.googleapis.com/v1/${path}`, {
       ...init,
       headers: {
@@ -75,10 +84,13 @@ async function googleJson(
       signal: AbortSignal.timeout(6_000),
       cache: "no-store",
     });
+    if (response.status === 429) {
+      quotaBackoffUntil = Date.now() + QUOTA_BACKOFF_MS;
+      throw new GoogleQuotaError("quota");
+    }
     const gap = Promise.withResolvers<void>();
     setTimeout(gap.resolve, SPACING_MS);
     await gap.promise;
-    if (response.status === 429) throw new GoogleQuotaError("quota");
     if (!response.ok) throw new Error("Google Places request failed.");
     return response.json();
   });
@@ -185,10 +197,19 @@ type GooglePhoto = { uri: string; attribution: string | null };
  * daily quota runs out within one browse of the map. Nothing is persisted.
  */
 const PHOTO_TTL_MS = 6 * 60 * 60 * 1000;
+const NO_PHOTO_TTL_MS = 10 * 60 * 1000;
 const photoCache = new Map<
   string,
   { photo: GooglePhoto | null; expires: number }
 >();
+
+/** Read attribution without making a provider call or persisting photo metadata. */
+export function cachedGooglePhotoAttribution(placeId: string): string | null {
+  const cached = photoCache.get(placeId);
+  return cached && cached.expires > Date.now()
+    ? (cached.photo?.attribution ?? null)
+    : null;
+}
 
 /** Photo names and capabilities are fetched afresh, never persisted or proxied. */
 export async function googlePlacePhoto(place: {
@@ -196,10 +217,13 @@ export async function googlePlacePhoto(place: {
 }): Promise<GooglePhoto | null> {
   const cached = photoCache.get(place.id);
   if (cached && cached.expires > Date.now()) return cached.photo;
+  requireGoogleQuota();
   const id = await resolveGooglePlace(place);
   if (!id) return null;
   const details = detailsResponse.parse(
-    await googleJson(`places/${encodeURIComponent(id)}?fields=photos`),
+    await googleJson(`places/${encodeURIComponent(id)}`, {
+      headers: { "X-Goog-FieldMask": "photos" },
+    }),
   );
   const first = details.photos?.[0];
   let photo: GooglePhoto | null = null;
@@ -214,6 +238,11 @@ export async function googlePlacePhoto(place: {
       attribution: first.authorAttributions?.[0]?.displayName ?? null,
     };
   }
-  photoCache.set(place.id, { photo, expires: Date.now() + PHOTO_TTL_MS });
+  // Only a successful details response can establish that no photo exists.
+  // Provider/validation failures throw above and must never become negative hits.
+  photoCache.set(place.id, {
+    photo,
+    expires: Date.now() + (photo ? PHOTO_TTL_MS : NO_PHOTO_TTL_MS),
+  });
   return photo;
 }

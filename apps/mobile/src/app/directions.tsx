@@ -2,12 +2,11 @@ import { directionsPosition } from "@ruta/contracts";
 import { directionsUrl } from "@ruta/shared/directions";
 import { useQuery } from "@tanstack/react-query";
 import * as Location from "expo-location";
-import { router, useLocalSearchParams } from "expo-router";
-import { X } from "lucide-react-native";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { Navigation } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
-  FlatList,
   Linking,
   Platform,
   StyleSheet,
@@ -22,12 +21,10 @@ import { regionAt } from "@/features/map/geometry";
 import { useLocationPermission } from "@/features/map/use-location-permission";
 import { orpc } from "@/lib/api";
 import { Button } from "@/ui/button";
-import { PressableScale } from "@/ui/pressable";
 import { Segmented } from "@/ui/segmented";
 import { Skeleton } from "@/ui/states";
-import { IconButton } from "@/ui/surfaces";
 import { Text } from "@/ui/text";
-import { floating, radius, space, TOUCH, useTheme } from "@/ui/theme";
+import { floating, radius, space, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
 
 type Position = { lat: number; lng: number };
@@ -197,6 +194,25 @@ export default function DirectionsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      {/* The system header, transparent over the map, so the close button is
+          the platform's own (Liquid Glass on iOS 26). */}
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          headerTransparent: true,
+          title: "",
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          icon={Platform.OS === "ios" ? "xmark" : undefined}
+          accessibilityLabel={t("close")}
+          onPress={() => router.back()}
+        >
+          {t("close")}
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <MapView
         ref={map}
         style={StyleSheet.absoluteFill}
@@ -244,15 +260,6 @@ export default function DirectionsScreen() {
           />
         ) : null}
       </MapView>
-      <View style={[styles.close, { top: insets.top + space.sm }]}>
-        <IconButton
-          icon={X}
-          label={t("close")}
-          variant="glass"
-          onPress={() => router.back()}
-          haptic="none"
-        />
-      </View>
       <View
         onLayout={(event) =>
           setCardHeight(Math.round(event.nativeEvent.layout.height))
@@ -262,100 +269,67 @@ export default function DirectionsScreen() {
           floating(scheme),
           {
             backgroundColor: colors.surface,
-            maxHeight: height * 0.6,
-            paddingBottom: insets.bottom + space.sm,
+            paddingBottom: insets.bottom + space.md,
           },
         ]}
       >
-        <FlatList
-          style={styles.list}
-          data={
-            !loading && !errorMessage && locationState === "ready"
-              ? (route.data?.steps ?? [])
-              : []
-          }
-          keyExtractor={(_, index) => String(index)}
-          contentContainerStyle={styles.content}
-          accessibilityLabel={t("stepsLabel")}
-          ListHeaderComponent={
-            <View style={styles.header}>
-              <Text variant="title3" accessibilityRole="header">
-                {name}
-              </Text>
-              {loading ? (
-                <View
-                  style={styles.skeleton}
-                  accessibilityLabel={t("loading")}
-                  accessibilityRole="progressbar"
-                >
-                  <Skeleton width="48%" height={42} />
-                  <Skeleton width="28%" height={20} />
-                </View>
-              ) : route.data && !errorMessage ? (
-                <View accessibilityLiveRegion="polite">
-                  <Text variant="largeTitle" tabular>
-                    {duration}
-                  </Text>
-                  <Text tone="secondary">
-                    {distance(route.data.distanceMeters)}
-                  </Text>
-                </View>
-              ) : null}
-              <Segmented
-                options={[
-                  { value: "drive", label: t("drive") },
-                  { value: "walk", label: t("walk") },
-                ]}
-                value={mode}
-                onChange={setMode}
-                accessibilityLabel={t("mode")}
-              />
-              {locationState === "denied" && destination.success ? (
-                <View style={styles.message}>
-                  <Text variant="headline">{t("permissionTitle")}</Text>
-                  <Text tone="secondary">{t("permissionBody")}</Text>
-                  <Button
-                    label={t("allowLocation")}
-                    variant="secondary"
-                    onPress={async () => {
-                      const permission =
-                        await Location.getForegroundPermissionsAsync();
-                      if (!permission.canAskAgain) await Linking.openSettings();
-                      else await locate();
-                    }}
-                  />
-                </View>
-              ) : errorMessage ? (
-                <Text tone="secondary" accessibilityRole="alert">
-                  {errorMessage}
-                </Text>
-              ) : null}
-            </View>
-          }
-          renderItem={({ item }) => (
-            <View
-              style={[styles.step, { borderTopColor: colors.separator }]}
-              accessible
-            >
-              <Text style={styles.instruction}>
-                {item.instruction || t("stepFallback")}
-              </Text>
-              <Text variant="footnote" tone="secondary">
-                {distance(item.distanceMeters)}
-              </Text>
-            </View>
-          )}
-        />
-        {destination.success ? (
-          <PressableScale
-            onPress={openMaps}
-            accessibilityRole="link"
-            style={styles.handoff}
+        <Text variant="title3" accessibilityRole="header" numberOfLines={2}>
+          {name}
+        </Text>
+        {loading ? (
+          <View
+            style={styles.skeleton}
+            accessibilityLabel={t("loading")}
+            accessibilityRole="progressbar"
           >
-            <Text variant="subhead" tone="secondary">
-              {t("openMaps")}
+            <Skeleton width="48%" height={42} />
+            <Skeleton width="28%" height={20} />
+          </View>
+        ) : route.data && !errorMessage ? (
+          <View accessibilityLiveRegion="polite">
+            <Text variant="largeTitle" tabular>
+              {duration}
             </Text>
-          </PressableScale>
+            <Text tone="secondary">{distance(route.data.distanceMeters)}</Text>
+          </View>
+        ) : null}
+        <Segmented
+          options={[
+            { value: "drive", label: t("drive") },
+            { value: "walk", label: t("walk") },
+          ]}
+          value={mode}
+          onChange={setMode}
+          accessibilityLabel={t("mode")}
+        />
+        {locationState === "denied" && destination.success ? (
+          <View style={styles.message}>
+            <Text variant="headline">{t("permissionTitle")}</Text>
+            <Text tone="secondary">{t("permissionBody")}</Text>
+            <Button
+              label={t("allowLocation")}
+              variant="secondary"
+              onPress={async () => {
+                const permission =
+                  await Location.getForegroundPermissionsAsync();
+                if (!permission.canAskAgain) await Linking.openSettings();
+                else await locate();
+              }}
+            />
+          </View>
+        ) : errorMessage ? (
+          <Text tone="secondary" accessibilityRole="alert">
+            {errorMessage}
+          </Text>
+        ) : null}
+        {destination.success ? (
+          <Button
+            label={t("openMaps")}
+            icon={Navigation}
+            variant="secondary"
+            block
+            onPress={openMaps}
+          />
         ) : null}
       </View>
     </View>
@@ -364,7 +338,6 @@ export default function DirectionsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  close: { position: "absolute", left: space.md },
   card: {
     position: "absolute",
     bottom: 0,
@@ -373,22 +346,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: radius.panel,
     borderTopRightRadius: radius.panel,
     paddingTop: space.lg,
+    paddingHorizontal: space.lg,
+    gap: space.md,
   },
-  list: { flexGrow: 0, flexShrink: 1 },
-  content: { paddingHorizontal: space.lg },
-  header: { gap: space.md, paddingBottom: space.md },
   skeleton: { gap: space.sm },
   message: { gap: space.sm },
-  step: {
-    paddingVertical: space.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    gap: space.xs,
-  },
-  instruction: { flexShrink: 1 },
-  handoff: {
-    minHeight: TOUCH,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: space.lg,
-  },
 });

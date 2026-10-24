@@ -218,6 +218,13 @@ export default function PlaceScreen() {
       >
         <Hero
           photos={photos}
+          thumbnailUrl={"thumbnailUrl" in place ? place.thumbnailUrl : null}
+          thumbnailSource={
+            "thumbnailSource" in place ? place.thumbnailSource : null
+          }
+          thumbnailAttribution={
+            "thumbnailAttribution" in place ? place.thumbnailAttribution : null
+          }
           icon={place.category.icon}
           color={place.category.color}
         />
@@ -496,15 +503,66 @@ function Hero({
   photos,
   icon,
   color,
+  thumbnailUrl,
+  thumbnailSource,
+  thumbnailAttribution,
 }: {
   photos: string[];
   icon: string;
   color: string;
+  thumbnailUrl?: string | null;
+  thumbnailSource?: "app" | "google" | null;
+  thumbnailAttribution?: string | null;
 }) {
   const { width } = useWindowDimensions();
   const { colors, scheme } = useTheme();
   const t = useTranslations("place");
   const [page, setPage] = useState(0);
+  const [failedThumbnail, setFailedThumbnail] = useState<string | null>(null);
+  const thumbnail = thumbnailUrl ? mediaUrl(thumbnailUrl, API_ORIGIN) : null;
+
+  if (photos.length === 0 && thumbnail && failedThumbnail !== thumbnail) {
+    return (
+      <View style={styles.hero}>
+        <Image
+          source={thumbnail}
+          recyclingKey={thumbnail}
+          contentFit="cover"
+          transition={200}
+          style={{ width, height: HERO, backgroundColor: colors.fill }}
+          accessibilityIgnoresInvertColors
+          onError={() => setFailedThumbnail(thumbnail)}
+        />
+        {thumbnailSource === "google" ? (
+          <View
+            style={{
+              position: "absolute",
+              left: space.md,
+              right: space.md,
+              bottom: space.xl + space.sm,
+              alignItems: "flex-start",
+            }}
+          >
+            <Text
+              variant="caption"
+              style={{
+                color: "#FFFFFF",
+                backgroundColor: "rgba(0,0,0,0.7)",
+                paddingHorizontal: space.sm,
+                paddingVertical: space.xs,
+                borderRadius: radius.sm,
+                overflow: "hidden",
+              }}
+            >
+              {thumbnailAttribution
+                ? t("googlePhotoAttribution", { author: thumbnailAttribution })
+                : t("googlePhoto")}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   if (photos.length === 0) {
     // No photo yet: a wash of the category's colour with its glyph.
