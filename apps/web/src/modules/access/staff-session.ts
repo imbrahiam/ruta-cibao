@@ -36,25 +36,28 @@ const CLIENT_STEP_UP_LIMIT: RateLimitPolicy = {
 type Executor = Db | DbTransaction;
 
 /**
- * Documented, guarded development-only path so seeded local demo moderators
- * (`LOCAL_DEMO_PHONES` on `localhost`) can exercise staff APIs locally when
- * TOTP has not been enrolled on the synthetic account.
+ * Guarded path so seeded demo moderators (`LOCAL_DEMO_PHONES`) can use staff
+ * APIs without TOTP on the synthetic account: on `localhost` in development,
+ * or on the hosted demo (`DEMO_DEPLOYMENT`, which env validation only accepts
+ * on a `demo.` host).
  *
- * Never active in `production` or `test`, never active off `localhost`, and
- * never active once an account enrolls two-factor authentication.
+ * Never active in `test`, never on the real service, and never once an
+ * account enrolls two-factor authentication.
  */
 export function isLocalDemoStaffBypassAllowed(
   resolved: ResolvedSession,
 ): boolean {
-  if (env.NODE_ENV !== "development") return false;
   if (!env.LOCAL_DEMO_OTP || !env.LOCAL_DEMO_PHONES) return false;
   if (!resolved.contact?.phoneNumber) return false;
   if (resolved.contact.twoFactorEnabled) return false;
 
-  try {
-    if (new URL(env.APP_URL).hostname !== "localhost") return false;
-  } catch {
-    return false;
+  if (!env.DEMO_DEPLOYMENT) {
+    if (env.NODE_ENV !== "development") return false;
+    try {
+      if (new URL(env.APP_URL).hostname !== "localhost") return false;
+    } catch {
+      return false;
+    }
   }
 
   const demoPhones = new Set(

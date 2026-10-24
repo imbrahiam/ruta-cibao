@@ -255,6 +255,13 @@ function createAuth() {
       .map((value) => value.trim())
       .filter(Boolean),
   );
+  // Fictional numbers sign in with the fixed demo code on a laptop or on the
+  // hosted demo (`DEMO_DEPLOYMENT`, a `demo.` host); never on the real service.
+  const demoSignIn = Boolean(
+    env.LOCAL_DEMO_OTP &&
+      ((isDevelopment && appUrl.hostname === "localhost") ||
+        env.DEMO_DEPLOYMENT),
+  );
 
   return betterAuth({
     appName: "Ruta Cibao",
@@ -306,12 +313,7 @@ function createAuth() {
         sendOTP: async ({ phoneNumber: to, code }) => {
           // Fictional, allowlisted local numbers sign in with a fixed code.
           // Keeps the plugin's own expiry, attempt limit and single use.
-          if (
-            isDevelopment &&
-            appUrl.hostname === "localhost" &&
-            env.LOCAL_DEMO_OTP &&
-            demoPhones.has(to)
-          ) {
+          if (demoSignIn && demoPhones.has(to)) {
             await db
               .update(verification)
               .set({ value: `${env.LOCAL_DEMO_OTP}:0` })
@@ -329,12 +331,7 @@ function createAuth() {
         // never reach Twilio.
         verifyOTP: verifyConfigured
           ? async ({ phoneNumber: to, code }) => {
-              if (
-                isDevelopment &&
-                env.LOCAL_DEMO_OTP &&
-                demoPhones.has(to) &&
-                appUrl.hostname === "localhost"
-              ) {
+              if (demoSignIn && demoPhones.has(to)) {
                 return code === env.LOCAL_DEMO_OTP;
               }
               return checkPhoneVerification(to, code);

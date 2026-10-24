@@ -21,16 +21,43 @@ been rehearsed end to end on a clean server. Before real residents' data goes
 in, someone outside the development team must follow this guide on a fresh
 machine, without help, and the open question below must be decided.
 
-**Resident verification is a two-step process.** The registry confirms the
-cédula and its name; it does not grant citizen permissions. The resident then
-submits encrypted document photos. An authorized municipality reviewer checks
-identity and residence before approving. The first reviewer must be appointed
-and verified by the handover team; they cannot approve themselves.
+**Sign-in is by verified phone (Twilio Verify) or email (Resend).** No cédula
+or identity document is collected. A municipal resident badge is optional and
+granted in person by scoped staff; staff authority comes from
+`scripts/grant-staff.ts` and requires TOTP enrollment.
 
 The intended public origin is `https://rutacibao.com`, subject to the domain
 being purchased. Deliver the Docker images and Compose stack; deployment on the
 recipient's private VPS does not require a hosted account owned by the developer.
 Use a staging origin and an isolated database before the final launch.
+
+### 0.1 The contest demo (`demo.rutacibao.com`)
+
+The demonstration is this same stack on its own host and database, not the
+real service. Differences from section 6:
+
+- `APP_URL`/`BETTER_AUTH_URL`/`NEXT_PUBLIC_APP_URL` are
+  `https://demo.rutacibao.com`, and `DEMO_DEPLOYMENT=1` (validation refuses it
+  on any host not starting with `demo.`).
+- `LOCAL_DEMO_PHONES` (the fictional 809-555-01xx numbers from
+  `scripts/seed-demo.ts`) and `LOCAL_DEMO_OTP` are set, so the presenter signs
+  in without SMS and seeded staff skip TOTP. Real numbers and emails still go
+  through Twilio Verify and Resend when those are configured.
+- `EXPO_PUSH_ACCESS_TOKEN` is optional.
+- Load content with `bun run db:seed`, the OSM import
+  (`bun run scripts/import-osm-content.ts`) and `bun run scripts/seed-demo.ts`.
+
+The phones run the `demo` EAS profile (`apps/mobile/eas.json`): the preview
+variant (`do.rutacibao.app.preview`) pointed at `https://demo.rutacibao.com`.
+Set `GOOGLE_MAPS_MOBILE_API_KEY` as an EAS environment variable (its Google
+Cloud project needs billing enabled, or the map draws no tiles); until then
+`EXPO_PUBLIC_MAP_PROVIDER=apple` draws the iOS map with Apple Maps.
+
+```bash
+cd apps/mobile
+bunx eas build --profile demo --platform ios      # TestFlight / ad hoc
+bunx eas build --profile demo --platform android  # installable APK
+```
 
 What the code already guarantees, so you do not have to:
 

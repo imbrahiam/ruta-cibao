@@ -136,17 +136,40 @@ const serverSchema = z
       .enum(["0", "1"])
       .default("0")
       .transform((value) => value === "1"),
+
+    // A hosted demonstration (e.g. demo.rutacibao.com), not the real service:
+    // the fictional LOCAL_DEMO_PHONES sign in with LOCAL_DEMO_OTP and seeded
+    // demo staff skip TOTP, exactly as on a laptop. Real numbers and emails
+    // still go through Twilio Verify and Resend. Only accepted on a `demo.`
+    // host, so the real deployment cannot switch it on by accident.
+    DEMO_DEPLOYMENT: z
+      .enum(["0", "1"])
+      .default("0")
+      .transform((value) => value === "1"),
   })
   .superRefine((value, context) => {
+    if (
+      value.DEMO_DEPLOYMENT &&
+      !new URL(value.APP_URL).hostname.startsWith("demo.")
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["DEMO_DEPLOYMENT"],
+        message: "only allowed when APP_URL is a demo. host",
+      });
+    }
     if (value.NODE_ENV !== "production") return;
-    if (!value.EXPO_PUSH_ACCESS_TOKEN) {
+    if (!value.EXPO_PUSH_ACCESS_TOKEN && !value.DEMO_DEPLOYMENT) {
       context.addIssue({
         code: "custom",
         path: ["EXPO_PUSH_ACCESS_TOKEN"],
         message: "required in production",
       });
     }
-    if (value.LOCAL_DEMO_OTP || value.LOCAL_DEMO_PHONES) {
+    if (
+      (value.LOCAL_DEMO_OTP || value.LOCAL_DEMO_PHONES) &&
+      !value.DEMO_DEPLOYMENT
+    ) {
       context.addIssue({
         code: "custom",
         path: ["LOCAL_DEMO_OTP"],
