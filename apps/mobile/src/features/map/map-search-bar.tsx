@@ -8,6 +8,7 @@ import {
 } from "@expo/ui/swift-ui";
 import {
   buttonStyle,
+  font,
   foregroundStyle,
   frame,
   padding,
@@ -55,9 +56,15 @@ export function MapSearchBar({
             <HStack spacing={8} modifiers={[padding({ vertical: 6 })]}>
               <Image
                 systemName="magnifyingglass"
+                size={17}
                 modifiers={[foregroundStyle(colors.textSecondary)]}
               />
-              <NativeText modifiers={[foregroundStyle(colors.textSecondary)]}>
+              <NativeText
+                modifiers={[
+                  font({ size: 17 }),
+                  foregroundStyle(colors.textSecondary),
+                ]}
+              >
                 {t("searchPlaceholder")}
               </NativeText>
               <Spacer />

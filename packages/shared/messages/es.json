@@ -972,7 +972,7 @@
     "account": "Cuenta"
   },
   "map": {
-    "searchPlaceholder": "Buscar lugares, negocios y rutas",
+    "searchPlaceholder": "Buscar lugares y rutas",
     "searchLabel": "Buscar en el mapa",
     "locate": "Mostrar mi ubicación",
     "layers": "Capas del mapa",
