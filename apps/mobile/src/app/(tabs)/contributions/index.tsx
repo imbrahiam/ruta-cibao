@@ -17,13 +17,7 @@ import {
   WifiOff,
 } from "lucide-react-native";
 import { useState } from "react";
-import {
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useMe } from "@/features/auth/session";
 import { isNetworkError } from "@/features/offline/fallback";

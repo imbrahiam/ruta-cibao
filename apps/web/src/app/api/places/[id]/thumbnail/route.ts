@@ -1,10 +1,6 @@
 import { z } from "zod";
-import { env } from "@/lib/env";
 import { consumeRateLimit, getRequestClientKey } from "@/lib/rate-limit";
-import {
-  googlePlacePhoto,
-  resolveGooglePlace,
-} from "@/modules/places/google-photo";
+import { googlePlacePhoto } from "@/modules/places/google-photo";
 
 export async function GET(
   request: Request,
