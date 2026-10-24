@@ -17,12 +17,17 @@ import { mapPalettes, type Scheme } from "@/ui/theme";
  * variant with the scheme's appearance and no points of interest. Android has
  * only Google.
  */
+/** Whether this build draws its maps with Google (else Apple Maps on iOS). */
+export function usesGoogleMaps(): boolean {
+  return !(MAP_PROVIDER === "apple" && Platform.OS === "ios");
+}
+
 export function basemapProps(
   scheme: Scheme,
   basemap: "standard" | "satellite" = "standard",
 ): Partial<MapViewProps> {
   const satellite = basemap === "satellite";
-  if (MAP_PROVIDER === "apple" && Platform.OS === "ios") {
+  if (!usesGoogleMaps()) {
     return {
       provider: PROVIDER_DEFAULT,
       mapType: satellite ? "hybrid" : "mutedStandard",

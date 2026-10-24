@@ -157,9 +157,11 @@ export function MapScreen() {
       setCategory(null);
       setMunicipality(null);
       setSelected(place);
-      map.current?.flyTo(place.geometry.coordinates as [number, number], 14.5, {
-        animated: false,
-      });
+      map.current?.flyTo(
+        place.geometry.coordinates as [number, number],
+        undefined,
+        { animated: false },
+      );
       sheet.current?.snapToIndex(0);
       return;
     }

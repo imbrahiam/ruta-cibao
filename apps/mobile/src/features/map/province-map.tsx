@@ -12,7 +12,7 @@ import { StyleSheet, useWindowDimensions } from "react-native";
 import MapView, { Marker, Polygon, type Region } from "react-native-maps";
 import Supercluster from "supercluster";
 import { mapPalettes, palettes, type Scheme, useThemeId } from "@/ui/theme";
-import { basemapProps } from "./basemap";
+import { basemapProps, usesGoogleMaps } from "./basemap";
 import type { Boundaries, PlaceCollection, PlaceFeature } from "./data";
 import {
   boundsRegion,
@@ -64,6 +64,8 @@ const [WEST, SOUTH, EAST, NORTH] = PROVINCE_BOUNDS;
  * places within a few blocks, and every pin at once is noise, not a map.
  */
 const CLUSTER_MAX_ZOOM = 15;
+/** How close choosing a place brings the map: a few blocks around it. */
+const PLACE_ZOOM = 16.5;
 /** From this zoom a place's name sits beside its disc… */
 const NAME_ZOOM = 16;
 /** …and only while few enough are on screen to read them without overlap. */
@@ -133,25 +135,55 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
       [],
     );
 
+    // The latest zoom, read by camera moves that must never zoom out.
+    const zoomRef = useRef(0);
+
+    /**
+     * One camera move for both basemaps. Google animates a camera (centre and
+     * zoom, inside the map padding) with its own eased flight; MapKit takes a
+     * region sized for the uncovered part of the screen.
+     */
+    const moveCamera = useCallback(
+      (
+        [longitude, latitude]: readonly [number, number],
+        targetZoom: number,
+        duration: number,
+        bottom?: number,
+      ) => {
+        if (usesGoogleMaps()) {
+          map.current?.animateCamera(
+            { center: { latitude, longitude }, zoom: targetZoom },
+            { duration },
+          );
+          return;
+        }
+        const inner = height - padding.top - (bottom ?? padding.bottom);
+        map.current?.animateToRegion(
+          regionAt([longitude, latitude], targetZoom, width, inner),
+          duration,
+        );
+      },
+      [width, height, padding],
+    );
+
     useImperativeHandle(
       ref,
       () => ({
-        flyTo: (coordinate, zoom = 16, { animated = true, bottom } = {}) =>
+        flyTo: (coordinate, zoom, { animated = true, bottom } = {}) =>
           whenReady(() => {
             // The padding moves first so the centre lands above the sheet
             // height it is about to have, not the one it has now.
             setBottomOverride(bottom ?? null);
-            const inner = height - padding.top - (bottom ?? padding.bottom);
+            // Without an explicit zoom (choosing a place), come in to street
+            // level but never pull back out of a closer view.
+            const target = zoom ?? Math.max(zoomRef.current, PLACE_ZOOM);
             requestAnimationFrame(() =>
-              map.current?.animateToRegion(
-                regionAt(coordinate, zoom, width, inner),
-                animated ? 600 : 0,
-              ),
+              moveCamera(coordinate, target, animated ? 650 : 0, bottom),
             );
           }),
         showProvince: () => whenReady(() => showProvince()),
       }),
-      [whenReady, showProvince, width, height, padding],
+      [whenReady, showProvince, moveCamera],
     );
 
     const index = useMemo(() => {
@@ -164,6 +196,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
     }, [places]);
 
     const zoom = zoomForRegion(region, width);
+    zoomRef.current = zoom;
     const visible = useMemo(
       () => index.getClusters(regionBounds(region), Math.floor(zoom)),
       [index, region, zoom],
@@ -350,18 +383,26 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
                     south = Math.min(south, lat);
                     north = Math.max(north, lat);
                   }
-                  // Never closer than street level, so a tight cluster in a
-                  // town centre still shows its streets.
-                  const minDelta = 0.004;
-                  map.current?.animateToRegion(
-                    {
-                      latitude: (south + north) / 2,
-                      longitude: (west + east) / 2,
-                      latitudeDelta: Math.max((north - south) * 1.35, minDelta),
-                      longitudeDelta: Math.max((east - west) * 1.35, minDelta),
-                    },
-                    450,
+                  // Frame them on the uncovered part of the screen, a little
+                  // looser than tight, never closer than street level and
+                  // always at least one step in from here.
+                  const inner =
+                    height - padding.top - (bottomOverride ?? padding.bottom);
+                  const centreLat = (south + north) / 2;
+                  const lonSpan = Math.max((east - west) * 1.4, 1e-6);
+                  const latSpan = Math.max((north - south) * 1.4, 1e-6);
+                  const fit = Math.min(
+                    Math.log2((360 * width) / (256 * lonSpan)),
+                    Math.log2(
+                      (360 * inner * Math.cos((centreLat * Math.PI) / 180)) /
+                        (256 * latSpan),
+                    ),
                   );
+                  const target = Math.min(
+                    Math.max(fit, zoom + 1),
+                    CLUSTER_MAX_ZOOM + 2,
+                  );
+                  moveCamera([(west + east) / 2, centreLat], target, 800);
                 }}
               >
                 <ClusterBubble count={properties.point_count} scheme={scheme} />
