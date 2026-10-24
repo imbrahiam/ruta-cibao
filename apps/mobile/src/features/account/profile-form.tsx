@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Keyboard, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
@@ -75,9 +75,12 @@ export function ProfileForm({
               key={item.id}
               label={item.name}
               selected={municipality === item.id}
-              onPress={() =>
-                setMunicipality(municipality === item.id ? null : item.id)
-              }
+              onPress={() => {
+                // The save button sits below; on a small phone the keyboard
+                // covers it until the name is done.
+                Keyboard.dismiss();
+                setMunicipality(municipality === item.id ? null : item.id);
+              }}
             />
           ))}
         </View>

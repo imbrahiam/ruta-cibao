@@ -4,11 +4,12 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { NotificationResponseListener } from "@/features/notifications/response-listener";
 import { I18nProvider } from "@/i18n/provider";
+import { forgetPreviousInstall } from "@/lib/install-guard";
 import { queryClient, wireQueryLifecycle } from "@/lib/query";
 import { palettes, useScheme } from "@/ui/theme";
 import { ToastProvider } from "@/ui/toast";
@@ -121,10 +122,18 @@ function RootStack() {
 
 export default function RootLayout() {
   const scheme = useScheme();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    SplashScreen.hideAsync();
+    forgetPreviousInstall()
+      .catch(() => undefined)
+      .finally(() => {
+        setReady(true);
+        SplashScreen.hideAsync();
+      });
   }, []);
+
+  if (!ready) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -65,10 +65,7 @@ function formatBytes(bytes: number): string {
 function formatDate(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat("es-DO", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  return new Intl.DateTimeFormat("es-DO", { dateStyle: "medium" }).format(date);
 }
 
 export default function OfflineScreen() {
@@ -329,17 +326,17 @@ export default function OfflineScreen() {
             />
             <ListRow
               title={t("placesRowTitle")}
-              value={t("placesCount", { count: offline.snapshot.placeCount })}
+              value={offline.snapshot.placeCount.toLocaleString("es-DO")}
               icon={MapPin}
             />
             <ListRow
               title={t("routesRowTitle")}
-              value={t("routesCount", { count: offline.snapshot.routeCount })}
+              value={offline.snapshot.routeCount.toLocaleString("es-DO")}
               icon={Footprints}
             />
             <ListRow
               title={t("roadsRowTitle")}
-              value={t("roadsCount", { count: offline.snapshot.roadCount })}
+              value={offline.snapshot.roadCount.toLocaleString("es-DO")}
               icon={Route}
             />
           </ListSection>
