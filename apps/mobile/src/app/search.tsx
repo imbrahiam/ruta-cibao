@@ -10,7 +10,7 @@ import { focusOnMap } from "@/features/map/focus";
 import { SavedCopyNotice } from "@/features/offline/saved-copy-notice";
 import { offlineSearch } from "@/features/offline/store";
 import { useHiddenTargets } from "@/features/safety/hidden-targets";
-import { CategoryBadge } from "@/ui/category-badge";
+import { PlaceThumb } from "@/ui/place-thumb";
 import { PressableScale } from "@/ui/pressable";
 import { EmptyState } from "@/ui/states";
 import { Text } from "@/ui/text";
@@ -72,6 +72,9 @@ export default function SearchScreen() {
             municipality: place.municipality.id,
             color: place.category.color,
             icon: place.category.icon,
+            thumb: place.imageUrl,
+            thumbnailUrl: place.imageUrl,
+            thumbnailSource: place.imageUrl ? ("app" as const) : null,
           },
         }));
     }
@@ -151,7 +154,11 @@ export default function SearchScreen() {
             accessibilityLabel={`${item.properties.name}, ${item.properties.categoryName}`}
             style={styles.row}
           >
-            <CategoryBadge
+            <PlaceThumb
+              thumbnailUrl={
+                item.properties.thumbnailUrl ?? item.properties.thumb
+              }
+              source={item.properties.thumbnailSource}
               icon={item.properties.icon}
               color={item.properties.color}
               size={40}

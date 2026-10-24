@@ -333,12 +333,15 @@ function buildPalette(seed: Seed, scheme: "light" | "dark") {
     textTertiary: seed.textTertiary,
     textDisabled: seed.textDisabled,
 
-    accent: seed.accent,
-    accentPressed: seed.accentPressed,
-    accentSoft: seed.accentSoft,
-    onAccent: seed.onAccent,
+    // Actions (primary buttons, selected chips, links, the tab bar) are ink on
+    // paper in every theme: colour on buttons and text reads as noise. The
+    // theme's own colour lives on the map, where it marks things.
+    accent: seed.ink,
+    accentPressed: seed.textSecondary,
+    accentSoft: seed.fill,
+    onAccent: seed.paper,
 
-    /** Clusters and other app-drawn map chrome wear the theme's accent. */
+    /** The theme's colour: clusters and other app-drawn map marks. */
     pin: seed.accent,
     onPin: seed.onAccent,
 

@@ -1,8 +1,7 @@
 import { router, Stack } from "expo-router";
-import { X } from "lucide-react-native";
+import { Platform } from "react-native";
 import { useTranslations } from "use-intl";
 import { largeTitleOptions } from "@/ui/navigation";
-import { IconButton } from "@/ui/surfaces";
 import { useTheme } from "@/ui/theme";
 
 /** The account, opened as a sheet from the avatar beside the map's search. */
@@ -22,18 +21,18 @@ export default function AccountLayout() {
         name="index"
         options={{
           title: t("account"),
-          headerRight: () => (
-            <IconButton
-              icon={X}
-              label={tc("close")}
-              onPress={() => router.dismiss()}
-              size={36}
-              haptic="none"
-              testID="account-close"
-            />
-          ),
         }}
-      />
+      >
+        <Stack.Toolbar placement="right">
+          <Stack.Toolbar.Button
+            icon={Platform.OS === "ios" ? "xmark" : undefined}
+            accessibilityLabel={tc("close")}
+            onPress={() => router.dismiss()}
+          >
+            {tc("close")}
+          </Stack.Toolbar.Button>
+        </Stack.Toolbar>
+      </Stack.Screen>
     </Stack>
   );
 }

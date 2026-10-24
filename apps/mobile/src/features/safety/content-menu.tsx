@@ -1,21 +1,38 @@
+import {
+  Host as ComposeHost,
+  Text as ComposeText,
+  DropdownMenu,
+  DropdownMenuItem,
+  RNHostView,
+} from "@expo/ui/jetpack-compose";
+import { semantics, testID } from "@expo/ui/jetpack-compose/modifiers";
+import { Host, Label, Menu, Button as NativeButton } from "@expo/ui/swift-ui";
+import {
+  buttonStyle,
+  disabled,
+  frame,
+  labelStyle,
+} from "@expo/ui/swift-ui/modifiers";
 import type { ContentTarget } from "@ruta/contracts";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Ellipsis } from "lucide-react-native";
-import { ActionSheetIOS, Alert, Platform } from "react-native";
+import { Alert, Platform, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
 import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
-import { IconButton, type IconButtonProps } from "@/ui/surfaces";
+import { Icon } from "@/ui/icon";
+import type { IconButtonProps } from "@/ui/surfaces";
+import { useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
 import { safetyErrorKey } from "./errors";
 import { refreshHiddenTargets } from "./hidden-targets";
 
 /**
  * The "more" control on content someone else wrote: report it, or hide its
- * author. Members only; signed out, it opens sign-in first. Hiding an author
- * asks for confirmation, then `onHidden` lets the screen leave content that has
+ * author. Actions require membership; signed out, they open sign-in first.
+ * Hiding an author asks for confirmation, then `onHidden` leaves content that has
  * just disappeared from the person's own views.
  */
 export function ContentMenu({
@@ -33,6 +50,7 @@ export function ContentMenu({
   const tu = useTranslations("safetyUi");
   const tc = useTranslations("common");
   const toast = useToast();
+  const { colors, scheme } = useTheme();
   const queryClient = useQueryClient();
   const asMember = useMemberAction();
 
@@ -78,38 +96,90 @@ export function ContentMenu({
       },
     ]);
 
-  const open = () => {
-    if (Platform.OS === "ios") {
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: [t("report.action"), t("block.action"), tc("cancel")],
-          cancelButtonIndex: 2,
-          title: tu("menuTitle"),
-        },
-        (index) => {
-          if (index === 0) report();
-          if (index === 1) confirmBlock();
-        },
-      );
-      return;
-    }
-    Alert.alert(tu("menuTitle"), undefined, [
-      { text: t("report.action"), onPress: report },
-      { text: t("block.action"), onPress: confirmBlock },
-      { text: tc("cancel"), style: "cancel" },
-    ]);
-  };
-
+  const controlSize = Math.max(size ?? 44, Platform.OS === "android" ? 48 : 44);
+  if (Platform.OS === "ios") {
+    return (
+      <Host matchContents colorScheme={scheme} seedColor={colors.accent}>
+        <Menu
+          label={
+            <Label
+              title={tu("menuLabel")}
+              systemImage="ellipsis"
+              modifiers={[
+                labelStyle("iconOnly"),
+                frame({ minWidth: controlSize, minHeight: controlSize }),
+              ]}
+            />
+          }
+          testID="content-menu"
+          modifiers={[
+            buttonStyle(variant === "glass" ? "glass" : "borderless"),
+            disabled(block.isPending),
+          ]}
+        >
+          <NativeButton
+            label={t("report.action")}
+            systemImage="flag"
+            onPress={() => asMember(report)}
+          />
+          {/* biome-ignore lint/a11y/useValidAriaRole: SwiftUI ButtonRole, not a DOM ARIA role. */}
+          <NativeButton
+            label={t("block.action")}
+            systemImage="person.crop.circle.badge.minus"
+            role="destructive"
+            onPress={() => asMember(confirmBlock)}
+          />
+        </Menu>
+      </Host>
+    );
+  }
   return (
-    <IconButton
-      icon={Ellipsis}
-      label={tu("menuLabel")}
-      variant={variant}
-      size={size}
-      haptic="light"
-      disabled={block.isPending}
-      onPress={() => asMember(open)}
-      testID="content-menu"
-    />
+    <ComposeHost matchContents colorScheme={scheme} seedColor={colors.accent}>
+      <DropdownMenu>
+        <DropdownMenu.Trigger>
+          <RNHostView
+            matchContents
+            modifiers={[
+              semantics({ contentDescription: tu("menuLabel") }),
+              testID("content-menu"),
+            ]}
+          >
+            <View
+              pointerEvents="none"
+              style={{
+                width: controlSize,
+                height: controlSize,
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: controlSize / 2,
+                backgroundColor:
+                  variant === "glass" ? colors.surface : undefined,
+              }}
+            >
+              <Icon as={Ellipsis} size={22} />
+            </View>
+          </RNHostView>
+        </DropdownMenu.Trigger>
+        <DropdownMenu.Items>
+          <DropdownMenuItem
+            enabled={!block.isPending}
+            onClick={() => asMember(report)}
+          >
+            <DropdownMenuItem.Text>
+              <ComposeText>{t("report.action")}</ComposeText>
+            </DropdownMenuItem.Text>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            enabled={!block.isPending}
+            elementColors={{ textColor: colors.danger }}
+            onClick={() => asMember(confirmBlock)}
+          >
+            <DropdownMenuItem.Text>
+              <ComposeText>{t("block.action")}</ComposeText>
+            </DropdownMenuItem.Text>
+          </DropdownMenuItem>
+        </DropdownMenu.Items>
+      </DropdownMenu>
+    </ComposeHost>
   );
 }

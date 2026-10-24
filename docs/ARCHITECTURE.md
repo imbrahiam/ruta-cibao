@@ -56,6 +56,52 @@ Anything environment-specific goes through an adapter, which is what lets the
 same image run on a VPS or on Railway: storage (MinIO / S3 / R2), map tiles,
 geocoding, routing, mail, and the AI model provider.
 
+## In-app directions
+
+The public `directions.compute` procedure (`POST /api/directions`) accepts
+`{ origin: { lat, lng }, destination: { lat, lng }, mode: "drive" | "walk" }`
+within the Dominican Republic bounding box. It returns distance in metres,
+duration in seconds, a decoded path, and Spanish maneuver instructions.
+The native full-screen `directions` screen accepts `{ lat, lng, name }`, requests
+foreground location, and previews that route with driving/walking selection.
+An optional Maps link hands off to an installed navigation app; the preview
+does not provide voice navigation or background location tracking.
+
+The server calls Google Routes with the optional, server-only
+`GOOGLE_MAPS_SERVER_API_KEY` (Routes API and billing must be enabled). Requests
+time out after eight seconds and are limited to 30 per client per minute through
+the existing database limiter. No key means typed `unavailable` (503), no route
+means `no_route` (404); invalid provider responses also become `unavailable`.
+Coordinates and provider bodies are not logged, cached, or audited.
+Run `bun run scripts/verify-directions.ts` against the running local API on port
+3000 to report the real Sabaneta–Monción route distance and duration without
+printing credentials.
+
+## Place thumbnails
+
+Published app photos (including seeded imagery) always win. Place browse,
+detail, nearby, search and saved outputs expose optional `thumbnailUrl` and
+`thumbnailSource: "app" | "google" | null`; the public GeoJSON also exposes `thumb`.
+For a cached Google match without app imagery the URL is
+`/api/places/{id}/thumbnail`. Native list thumbnails fall back to category
+badges on missing images or errors.
+
+Enable Places API (New) and billing for `GOOGLE_MAPS_SERVER_API_KEY`, alongside
+Routes API. Run `bun run db:migrate`, then
+`bun run scripts/match-google-places.ts` to match published places without app
+photos sequentially, with 200 ms spacing. Only matches within 250 metres are
+accepted; IDs and negative checks expire for rechecking after 30 days. Every
+completed check atomically records a system `places.google_match_checked` audit
+event without an actor or provider response.
+
+`GET /api/places/{id}/thumbnail` checks publication and absence of app imagery,
+limits clients to 60 requests/minute, and redirects (302) to a fresh Google photo
+URI with `Cache-Control: public, max-age=86400`. `X-Photo-Attribution` carries the
+first author's display name (URI-encoded if outside the HTTP Latin-1 range).
+Google responses are Zod-validated with six-second timeouts per request.
+No Google photo bytes, photo names or media URIs are persisted server-side.
+No match/photo returns 404; provider failures return uncached 502.
+
 ## Database
 
 PostgreSQL 18 with PostGIS and pgvector. `src/db/migrate.ts` creates both

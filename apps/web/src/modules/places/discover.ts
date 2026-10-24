@@ -14,6 +14,7 @@ import {
 } from "@/db/schema";
 import type { Viewer } from "@/modules/access/viewer";
 import { notBlockedAuthor } from "@/modules/safety/blocks";
+import { placeThumbnail, thumbnailSelection } from "./thumbnail";
 
 export async function browsePlaces(viewer: Viewer, input: BrowsePlacesInput) {
   const where = and(
@@ -35,6 +36,7 @@ export async function browsePlaces(viewer: Viewer, input: BrowsePlacesInput) {
         name: places.name,
         description: places.description,
         imageUrl: places.imageUrl,
+        ...thumbnailSelection,
         categoryId: categories.id,
         categoryName: categories.name,
         categoryIcon: categories.icon,
@@ -50,7 +52,19 @@ export async function browsePlaces(viewer: Viewer, input: BrowsePlacesInput) {
       .offset(input.offset),
     db.select({ value: count() }).from(places).where(where),
   ]);
-  return { items, total: totals[0]?.value ?? 0 };
+  return {
+    items: await Promise.all(
+      items.map(async ({ appThumbnailKey, googlePlaceId, ...item }) => ({
+        ...item,
+        ...(await placeThumbnail({
+          id: item.id,
+          appThumbnailKey,
+          googlePlaceId,
+        })),
+      })),
+    ),
+    total: totals[0]?.value ?? 0,
+  };
 }
 
 /**

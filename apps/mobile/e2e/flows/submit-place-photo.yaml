@@ -4,12 +4,13 @@
 appId: do.rutacibao.app.dev
 ---
 - tapOn: "Aportes"
-- tapOn:
-    id: "contribute-open"
+- tapOn: "Aportar"
 - tapOn:
     id: "contribute-place"
 - waitForAnimationToEnd
-- tapOn: "Parque o plaza"
+- tapOn:
+    id: "place-category"
+- tapOn: ".*Parque o plaza.*"
 - tapOn:
     id: "place-name"
 - inputText: ${NAME}

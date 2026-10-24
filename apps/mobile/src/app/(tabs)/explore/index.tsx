@@ -1,9 +1,14 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Image } from "expo-image";
 import { router, Stack } from "expo-router";
-import { Bookmark, Clock, Mountain, Search } from "lucide-react-native";
+import { Clock, Mountain, Search } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useTranslations } from "use-intl";
 import { usePlaceCollection } from "@/features/map/data";
 import {
@@ -20,13 +25,12 @@ import {
 import { PlaceListRow } from "@/features/places/place-list-row";
 import { useHiddenTargets } from "@/features/safety/hidden-targets";
 import { api, orpc } from "@/lib/api";
-import { API_ORIGIN } from "@/lib/config";
-import { mediaUrl } from "@/lib/ids";
 import { CategoryBadge } from "@/ui/category-badge";
 import { Icon } from "@/ui/icon";
+import { PlaceThumb } from "@/ui/place-thumb";
 import { PressableScale } from "@/ui/pressable";
 import { EmptyState, Skeleton } from "@/ui/states";
-import { Card, IconButton } from "@/ui/surfaces";
+import { Card } from "@/ui/surfaces";
 import { Chip } from "@/ui/tags";
 import { Text } from "@/ui/text";
 import { radius, space, useTheme } from "@/ui/theme";
@@ -149,7 +153,7 @@ export default function ExploreScreen() {
       .map((c) => c.id),
   );
   const businesses = items.filter((item) => businessIds.has(item.categoryId));
-  const highlights = items.filter((item) => item.imageUrl);
+  const highlights = items.filter((item) => item.thumbnailUrl ?? item.imageUrl);
   // Counts come from the whole published collection (what the map shows),
   // not from the first page of `browse`, which stops at 48 places.
   const counts = new Map<string, number>();
@@ -176,17 +180,17 @@ export default function ExploreScreen() {
             onChangeText: (event) => setQuery(event.nativeEvent.text),
             onCancelButtonPress: () => setQuery(""),
           },
-          headerRight: () => (
-            <IconButton
-              icon={Bookmark}
-              label={t("saved")}
-              size={36}
-              onPress={() => router.push("/explore/saved")}
-              testID="explore-saved"
-            />
-          ),
         }}
       />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={Platform.OS === "ios" ? "bookmark" : undefined}
+          accessibilityLabel={t("saved")}
+          onPress={() => router.push("/explore/saved")}
+        >
+          {t("saved")}
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={{ backgroundColor: colors.background }}
@@ -273,14 +277,13 @@ export default function ExploreScreen() {
                     accessibilityLabel={`${item.name}, ${item.categoryName}, ${item.municipalityName}`}
                     style={styles.feature}
                   >
-                    <Image
-                      source={mediaUrl(item.imageUrl ?? "", API_ORIGIN)}
-                      style={[
-                        styles.featureImage,
-                        { backgroundColor: colors.fill },
-                      ]}
-                      contentFit="cover"
-                      transition={200}
+                    <PlaceThumb
+                      thumbnailUrl={item.thumbnailUrl ?? item.imageUrl}
+                      source={item.thumbnailSource}
+                      icon={item.categoryIcon}
+                      color={item.categoryColor}
+                      size={180}
+                      style={styles.featureImage}
                     />
                     <View style={styles.featureText}>
                       <Text variant="headline" numberOfLines={1}>
@@ -359,7 +362,9 @@ export default function ExploreScreen() {
                     onPress={() => router.push(`/place/${item.slug}`)}
                     accessibilityLabel={item.name}
                   >
-                    <CategoryBadge
+                    <PlaceThumb
+                      thumbnailUrl={item.thumbnailUrl}
+                      source={item.thumbnailSource}
                       icon={item.categoryIcon}
                       color={item.categoryColor}
                       size={36}

@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { StyleSheet, View } from "react-native";
-import { CategoryBadge } from "@/ui/category-badge";
+import { PlaceThumb } from "@/ui/place-thumb";
 import { PressableScale } from "@/ui/pressable";
 import { Text } from "@/ui/text";
 import { space } from "@/ui/theme";
@@ -12,6 +12,8 @@ export type PlaceRowItem = {
   categoryIcon: string;
   municipalityName: string;
   categoryColor?: string;
+  thumbnailUrl?: string | null;
+  thumbnailSource?: "app" | "google" | null;
 };
 
 /** One place in a list: category badge, name, category and municipality. */
@@ -24,7 +26,9 @@ export function PlaceListRow({ item }: { item: PlaceRowItem }) {
       accessibilityLabel={`${item.name}, ${item.categoryName}, ${item.municipalityName}`}
       style={styles.row}
     >
-      <CategoryBadge
+      <PlaceThumb
+        thumbnailUrl={item.thumbnailUrl}
+        source={item.thumbnailSource}
         icon={item.categoryIcon}
         color={item.categoryColor}
         size={40}

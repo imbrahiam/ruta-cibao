@@ -121,6 +121,8 @@ export const places = pgTable(
     address: text(),
     /** Public path for seeded imagery, or an object-storage key after moderation. */
     imageUrl: text(),
+    googlePlaceId: text(),
+    googlePlaceCheckedAt: timestamp({ withTimezone: true }),
     businessDetails: jsonb().$type<BusinessContact>(),
 
     status: placeStatus().notNull().default("pending"),

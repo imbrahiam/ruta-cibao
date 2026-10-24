@@ -21,6 +21,7 @@ import {
   reportPlace,
   submitPlace,
 } from "@/modules/places/submit-place";
+import { placeThumbnail, thumbnailSelection } from "@/modules/places/thumbnail";
 import {
   ConfirmationError,
   confirmPlace,
@@ -71,6 +72,7 @@ export const placesRouter = {
         description: places.description,
         address: places.address,
         imageUrl: places.imageUrl,
+        ...thumbnailSelection,
         location: places.location,
         categoryId: categories.id,
         categoryName: categories.name,
@@ -129,6 +131,7 @@ export const placesRouter = {
       description: row.description,
       address: row.address,
       imageUrl: row.imageUrl,
+      ...(await placeThumbnail(row)),
       location: { lng: row.location.x, lat: row.location.y },
       category: {
         id: row.categoryId,
@@ -151,8 +154,10 @@ export const placesRouter = {
     const viewer = await context.getViewer();
     const origin = sql`ST_SetSRID(ST_MakePoint(${input.lng}, ${input.lat}), 4326)::geography`;
 
-    return context.db
+    const rows = await context.db
       .select({
+        id: places.id,
+        ...thumbnailSelection,
         slug: places.slug,
         name: places.name,
         distanceMeters: sql<number>`round(ST_Distance(${places.location}::geography, ${origin}))::int`,
@@ -173,6 +178,12 @@ export const placesRouter = {
       )
       .orderBy(sql`ST_Distance(${places.location}::geography, ${origin})`)
       .limit(input.limit);
+    return Promise.all(
+      rows.map(async ({ id, appThumbnailKey, googlePlaceId, ...row }) => ({
+        ...row,
+        ...(await placeThumbnail({ id, appThumbnailKey, googlePlaceId })),
+      })),
+    );
   }),
 
   /**
@@ -205,6 +216,8 @@ export const placesRouter = {
     const [matched, addresses] = await Promise.all([
       context.db
         .select({
+          id: places.id,
+          ...thumbnailSelection,
           slug: places.slug,
           name: places.name,
           categoryName: categories.name,
@@ -239,16 +252,19 @@ export const placesRouter = {
 
     return {
       geocoder: isGeocodingEnabled(),
-      places: matched.map((row) => ({
-        slug: row.slug,
-        name: row.name,
-        categoryName: row.categoryName,
-        categoryIcon: row.categoryIcon,
-        color: row.color,
-        municipalityName: row.municipalityName,
-        lng: row.location.x,
-        lat: row.location.y,
-      })),
+      places: await Promise.all(
+        matched.map(async (row) => ({
+          ...(await placeThumbnail(row)),
+          slug: row.slug,
+          name: row.name,
+          categoryName: row.categoryName,
+          categoryIcon: row.categoryIcon,
+          color: row.color,
+          municipalityName: row.municipalityName,
+          lng: row.location.x,
+          lat: row.location.y,
+        })),
+      ),
       addresses,
     };
   }),
@@ -266,6 +282,7 @@ export const placesRouter = {
         id: places.id,
         slug: places.slug,
         name: places.name,
+        ...thumbnailSelection,
         location: places.location,
         categoryId: categories.id,
         categoryName: categories.name,
@@ -288,18 +305,21 @@ export const placesRouter = {
       )
       .orderBy(desc(savedPlaces.createdAt));
 
-    return rows.map((row) => ({
-      id: row.id,
-      slug: row.slug,
-      name: row.name,
-      categoryId: row.categoryId,
-      categoryName: row.categoryName,
-      color: row.color,
-      icon: row.icon,
-      municipalityName: row.municipalityName,
-      lng: row.location.x,
-      lat: row.location.y,
-    }));
+    return Promise.all(
+      rows.map(async (row) => ({
+        ...(await placeThumbnail(row)),
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        categoryId: row.categoryId,
+        categoryName: row.categoryName,
+        color: row.color,
+        icon: row.icon,
+        municipalityName: row.municipalityName,
+        lng: row.location.x,
+        lat: row.location.y,
+      })),
+    );
   }),
 
   /**

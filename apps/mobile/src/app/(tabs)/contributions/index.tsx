@@ -10,12 +10,11 @@ import {
   Clock,
   Inbox,
   type LucideIcon,
-  Plus,
   Sparkles,
   WifiOff,
 } from "lucide-react-native";
 import { useState } from "react";
-import { RefreshControl, StyleSheet, View } from "react-native";
+import { Platform, RefreshControl, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useMe } from "@/features/auth/session";
 import { isNetworkError } from "@/features/offline/fallback";
@@ -30,7 +29,7 @@ import { ListRow, ListSection } from "@/ui/list";
 import { PressableScale } from "@/ui/pressable";
 import { Segmented } from "@/ui/segmented";
 import { EmptyState, Skeleton } from "@/ui/states";
-import { Card, IconButton } from "@/ui/surfaces";
+import { Card } from "@/ui/surfaces";
 import { Badge, type BadgeTone } from "@/ui/tags";
 import { Text } from "@/ui/text";
 import { radius, space, useTheme } from "@/ui/theme";
@@ -102,18 +101,17 @@ export default function ContributionsScreen() {
       <Stack.Screen
         options={{
           title: t("title"),
-          headerRight: () => (
-            <IconButton
-              icon={Plus}
-              label={t("contribute")}
-              variant="filled"
-              size={36}
-              onPress={() => router.push("/contribute")}
-              testID="contribute-open"
-            />
-          ),
         }}
       />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={Platform.OS === "ios" ? "plus" : undefined}
+          accessibilityLabel={t("contribute")}
+          onPress={() => router.push("/contribute")}
+        >
+          {t("contribute")}
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       {view === "mine" ? (
         <MyContributions header={<Switcher view={view} onChange={setView} />} />
       ) : (

@@ -1,5 +1,4 @@
 import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
-import { directionsUrl } from "@ruta/shared/directions";
 import * as Location from "expo-location";
 import { router, useIsFocused } from "expo-router";
 import {
@@ -12,7 +11,6 @@ import {
 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -590,16 +588,14 @@ function PlaceSummary({
             size="md"
             block
             onPress={() =>
-              Linking.openURL(
-                directionsUrl(
-                  { lat, lng, label: properties.name },
-                  Platform.OS === "ios" ? "ios" : "android",
-                ),
-              ).catch(() =>
-                Linking.openURL(
-                  directionsUrl({ lat, lng, label: properties.name }, "other"),
-                ),
-              )
+              router.push({
+                pathname: "/directions",
+                params: {
+                  lat: String(lat),
+                  lng: String(lng),
+                  name: properties.name,
+                },
+              })
             }
           />
         </View>

@@ -3,6 +3,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 import { db } from "@/db";
 import { categories, places } from "@/db/schema";
+import { placeThumbnail, thumbnailSelection } from "@/modules/places/thumbnail";
 
 /**
  * Every published place, as GeoJSON.
@@ -30,6 +31,7 @@ async function collection() {
       color: categories.color,
       icon: categories.icon,
       categoryName: categories.name,
+      ...thumbnailSelection,
     })
     .from(places)
     .innerJoin(categories, eq(categories.id, places.categoryId))
@@ -37,24 +39,32 @@ async function collection() {
 
   return {
     type: "FeatureCollection" as const,
-    features: rows.map((row) => ({
-      type: "Feature" as const,
-      id: row.id,
-      geometry: {
-        type: "Point" as const,
-        coordinates: [row.location.x, row.location.y],
-      },
-      properties: {
-        id: row.id,
-        slug: row.slug,
-        name: row.name,
-        category: row.categoryId,
-        categoryName: row.categoryName,
-        municipality: row.municipalityId,
-        color: row.color,
-        icon: row.icon,
-      },
-    })),
+    features: await Promise.all(
+      rows.map(async (row) => {
+        const thumbnail = await placeThumbnail(row);
+        return {
+          type: "Feature" as const,
+          id: row.id,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [row.location.x, row.location.y],
+          },
+          properties: {
+            id: row.id,
+            slug: row.slug,
+            name: row.name,
+            category: row.categoryId,
+            categoryName: row.categoryName,
+            municipality: row.municipalityId,
+            color: row.color,
+            icon: row.icon,
+            thumb: thumbnail.thumbnailUrl,
+            thumbnailUrl: thumbnail.thumbnailUrl,
+            thumbnailSource: thumbnail.thumbnailSource,
+          },
+        };
+      }),
+    ),
   };
 }
 

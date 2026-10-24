@@ -115,6 +115,10 @@ const serverSchema = z
     GEOCODER: z.enum(["nominatim", "none"]).default("nominatim"),
     NOMINATIM_URL: z.url().default("https://nominatim.openstreetmap.org"),
 
+    // Server-only Google Routes / Places (New) key. Optional: directions and
+    // Google photo fallback are unavailable without it; never bundled in apps.
+    GOOGLE_MAPS_SERVER_API_KEY: optionalString(),
+
     // Background jobs. pg-boss keeps its queues in this same database, in its
     // own schema, so there is nothing extra to run or back up. Turn it off and
     // the work still happens — in-process, on the request that caused it — which

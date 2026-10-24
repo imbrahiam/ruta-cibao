@@ -106,6 +106,10 @@ function RootStack() {
       />
       <Stack.Screen name="s/[kind]/[ref]" options={{ headerShown: false }} />
       <Stack.Screen
+        name="directions"
+        options={{ presentation: "fullScreenModal", headerShown: false }}
+      />
+      <Stack.Screen
         name="pick-location"
         options={{ presentation: "fullScreenModal", headerShown: false }}
       />

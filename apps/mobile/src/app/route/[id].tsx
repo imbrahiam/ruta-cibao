@@ -1,4 +1,3 @@
-import { directionsUrl } from "@ruta/shared/directions";
 import { useQuery } from "@tanstack/react-query";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import {
@@ -19,8 +18,6 @@ import {
 } from "lucide-react-native";
 import { useMemo, useRef } from "react";
 import {
-  Linking,
-  Platform,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
@@ -263,21 +260,16 @@ export default function RouteScreen() {
               label={t("toStart")}
               icon={Navigation}
               block
-              onPress={() => {
-                const destination = {
-                  lat: start.lat,
-                  lng: start.lng,
-                  label: data.name,
-                };
-                Linking.openURL(
-                  directionsUrl(
-                    destination,
-                    Platform.OS === "ios" ? "ios" : "android",
-                  ),
-                ).catch(() =>
-                  Linking.openURL(directionsUrl(destination, "other")),
-                );
-              }}
+              onPress={() =>
+                router.push({
+                  pathname: "/directions",
+                  params: {
+                    lat: String(start.lat),
+                    lng: String(start.lng),
+                    name: data.name,
+                  },
+                })
+              }
             />
           ) : null}
         </View>

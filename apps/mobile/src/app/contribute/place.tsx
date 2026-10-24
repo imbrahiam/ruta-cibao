@@ -2,7 +2,7 @@ import { submitPlaceInput } from "@ruta/contracts";
 import { formatPhoneInput } from "@ruta/shared/phone";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
-import { MapPin, X } from "lucide-react-native";
+import { MapPin } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
@@ -25,9 +25,9 @@ import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
 import { Field } from "@/ui/field";
-import { categoryIcon, Icon } from "@/ui/icon";
-import { Card, IconButton } from "@/ui/surfaces";
-import { Chip } from "@/ui/tags";
+import { Icon } from "@/ui/icon";
+import { NativePicker } from "@/ui/native-picker";
+import { Card } from "@/ui/surfaces";
 import { Text } from "@/ui/text";
 import { space, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
@@ -181,9 +181,6 @@ export default function SubmitPlaceScreen() {
     });
   };
 
-  const group = (kindName: "place" | "business") =>
-    (categories.data ?? []).filter((item) => item.kind === kindName);
-
   return (
     <KeyboardAwareScrollView
       bottomOffset={24}
@@ -194,43 +191,30 @@ export default function SubmitPlaceScreen() {
       <Stack.Screen
         options={{
           title: t("place.title"),
-          headerLeft: () => (
-            <IconButton
-              icon={X}
-              label={tc("cancel")}
-              size={36}
-              onPress={() => router.back()}
-              haptic="none"
-            />
-          ),
         }}
       />
+      <Stack.Toolbar placement="left">
+        <Stack.Toolbar.Button
+          accessibilityLabel={tc("cancel")}
+          onPress={() => router.back()}
+        >
+          {tc("cancel")}
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <Text tone="secondary">{t("place.lede")}</Text>
 
-      {(["place", "business"] as const).map((section) => (
-        <View key={section} style={styles.group}>
-          <Text variant="subhead" weight="600" tone="secondary">
-            {t(`place.${section}Categories`)}
-          </Text>
-          <View style={styles.wrap}>
-            {group(section).map((item) => (
-              <Chip
-                key={item.id}
-                label={item.name}
-                icon={categoryIcon(item.icon)}
-                iconColor={item.color}
-                selected={category === item.id}
-                onPress={() => setCategory(item.id)}
-              />
-            ))}
-          </View>
-        </View>
-      ))}
-      {errors.category ? (
-        <Text variant="footnote" tone="danger">
-          {errors.category}
-        </Text>
-      ) : null}
+      <NativePicker
+        label={t("place.category")}
+        placeholder={tc("choose")}
+        value={category}
+        options={(categories.data ?? []).map((item) => ({
+          value: item.id,
+          label: `${t(`place.${item.kind}Categories`)} · ${item.name}`,
+        }))}
+        onChange={setCategory}
+        error={errors.category}
+        testID="place-category"
+      />
 
       <Field
         testID="place-name"
@@ -388,7 +372,6 @@ const styles = StyleSheet.create({
   content: { padding: space.md, gap: space.lg, paddingBottom: space.xxl },
   flex: { flex: 1 },
   group: { gap: space.sm },
-  wrap: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   location: { flexDirection: "row", alignItems: "center", gap: space.md - 4 },
   failed: { gap: space.sm },
   actions: { flexDirection: "row", gap: space.sm, marginTop: space.xs },

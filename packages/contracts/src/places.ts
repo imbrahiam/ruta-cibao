@@ -94,6 +94,8 @@ export const browsePlacesOutput = z.object({
       name: z.string(),
       description: z.string().nullable(),
       imageUrl: z.string().nullable(),
+      thumbnailUrl: z.string().nullable().optional(),
+      thumbnailSource: z.enum(["app", "google"]).nullable().optional(),
       categoryId: z.string(),
       categoryName: z.string(),
       categoryIcon: z.string(),
@@ -177,6 +179,8 @@ export const placeDetailOutput = z.object({
   description: z.string().nullable(),
   address: z.string().nullable(),
   imageUrl: z.string().nullable(),
+  thumbnailUrl: z.string().nullable().optional(),
+  thumbnailSource: z.enum(["app", "google"]).nullable().optional(),
   location: z.object({ lng: z.number(), lat: z.number() }),
   category: z.object({
     id: z.string(),
@@ -210,6 +214,8 @@ export const nearbyPlacesOutput = z.array(
   z.object({
     slug: z.string(),
     name: z.string(),
+    thumbnailUrl: z.string().nullable().optional(),
+    thumbnailSource: z.enum(["app", "google"]).nullable().optional(),
     distanceMeters: z.number(),
     category: z.object({
       name: z.string(),
@@ -234,6 +240,8 @@ export const searchPlacesOutput = z.object({
     z.object({
       slug: z.string(),
       name: z.string(),
+      thumbnailUrl: z.string().nullable().optional(),
+      thumbnailSource: z.enum(["app", "google"]).nullable().optional(),
       categoryName: z.string(),
       categoryIcon: z.string(),
       color: z.string(),
@@ -257,6 +265,8 @@ export const savedPlacesOutput = z.array(
     id: z.string(),
     slug: z.string(),
     name: z.string(),
+    thumbnailUrl: z.string().nullable().optional(),
+    thumbnailSource: z.enum(["app", "google"]).nullable().optional(),
     categoryId: z.string(),
     categoryName: z.string(),
     color: z.string(),

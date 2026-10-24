@@ -8,6 +8,7 @@ import { z } from "zod";
 import { businessesContract } from "./businesses";
 import { catalogContract } from "./catalog";
 import { consultationsContract } from "./consultations";
+import { directionsContract } from "./directions";
 import { meContract } from "./me";
 import { moderationContract } from "./moderation";
 import { municipalitiesContract } from "./municipalities";
@@ -45,6 +46,7 @@ export const contract = {
   passport: passportContract,
   traffic: trafficContract,
   consultations: consultationsContract,
+  directions: directionsContract,
   businesses: businessesContract,
   reports: reportsContract,
   catalog: catalogContract,
@@ -60,6 +62,7 @@ export type ApiOutputs = InferContractRouterOutputs<Contract>;
 export * from "./businesses";
 export * from "./catalog";
 export * from "./consultations";
+export * from "./directions";
 export * from "./me";
 export * from "./moderation";
 export * from "./municipalities";

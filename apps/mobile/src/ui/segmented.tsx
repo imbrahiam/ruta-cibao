@@ -1,3 +1,10 @@
+import {
+  Host as ComposeHost,
+  Text as ComposeText,
+  SegmentedButton,
+  SingleChoiceSegmentedButtonRow,
+} from "@expo/ui/jetpack-compose";
+import { fillMaxWidth, semantics } from "@expo/ui/jetpack-compose/modifiers";
 import { Host, Text as NativeText, Picker } from "@expo/ui/swift-ui";
 import { pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
 import { useEffect, useState } from "react";
@@ -20,14 +27,49 @@ export type SegmentedProps<T extends string> = {
 };
 
 /**
- * Two to four mutually exclusive choices. On iOS this is the system
- * segmented control (SwiftUI `Picker`), so it looks, sounds and reads to
- * VoiceOver exactly like every other iOS app; elsewhere a drawn equivalent
- * whose thumb slides on the UI thread.
+ * Two to four mutually exclusive choices, using each platform's system
+ * control. The drawn control is only used outside iOS and Android.
  */
 export function Segmented<T extends string>(props: SegmentedProps<T>) {
   if (Platform.OS === "ios") return <NativeSegmented {...props} />;
+  if (Platform.OS === "android") return <ComposeSegmented {...props} />;
   return <DrawnSegmented {...props} />;
+}
+
+function ComposeSegmented<T extends string>({
+  options,
+  value,
+  onChange,
+  accessibilityLabel,
+}: SegmentedProps<T>) {
+  const { colors, scheme } = useTheme();
+  return (
+    <ComposeHost
+      matchContents={{ vertical: true }}
+      colorScheme={scheme}
+      seedColor={colors.accent}
+      style={styles.host}
+    >
+      <SingleChoiceSegmentedButtonRow
+        modifiers={[
+          fillMaxWidth(),
+          semantics({ contentDescription: accessibilityLabel }),
+        ]}
+      >
+        {options.map((option) => (
+          <SegmentedButton
+            key={option.value}
+            selected={option.value === value}
+            onClick={() => onChange(option.value)}
+          >
+            <SegmentedButton.Label>
+              <ComposeText>{option.label}</ComposeText>
+            </SegmentedButton.Label>
+          </SegmentedButton>
+        ))}
+      </SingleChoiceSegmentedButtonRow>
+    </ComposeHost>
+  );
 }
 
 function NativeSegmented<T extends string>({

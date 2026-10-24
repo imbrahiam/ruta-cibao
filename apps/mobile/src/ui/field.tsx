@@ -37,6 +37,24 @@ export const Field = forwardRef<TextInputHandle, FieldProps>(function Field(
 ) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
+  const textContentType =
+    input.textContentType ??
+    (input.keyboardType === "phone-pad"
+      ? "telephoneNumber"
+      : input.keyboardType === "email-address"
+        ? "emailAddress"
+        : undefined);
+  const autoComplete =
+    input.autoComplete ??
+    (textContentType === "telephoneNumber"
+      ? "tel-national"
+      : textContentType === "emailAddress"
+        ? "email"
+        : textContentType === "oneTimeCode"
+          ? "one-time-code"
+          : textContentType === "name"
+            ? "name"
+            : undefined);
   const border = error
     ? colors.danger
     : focused
@@ -66,7 +84,10 @@ export const Field = forwardRef<TextInputHandle, FieldProps>(function Field(
         ) : null}
         <TextInput
           ref={ref}
+          clearButtonMode={multiline ? "never" : "while-editing"}
           {...input}
+          textContentType={textContentType}
+          autoComplete={autoComplete}
           multiline={multiline}
           accessibilityLabel={label}
           accessibilityHint={error ?? helper}

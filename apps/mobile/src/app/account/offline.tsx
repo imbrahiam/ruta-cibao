@@ -17,7 +17,7 @@ import {
   WifiOff,
 } from "lucide-react-native";
 import { useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import {
   type OutboxItem,
@@ -75,16 +75,12 @@ export default function OfflineScreen() {
   const offline = useOfflineStatus();
   const outbox = useOutbox();
 
-  const [meteredPromptBytes, setMeteredPromptBytes] = useState<number | null>(
-    null,
-  );
   const [checkingNetwork, setCheckingNetwork] = useState(false);
   const [localError, setLocalError] = useState<
     OfflineValidationErrorCode | "offline" | null
   >(null);
 
   const runDownload = async () => {
-    setMeteredPromptBytes(null);
     setLocalError(null);
     try {
       await offline.download();
@@ -118,7 +114,14 @@ export default function OfflineScreen() {
         } catch {
           // Keep fallback estimate if manifest preflight fails.
         }
-        setMeteredPromptBytes(estimatedBytes);
+        Alert.alert(
+          t("meteredTitle"),
+          t("meteredBody", { size: formatBytes(estimatedBytes) }),
+          [
+            { text: t("meteredCancel"), style: "cancel" },
+            { text: t("meteredConfirm"), onPress: () => void runDownload() },
+          ],
+        );
         return;
       }
     } finally {
@@ -130,7 +133,6 @@ export default function OfflineScreen() {
 
   const handleRemove = async () => {
     setLocalError(null);
-    setMeteredPromptBytes(null);
     await offline.remove();
     toast.show({ title: t("removedToast"), tone: "info" });
   };
@@ -237,47 +239,6 @@ export default function OfflineScreen() {
           block
         />
       </Card>
-
-      {meteredPromptBytes !== null && !offline.downloading ? (
-        <Card
-          style={[
-            styles.noticeCard,
-            {
-              backgroundColor: colors.groupedRow,
-              borderColor: colors.hairline,
-            },
-          ]}
-          testID="offline-metered-confirm"
-        >
-          <View style={styles.noticeHeader}>
-            <Icon as={Smartphone} size={20} color="warningInk" />
-            <Text variant="headline" style={{ color: colors.warningInk }}>
-              {t("meteredTitle")}
-            </Text>
-          </View>
-          <Text variant="subhead" style={{ color: colors.warningInk }}>
-            {t("meteredBody", { size: formatBytes(meteredPromptBytes) })}
-          </Text>
-          <View style={styles.noticeActions}>
-            <Button
-              label={t("meteredConfirm")}
-              variant="primary"
-              size="md"
-              onPress={() => void runDownload()}
-              testID="offline-metered-proceed"
-              block
-            />
-            <Button
-              label={t("meteredCancel")}
-              variant="secondary"
-              size="md"
-              onPress={() => setMeteredPromptBytes(null)}
-              testID="offline-metered-cancel"
-              block
-            />
-          </View>
-        </Card>
-      ) : null}
 
       {activeError ? (
         <Card
@@ -505,10 +466,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: space.sm,
-  },
-  noticeActions: {
-    gap: space.sm,
-    marginTop: space.xs,
   },
   outboxItem: {
     padding: space.md,

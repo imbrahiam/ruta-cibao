@@ -1,19 +1,6 @@
 /**
- * Handing a destination to the navigation app the phone already has.
- *
- * Deliberately not turn-by-turn of our own. People in the province already have
- * a maps app they trust, with their own offline regions downloaded and their
- * own voice guidance in their own language. Building a worse version of that,
- * that needs a data connection on a road where there is none, would be a step
- * backwards dressed as a feature.
- *
- * What routing this project does build is a different job: the ecotourism
- * routes need elevation profiles, difficulty and "what is within fifteen
- * minutes", which no general navigation app answers. That belongs with the
- * routes feature, not here.
- *
- * Plain functions returning a URL, so React Native passes the same string to
- * `Linking.openURL`.
+ * Optional handoff from the in-app route preview to an installed navigation app.
+ * Plain URLs let native callers use Linking with an HTTPS fallback.
  */
 export type Destination = {
   lat: number;

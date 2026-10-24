@@ -59,10 +59,6 @@ export type ProvinceMapProps = {
 };
 
 const [WEST, SOUTH, EAST, NORTH] = PROVINCE_BOUNDS;
-const PROVINCE_CORNERS = [
-  { latitude: NORTH, longitude: WEST },
-  { latitude: SOUTH, longitude: EAST },
-];
 /**
  * Places gather into clusters up to this zoom: a town centre has dozens of
  * places within a few blocks, and every pin at once is noise, not a map.

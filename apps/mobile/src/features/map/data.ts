@@ -77,6 +77,9 @@ export type PlaceFeatureProperties = {
   municipality: string;
   color: string;
   icon: string;
+  thumb?: string | null;
+  thumbnailUrl?: string | null;
+  thumbnailSource?: "app" | "google" | null;
 };
 
 export type PlaceFeature = GeoJSON.Feature<

@@ -4,10 +4,10 @@ import {
   Clock,
   Landmark,
   MessageSquareText,
-  Share2,
   ThumbsUp,
 } from "lucide-react-native";
 import {
+  Platform,
   ScrollView,
   Share,
   StyleSheet,
@@ -27,7 +27,7 @@ import { Button } from "@/ui/button";
 import { CategoryBadge } from "@/ui/category-badge";
 import { Icon } from "@/ui/icon";
 import { EmptyState, Skeleton } from "@/ui/states";
-import { Card, IconButton } from "@/ui/surfaces";
+import { Card } from "@/ui/surfaces";
 import { Badge } from "@/ui/tags";
 import { Text } from "@/ui/text";
 import { radius, space, useTheme } from "@/ui/theme";
@@ -130,31 +130,28 @@ export default function ConsultationScreen() {
       <Stack.Screen
         options={{
           title: "",
-          headerRight: () => (
-            <View style={styles.headerActions}>
-              {data.isMine ? null : (
-                <ContentMenu
-                  target={{ kind: "consultation", ref: data.slug }}
-                  size={36}
-                  onHidden={() => router.back()}
-                />
-              )}
-              {data.publicationStatus === "published" ? (
-                <IconButton
-                  icon={Share2}
-                  label={tc("share")}
-                  size={36}
-                  onPress={() =>
-                    Share.share({
-                      message: `${data.title} — ${data.municipalityName}`,
-                    })
-                  }
-                />
-              ) : null}
-            </View>
-          ),
         }}
       />
+      <Stack.Toolbar placement="right">
+        {data.isMine ? null : (
+          <Stack.Toolbar.View>
+            <ContentMenu
+              target={{ kind: "consultation", ref: data.slug }}
+              onHidden={() => router.back()}
+            />
+          </Stack.Toolbar.View>
+        )}
+        <Stack.Toolbar.Button
+          hidden={!published}
+          icon={Platform.OS === "ios" ? "square.and.arrow.up" : undefined}
+          accessibilityLabel={tc("share")}
+          onPress={() =>
+            Share.share({ message: `${data.title} — ${data.municipalityName}` })
+          }
+        >
+          {tc("share")}
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={[
@@ -351,7 +348,6 @@ const styles = StyleSheet.create({
   center: { justifyContent: "center" },
   pad: { padding: space.md, gap: space.md, paddingTop: 120 },
   flex: { flex: 1 },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: space.sm },
   notice: { gap: space.sm },
   content: { paddingHorizontal: space.md, gap: space.md },
   meta: { flexDirection: "row", alignItems: "center", gap: space.sm },

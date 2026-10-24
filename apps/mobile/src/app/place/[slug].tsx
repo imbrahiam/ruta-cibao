@@ -1,4 +1,3 @@
-import { directionsUrl } from "@ruta/shared/directions";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -23,7 +22,6 @@ import { useState } from "react";
 import {
   FlatList,
   Linking,
-  Platform,
   ScrollView,
   Share,
   StyleSheet,
@@ -174,10 +172,14 @@ export default function PlaceScreen() {
     .map((url) => mediaUrl(url, API_ORIGIN));
   const trust = place.trust ? TRUST[place.trust.state] : undefined;
   const directions = () => {
-    const destination = { ...place.location, label: place.name };
-    Linking.openURL(
-      directionsUrl(destination, Platform.OS === "ios" ? "ios" : "android"),
-    ).catch(() => Linking.openURL(directionsUrl(destination, "other")));
+    router.push({
+      pathname: "/directions",
+      params: {
+        lat: String(place.location.lat),
+        lng: String(place.location.lng),
+        name: place.name,
+      },
+    });
   };
   const mapsLink = `https://www.google.com/maps/search/?api=1&query=${place.location.lat},${place.location.lng}`;
   const owner =

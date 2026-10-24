@@ -6,7 +6,7 @@ import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
 import { Field } from "@/ui/field";
-import { Chip } from "@/ui/tags";
+import { NativePicker } from "@/ui/native-picker";
 import { Text } from "@/ui/text";
 import { space } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
@@ -60,30 +60,30 @@ export function ProfileForm({
         maxLength={80}
         autoCapitalize="words"
         textContentType="name"
+        autoComplete="name"
         testID="profile-name"
       />
       <View style={styles.group}>
-        <Text variant="subhead" weight="600" tone="secondary">
-          {t("municipality")}
-        </Text>
+        <NativePicker
+          label={t("municipality")}
+          placeholder={tc("choose")}
+          value={municipality ?? "__none"}
+          options={[
+            { value: "__none", label: tc("notSelected") },
+            ...(municipalities.data ?? []).map((item) => ({
+              value: item.id,
+              label: item.name,
+            })),
+          ]}
+          onChange={(value) => {
+            Keyboard.dismiss();
+            setMunicipality(value === "__none" ? null : value);
+          }}
+          testID="profile-municipality"
+        />
         <Text variant="footnote" tone="tertiary">
           {t("municipalityHelper")}
         </Text>
-        <View style={styles.wrap}>
-          {(municipalities.data ?? []).map((item) => (
-            <Chip
-              key={item.id}
-              label={item.name}
-              selected={municipality === item.id}
-              onPress={() => {
-                // The save button sits below; on a small phone the keyboard
-                // covers it until the name is done.
-                Keyboard.dismiss();
-                setMunicipality(municipality === item.id ? null : item.id);
-              }}
-            />
-          ))}
-        </View>
       </View>
       {error && name.trim().length >= 2 ? (
         <Text tone="danger">{error}</Text>
@@ -119,5 +119,4 @@ export function ProfileForm({
 const styles = StyleSheet.create({
   form: { gap: space.lg },
   group: { gap: space.sm },
-  wrap: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
 });

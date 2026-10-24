@@ -1,9 +1,15 @@
 import { FlashList } from "@shopify/flash-list";
 import { useQuery } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
-import { Clock, MessageSquareText, Plus, ThumbsUp } from "lucide-react-native";
+import { Clock, MessageSquareText, ThumbsUp } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import {
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useTranslations } from "use-intl";
 import { useMe, useMemberAction } from "@/features/auth/session";
 import {
@@ -17,7 +23,7 @@ import { orpc } from "@/lib/api";
 import { CategoryBadge } from "@/ui/category-badge";
 import { Icon } from "@/ui/icon";
 import { EmptyState, Skeleton } from "@/ui/states";
-import { Card, IconButton } from "@/ui/surfaces";
+import { Card } from "@/ui/surfaces";
 import { Badge, Chip } from "@/ui/tags";
 import { Text } from "@/ui/text";
 import { radius, space, useTheme } from "@/ui/theme";
@@ -71,18 +77,17 @@ export default function ConsultationsScreen() {
       <Stack.Screen
         options={{
           title: t("title"),
-          headerRight: () => (
-            <IconButton
-              icon={Plus}
-              label={t("new")}
-              variant="filled"
-              size={36}
-              testID="consultation-new"
-              onPress={() => asMember(() => router.push("/consultation/new"))}
-            />
-          ),
         }}
       />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={Platform.OS === "ios" ? "plus" : undefined}
+          accessibilityLabel={t("new")}
+          onPress={() => asMember(() => router.push("/consultation/new"))}
+        >
+          {t("new")}
+        </Stack.Toolbar.Button>
+      </Stack.Toolbar>
       <FlashList
         data={items}
         keyExtractor={(item) => item.id}
