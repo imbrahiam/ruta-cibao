@@ -67,7 +67,7 @@ export function NativePicker({
           seedColor={colors.accent}
           style={[styles.row, { backgroundColor: colors.groupedRow }]}
         >
-          <HStack spacing={space.sm} modifiers={[frame({ minHeight: 52 })]}>
+          <HStack spacing={space.sm} modifiers={[frame({ minHeight: 58 })]}>
             <NativeText modifiers={[foregroundStyle(colors.text)]}>
               {label}
             </NativeText>

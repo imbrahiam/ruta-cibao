@@ -147,10 +147,7 @@ export function ContentMenu({
   const t = useTranslations("safety");
   const tu = useTranslations("safetyUi");
   const { colors, scheme } = useTheme();
-  const { report, confirmBlock, pending } = useContentActions(
-    target,
-    onHidden,
-  );
+  const { report, confirmBlock, pending } = useContentActions(target, onHidden);
   const controlSize = Math.max(size ?? 44, Platform.OS === "android" ? 48 : 44);
   if (Platform.OS === "ios") {
     return (
@@ -216,10 +213,7 @@ export function ContentMenu({
           </RNHostView>
         </DropdownMenu.Trigger>
         <DropdownMenu.Items>
-          <DropdownMenuItem
-            enabled={!pending}
-            onClick={report}
-          >
+          <DropdownMenuItem enabled={!pending} onClick={report}>
             <DropdownMenuItem.Text>
               <ComposeText>{t("report.action")}</ComposeText>
             </DropdownMenuItem.Text>

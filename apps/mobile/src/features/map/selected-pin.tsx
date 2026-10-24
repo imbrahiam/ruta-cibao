@@ -80,7 +80,7 @@ export function SelectedPin({
           <Path
             d={DROP}
             fill={color}
-            stroke={colors.background}
+            stroke={colors.onStatus}
             strokeWidth={3}
           />
         </Svg>

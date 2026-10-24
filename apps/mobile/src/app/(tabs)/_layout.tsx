@@ -4,9 +4,10 @@ import { useTranslations } from "use-intl";
 import { palettes, useThemeId } from "@/ui/theme";
 
 /**
- * Four peers, always labelled; the account lives behind the avatar beside
- * the map's search. The system tab bar (Liquid Glass on iOS 26) owns the
- * transitions: tabs never slide.
+ * Four peers, always labelled, plus search. On iOS 26 the search item is the
+ * system's own search field at the end of the tab bar (`role="search"`): it
+ * opens its own screen with the keyboard already up. The system tab bar
+ * (Liquid Glass) owns the transitions: tabs never slide.
  */
 export default function TabsLayout() {
   const t = useTranslations("tabs");
@@ -29,13 +30,6 @@ export default function TabsLayout() {
           md="map"
         />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Label>{t("explore")}</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "safari", selected: "safari.fill" }}
-          md="explore"
-        />
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="consultations">
         <NativeTabs.Trigger.Label>
           {t("consultations")}
@@ -56,6 +50,20 @@ export default function TabsLayout() {
           sf={{ default: "tray.full", selected: "tray.full.fill" }}
           md="inbox"
         />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="account">
+        <NativeTabs.Trigger.Label>{t("account")}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon
+          sf={{
+            default: "person.crop.circle",
+            selected: "person.crop.circle.fill",
+          }}
+          md="account_circle"
+        />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="search" role="search">
+        <NativeTabs.Trigger.Label>{t("search")}</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="magnifyingglass" md="search" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

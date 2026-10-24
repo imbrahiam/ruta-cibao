@@ -44,7 +44,6 @@ function RootStack() {
   return (
     <Stack screenOptions={{ headerBackButtonDisplayMode: "minimal" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="search" />
       <Stack.Screen
         name="map-layers"
         options={{
@@ -120,10 +119,6 @@ function RootStack() {
           headerShown: false,
           gestureEnabled: true,
         }}
-      />
-      <Stack.Screen
-        name="account"
-        options={{ presentation: "modal", headerShown: false }}
       />
     </Stack>
   );

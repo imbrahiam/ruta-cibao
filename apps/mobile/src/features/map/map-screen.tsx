@@ -1,38 +1,23 @@
-import BottomSheet, { BottomSheetFlatList } from "@gorhom/bottom-sheet";
+import BottomSheet from "@gorhom/bottom-sheet";
 import * as Location from "expo-location";
 import { router, useIsFocused } from "expo-router";
-import {
-  Layers,
-  LocateFixed,
-  Navigation,
-  Search,
-  UserRound,
-  X,
-} from "lucide-react-native";
+import { Layers, LocateFixed, Navigation, X } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  View,
-} from "react-native";
+import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useTranslations } from "use-intl";
-import { useMe } from "@/features/auth/session";
 import { openTarget } from "@/lib/targets";
 import { Button } from "@/ui/button";
 import { CategoryBadge } from "@/ui/category-badge";
-import { categoryIcon, Icon } from "@/ui/icon";
+import { Icon } from "@/ui/icon";
 import { PressableScale } from "@/ui/pressable";
-import { EmptyState, Skeleton } from "@/ui/states";
 import { IconButton } from "@/ui/surfaces";
-import { Chip } from "@/ui/tags";
 import { Text } from "@/ui/text";
 import { floating, radius, space, spring, useTheme } from "@/ui/theme";
 import { useToast } from "@/ui/toast";
+import { CategoryFilter } from "./category-filter";
 import { CivicLayers } from "./civic-layers";
 import {
   categoriesOf,
@@ -55,7 +40,7 @@ const PEEK = 132;
 
 export function MapScreen() {
   const t = useTranslations("map");
-  const tc = useTranslations("common");
+  const _tc = useTranslations("common");
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -106,11 +91,15 @@ export function MapScreen() {
   const peek = PEEK + bottomInset;
   const midSheet = Math.round(height * 0.52);
   const snapPoints = useMemo(() => [peek, midSheet, "90%"], [peek, midSheet]);
+  // The sheet exists only for something chosen on the map; otherwise the
+  // map runs down to the tab bar.
+  const sheetOpen = selected !== null || trafficId !== null;
+  const bottomEdge = sheetOpen ? peek : bottomInset;
   // Nothing floats over the top of the map any more: only the status bar.
   const topChrome = insets.top + space.md;
   const padding = useMemo(
-    () => ({ top: topChrome, bottom: peek + 12, left: 28, right: 28 }),
-    [topChrome, peek],
+    () => ({ top: topChrome, bottom: bottomEdge + 12, left: 28, right: 28 }),
+    [topChrome, bottomEdge],
   );
 
   const select = useCallback((place: PlaceFeature | null) => {
@@ -271,11 +260,11 @@ export function MapScreen() {
         <Rect width="100%" height="100%" fill="url(#status-scrim)" />
       </Svg>
 
-      {/* Map controls, one glass pill above the sheet: what the map shows,
-          then where you are. */}
+      {/* Map controls, one glass pill above the sheet: which places, what
+          the map shows, then where you are. */}
       <View
         pointerEvents="box-none"
-        style={[styles.controls, { bottom: peek + space.md }]}
+        style={[styles.controls, { bottom: bottomEdge + space.md }]}
       >
         <View
           style={[
@@ -284,6 +273,20 @@ export function MapScreen() {
             { backgroundColor: colors.glass, borderColor: colors.hairline },
           ]}
         >
+          <CategoryFilter
+            categories={categories}
+            value={category}
+            onChange={(next) => {
+              setCategory(next);
+              setSelected(null);
+            }}
+          />
+          <View
+            style={[
+              styles.controlDivider,
+              { backgroundColor: colors.hairline },
+            ]}
+          />
           <PressableScale
             onPress={() => router.push("/map-layers")}
             accessibilityRole="button"
@@ -318,14 +321,20 @@ export function MapScreen() {
 
       <BottomSheet
         ref={sheet}
-        index={0}
+        index={sheetOpen ? 0 : -1}
         snapPoints={snapPoints}
         enableDynamicSizing={false}
+        enablePanDownToClose
+        onClose={() => {
+          setSelected(null);
+          setTrafficId(null);
+        }}
         animationConfigs={reduced ? { duration: 1 } : spring.sheet}
         backgroundStyle={[
           styles.sheetBackground,
           { backgroundColor: colors.elevated, borderColor: colors.hairline },
         ]}
+        handleStyle={styles.handle}
         handleIndicatorStyle={{
           backgroundColor: colors.fillPressed,
           width: 40,
@@ -348,198 +357,9 @@ export function MapScreen() {
             }
             onClose={() => setSelected(null)}
           />
-        ) : (
-          <BottomSheetFlatList
-            data={visible?.features ?? []}
-            keyExtractor={(item) => item.properties.id}
-            contentContainerStyle={[
-              styles.listContent,
-              { paddingBottom: bottomInset + space.lg },
-            ]}
-            ListHeaderComponent={
-              <View style={styles.sheetHeader}>
-                <View style={styles.searchRow}>
-                  <PressableScale
-                    testID="map-search"
-                    containerStyle={styles.searchFlex}
-                    onPress={() => router.push("/search")}
-                    accessibilityRole="search"
-                    accessibilityLabel={t("searchLabel")}
-                    scaleTo={0.985}
-                    style={[styles.search, { backgroundColor: colors.fill }]}
-                  >
-                    <Icon as={Search} size={19} color="textSecondary" />
-                    <Text
-                      tone="secondary"
-                      numberOfLines={1}
-                      style={styles.searchText}
-                    >
-                      {t("searchPlaceholder")}
-                    </Text>
-                  </PressableScale>
-                  <AccountButton />
-                </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.chips}
-                  accessibilityRole="tablist"
-                >
-                  <Chip
-                    label={t("allCategories")}
-                    selected={category === null}
-                    onPress={() => setCategory(null)}
-                  />
-                  {places.isPending
-                    ? [96, 80, 112].map((width) => (
-                        <Skeleton
-                          key={width}
-                          width={width}
-                          height={36}
-                          rounded={radius.pill}
-                        />
-                      ))
-                    : categories.map((item) => (
-                        <Chip
-                          key={item.id}
-                          label={item.name}
-                          icon={categoryIcon(item.icon)}
-                          iconColor={item.color}
-                          selected={category === item.id}
-                          onPress={() => {
-                            setCategory(category === item.id ? null : item.id);
-                            setSelected(null);
-                          }}
-                          testID={`category-${item.id}`}
-                        />
-                      ))}
-                </ScrollView>
-                <Text
-                  variant="title2"
-                  accessibilityRole="header"
-                  style={styles.sheetTitle}
-                >
-                  {t("province")}
-                </Text>
-                <Text tone="secondary">
-                  {places.isPending
-                    ? tc("loading")
-                    : t("placesCount", {
-                        count: visible?.features.length ?? 0,
-                      })}
-                </Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.municipalityChips}
-                >
-                  <Chip
-                    label={tc("allMunicipalities")}
-                    selected={municipality === null}
-                    onPress={() => {
-                      setMunicipality(null);
-                      map.current?.showProvince();
-                    }}
-                  />
-                  {municipalities.map((feature) => (
-                    <Chip
-                      key={feature.properties.id}
-                      label={feature.properties.name}
-                      selected={municipality === feature.properties.id}
-                      onPress={() => {
-                        const next =
-                          municipality === feature.properties.id
-                            ? null
-                            : feature.properties.id;
-                        setMunicipality(next);
-                        const label = feature.properties.label;
-                        if (next && label) map.current?.flyTo(label, 11.5);
-                        else map.current?.showProvince();
-                      }}
-                    />
-                  ))}
-                </ScrollView>
-              </View>
-            }
-            ListEmptyComponent={
-              places.isError ? (
-                <EmptyState
-                  icon={X}
-                  tone="danger"
-                  title={tc("errorTitle")}
-                  body={tc("errorBody")}
-                  action={{
-                    label: tc("retry"),
-                    onPress: () => places.refetch(),
-                  }}
-                />
-              ) : places.isPending ? (
-                <View style={styles.skeletons}>
-                  {[0, 1, 2, 3].map((row) => (
-                    <View key={row} style={styles.skeletonRow}>
-                      <Skeleton width={40} height={40} rounded={20} />
-                      <View style={styles.skeletonText}>
-                        <Skeleton width="70%" height={16} />
-                        <Skeleton width="45%" height={12} />
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              ) : (
-                <EmptyState icon={Search} title={t("emptyFilter")} />
-              )
-            }
-            renderItem={({ item }) => (
-              <PlaceRow
-                place={item}
-                municipalityName={
-                  municipalities.find(
-                    (m) => m.properties.id === item.properties.municipality,
-                  )?.properties.name ?? ""
-                }
-                onPress={() => select(item)}
-              />
-            )}
-          />
-        )}
+        ) : null}
       </BottomSheet>
     </View>
-  );
-}
-
-function PlaceRow({
-  place,
-  municipalityName,
-  onPress,
-}: {
-  place: PlaceFeature;
-  municipalityName: string;
-  onPress: () => void;
-}) {
-  const { properties } = place;
-  return (
-    <PressableScale
-      onPress={onPress}
-      scaleTo={0.985}
-      accessibilityRole="button"
-      accessibilityLabel={`${properties.name}, ${properties.categoryName}, ${municipalityName}`}
-      style={styles.row}
-      testID={`place-row-${properties.slug}`}
-    >
-      <CategoryBadge
-        icon={properties.icon}
-        color={properties.color}
-        size={40}
-      />
-      <View style={styles.rowText}>
-        <Text variant="body" weight="600" numberOfLines={1}>
-          {properties.name}
-        </Text>
-        <Text variant="footnote" tone="tertiary" numberOfLines={1}>
-          {properties.categoryName} · {municipalityName}
-        </Text>
-      </View>
-    </PressableScale>
   );
 }
 
@@ -614,43 +434,6 @@ function PlaceSummary({
     </View>
   );
 }
-/**
- * The way into the account, beside search: initials once signed in, a person
- * glyph otherwise. Saves the tab bar a slot.
- */
-function AccountButton() {
-  const t = useTranslations("tabs");
-  const { colors } = useTheme();
-  const { me } = useMe();
-  const name = me?.kind === "member" ? (me.displayName ?? "") : "";
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toLocaleUpperCase("es-DO"))
-    .join("");
-  return (
-    <PressableScale
-      onPress={() => router.push("/account")}
-      accessibilityRole="button"
-      accessibilityLabel={t("account")}
-      style={[
-        styles.avatar,
-        { backgroundColor: initials ? colors.accent : colors.fill },
-      ]}
-      testID="map-account"
-    >
-      {initials ? (
-        <Text variant="subhead" weight="700" style={{ color: colors.onAccent }}>
-          {initials}
-        </Text>
-      ) : (
-        <Icon as={UserRound} size={20} color="textSecondary" />
-      )}
-    </PressableScale>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scrim: { position: "absolute", left: 0, right: 0, top: 0 },
@@ -695,6 +478,8 @@ const styles = StyleSheet.create({
     borderCurve: "continuous",
     borderWidth: StyleSheet.hairlineWidth,
   },
+  /** The grabber gets room above and below, so it reads as something to pull. */
+  handle: { paddingTop: 10, paddingBottom: 8 },
   sheetHeader: { gap: space.xs, paddingBottom: space.md },
   municipalityChips: { gap: space.sm, paddingTop: space.sm + 4 },
   listContent: { paddingHorizontal: space.md, paddingBottom: space.xxl },

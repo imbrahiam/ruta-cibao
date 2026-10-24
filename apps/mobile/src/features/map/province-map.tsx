@@ -3,6 +3,7 @@ import {
   forwardRef,
   type ReactNode,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
@@ -234,6 +235,16 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
       visible.filter((feature) => !("cluster" in feature.properties)).length <=
         MAX_NAMED;
 
+    // A marker is snapshotted once it stops tracking changes; if that happens
+    // before its name has laid out, the label is lost. Track for a moment
+    // after names appear or the selection changes, then freeze again.
+    const [settling, setSettling] = useState(true);
+    useEffect(() => {
+      setSettling(true);
+      const timer = setTimeout(() => setSettling(false), 800);
+      return () => clearTimeout(timer);
+    }, [showNames, selectedId, look]);
+
     return (
       <MapView
         ref={map}
@@ -415,7 +426,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
             <Marker
               key={`place-${place.id}-${showNames ? "n" : "d"}-${look}`}
               coordinate={{ latitude, longitude }}
-              tracksViewChanges={false}
+              tracksViewChanges={settling}
               // The disc's centre sits on the spot even when a name hangs right.
               anchor={showNames ? { x: 13 / 180, y: 0.5 } : { x: 0.5, y: 0.5 }}
               zIndex={6}

@@ -832,17 +832,9 @@
     "title": "Apariencia",
     "systemFootnote": "El modo claro u oscuro sigue la configuración de tu dispositivo.",
     "previewAction": "Ir",
-    "civico": {
-      "name": "Cívico",
-      "description": "Azul marino y verde: claro, sobrio y confiable."
-    },
-    "monte": {
-      "name": "Monte",
-      "description": "Verdes de la sierra y los tabacales."
-    },
-    "pueblo": {
-      "name": "Pueblo",
-      "description": "El azul de las casas pintadas del parque."
+    "suave": {
+      "name": "Suave",
+      "description": "Papel cálido y verde pino, colores tranquilos."
     },
     "clasico": {
       "name": "Clásico",
@@ -955,7 +947,7 @@
   },
   "tabs": {
     "map": "Mapa",
-    "explore": "Explorar",
+    "search": "Buscar",
     "consultations": "Consultas",
     "contributions": "Aportes",
     "account": "Cuenta"
@@ -968,7 +960,8 @@
     "contribute": "Aportar",
     "province": "Santiago Rodríguez",
     "nearby": "Cerca de ti",
-    "allCategories": "Todo",
+    "allCategories": "Todos los lugares",
+    "filterPlaces": "Filtrar lugares",
     "placesCount": "{count, plural, =0 {Sin lugares} one {# lugar} other {# lugares}}",
     "sheetLabel": "Lugares de la provincia",
     "emptyFilter": "No hay lugares con estos filtros",

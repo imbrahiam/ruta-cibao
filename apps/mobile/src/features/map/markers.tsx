@@ -33,7 +33,8 @@ export function PlaceDot({
       <View
         style={[
           styles.dot,
-          { backgroundColor: color, borderColor: colors.background },
+          // White in both schemes: on a dark map a dark rim loses the pin.
+          { backgroundColor: color, borderColor: colors.onStatus },
         ]}
       >
         <Icon
@@ -127,7 +128,7 @@ export function ReportDot({
           height: size,
           borderRadius: size / 2,
           backgroundColor: color,
-          borderColor: colors.background,
+          borderColor: colors.onStatus,
         },
       ]}
     >
