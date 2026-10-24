@@ -30,6 +30,12 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import Animated, {
+  interpolate,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
@@ -67,6 +73,18 @@ export default function PlaceScreen() {
   const tc = useTranslations("common");
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.set(event.contentOffset.y);
+  });
+  const topBarStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.get(),
+      [HERO - 160, HERO - 100],
+      [0, 1],
+      "clamp",
+    ),
+  }));
   const toast = useToast();
   const queryClient = useQueryClient();
   const asMember = useMemberAction();
@@ -175,7 +193,9 @@ export default function PlaceScreen() {
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <Stack.Screen options={{ headerShown: false }} />
-      <ScrollView
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}
         showsVerticalScrollIndicator={false}
       >
@@ -423,7 +443,22 @@ export default function PlaceScreen() {
             }
           />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* Once the hero has scrolled away, a bar behind the status bar and the
+          floating buttons keeps the text from running under the clock. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.topBar,
+          {
+            height: insets.top + space.sm * 2 + 44,
+            backgroundColor: colors.background,
+            borderBottomColor: colors.separator,
+          },
+          topBarStyle,
+        ]}
+      />
 
       <View
         style={[styles.floating, { top: insets.top + space.sm }]}
@@ -682,5 +717,12 @@ const styles = StyleSheet.create({
   nearby: { gap: space.sm, paddingRight: space.md },
   nearbyCard: { width: 156, gap: space.sm },
   floating: { position: "absolute", left: space.md },
+  topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
   floatingEnd: { position: "absolute", right: space.md },
 });
