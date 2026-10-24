@@ -1,10 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router, Stack } from "expo-router";
 import { Bookmark, Clock, Mountain, Search } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
+import { usePlaceCollection } from "@/features/map/data";
 import {
   offlinePlaceListItem,
   withOfflineFallback,
@@ -14,6 +15,7 @@ import {
   offlineCategories,
   offlinePlaces,
   offlineRoutes,
+  offlineSearch,
 } from "@/features/offline/store";
 import { PlaceListRow } from "@/features/places/place-list-row";
 import { useHiddenTargets } from "@/features/safety/hidden-targets";
@@ -95,6 +97,7 @@ export default function ExploreScreen() {
   });
 
   const hidden = useHiddenTargets();
+  const collection = usePlaceCollection();
   const needle = fold(query.trim());
   const items = useMemo(
     () =>
@@ -110,16 +113,35 @@ export default function ExploreScreen() {
       ),
     [routes.data, hidden.routes],
   );
+  // The browse page above holds 48 places; a search asks the server about all
+  // of them, and falls back to the saved copy's full-text index offline.
+  const search = useQuery({
+    queryKey: ["explore-search", needle, municipality],
+    queryFn: withOfflineFallback(
+      () =>
+        api.places.browse({
+          query: query.trim(),
+          municipality: municipality ?? "",
+          limit: 48,
+        }),
+      async () => {
+        const found = (await offlineSearch(query.trim(), { limit: 48 })).map(
+          offlinePlaceListItem,
+        );
+        return { items: found, total: found.length };
+      },
+    ),
+    enabled: needle.length > 0,
+    placeholderData: keepPreviousData,
+  });
   const matches = useMemo(
     () =>
       needle
-        ? items.filter((item) =>
-            fold(
-              `${item.name} ${item.categoryName} ${item.municipalityName}`,
-            ).includes(needle),
+        ? (search.data?.items ?? []).filter(
+            (item) => !hidden.places.has(item.slug),
           )
         : [],
-    [items, needle],
+    [search.data, needle, hidden.places],
   );
   const businessIds = new Set(
     (categories.data ?? [])
@@ -128,9 +150,14 @@ export default function ExploreScreen() {
   );
   const businesses = items.filter((item) => businessIds.has(item.categoryId));
   const highlights = items.filter((item) => item.imageUrl);
+  // Counts come from the whole published collection (what the map shows),
+  // not from the first page of `browse`, which stops at 48 places.
   const counts = new Map<string, number>();
-  for (const item of items)
-    counts.set(item.categoryId, (counts.get(item.categoryId) ?? 0) + 1);
+  for (const feature of collection.data?.features ?? []) {
+    const { category, municipality: where } = feature.properties;
+    if (municipality && where !== municipality) continue;
+    counts.set(category, (counts.get(category) ?? 0) + 1);
+  }
 
   const refreshing = places.isRefetching || routes.isRefetching;
   const refresh = () => {
