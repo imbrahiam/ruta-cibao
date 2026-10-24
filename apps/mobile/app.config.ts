@@ -1,5 +1,6 @@
 import es from "@ruta/shared/messages/es.json" with { type: "json" };
 import type { ConfigContext, ExpoConfig } from "expo/config";
+import { type ConfigPlugin, withEntitlementsPlist } from "expo/config-plugins";
 
 /**
  * One codebase, three installable variants that can live side by side on a
@@ -36,10 +37,16 @@ function variant(): Variant {
 /** Permission prompts are user-facing text, so they come from the catalogue. */
 const permissions = es.permissions;
 
+const withoutPushEntitlement: ConfigPlugin = (config) =>
+  withEntitlementsPlist(config, (mod) => {
+    delete mod.modResults["aps-environment"];
+    return mod;
+  });
+
 export default ({ config }: ConfigContext): ExpoConfig => {
   const current = VARIANTS[variant()];
 
-  return {
+  const expo: ExpoConfig = {
     ...config,
     name: current.name,
     slug: "ruta-cibao",
@@ -51,6 +58,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     backgroundColor: "#FAFAF7",
     ios: {
       bundleIdentifier: current.identifier,
+      // The signing team for local device builds; EAS supplies its own.
+      ...(process.env.APPLE_TEAM_ID
+        ? { appleTeamId: process.env.APPLE_TEAM_ID }
+        : {}),
       supportsTablet: false,
       config: { usesNonExemptEncryption: false },
       infoPlist: {
@@ -126,4 +137,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
     },
   };
+  // A free (personal) Apple team cannot sign the Push Notifications
+  // capability, so a local device build on one drops it; push simply stays
+  // unavailable on that build.
+  return process.env.APPLE_PERSONAL_TEAM === "1"
+    ? withoutPushEntitlement(expo)
+    : expo;
 };

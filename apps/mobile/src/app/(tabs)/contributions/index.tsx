@@ -10,11 +10,20 @@ import {
   Clock,
   Inbox,
   type LucideIcon,
+  MapPinPlus,
+  MessageSquareText,
   Sparkles,
+  TriangleAlert,
   WifiOff,
 } from "lucide-react-native";
 import { useState } from "react";
-import { Platform, RefreshControl, StyleSheet, View } from "react-native";
+import {
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
 import { useTranslations } from "use-intl";
 import { useMe } from "@/features/auth/session";
 import { isNetworkError } from "@/features/offline/fallback";
@@ -22,7 +31,6 @@ import { useOutbox } from "@/features/offline/outbox";
 import { useAgo } from "@/i18n/ago";
 import { orpc } from "@/lib/api";
 import { canOpenTarget, openTarget } from "@/lib/targets";
-import { BrandMark } from "@/ui/brand";
 import { Button } from "@/ui/button";
 import { Icon } from "@/ui/icon";
 import { ListRow, ListSection } from "@/ui/list";
@@ -77,22 +85,46 @@ export default function ContributionsScreen() {
   const [view, setView] = useState<"mine" | "inbox">("mine");
 
   if (!isPending && !signedIn) {
+    // What you can do here, shown before asking you to sign in: each row is
+    // a real action, and signing in is the one way to start any of them.
     return (
-      <View style={[styles.signedOut, { backgroundColor: colors.background }]}>
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        style={{ backgroundColor: colors.grouped }}
+        contentContainerStyle={styles.signedOut}
+      >
         <Stack.Screen options={{ title: t("title") }} />
-        <BrandMark size={64} />
-        <Text variant="title2" align="center">
-          {t("signedOutTitle")}
-        </Text>
-        <Text tone="secondary" align="center">
-          {t("signedOutBody")}
-        </Text>
+        <Text tone="secondary">{t("signedOutBody")}</Text>
+        <ListSection title={t("signedOutExamples")}>
+          <ListRow
+            icon={TriangleAlert}
+            title={t("exampleTrafficTitle")}
+            subtitle={t("exampleTrafficBody")}
+            onPress={() => router.push("/sign-in")}
+          />
+          <ListRow
+            icon={MapPinPlus}
+            title={t("examplePlaceTitle")}
+            subtitle={t("examplePlaceBody")}
+            onPress={() => router.push("/sign-in")}
+          />
+          <ListRow
+            icon={MessageSquareText}
+            title={t("exampleCaseTitle")}
+            subtitle={t("exampleCaseBody")}
+            onPress={() => router.push("/sign-in")}
+          />
+        </ListSection>
         <Button
           label={t("signIn")}
+          block
           onPress={() => router.push("/sign-in")}
           testID="contributions-sign-in"
         />
-      </View>
+        <Text variant="footnote" tone="secondary" align="center">
+          {t("signedOutPublic")}
+        </Text>
+      </ScrollView>
     );
   }
 
@@ -105,7 +137,6 @@ export default function ContributionsScreen() {
       />
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
-          icon={Platform.OS === "ios" ? "plus" : undefined}
           accessibilityLabel={t("contribute")}
           onPress={() => router.push("/contribute")}
         >
@@ -232,12 +263,7 @@ function MyContributions({ header }: { header: React.ReactElement }) {
             style={styles.card}
           >
             <View style={styles.row}>
-              <Text
-                variant="footnote"
-                tone="tertiary"
-                uppercase
-                style={styles.flex}
-              >
+              <Text variant="footnote" tone="tertiary" style={styles.flex}>
                 {t(`kind.${item.kind}`)} · {ago(item.createdAt)}
               </Text>
               <Badge
@@ -471,11 +497,10 @@ function InboxList({ header }: { header: React.ReactElement }) {
 
 const styles = StyleSheet.create({
   signedOut: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: space.md,
-    padding: space.xl,
+    gap: space.lg,
+    paddingHorizontal: space.md + 4,
+    paddingTop: space.sm,
+    paddingBottom: space.xxl,
   },
   list: { paddingHorizontal: space.md, paddingBottom: space.xxl + space.xl },
   switcher: { paddingVertical: space.md },

@@ -600,7 +600,10 @@
     "title": "Consultas",
     "lede": "Casos que los vecinos han llevado al ayuntamiento, y lo que han respondido.",
     "new": "Nueva consulta",
-    "anyStatus": "Todos",
+    "anyStatus": "Todos los estados",
+    "newShort": "Nueva",
+    "filterStatus": "Filtrar por estado",
+    "filteredBy": "Mostrando: {status}",
     "statusLabel": {
       "open": "Recibida",
       "in_review": "En revisión",
@@ -760,8 +763,16 @@
     "title": "Aportes",
     "contribute": "Aportar",
     "signedOutTitle": "Tus aportes, en un solo lugar",
-    "signedOutBody": "Entra para sugerir lugares, reportar la vía, abrir consultas y seguir las respuestas del ayuntamiento.",
-    "signIn": "Entrar",
+    "signedOutBody": "Aquí sigues lo que aportas a la provincia y las respuestas del ayuntamiento. Puedes ver el mapa y las consultas sin cuenta; para aportar, entra con tu celular o tu correo.",
+    "signedOutExamples": "Lo que puedes hacer",
+    "exampleTrafficTitle": "Reportar la vía",
+    "exampleTrafficBody": "Un hoyo, una inundación o una vía cerrada, para tus vecinos.",
+    "examplePlaceTitle": "Sugerir un lugar",
+    "examplePlaceBody": "Un negocio o un sitio que falta en el mapa.",
+    "exampleCaseTitle": "Abrir una consulta",
+    "exampleCaseBody": "Llevar un problema del barrio al ayuntamiento y seguirlo.",
+    "signedOutPublic": "Las consultas de tus vecinos son públicas: las ves en la pestaña Consultas.",
+    "signIn": "Iniciar sesión",
     "mine": "Mis aportes",
     "inbox": "Avisos",
     "inboxCount": "Avisos ({count})",
@@ -821,6 +832,10 @@
     "title": "Apariencia",
     "systemFootnote": "El modo claro u oscuro sigue la configuración de tu dispositivo.",
     "previewAction": "Ir",
+    "civico": {
+      "name": "Cívico",
+      "description": "Azul marino y verde: claro, sobrio y confiable."
+    },
     "monte": {
       "name": "Monte",
       "description": "Verdes de la sierra y los tabacales."

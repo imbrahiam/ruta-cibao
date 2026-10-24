@@ -98,14 +98,84 @@ const status = {
 } as const;
 
 export const THEMES = {
+  civico: {
+    light: {
+      paper: "#F7F8FA",
+      elevated: "#FFFFFF",
+      surface: "#FFFFFF",
+      inset: "#EFF2F6",
+      fill: "#E9EFF6",
+      fillPressed: "#DBE3EE",
+      ink: "#0C183A",
+      textSecondary: "#46506A",
+      textTertiary: "#5D6680",
+      textDisabled: "#A8AFC0",
+      accent: "#007D68",
+      accentPressed: "#00624F",
+      accentSoft: "rgba(0, 125, 104, 0.10)",
+      onAccent: "#FFFFFF",
+      hairline: "rgba(12, 24, 58, 0.08)",
+      glass: "rgba(255, 255, 255, 0.94)",
+    },
+    dark: {
+      paper: "#0A0F1C",
+      elevated: "#151B2B",
+      surface: "#151B2B",
+      inset: "#0F1524",
+      fill: "#222A3D",
+      fillPressed: "#2C354A",
+      ink: "#EEF1F7",
+      textSecondary: "#B4BCCD",
+      textTertiary: "#8D96AA",
+      textDisabled: "#535C70",
+      accent: "#33C6A6",
+      accentPressed: "#25A98C",
+      accentSoft: "rgba(51, 198, 166, 0.16)",
+      onAccent: "#03261E",
+      hairline: "rgba(238, 241, 247, 0.10)",
+      glass: "rgba(21, 27, 43, 0.94)",
+    },
+    map: {
+      light: {
+        ground: "#F2F4F6",
+        park: "#DCEDE2",
+        water: "#C3DCEF",
+        waterLabel: "#4F7EA6",
+        road: "#FFFFFF",
+        roadEdge: "#DDE2E9",
+        highway: "#F5DDA8",
+        label: "#4A5368",
+        labelStrong: "#1B2440",
+        labelMuted: "#7C8498",
+        labelHalo: "#FFFFFF",
+        adminLine: "#BCC4D2",
+        veil: "rgba(255, 255, 255, 0.55)",
+      },
+      dark: {
+        ground: "#121827",
+        park: "#15281F",
+        water: "#0B1A2C",
+        waterLabel: "#4B6A8C",
+        road: "#242D42",
+        roadEdge: "#1A2133",
+        highway: "#4A3F2A",
+        label: "#8E97AE",
+        labelStrong: "#D5DBEA",
+        labelMuted: "#6D768C",
+        labelHalo: "#121827",
+        adminLine: "#2E3850",
+        veil: "rgba(0, 0, 0, 0.45)",
+      },
+    },
+  },
   monte: {
     light: {
-      paper: "#FFFFFF",
+      paper: "#F5F8F6",
       elevated: "#FFFFFF",
-      surface: "#F0F5F2",
-      inset: "#F6F9F7",
-      fill: "#E1EBE5",
-      fillPressed: "#D2E0D8",
+      surface: "#FFFFFF",
+      inset: "#EDF2EF",
+      fill: "#E3EBE6",
+      fillPressed: "#D4DFD9",
       ink: "#0D1A14",
       textSecondary: "#46574E",
       textTertiary: "#5C6D64",
@@ -170,12 +240,12 @@ export const THEMES = {
   },
   pueblo: {
     light: {
-      paper: "#FFFFFF",
+      paper: "#F6F8FB",
       elevated: "#FFFFFF",
-      surface: "#F1F4FB",
-      inset: "#F7F9FD",
-      fill: "#E1E7F4",
-      fillPressed: "#D2DBEE",
+      surface: "#FFFFFF",
+      inset: "#EEF2F8",
+      fill: "#E4EAF5",
+      fillPressed: "#D5DDEE",
       ink: "#0D1430",
       textSecondary: "#454E6B",
       textTertiary: "#5B6483",
@@ -240,9 +310,9 @@ export const THEMES = {
   },
   clasico: {
     light: {
-      paper: "#FFFFFF",
+      paper: "#F6F6F6",
       elevated: "#FFFFFF",
-      surface: "#F3F3F3",
+      surface: "#FFFFFF",
       inset: "#F6F6F6",
       fill: "#E8E8E8",
       fillPressed: "#DCDCDC",
@@ -311,14 +381,15 @@ export const THEMES = {
 } satisfies Record<string, ThemeDefinition>;
 
 export type ThemeId = keyof typeof THEMES;
-export const DEFAULT_THEME: ThemeId = "monte";
+export const DEFAULT_THEME: ThemeId = "civico";
 
 function buildPalette(seed: Seed, scheme: "light" | "dark") {
   return {
+    /** The canvas every screen sits on: a near-white neutral in light mode. */
     background: seed.paper,
-    /** Inset grouped screens and the paper row groups they contain. */
-    grouped: scheme === "light" ? seed.surface : seed.paper,
-    groupedRow: scheme === "light" ? seed.paper : seed.elevated,
+    /** Inset grouped screens: rows in white cards on the canvas. */
+    grouped: seed.paper,
+    groupedRow: scheme === "light" ? seed.surface : seed.elevated,
     /** Things floating over the map or content: sheets, search bar, map buttons. */
     elevated: seed.elevated,
     surface: seed.surface,

@@ -80,12 +80,40 @@ export default function ConsultationsScreen() {
         }}
       />
       <Stack.Toolbar placement="right">
+        {/* Status filter as the system menu, so the list keeps one row of
+            chips (where the case is) and the status is one tap away. */}
+        <Stack.Toolbar.Menu
+          icon={
+            Platform.OS === "ios"
+              ? status
+                ? "line.3.horizontal.decrease.circle.fill"
+                : "line.3.horizontal.decrease.circle"
+              : undefined
+          }
+          accessibilityLabel={t("filterStatus")}
+          title={t("filterStatus")}
+        >
+          <Stack.Toolbar.MenuAction
+            isOn={status === null}
+            onPress={() => setStatus(null)}
+          >
+            {t("anyStatus")}
+          </Stack.Toolbar.MenuAction>
+          {STATUSES.map((item) => (
+            <Stack.Toolbar.MenuAction
+              key={item}
+              isOn={status === item}
+              onPress={() => setStatus(item)}
+            >
+              {t(`statusLabel.${item}`)}
+            </Stack.Toolbar.MenuAction>
+          ))}
+        </Stack.Toolbar.Menu>
         <Stack.Toolbar.Button
-          icon={Platform.OS === "ios" ? "plus" : undefined}
           accessibilityLabel={t("new")}
           onPress={() => asMember(() => router.push("/consultation/new"))}
         >
-          {t("new")}
+          {t("newShort")}
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
       <FlashList
@@ -101,14 +129,11 @@ export default function ConsultationsScreen() {
               void list.refetch();
               if (signedIn) void mine.refetch();
             }}
-            tintColor={colors.accent}
           />
         }
         ListHeaderComponent={
           <View style={styles.filters}>
-            <Text tone="secondary" style={styles.lede}>
-              {t("lede")}
-            </Text>
+            <Text tone="secondary">{t("lede")}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -130,26 +155,11 @@ export default function ConsultationsScreen() {
                 />
               ))}
             </ScrollView>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.chips}
-            >
-              <Chip
-                label={t("anyStatus")}
-                selected={status === null}
-                onPress={() => setStatus(null)}
-              />
-              {STATUSES.map((item) => (
-                <Chip
-                  key={item}
-                  label={t(`statusLabel.${item}`)}
-                  icon={STATUS_STYLE[item].icon}
-                  selected={status === item}
-                  onPress={() => setStatus(status === item ? null : item)}
-                />
-              ))}
-            </ScrollView>
+            {status ? (
+              <Text variant="footnote" tone="secondary">
+                {t("filteredBy", { status: t(`statusLabel.${status}`) })}
+              </Text>
+            ) : null}
           </View>
         }
         ItemSeparatorComponent={() => <View style={styles.gap} />}
@@ -185,59 +195,60 @@ export default function ConsultationsScreen() {
         }
         renderItem={({ item }) => {
           const style = STATUS_STYLE[item.status];
+          // Title first, then where and what, then status and support: the
+          // order a resident scans a list of problems in.
           return (
             <Card
               onPress={() => router.push(`/consultation/${item.slug}`)}
               accessibilityLabel={`${item.title}. ${t(`statusLabel.${item.status}`)}. ${t("supports", { count: item.supportCount })}`}
-              style={styles.card}
+              style={[styles.card, { backgroundColor: colors.surface }]}
               testID={`consultation-${item.slug}`}
             >
-              <View style={styles.cardTop}>
+              <Text variant="headline" numberOfLines={2}>
+                {item.title}
+              </Text>
+              <View style={styles.meta}>
                 <CategoryBadge
                   icon={item.categoryIcon}
                   color={item.categoryColor}
-                  size={26}
+                  size={20}
                 />
                 <Text
                   variant="footnote"
-                  tone="tertiary"
+                  tone="secondary"
                   style={styles.flex}
                   numberOfLines={1}
                 >
                   {item.categoryName} · {item.municipalityName}
                 </Text>
+              </View>
+              <View style={styles.cardBottom}>
                 <Badge
                   label={t(`statusLabel.${item.status}`)}
                   tone={style.tone}
                   icon={style.icon}
                 />
-              </View>
-              <Text variant="headline" numberOfLines={3}>
-                {item.title}
-              </Text>
-              {item.publicationStatus === "published" ? null : (
-                <View style={styles.cardTop}>
+                {item.publicationStatus === "published" ? null : (
                   <Badge
                     label={ts(`publication.${item.publicationStatus}`)}
                     tone="warning"
                     icon={Clock}
                   />
-                </View>
-              )}
-              <View style={styles.cardBottom}>
+                )}
+                <View style={styles.flex} />
                 <View style={styles.support}>
                   <Icon
                     as={ThumbsUp}
-                    size={15}
-                    color={item.supported ? "accent" : "textTertiary"}
+                    size={14}
+                    color={item.supported ? "text" : "textTertiary"}
                   />
                   <Text
                     variant="footnote"
-                    tone={item.supported ? "accent" : "tertiary"}
+                    tone={item.supported ? "primary" : "tertiary"}
                     weight="600"
                     tabular
                   >
-                    {t("supports", { count: item.supportCount })}
+                    {item.supportCount}
                   </Text>
                 </View>
                 <Text variant="footnote" tone="tertiary">
@@ -253,26 +264,14 @@ export default function ConsultationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: { paddingHorizontal: space.md, paddingBottom: space.xxl + space.xl },
+  list: { paddingHorizontal: space.md + 4, paddingBottom: space.xl },
   flex: { flex: 1 },
-  filters: { gap: space.sm + 2, paddingBottom: space.md, paddingTop: space.xs },
-  lede: { paddingBottom: space.xs },
+  filters: { gap: space.sm + 4, paddingBottom: space.md, paddingTop: space.xs },
   chips: { gap: space.sm },
-  gap: { height: space.sm + 4 },
-  skeletons: { gap: space.sm + 4 },
-  card: { gap: space.sm + 2 },
-  cardTop: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  catIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardBottom: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  support: { flexDirection: "row", alignItems: "center", gap: 6 },
+  gap: { height: space.sm + 2 },
+  skeletons: { gap: space.sm + 2 },
+  card: { gap: space.sm },
+  meta: { flexDirection: "row", alignItems: "center", gap: space.xs + 2 },
+  cardBottom: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  support: { flexDirection: "row", alignItems: "center", gap: 4 },
 });

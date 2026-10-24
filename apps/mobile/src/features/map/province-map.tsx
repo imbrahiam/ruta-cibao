@@ -66,8 +66,8 @@ const [WEST, SOUTH, EAST, NORTH] = PROVINCE_BOUNDS;
 const CLUSTER_MAX_ZOOM = 15;
 /** From this zoom a place's name sits beside its disc… */
 const NAME_ZOOM = 16;
-/** …and only while few enough are on screen to read them. */
-const MAX_NAMED = 24;
+/** …and only while few enough are on screen to read them without overlap. */
+const MAX_NAMED = 8;
 /** Municipality names only while the whole province is in view. */
 const AREA_LABEL_MAX_ZOOM = 11.5;
 
