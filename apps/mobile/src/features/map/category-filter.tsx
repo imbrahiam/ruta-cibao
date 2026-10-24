@@ -58,11 +58,13 @@ export function CategoryFilter({
               systemImage={
                 value
                   ? "line.3.horizontal.decrease.circle.fill"
-                  : "line.3.horizontal.decrease.circle"
+                  : "line.3.horizontal.decrease"
               }
+              // The glass button adds its own padding: 34 + padding matches
+              // the search field beside it.
               modifiers={[
                 labelStyle("iconOnly"),
-                frame({ width: 48, height: 48 }),
+                frame({ width: 34, height: 34 }),
               ]}
             />
           }

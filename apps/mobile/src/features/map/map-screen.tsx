@@ -40,6 +40,8 @@ import { TrafficSummary } from "./traffic-summary";
 const TAB_BAR = Platform.select({ ios: 56, default: 80 });
 /** How much of the sheet shows above the tab bar when resting. */
 const PEEK = 132;
+/** The drag handle above the sheet's content (padding plus indicator). */
+const SHEET_HANDLE = 24;
 
 export function MapScreen() {
   const t = useTranslations("map");
@@ -91,8 +93,14 @@ export function MapScreen() {
   }, [places.data, category, municipality]);
 
   const bottomInset = insets.bottom + TAB_BAR;
-  const peek = PEEK + bottomInset;
-  const midSheet = Math.round(height * 0.52);
+  // The first detent fits whatever the selection shows (a photo makes the
+  // place summary taller), measured rather than guessed.
+  const [contentHeight, setContentHeight] = useState(0);
+  const peek = Math.max(
+    PEEK + bottomInset,
+    contentHeight + SHEET_HANDLE + bottomInset,
+  );
+  const midSheet = Math.max(Math.round(height * 0.52), peek + 1);
   const snapPoints = useMemo(() => [peek, midSheet, "90%"], [peek, midSheet]);
   // The sheet exists only for something chosen on the map; otherwise the
   // map runs down to the tab bar.
@@ -350,22 +358,28 @@ export function MapScreen() {
         style={floating(scheme)}
         accessible={false}
       >
-        {selectedTraffic ? (
-          <TrafficSummary
-            report={selectedTraffic}
-            onClose={() => setTrafficId(null)}
-          />
-        ) : selected ? (
-          <PlaceSummary
-            place={selected}
-            municipalityName={
-              municipalities.find(
-                (m) => m.properties.id === selected.properties.municipality,
-              )?.properties.name ?? ""
-            }
-            onClose={() => setSelected(null)}
-          />
-        ) : null}
+        <View
+          onLayout={(event) =>
+            setContentHeight(Math.ceil(event.nativeEvent.layout.height))
+          }
+        >
+          {selectedTraffic ? (
+            <TrafficSummary
+              report={selectedTraffic}
+              onClose={() => setTrafficId(null)}
+            />
+          ) : selected ? (
+            <PlaceSummary
+              place={selected}
+              municipalityName={
+                municipalities.find(
+                  (m) => m.properties.id === selected.properties.municipality,
+                )?.properties.name ?? ""
+              }
+              onClose={() => setSelected(null)}
+            />
+          ) : null}
+        </View>
       </BottomSheet>
     </View>
   );
