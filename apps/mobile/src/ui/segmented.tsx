@@ -1,5 +1,7 @@
+import { Host, Text as NativeText, Picker } from "@expo/ui/swift-ui";
+import { pickerStyle, tag } from "@expo/ui/swift-ui/modifiers";
 import { useEffect, useState } from "react";
-import { type LayoutRectangle, StyleSheet, View } from "react-native";
+import { type LayoutRectangle, Platform, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -18,10 +20,41 @@ export type SegmentedProps<T extends string> = {
 };
 
 /**
- * Two to four mutually exclusive choices. The thumb slides between measured
- * segments on the UI thread; with reduced motion it jumps.
+ * Two to four mutually exclusive choices. On iOS this is the system
+ * segmented control (SwiftUI `Picker`), so it looks, sounds and reads to
+ * VoiceOver exactly like every other iOS app; elsewhere a drawn equivalent
+ * whose thumb slides on the UI thread.
  */
-export function Segmented<T extends string>({
+export function Segmented<T extends string>(props: SegmentedProps<T>) {
+  if (Platform.OS === "ios") return <NativeSegmented {...props} />;
+  return <DrawnSegmented {...props} />;
+}
+
+function NativeSegmented<T extends string>({
+  options,
+  value,
+  onChange,
+  accessibilityLabel,
+}: SegmentedProps<T>) {
+  return (
+    <Host matchContents={{ vertical: true }} style={styles.host}>
+      <Picker
+        label={accessibilityLabel}
+        selection={value}
+        onSelectionChange={(next) => onChange(next as T)}
+        modifiers={[pickerStyle("segmented")]}
+      >
+        {options.map((option) => (
+          <NativeText key={option.value} modifiers={[tag(option.value)]}>
+            {option.label}
+          </NativeText>
+        ))}
+      </Picker>
+    </Host>
+  );
+}
+
+function DrawnSegmented<T extends string>({
   options,
   value,
   onChange,
@@ -95,6 +128,7 @@ export function Segmented<T extends string>({
 }
 
 const styles = StyleSheet.create({
+  host: { alignSelf: "stretch" },
   track: {
     flexDirection: "row",
     borderRadius: radius.input,

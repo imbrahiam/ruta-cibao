@@ -11,6 +11,7 @@ export type PlaceRowItem = {
   categoryName: string;
   categoryIcon: string;
   municipalityName: string;
+  categoryColor?: string;
 };
 
 /** One place in a list: category badge, name, category and municipality. */
@@ -23,7 +24,11 @@ export function PlaceListRow({ item }: { item: PlaceRowItem }) {
       accessibilityLabel={`${item.name}, ${item.categoryName}, ${item.municipalityName}`}
       style={styles.row}
     >
-      <CategoryBadge icon={item.categoryIcon} size={40} />
+      <CategoryBadge
+        icon={item.categoryIcon}
+        color={item.categoryColor}
+        size={40}
+      />
       <View style={styles.text}>
         <Text variant="body" weight="600" numberOfLines={1}>
           {item.name}

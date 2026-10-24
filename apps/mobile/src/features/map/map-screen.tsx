@@ -505,7 +505,11 @@ function PlaceRow({
       style={styles.row}
       testID={`place-row-${properties.slug}`}
     >
-      <CategoryBadge icon={properties.icon} size={40} />
+      <CategoryBadge
+        icon={properties.icon}
+        color={properties.color}
+        size={40}
+      />
       <View style={styles.rowText}>
         <Text variant="body" weight="600" numberOfLines={1}>
           {properties.name}
@@ -535,7 +539,12 @@ function PlaceSummary({
   return (
     <View style={styles.summary} testID="place-summary">
       <View style={styles.summaryHeader}>
-        <CategoryBadge icon={properties.icon} size={48} inverse />
+        <CategoryBadge
+          icon={properties.icon}
+          color={properties.color}
+          size={48}
+          inverse
+        />
         <View style={styles.rowText}>
           <Text variant="title3" numberOfLines={2} accessibilityRole="header">
             {properties.name}

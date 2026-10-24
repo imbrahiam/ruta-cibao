@@ -50,7 +50,6 @@ function ToggleRow({
   disabled: boolean;
   onChange: (value: boolean) => void;
 }) {
-  const { colors } = useTheme();
   // The visual row is hidden from assistive tech: the Switch carries the same
   // label/hint and is the single focusable, operable element.
   return (
@@ -70,7 +69,6 @@ function ToggleRow({
           value={value}
           disabled={disabled}
           onValueChange={onChange}
-          trackColor={{ false: colors.fill, true: colors.accent }}
         />
       </View>
     </View>

@@ -199,7 +199,11 @@ export default function PlaceScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + space.xl }}
         showsVerticalScrollIndicator={false}
       >
-        <Hero photos={photos} icon={place.category.icon} />
+        <Hero
+          photos={photos}
+          icon={place.category.icon}
+          color={place.category.color}
+        />
 
         <View style={[styles.body, { backgroundColor: colors.background }]}>
           <SavedCopyNotice date={detail.data?.savedCopyAt} />
@@ -212,7 +216,11 @@ export default function PlaceScreen() {
               {place.name}
             </Text>
             <View style={styles.meta}>
-              <CategoryBadge icon={place.category.icon} size={22} />
+              <CategoryBadge
+                icon={place.category.icon}
+                color={place.category.color}
+                size={22}
+              />
               <Text variant="subhead" tone="secondary">
                 {place.category.name} · {place.municipality.name}
               </Text>
@@ -409,7 +417,11 @@ export default function PlaceScreen() {
                       onPress={() => router.push(`/place/${item.slug}`)}
                       accessibilityLabel={item.name}
                     >
-                      <CategoryBadge icon={item.category.icon} size={36} />
+                      <CategoryBadge
+                        icon={item.category.icon}
+                        color={item.category.color}
+                        size={36}
+                      />
                       <Text variant="subhead" weight="600" numberOfLines={2}>
                         {item.name}
                       </Text>
@@ -488,27 +500,43 @@ export default function PlaceScreen() {
   );
 }
 
-function Hero({ photos, icon }: { photos: string[]; icon: string }) {
+function Hero({
+  photos,
+  icon,
+  color,
+}: {
+  photos: string[];
+  icon: string;
+  color: string;
+}) {
   const { width } = useWindowDimensions();
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const t = useTranslations("place");
   const [page, setPage] = useState(0);
 
   if (photos.length === 0) {
+    // No photo yet: a wash of the category's colour with its glyph.
     return (
       <View
         style={[
           styles.hero,
           styles.heroEmpty,
-          { backgroundColor: colors.surface },
+          {
+            backgroundColor: `${color}${scheme === "dark" ? "40" : "26"}`,
+          },
         ]}
       >
-        <View style={styles.heroIcon}>
+        <View
+          style={[
+            styles.heroIcon,
+            { backgroundColor: color, borderColor: colors.background },
+          ]}
+        >
           <Icon
             as={categoryIcon(icon)}
-            size={56}
-            color={colors.textTertiary}
-            strokeWidth={1.6}
+            size={40}
+            color={colors.onStatus}
+            strokeWidth={2}
           />
         </View>
         <Text variant="footnote" tone="secondary">
@@ -666,9 +694,10 @@ const styles = StyleSheet.create({
   hero: { height: HERO },
   heroEmpty: { alignItems: "center", justifyContent: "center", gap: space.md },
   heroIcon: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 3,
     alignItems: "center",
     justifyContent: "center",
   },

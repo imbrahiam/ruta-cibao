@@ -163,7 +163,11 @@ export default function ConsultationScreen() {
         ]}
       >
         <View style={styles.meta}>
-          <CategoryBadge icon={data.categoryIcon} size={26} />
+          <CategoryBadge
+            icon={data.categoryIcon}
+            color={data.categoryColor}
+            size={26}
+          />
           <Text variant="subhead" tone="secondary" style={styles.flex}>
             {data.categoryName} · {data.municipalityName}
           </Text>

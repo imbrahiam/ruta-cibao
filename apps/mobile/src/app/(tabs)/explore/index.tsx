@@ -327,7 +327,11 @@ export default function ExploreScreen() {
                             accessibilityLabel={category.name}
                             style={styles.tile}
                           >
-                            <CategoryBadge icon={category.icon} size={36} />
+                            <CategoryBadge
+                              icon={category.icon}
+                              color={category.color}
+                              size={36}
+                            />
                             <Text
                               variant="subhead"
                               weight="600"
@@ -355,7 +359,11 @@ export default function ExploreScreen() {
                     onPress={() => router.push(`/place/${item.slug}`)}
                     accessibilityLabel={item.name}
                   >
-                    <CategoryBadge icon={item.categoryIcon} size={36} />
+                    <CategoryBadge
+                      icon={item.categoryIcon}
+                      color={item.categoryColor}
+                      size={36}
+                    />
                     <Text variant="subhead" weight="600" numberOfLines={2}>
                       {item.name}
                     </Text>

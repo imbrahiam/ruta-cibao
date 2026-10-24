@@ -3,19 +3,22 @@ import { categoryIcon, Icon } from "@/ui/icon";
 import { palettes, type Scheme } from "@/ui/theme";
 
 /**
- * Marker bodies for the Google map. Monochrome on purpose: ink discs with a
- * glyph, so a category reads by its shape and the name beside it, never by
- * colour alone. They are plain views, snapshotted by the native map once
- * (`tracksViewChanges={false}` at the call site), so keep them static.
+ * Marker bodies for the map. A place disc wears its category colour (data
+ * from the taxonomy, editable by admins) with a white glyph, so a category
+ * reads by colour, shape and the name beside it. They are plain views,
+ * snapshotted by the native map once (`tracksViewChanges={false}` at the call
+ * site), so keep them static.
  */
 
-/** A single place: a small ink disc with its category glyph, name optional. */
+/** A single place: a small category-coloured disc with its glyph. */
 export function PlaceDot({
   icon,
+  color,
   name,
   scheme,
 }: {
   icon: string;
+  color: string;
   name?: string;
   scheme: Scheme;
 }) {
@@ -30,13 +33,13 @@ export function PlaceDot({
       <View
         style={[
           styles.dot,
-          { backgroundColor: colors.pin, borderColor: colors.background },
+          { backgroundColor: color, borderColor: colors.background },
         ]}
       >
         <Icon
           as={categoryIcon(icon)}
           size={13}
-          color={colors.onPin}
+          color={colors.onStatus}
           strokeWidth={2.4}
         />
       </View>

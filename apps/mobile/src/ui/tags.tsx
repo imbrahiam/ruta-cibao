@@ -1,4 +1,4 @@
-import { Check, type LucideIcon } from "lucide-react-native";
+import type { LucideIcon } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import { Icon } from "./icon";
 import { PressableScale } from "./pressable";
@@ -18,8 +18,8 @@ export type ChipProps = {
 };
 
 /**
- * A filter. Selected chips invert to ink and gain a check mark, so the state
- * reads without colour.
+ * A filter. Selected chips invert to ink (and the screen reader hears
+ * "selected"), so the state reads without colour or a tick.
  */
 export function Chip({
   label,
@@ -60,15 +60,14 @@ export function Chip({
           : null,
       ]}
     >
-      {selected ? (
+      {icon ? (
         <Icon
-          as={Check}
+          as={icon}
           size={15}
-          color={colors.background}
-          strokeWidth={2.5}
+          color={
+            selected ? colors.background : (iconColor ?? colors.textSecondary)
+          }
         />
-      ) : icon ? (
-        <Icon as={icon} size={15} color={iconColor ?? colors.textSecondary} />
       ) : null}
       <Text
         variant="subhead"

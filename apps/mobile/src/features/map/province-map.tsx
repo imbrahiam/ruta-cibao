@@ -359,6 +359,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
             >
               <PlaceDot
                 icon={place.icon}
+                color={place.color}
                 name={showNames ? place.name : undefined}
                 scheme={scheme}
               />
@@ -379,6 +380,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
           >
             <SelectedPin
               icon={selected.properties.icon}
+              color={selected.properties.color}
               label={selected.properties.name}
             />
           </Marker>

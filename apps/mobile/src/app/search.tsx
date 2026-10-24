@@ -151,7 +151,11 @@ export default function SearchScreen() {
             accessibilityLabel={`${item.properties.name}, ${item.properties.categoryName}`}
             style={styles.row}
           >
-            <CategoryBadge icon={item.properties.icon} size={40} />
+            <CategoryBadge
+              icon={item.properties.icon}
+              color={item.properties.color}
+              size={40}
+            />
             <View style={styles.text}>
               <Text variant="body" weight="600" numberOfLines={1}>
                 {item.properties.name}

@@ -259,6 +259,31 @@ const FUEL_BRANDS =
   /\b(texaco|shell|esso|isla|sunix|total|puma|gulf|next|ecopetr[oó]leo|uno)\b/i;
 
 /**
+ * A name that is only the kind of place ("Cafetería", "Colmado") tells a
+ * visitor nothing and cannot be told apart from its neighbours; such features
+ * are left out rather than shown as anonymous pins.
+ */
+const GENERIC_NAMES = new Set(
+  [
+    "cafeteria",
+    "colmado",
+    "farmacia",
+    "restaurante",
+    "comedor",
+    "iglesia",
+    "escuela",
+    "liceo",
+    "parque",
+    "banca",
+    "bar",
+    "taller",
+    "ferreteria",
+    "supermercado",
+    "hotel",
+  ].map((value) => slugify(value)),
+);
+
+/**
  * Maps raw OpenStreetMap tags to taxonomy categories in `categories` table.
  */
 export function categorizeOsmTags(
@@ -736,7 +761,11 @@ export async function importOsmContent(): Promise<{
     // fix applies on the next import without re-querying Overpass. A feature
     // it no longer accepts is removed if an earlier run imported it.
     const categoryId = categorizeOsmTags(tags)?.categoryId ?? null;
-    if (!categoryId || !catIds.has(categoryId)) {
+    if (
+      !categoryId ||
+      !catIds.has(categoryId) ||
+      GENERIC_NAMES.has(slugify(name))
+    ) {
       duplicateIdsToDelete.push(osmUuid(osmType, osmId));
       continue;
     }

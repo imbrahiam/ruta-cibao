@@ -30,7 +30,15 @@ const DROP =
  * grows as it lands. Rare and user-caused, so it may move; with reduced motion
  * it simply appears.
  */
-export function SelectedPin({ icon, label }: { icon: string; label: string }) {
+export function SelectedPin({
+  icon,
+  color,
+  label,
+}: {
+  icon: string;
+  color: string;
+  label: string;
+}) {
   const scheme = useScheme();
   const colors = palettes[scheme];
   const reduced = useReducedMotion();
@@ -71,7 +79,7 @@ export function SelectedPin({ icon, label }: { icon: string; label: string }) {
         <Svg width={WIDTH} height={HEIGHT} viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
           <Path
             d={DROP}
-            fill={colors.pin}
+            fill={color}
             stroke={colors.background}
             strokeWidth={3}
           />
@@ -80,7 +88,7 @@ export function SelectedPin({ icon, label }: { icon: string; label: string }) {
           <Icon
             as={categoryIcon(icon)}
             size={20}
-            color={colors.onPin}
+            color={colors.onStatus}
             strokeWidth={2.4}
           />
         </View>

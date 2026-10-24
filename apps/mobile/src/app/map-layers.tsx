@@ -33,7 +33,6 @@ export default function MapLayersSheet() {
         haptic("selection");
         setMapLayers({ [key]: value });
       }}
-      trackColor={{ true: colors.accent }}
       accessibilityLabel={t(key)}
     />
   );

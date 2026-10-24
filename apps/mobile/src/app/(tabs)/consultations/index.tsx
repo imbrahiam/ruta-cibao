@@ -188,7 +188,11 @@ export default function ConsultationsScreen() {
               testID={`consultation-${item.slug}`}
             >
               <View style={styles.cardTop}>
-                <CategoryBadge icon={item.categoryIcon} size={26} />
+                <CategoryBadge
+                  icon={item.categoryIcon}
+                  color={item.categoryColor}
+                  size={26}
+                />
                 <Text
                   variant="footnote"
                   tone="tertiary"
