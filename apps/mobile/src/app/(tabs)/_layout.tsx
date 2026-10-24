@@ -1,24 +1,27 @@
 import { NativeTabs } from "expo-router/native-tabs";
 import { DynamicColorIOS, Platform } from "react-native";
 import { useTranslations } from "use-intl";
-import { palettes } from "@/ui/theme";
-
-const tint =
-  Platform.OS === "ios"
-    ? DynamicColorIOS({
-        light: palettes.light.accent,
-        dark: palettes.dark.accent,
-      })
-    : palettes.light.accent;
+import { palettes, useThemeId } from "@/ui/theme";
 
 /**
- * Five peers, always labelled. The system tab bar (Liquid Glass on iOS 26)
- * owns the transitions: tabs never slide.
+ * Four peers, always labelled; the account lives behind the avatar beside
+ * the map's search. The system tab bar (Liquid Glass on iOS 26) owns the
+ * transitions: tabs never slide.
  */
 export default function TabsLayout() {
   const t = useTranslations("tabs");
+  // The native tab bar reads its tint once, so a theme switch remounts it
+  // (the switch happens in the account sheet, above the tabs).
+  const themeId = useThemeId();
+  const tint =
+    Platform.OS === "ios"
+      ? DynamicColorIOS({
+          light: palettes.light.accent,
+          dark: palettes.dark.accent,
+        })
+      : palettes.light.accent;
   return (
-    <NativeTabs tintColor={tint} minimizeBehavior="never">
+    <NativeTabs key={themeId} tintColor={tint} minimizeBehavior="never">
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>{t("map")}</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon
@@ -52,16 +55,6 @@ export default function TabsLayout() {
         <NativeTabs.Trigger.Icon
           sf={{ default: "tray.full", selected: "tray.full.fill" }}
           md="inbox"
-        />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="account">
-        <NativeTabs.Trigger.Label>{t("account")}</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{
-            default: "person.crop.circle",
-            selected: "person.crop.circle.fill",
-          }}
-          md="account_circle"
         />
       </NativeTabs.Trigger>
     </NativeTabs>

@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+import { loadTheme } from "@/features/appearance/theme-store";
 import { NotificationResponseListener } from "@/features/notifications/response-listener";
 import { I18nProvider } from "@/i18n/provider";
 import { forgetPreviousInstall } from "@/lib/install-guard";
@@ -116,6 +117,10 @@ function RootStack() {
           gestureEnabled: true,
         }}
       />
+      <Stack.Screen
+        name="account"
+        options={{ presentation: "modal", headerShown: false }}
+      />
     </Stack>
   );
 }
@@ -125,7 +130,7 @@ export default function RootLayout() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    forgetPreviousInstall()
+    Promise.all([forgetPreviousInstall(), loadTheme()])
       .catch(() => undefined)
       .finally(() => {
         setReady(true);

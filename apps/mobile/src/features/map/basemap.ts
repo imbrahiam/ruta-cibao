@@ -32,7 +32,8 @@ export function basemapProps(
   }
   return {
     provider: PROVIDER_GOOGLE,
-    customMapStyle: satellite ? undefined : mapStyles[scheme],
+    // Built per call from the live `mapPalettes`, so a theme switch restyles it.
+    customMapStyle: satellite ? undefined : cachedStyle(scheme),
     mapType: satellite ? "hybrid" : "standard",
   };
 }
@@ -109,7 +110,16 @@ function styleFor(scheme: Scheme): MapStyleElement[] {
   ];
 }
 
-const mapStyles: Record<Scheme, MapStyleElement[]> = {
-  light: styleFor("light"),
-  dark: styleFor("dark"),
-};
+const styleCache = new Map<string, MapStyleElement[]>();
+
+/** Same array for the same palette, so the native map does not restyle on
+ * every render. */
+function cachedStyle(scheme: Scheme): MapStyleElement[] {
+  const key = `${scheme}:${JSON.stringify(mapPalettes[scheme])}`;
+  let style = styleCache.get(key);
+  if (!style) {
+    style = styleFor(scheme);
+    styleCache.set(key, style);
+  }
+  return style;
+}

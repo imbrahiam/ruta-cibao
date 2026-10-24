@@ -7,6 +7,7 @@ import {
   LocateFixed,
   Navigation,
   Search,
+  UserRound,
   X,
 } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -22,6 +23,7 @@ import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { useTranslations } from "use-intl";
+import { useMe } from "@/features/auth/session";
 import { openTarget } from "@/lib/targets";
 import { Button } from "@/ui/button";
 import { CategoryBadge } from "@/ui/category-badge";
@@ -106,7 +108,8 @@ export function MapScreen() {
   const peek = PEEK + bottomInset;
   const midSheet = Math.round(height * 0.52);
   const snapPoints = useMemo(() => [peek, midSheet, "90%"], [peek, midSheet]);
-  const topChrome = insets.top + 112;
+  // Nothing floats over the top of the map any more: only the status bar.
+  const topChrome = insets.top + space.md;
   const padding = useMemo(
     () => ({ top: topChrome, bottom: peek + 12, left: 28, right: 28 }),
     [topChrome, peek],
@@ -268,91 +271,49 @@ export function MapScreen() {
         <Rect width="100%" height="100%" fill="url(#status-scrim)" />
       </Svg>
 
-      <View
-        style={[styles.top, { paddingTop: insets.top + space.sm }]}
-        pointerEvents="box-none"
-      >
-        <View style={styles.searchRow}>
-          <PressableScale
-            testID="map-search"
-            containerStyle={styles.searchFlex}
-            onPress={() => router.push("/search")}
-            accessibilityRole="search"
-            accessibilityLabel={t("searchLabel")}
-            scaleTo={0.985}
-            style={[
-              styles.search,
-              floating(scheme),
-              {
-                backgroundColor: colors.elevated,
-                borderColor: colors.hairline,
-              },
-            ]}
-          >
-            <Icon as={Search} size={19} color="textSecondary" />
-            <Text tone="tertiary" numberOfLines={1} style={styles.searchText}>
-              {t("searchPlaceholder")}
-            </Text>
-          </PressableScale>
-          <IconButton
-            icon={Layers}
-            label={t("layers")}
-            variant="glass"
-            onPress={() => router.push("/map-layers")}
-            testID="map-layers"
-          />
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chips}
-          accessibilityRole="tablist"
-        >
-          <Chip
-            label={t("allCategories")}
-            selected={category === null}
-            onPress={() => setCategory(null)}
-            floating
-          />
-          {places.isPending
-            ? [96, 80, 112].map((width) => (
-                <Skeleton
-                  key={width}
-                  width={width}
-                  height={36}
-                  rounded={radius.pill}
-                />
-              ))
-            : categories.map((item) => (
-                <Chip
-                  key={item.id}
-                  label={item.name}
-                  icon={categoryIcon(item.icon)}
-                  iconColor={colors.text}
-                  selected={category === item.id}
-                  onPress={() => {
-                    setCategory(category === item.id ? null : item.id);
-                    setSelected(null);
-                  }}
-                  floating
-                  testID={`category-${item.id}`}
-                />
-              ))}
-        </ScrollView>
-      </View>
-
+      {/* Map controls, one glass pill above the sheet: what the map shows,
+          then where you are. */}
       <View
         pointerEvents="box-none"
         style={[styles.controls, { bottom: peek + space.md }]}
       >
-        <IconButton
-          icon={LocateFixed}
-          label={t("locate")}
-          variant="glass"
-          disabled={locating}
-          onPress={locate}
-          testID="map-locate"
-        />
+        <View
+          style={[
+            styles.controlPill,
+            floating(scheme),
+            { backgroundColor: colors.glass, borderColor: colors.hairline },
+          ]}
+        >
+          <PressableScale
+            onPress={() => router.push("/map-layers")}
+            accessibilityRole="button"
+            accessibilityLabel={t("layers")}
+            style={styles.controlButton}
+            testID="map-layers"
+          >
+            <Icon as={Layers} size={20} color="text" />
+          </PressableScale>
+          <View
+            style={[
+              styles.controlDivider,
+              { backgroundColor: colors.hairline },
+            ]}
+          />
+          <PressableScale
+            onPress={locate}
+            disabled={locating}
+            accessibilityRole="button"
+            accessibilityLabel={t("locate")}
+            style={styles.controlButton}
+            testID="map-locate"
+          >
+            <Icon
+              as={LocateFixed}
+              size={20}
+              color={showUser ? colors.locate : colors.text}
+            />
+          </PressableScale>
+        </View>
       </View>
 
       <BottomSheet
@@ -397,7 +358,67 @@ export function MapScreen() {
             ]}
             ListHeaderComponent={
               <View style={styles.sheetHeader}>
-                <Text variant="title2" accessibilityRole="header">
+                <View style={styles.searchRow}>
+                  <PressableScale
+                    testID="map-search"
+                    containerStyle={styles.searchFlex}
+                    onPress={() => router.push("/search")}
+                    accessibilityRole="search"
+                    accessibilityLabel={t("searchLabel")}
+                    scaleTo={0.985}
+                    style={[styles.search, { backgroundColor: colors.fill }]}
+                  >
+                    <Icon as={Search} size={19} color="textSecondary" />
+                    <Text
+                      tone="secondary"
+                      numberOfLines={1}
+                      style={styles.searchText}
+                    >
+                      {t("searchPlaceholder")}
+                    </Text>
+                  </PressableScale>
+                  <AccountButton />
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.chips}
+                  accessibilityRole="tablist"
+                >
+                  <Chip
+                    label={t("allCategories")}
+                    selected={category === null}
+                    onPress={() => setCategory(null)}
+                  />
+                  {places.isPending
+                    ? [96, 80, 112].map((width) => (
+                        <Skeleton
+                          key={width}
+                          width={width}
+                          height={36}
+                          rounded={radius.pill}
+                        />
+                      ))
+                    : categories.map((item) => (
+                        <Chip
+                          key={item.id}
+                          label={item.name}
+                          icon={categoryIcon(item.icon)}
+                          iconColor={item.color}
+                          selected={category === item.id}
+                          onPress={() => {
+                            setCategory(category === item.id ? null : item.id);
+                            setSelected(null);
+                          }}
+                          testID={`category-${item.id}`}
+                        />
+                      ))}
+                </ScrollView>
+                <Text
+                  variant="title2"
+                  accessibilityRole="header"
+                  style={styles.sheetTitle}
+                >
                   {t("province")}
                 </Text>
                 <Text tone="secondary">
@@ -595,34 +616,82 @@ function PlaceSummary({
     </View>
   );
 }
+/**
+ * The way into the account, beside search: initials once signed in, a person
+ * glyph otherwise. Saves the tab bar a slot.
+ */
+function AccountButton() {
+  const t = useTranslations("tabs");
+  const { colors } = useTheme();
+  const { me } = useMe();
+  const name = me?.kind === "member" ? (me.displayName ?? "") : "";
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toLocaleUpperCase("es-DO"))
+    .join("");
+  return (
+    <PressableScale
+      onPress={() => router.push("/account")}
+      accessibilityRole="button"
+      accessibilityLabel={t("account")}
+      style={[
+        styles.avatar,
+        { backgroundColor: initials ? colors.accent : colors.fill },
+      ]}
+      testID="map-account"
+    >
+      {initials ? (
+        <Text variant="subhead" weight="700" style={{ color: colors.onAccent }}>
+          {initials}
+        </Text>
+      ) : (
+        <Icon as={UserRound} size={20} color="textSecondary" />
+      )}
+    </PressableScale>
+  );
+}
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   scrim: { position: "absolute", left: 0, right: 0, top: 0 },
   flex: { flex: 1 },
-  top: { position: "absolute", left: 0, right: 0, top: 0, gap: space.sm + 2 },
-  searchRow: {
-    flexDirection: "row",
-    gap: space.sm,
-    paddingHorizontal: space.md,
-  },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
   searchFlex: { flex: 1 },
   search: {
-    height: 48,
+    height: 44,
     borderRadius: radius.pill,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderCurve: "continuous",
     flexDirection: "row",
     alignItems: "center",
-    gap: space.sm + 2,
-    paddingHorizontal: space.md,
+    gap: space.sm,
+    paddingHorizontal: space.md - 2,
   },
   searchText: { flex: 1 },
-  chips: {
-    gap: space.sm,
-    paddingHorizontal: space.md,
-    paddingBottom: space.sm,
+  chips: { gap: space.sm, paddingVertical: space.sm + 2 },
+  sheetTitle: { marginTop: space.xs },
+  controls: { position: "absolute", right: space.md },
+  controlPill: {
+    borderRadius: 24,
+    borderCurve: "continuous",
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
   },
-  controls: { position: "absolute", right: space.md, gap: space.sm },
+  controlButton: {
+    width: 48,
+    height: 48,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  controlDivider: { height: StyleSheet.hairlineWidth, marginHorizontal: 10 },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   sheetBackground: {
     borderRadius: radius.panel,
     borderCurve: "continuous",

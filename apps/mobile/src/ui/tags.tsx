@@ -44,11 +44,11 @@ export function Chip({
         styles.chip,
         {
           backgroundColor: selected
-            ? colors.text
+            ? colors.accent
             : floating
               ? colors.surface
               : colors.fill,
-          borderColor: selected ? colors.text : colors.hairline,
+          borderColor: selected ? colors.accent : colors.hairline,
         },
         floating && !selected
           ? {
@@ -65,14 +65,14 @@ export function Chip({
           as={icon}
           size={15}
           color={
-            selected ? colors.background : (iconColor ?? colors.textSecondary)
+            selected ? colors.onAccent : (iconColor ?? colors.textSecondary)
           }
         />
       ) : null}
       <Text
         variant="subhead"
         weight="500"
-        style={{ color: selected ? colors.background : colors.text }}
+        style={{ color: selected ? colors.onAccent : colors.text }}
         numberOfLines={1}
         maxFontSizeMultiplier={1.6}
       >

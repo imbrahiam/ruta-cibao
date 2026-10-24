@@ -3,7 +3,9 @@
 #   maestro test -e PHONE=8095550106 -e CODE=<LOCAL_DEMO_OTP> apps/mobile/e2e/flows/sign-in-phone.yaml
 appId: do.rutacibao.app.dev
 ---
-- tapOn: "Cuenta"
+- tapOn: "Mapa"
+- tapOn:
+    id: "map-account"
 - tapOn:
     id: "account-sign-in"
 - tapOn:

@@ -1,176 +1,402 @@
+import { useSyncExternalStore } from "react";
 import { Platform, useColorScheme } from "react-native";
 import { cubicBezier, Easing } from "react-native-reanimated";
 
 /**
  * Design tokens.
  *
- * Monochrome by default: white and black, a short ladder of greys, and colour
- * only where it carries meaning (traffic severity, success, warning, error,
- * "you are here"). Every value a component uses comes from here: a one-off
- * hex, radius or shadow is a bug.
+ * Three themes share one set of token names, so every screen re-skins by
+ * switching theme and nothing else. A theme is a seed per scheme (paper,
+ * greys, ink, accent) plus a basemap palette; `buildPalette` derives the rest.
+ * Status colours (traffic severity, success, warning, error, "you are here")
+ * and category colours are the same in every theme because they carry meaning.
  *
- * To re-skin the app, change the knobs in `brand` below. `accent` drives the
- * primary buttons, selected chips, links and focus; `pin` drives the place
- * markers on the map (keep it equal to `ink` for the monochrome map even when
- * `accent` becomes a colour). The basemap itself is themed by `mapPalettes`.
+ * - `monte`: greens of the Sierra and the tobacco fields. The default.
+ * - `pueblo`: the cobalt and sky of the painted houses on the plaza.
+ * - `clasico`: black and white, for those who want the map to do the talking.
  *
  * Contrast: text tokens pass WCAG AA (4.5:1) on `background`, `surface` and
  * `inset` in both schemes; `textTertiary` is the lightest text allowed for
- * captions. `textDisabled` is never used for information. A new `accent` must
- * keep 4.5:1 against `onAccent` and 3:1 against `background`.
+ * captions. An accent keeps 4.5:1 against `onAccent` and 3:1 against
+ * `background`.
+ *
+ * Every value a component uses comes from here: a one-off hex is a bug.
  */
-export const brand = {
-  light: {
-    paper: "#FFFFFF",
-    ink: "#000000",
-    accent: "#000000",
-    accentPressed: "#333333",
-    onAccent: "#FFFFFF",
-    pin: "#000000",
-    onPin: "#FFFFFF",
-  },
-  dark: {
-    paper: "#000000",
-    ink: "#FFFFFF",
-    accent: "#FFFFFF",
-    accentPressed: "#DDDDDD",
-    onAccent: "#000000",
-    pin: "#FFFFFF",
-    onPin: "#000000",
-  },
-} as const;
-
-const light = {
-  background: brand.light.paper,
-  /** Things floating over the map or content: sheets, search bar, map buttons. */
-  elevated: brand.light.paper,
-  // Tiles, inputs and grouped rows sit on white as a light grey, the way Uber
-  // and Google Maps separate content in light mode without borders or shadows.
-  surface: "#F3F3F3",
-  inset: "#F6F6F6",
-  fill: "#E8E8E8",
-  fillPressed: "#DCDCDC",
-  separator: "#E8E8E8",
-  hairline: "rgba(0, 0, 0, 0.08)",
-
-  text: brand.light.ink,
-  textSecondary: "#545454",
-  textTertiary: "#6B6B6B",
-  textDisabled: "#AFAFAF",
-
-  accent: brand.light.accent,
-  accentPressed: brand.light.accentPressed,
-  accentSoft: "rgba(0, 0, 0, 0.06)",
-  onAccent: brand.light.onAccent,
-
-  pin: brand.light.pin,
-  onPin: brand.light.onPin,
-  /** Glyphs and text on a status colour (traffic severity, badges). */
-  onStatus: "#FFFFFF",
-
-  pine: brand.light.ink,
-  onPine: brand.light.paper,
-
-  success: "#05944F",
-  successInk: "#03703C",
-  successSoft: "rgba(5, 148, 79, 0.10)",
-  warning: "#C77E00",
-  warningInk: "#8A5600",
-  warningSoft: "rgba(255, 192, 67, 0.20)",
-  danger: "#E11900",
-  dangerInk: "#B01400",
-  dangerSoft: "rgba(225, 25, 0, 0.08)",
-
-  locate: "#276EF1",
-  glass: "rgba(255, 255, 255, 0.94)",
-  scrim: "rgba(0, 0, 0, 0.32)",
-  shadow: "#000000",
-} as const;
-
-export type Palette = { [K in keyof typeof light]: string };
-
-const dark: Palette = {
-  background: brand.dark.paper,
-  elevated: "#1C1C1C",
-  surface: "#1C1C1C",
-  inset: "#141414",
-  fill: "#2B2B2B",
-  fillPressed: "#363636",
-  separator: "#2B2B2B",
-  hairline: "rgba(255, 255, 255, 0.10)",
-
-  text: brand.dark.ink,
-  textSecondary: "#BDBDBD",
-  textTertiary: "#9A9A9A",
-  textDisabled: "#5E5E5E",
-
-  accent: brand.dark.accent,
-  accentPressed: brand.dark.accentPressed,
-  accentSoft: "rgba(255, 255, 255, 0.10)",
-  onAccent: brand.dark.onAccent,
-
-  pin: brand.dark.pin,
-  onPin: brand.dark.onPin,
-  onStatus: "#FFFFFF",
-
-  pine: brand.dark.ink,
-  onPine: brand.dark.paper,
-
-  success: "#3CCB7F",
-  successInk: "#6EDDA2",
-  successSoft: "rgba(60, 203, 127, 0.16)",
-  warning: "#FFC043",
-  warningInk: "#FFD27A",
-  warningSoft: "rgba(255, 192, 67, 0.16)",
-  danger: "#FF6B57",
-  dangerInk: "#FF9585",
-  dangerSoft: "rgba(255, 107, 87, 0.16)",
-
-  locate: "#5B91F5",
-  glass: "rgba(28, 28, 28, 0.94)",
-  scrim: "rgba(0, 0, 0, 0.55)",
-  shadow: "#000000",
+type Seed = {
+  paper: string;
+  elevated: string;
+  surface: string;
+  inset: string;
+  fill: string;
+  fillPressed: string;
+  ink: string;
+  textSecondary: string;
+  textTertiary: string;
+  textDisabled: string;
+  accent: string;
+  accentPressed: string;
+  accentSoft: string;
+  onAccent: string;
+  hairline: string;
+  glass: string;
 };
 
-export const palettes = { light, dark } as const;
+type MapPalette = {
+  ground: string;
+  park: string;
+  water: string;
+  waterLabel: string;
+  road: string;
+  roadEdge: string;
+  highway: string;
+  label: string;
+  labelStrong: string;
+  labelMuted: string;
+  labelHalo: string;
+  adminLine: string;
+  /** Dims the country around the province. */
+  veil: string;
+};
+
+type ThemeDefinition = {
+  light: Seed;
+  dark: Seed;
+  map: { light: MapPalette; dark: MapPalette };
+};
+
+const status = {
+  light: {
+    onStatus: "#FFFFFF",
+    success: "#05944F",
+    successInk: "#03703C",
+    successSoft: "rgba(5, 148, 79, 0.10)",
+    warning: "#C77E00",
+    warningInk: "#8A5600",
+    warningSoft: "rgba(255, 192, 67, 0.20)",
+    danger: "#E11900",
+    dangerInk: "#B01400",
+    dangerSoft: "rgba(225, 25, 0, 0.08)",
+    locate: "#276EF1",
+    scrim: "rgba(0, 0, 0, 0.32)",
+    shadow: "#000000",
+  },
+  dark: {
+    onStatus: "#FFFFFF",
+    success: "#3CCB7F",
+    successInk: "#6EDDA2",
+    successSoft: "rgba(60, 203, 127, 0.16)",
+    warning: "#FFC043",
+    warningInk: "#FFD27A",
+    warningSoft: "rgba(255, 192, 67, 0.16)",
+    danger: "#FF6B57",
+    dangerInk: "#FF9585",
+    dangerSoft: "rgba(255, 107, 87, 0.16)",
+    locate: "#5B91F5",
+    scrim: "rgba(0, 0, 0, 0.55)",
+    shadow: "#000000",
+  },
+} as const;
+
+export const THEMES = {
+  monte: {
+    light: {
+      paper: "#FFFFFF",
+      elevated: "#FFFFFF",
+      surface: "#F0F5F2",
+      inset: "#F6F9F7",
+      fill: "#E1EBE5",
+      fillPressed: "#D2E0D8",
+      ink: "#0D1A14",
+      textSecondary: "#46574E",
+      textTertiary: "#5C6D64",
+      textDisabled: "#A9B7AF",
+      accent: "#0A7A54",
+      accentPressed: "#075F41",
+      accentSoft: "rgba(10, 122, 84, 0.10)",
+      onAccent: "#FFFFFF",
+      hairline: "rgba(13, 26, 20, 0.08)",
+      glass: "rgba(255, 255, 255, 0.94)",
+    },
+    dark: {
+      paper: "#0A120E",
+      elevated: "#14201A",
+      surface: "#14201A",
+      inset: "#0E1813",
+      fill: "#213029",
+      fillPressed: "#2B3C34",
+      ink: "#EDF5F0",
+      textSecondary: "#B2C3B9",
+      textTertiary: "#8EA297",
+      textDisabled: "#55665D",
+      accent: "#3DD39A",
+      accentPressed: "#2FB683",
+      accentSoft: "rgba(61, 211, 154, 0.16)",
+      onAccent: "#03261A",
+      hairline: "rgba(237, 245, 240, 0.10)",
+      glass: "rgba(20, 32, 26, 0.94)",
+    },
+    map: {
+      light: {
+        ground: "#EEF3EF",
+        park: "#D6EAD9",
+        water: "#C7E0EE",
+        waterLabel: "#5E8AA3",
+        road: "#FFFFFF",
+        roadEdge: "#D9E3DC",
+        highway: "#F6DFA6",
+        label: "#4E5F56",
+        labelStrong: "#1F2E27",
+        labelMuted: "#7E8F86",
+        labelHalo: "#FFFFFF",
+        adminLine: "#B9C9BF",
+        veil: "rgba(255, 255, 255, 0.55)",
+      },
+      dark: {
+        ground: "#141D18",
+        park: "#18291F",
+        water: "#0D1B24",
+        waterLabel: "#4B6B7D",
+        road: "#26332C",
+        roadEdge: "#1B2721",
+        highway: "#4A4128",
+        label: "#8DA096",
+        labelStrong: "#D3E2D9",
+        labelMuted: "#6F8279",
+        labelHalo: "#141D18",
+        adminLine: "#33463C",
+        veil: "rgba(0, 0, 0, 0.45)",
+      },
+    },
+  },
+  pueblo: {
+    light: {
+      paper: "#FFFFFF",
+      elevated: "#FFFFFF",
+      surface: "#F1F4FB",
+      inset: "#F7F9FD",
+      fill: "#E1E7F4",
+      fillPressed: "#D2DBEE",
+      ink: "#0D1430",
+      textSecondary: "#454E6B",
+      textTertiary: "#5B6483",
+      textDisabled: "#A9B0C6",
+      accent: "#2B59E0",
+      accentPressed: "#2046BA",
+      accentSoft: "rgba(43, 89, 224, 0.10)",
+      onAccent: "#FFFFFF",
+      hairline: "rgba(13, 20, 48, 0.08)",
+      glass: "rgba(255, 255, 255, 0.94)",
+    },
+    dark: {
+      paper: "#090E1E",
+      elevated: "#131A30",
+      surface: "#131A30",
+      inset: "#0D1326",
+      fill: "#202944",
+      fillPressed: "#2A3453",
+      ink: "#EEF1FA",
+      textSecondary: "#B4BCD3",
+      textTertiary: "#8D96B0",
+      textDisabled: "#535C78",
+      accent: "#86A6FF",
+      accentPressed: "#6A8CF2",
+      accentSoft: "rgba(134, 166, 255, 0.16)",
+      onAccent: "#061133",
+      hairline: "rgba(238, 241, 250, 0.10)",
+      glass: "rgba(19, 26, 48, 0.94)",
+    },
+    map: {
+      light: {
+        ground: "#F2F4F8",
+        park: "#DBEEDD",
+        water: "#BCD8F3",
+        waterLabel: "#4E7BAA",
+        road: "#FFFFFF",
+        roadEdge: "#DCE1EC",
+        highway: "#FFD9A8",
+        label: "#4B5370",
+        labelStrong: "#1C2342",
+        labelMuted: "#7D849C",
+        labelHalo: "#FFFFFF",
+        adminLine: "#BCC4D8",
+        veil: "rgba(255, 255, 255, 0.55)",
+      },
+      dark: {
+        ground: "#111829",
+        park: "#142532",
+        water: "#0A1A2E",
+        waterLabel: "#4B6A92",
+        road: "#232C44",
+        roadEdge: "#192136",
+        highway: "#4D3F2A",
+        label: "#8F98B2",
+        labelStrong: "#D6DCEC",
+        labelMuted: "#6E7690",
+        labelHalo: "#111829",
+        adminLine: "#2F3956",
+        veil: "rgba(0, 0, 0, 0.45)",
+      },
+    },
+  },
+  clasico: {
+    light: {
+      paper: "#FFFFFF",
+      elevated: "#FFFFFF",
+      surface: "#F3F3F3",
+      inset: "#F6F6F6",
+      fill: "#E8E8E8",
+      fillPressed: "#DCDCDC",
+      ink: "#000000",
+      textSecondary: "#545454",
+      textTertiary: "#6B6B6B",
+      textDisabled: "#AFAFAF",
+      accent: "#000000",
+      accentPressed: "#333333",
+      accentSoft: "rgba(0, 0, 0, 0.06)",
+      onAccent: "#FFFFFF",
+      hairline: "rgba(0, 0, 0, 0.08)",
+      glass: "rgba(255, 255, 255, 0.94)",
+    },
+    dark: {
+      paper: "#000000",
+      elevated: "#1C1C1C",
+      surface: "#1C1C1C",
+      inset: "#141414",
+      fill: "#2B2B2B",
+      fillPressed: "#363636",
+      ink: "#FFFFFF",
+      textSecondary: "#BDBDBD",
+      textTertiary: "#9A9A9A",
+      textDisabled: "#5E5E5E",
+      accent: "#FFFFFF",
+      accentPressed: "#DDDDDD",
+      accentSoft: "rgba(255, 255, 255, 0.10)",
+      onAccent: "#000000",
+      hairline: "rgba(255, 255, 255, 0.10)",
+      glass: "rgba(28, 28, 28, 0.94)",
+    },
+    map: {
+      light: {
+        ground: "#F3F3F3",
+        park: "#E6EBE6",
+        water: "#D6DDE3",
+        waterLabel: "#8A97A1",
+        road: "#FFFFFF",
+        roadEdge: "#E3E3E3",
+        highway: "#DADADA",
+        label: "#5E5E5E",
+        labelStrong: "#2B2B2B",
+        labelMuted: "#8A8A8A",
+        labelHalo: "#FFFFFF",
+        adminLine: "#C9C9C9",
+        veil: "rgba(255, 255, 255, 0.5)",
+      },
+      dark: {
+        ground: "#1B1B1B",
+        park: "#1F241F",
+        water: "#0E1418",
+        waterLabel: "#4E5A62",
+        road: "#2E2E2E",
+        roadEdge: "#232323",
+        highway: "#3D3D3D",
+        label: "#8C8C8C",
+        labelStrong: "#CFCFCF",
+        labelMuted: "#7A7A7A",
+        labelHalo: "#1B1B1B",
+        adminLine: "#3A3A3A",
+        veil: "rgba(0, 0, 0, 0.45)",
+      },
+    },
+  },
+} satisfies Record<string, ThemeDefinition>;
+
+export type ThemeId = keyof typeof THEMES;
+export const DEFAULT_THEME: ThemeId = "monte";
+
+function buildPalette(seed: Seed, scheme: "light" | "dark") {
+  return {
+    background: seed.paper,
+    /** Things floating over the map or content: sheets, search bar, map buttons. */
+    elevated: seed.elevated,
+    surface: seed.surface,
+    inset: seed.inset,
+    fill: seed.fill,
+    fillPressed: seed.fillPressed,
+    separator: seed.fill,
+    hairline: seed.hairline,
+
+    text: seed.ink,
+    textSecondary: seed.textSecondary,
+    textTertiary: seed.textTertiary,
+    textDisabled: seed.textDisabled,
+
+    accent: seed.accent,
+    accentPressed: seed.accentPressed,
+    accentSoft: seed.accentSoft,
+    onAccent: seed.onAccent,
+
+    /** Clusters and other app-drawn map chrome wear the theme's accent. */
+    pin: seed.accent,
+    onPin: seed.onAccent,
+
+    pine: seed.ink,
+    onPine: seed.paper,
+
+    glass: seed.glass,
+    ...status[scheme],
+  };
+}
+
+export type Palette = ReturnType<typeof buildPalette>;
+
+/**
+ * The live palettes. They are mutated in place by `applyTheme`, so code that
+ * reads `palettes[scheme]` at render time picks up a theme switch once the
+ * tree re-renders (the root remounts on a switch).
+ */
+export const palettes: { light: Palette; dark: Palette } = {
+  light: buildPalette(THEMES[DEFAULT_THEME].light, "light"),
+  dark: buildPalette(THEMES[DEFAULT_THEME].dark, "dark"),
+};
 
 /**
  * The basemap, as tokens: `features/map/basemap.ts` turns these into the
  * Google Maps style, so re-tinting the map is a change here, not in the style.
  */
-export const mapPalettes = {
-  light: {
-    ground: "#F3F3F3",
-    park: "#E6EBE6",
-    water: "#D6DDE3",
-    waterLabel: "#8A97A1",
-    road: "#FFFFFF",
-    roadEdge: "#E3E3E3",
-    highway: "#DADADA",
-    label: "#5E5E5E",
-    labelStrong: "#2B2B2B",
-    labelMuted: "#8A8A8A",
-    labelHalo: "#FFFFFF",
-    adminLine: "#C9C9C9",
-    /** Dims the country around the province. */
-    veil: "rgba(255, 255, 255, 0.5)",
-  },
-  dark: {
-    ground: "#1B1B1B",
-    park: "#1F241F",
-    water: "#0E1418",
-    waterLabel: "#4E5A62",
-    road: "#2E2E2E",
-    roadEdge: "#232323",
-    highway: "#3D3D3D",
-    label: "#8C8C8C",
-    labelStrong: "#CFCFCF",
-    labelMuted: "#7A7A7A",
-    labelHalo: "#1B1B1B",
-    adminLine: "#3A3A3A",
-    veil: "rgba(0, 0, 0, 0.45)",
-  },
-} as const;
+export const mapPalettes: { light: MapPalette; dark: MapPalette } = {
+  light: { ...THEMES[DEFAULT_THEME].map.light },
+  dark: { ...THEMES[DEFAULT_THEME].map.dark },
+};
+
+let activeTheme: ThemeId = DEFAULT_THEME;
+const themeListeners = new Set<() => void>();
+
+/**
+ * Points every token at `id`'s values and re-renders every component that
+ * reads the theme through `useScheme`/`useTheme`.
+ */
+export function applyTheme(id: ThemeId) {
+  const theme = THEMES[id];
+  Object.assign(palettes.light, buildPalette(theme.light, "light"));
+  Object.assign(palettes.dark, buildPalette(theme.dark, "dark"));
+  Object.assign(mapPalettes.light, theme.map.light);
+  Object.assign(mapPalettes.dark, theme.map.dark);
+  if (id === activeTheme) return;
+  activeTheme = id;
+  for (const listener of themeListeners) listener();
+}
+
+function subscribeTheme(listener: () => void) {
+  themeListeners.add(listener);
+  return () => {
+    themeListeners.delete(listener);
+  };
+}
+
+/** The active theme; re-renders the caller when it changes. */
+export function useThemeId(): ThemeId {
+  return useSyncExternalStore(subscribeTheme, () => activeTheme);
+}
 
 export type Scheme = keyof typeof palettes;
 
@@ -312,6 +538,9 @@ export function raised(_scheme: Scheme) {
 }
 
 export function useScheme(): Scheme {
+  // Subscribing here makes every themed component re-render on a switch,
+  // memoised or not.
+  useThemeId();
   return useColorScheme() === "dark" ? "dark" : "light";
 }
 

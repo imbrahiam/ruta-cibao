@@ -791,6 +791,23 @@
     "signOut": "Cerrar sesión",
     "signedOut": "Sesión cerrada"
   },
+  "appearance": {
+    "title": "Apariencia",
+    "systemFootnote": "El modo claro u oscuro sigue la configuración de tu dispositivo.",
+    "previewAction": "Ir",
+    "monte": {
+      "name": "Monte",
+      "description": "Verdes de la sierra y los tabacales."
+    },
+    "pueblo": {
+      "name": "Pueblo",
+      "description": "El azul de las casas pintadas del parque."
+    },
+    "clasico": {
+      "name": "Clásico",
+      "description": "Blanco y negro; el mapa habla solo."
+    }
+  },
   "profile": {
     "title": "Perfil",
     "welcomeTitle": "Bienvenido",

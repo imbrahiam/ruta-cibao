@@ -10,6 +10,7 @@ import {
   EyeOff,
   Info,
   LogOut,
+  Palette,
   ShieldCheck,
   Stamp,
   Trash2,
@@ -45,6 +46,7 @@ export default function AccountScreen() {
   const tu = useTranslations("safetyUi");
   const td = useTranslations("accountDeletion");
   const to = useTranslations("offline");
+  const appearance = useTranslations("appearance");
   const offline = useOfflineStatus();
   const { colors } = useTheme();
   const toast = useToast();
@@ -162,6 +164,12 @@ export default function AccountScreen() {
       ) : null}
 
       <ListSection title={t("about")}>
+        <ListRow
+          title={appearance("title")}
+          icon={Palette}
+          onPress={() => router.push("/account/appearance")}
+          testID="account-appearance"
+        />
         <ListRow
           title={to("rowTitle")}
           subtitle={to("rowHint")}

@@ -11,7 +11,7 @@ import {
 import { StyleSheet, useWindowDimensions } from "react-native";
 import MapView, { Marker, Polygon, type Region } from "react-native-maps";
 import Supercluster from "supercluster";
-import { mapPalettes, palettes, type Scheme } from "@/ui/theme";
+import { mapPalettes, palettes, type Scheme, useThemeId } from "@/ui/theme";
 import { basemapProps } from "./basemap";
 import type { Boundaries, PlaceCollection, PlaceFeature } from "./data";
 import {
@@ -101,6 +101,9 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
     const map = useRef<MapView>(null);
     const { width, height } = useWindowDimensions();
     const colors = palettes[scheme];
+    // Marker bodies are snapshotted once; the key renews them on a theme or
+    // scheme switch.
+    const look = `${scheme}-${useThemeId()}`;
     const [region, setRegion] = useState<Region>(() =>
       boundsRegion(PROVINCE_BOUNDS),
     );
@@ -118,12 +121,19 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
       else pending.current = move;
     }, []);
 
+    // A region, not fitToCoordinates: both basemaps already fit a region
+    // inside the map padding, where MapKit adds the edge padding on top of it
+    // and leaves the province small in the middle.
     const showProvince = useCallback(
       (animated = true) =>
-        map.current?.fitToCoordinates(PROVINCE_CORNERS, {
-          edgePadding: { top: 24, bottom: 24, left: 24, right: 24 },
-          animated,
-        }),
+        map.current?.animateToRegion(
+          {
+            ...boundsRegion(PROVINCE_BOUNDS),
+            latitudeDelta: (NORTH - SOUTH) * 1.08,
+            longitudeDelta: (EAST - WEST) * 1.08,
+          },
+          animated ? 500 : 0,
+        ),
       [],
     );
 
@@ -284,7 +294,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
           ? (boundaries?.features ?? []).map((feature) =>
               feature.properties.label ? (
                 <Marker
-                  key={`area-${feature.properties.id}-${scheme}`}
+                  key={`area-${feature.properties.id}-${look}`}
                   coordinate={{
                     longitude: feature.properties.label[0],
                     latitude: feature.properties.label[1],
@@ -313,7 +323,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
           if ("cluster" in properties && properties.cluster) {
             return (
               <Marker
-                key={`cluster-${properties.cluster_id}-${scheme}`}
+                key={`cluster-${properties.cluster_id}-${look}`}
                 coordinate={{ latitude, longitude }}
                 tracksViewChanges={false}
                 anchor={{ x: 0.5, y: 0.5 }}
@@ -348,7 +358,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
           if (place.id === selectedId) return null;
           return (
             <Marker
-              key={`place-${place.id}-${showNames ? "n" : "d"}-${scheme}`}
+              key={`place-${place.id}-${showNames ? "n" : "d"}-${look}`}
               coordinate={{ latitude, longitude }}
               tracksViewChanges={false}
               // The disc's centre sits on the spot even when a name hangs right.
@@ -369,7 +379,7 @@ export const ProvinceMap = forwardRef<ProvinceMapHandle, ProvinceMapProps>(
 
         {selected ? (
           <Marker
-            key={`selected-${selected.properties.id}-${scheme}`}
+            key={`selected-${selected.properties.id}-${look}`}
             coordinate={{
               longitude: selected.geometry.coordinates[0] ?? 0,
               latitude: selected.geometry.coordinates[1] ?? 0,

@@ -1,6 +1,6 @@
 import { trafficColor } from "@ruta/shared/traffic";
 import { Marker, Polyline } from "react-native-maps";
-import { palettes, type Scheme } from "@/ui/theme";
+import { palettes, type Scheme, useThemeId } from "@/ui/theme";
 import type { CommunityFeature, TrafficReport } from "./data";
 import { lineCoordinates } from "./geometry";
 import { CaseDot, ReportDot } from "./markers";
@@ -37,6 +37,7 @@ export function CivicLayers({
   onSelectCommunity: (feature: CommunityFeature) => void;
 }) {
   const colors = palettes[scheme];
+  const look = `${scheme}-${useThemeId()}`;
 
   return (
     <>
@@ -67,7 +68,7 @@ export function CivicLayers({
             .filter((item) => item.kind === "consultation")
             .map((item) => (
               <Marker
-                key={`case-${item.id}-${scheme}`}
+                key={`case-${item.id}-${look}`}
                 coordinate={{ latitude: item.lat, longitude: item.lng }}
                 tracksViewChanges={false}
                 anchor={{ x: 0.5, y: 0.5 }}
@@ -116,7 +117,7 @@ export function CivicLayers({
                 />
               ) : null,
               <Marker
-                key={`report-${report.id}-${selected ? "s" : "n"}-${scheme}`}
+                key={`report-${report.id}-${selected ? "s" : "n"}-${look}`}
                 coordinate={{ latitude: report.lat, longitude: report.lng }}
                 tracksViewChanges={false}
                 anchor={{ x: 0.5, y: 0.5 }}
