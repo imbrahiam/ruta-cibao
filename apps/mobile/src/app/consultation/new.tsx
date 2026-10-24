@@ -6,11 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useTranslations } from "use-intl";
+import { useMe } from "@/features/auth/session";
 import {
   setPickedLocation,
   usePickedLocation,
 } from "@/features/map/picked-location";
 import { askForPushAfterContribution } from "@/features/notifications/push";
+import { isNetworkError } from "@/features/offline/fallback";
+import { enqueueOutbox } from "@/features/offline/outbox";
 import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
@@ -29,6 +32,8 @@ import { useToast } from "@/ui/toast";
 export default function NewConsultationScreen() {
   const t = useTranslations("consultations");
   const tc = useTranslations("common");
+  const to = useTranslations("offline");
+  const { me } = useMe();
   const { colors } = useTheme();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -59,7 +64,24 @@ export default function NewConsultationScreen() {
         void askForPushAfterContribution();
         router.replace(`/consultation/${result.slug}`);
       },
-      onError: (error) => {
+      onError: async (error, input) => {
+        if (isNetworkError(error) && me?.kind === "member" && me.userId) {
+          try {
+            await enqueueOutbox({
+              userId: me.userId,
+              procedure: "consultations.open",
+              input,
+            });
+            toast.show({
+              title: to("queuedToast"),
+              body: to("queuedToastBody"),
+            });
+            router.back();
+            return;
+          } catch {
+            // Keep the case intact when local persistence fails.
+          }
+        }
         if (isDefinedError(error) && error.code === "MUNICIPALITY_MISMATCH") {
           setServerError(t("mismatch"));
           return;

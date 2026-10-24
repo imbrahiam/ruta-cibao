@@ -1,3 +1,4 @@
+import { submitPlaceInput } from "@ruta/contracts";
 import { formatPhoneInput } from "@ruta/shared/phone";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
@@ -6,11 +7,14 @@ import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useTranslations } from "use-intl";
+import { useMe } from "@/features/auth/session";
 import {
   setPickedLocation,
   usePickedLocation,
 } from "@/features/map/picked-location";
 import { askForPushAfterContribution } from "@/features/notifications/push";
+import { isNetworkError } from "@/features/offline/fallback";
+import { enqueueOutbox } from "@/features/offline/outbox";
 import { PhotoStrip } from "@/features/places/photo-strip";
 import {
   type LocalPhoto,
@@ -34,6 +38,8 @@ const MAX_PHOTOS = 4;
 export default function SubmitPlaceScreen() {
   const t = useTranslations("contribute");
   const tc = useTranslations("common");
+  const to = useTranslations("offline");
+  const { me } = useMe();
   const { colors } = useTheme();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -97,7 +103,31 @@ export default function SubmitPlaceScreen() {
         if (photos.length === 0) finish();
         else void uploadPhotos(result.id, photos);
       },
-      onError: () => setServerError(tc("errorBody")),
+      onError: async (error, input) => {
+        if (
+          photos.length === 0 &&
+          isNetworkError(error) &&
+          me?.kind === "member" &&
+          me.userId
+        ) {
+          try {
+            await enqueueOutbox({
+              userId: me.userId,
+              procedure: "places.submit",
+              input: submitPlaceInput.parse(input),
+            });
+            toast.show({
+              title: to("queuedToast"),
+              body: to("queuedToastBody"),
+            });
+            router.back();
+            return;
+          } catch {
+            // Keep the form intact when local persistence fails.
+          }
+        }
+        setServerError(tc("errorBody"));
+      },
     }),
   );
 

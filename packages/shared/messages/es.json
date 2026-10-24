@@ -1217,6 +1217,9 @@
     "signedOutBody": "Entra a tu cuenta para solicitar su eliminación definitiva."
   },
   "offline": {
+    "savedCopyNotice": "Copia guardada del {date}. Algunos datos pueden haber cambiado.",
+    "queuedToast": "Aporte guardado en este teléfono",
+    "queuedToastBody": "Se enviará cuando vuelva la conexión. Puedes verlo en Aportes.",
     "rowTitle": "Usar sin conexión",
     "rowHint": "Guarda lugares, negocios, rutas y vías para usarlos sin señal",
     "rowReadyValue": "Listo",

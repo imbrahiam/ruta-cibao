@@ -31,8 +31,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslations } from "use-intl";
 import { basemapProps } from "@/features/map/basemap";
 import { lineCoordinates, regionAt } from "@/features/map/geometry";
+import { withOfflineFallback } from "@/features/offline/fallback";
+import { SavedCopyNotice } from "@/features/offline/saved-copy-notice";
+import { offlineRouteById } from "@/features/offline/store";
 import { ContentMenu } from "@/features/safety/content-menu";
-import { orpc } from "@/lib/api";
+import { api, orpc } from "@/lib/api";
 import { Button } from "@/ui/button";
 import { Icon } from "@/ui/icon";
 import { EmptyState, Skeleton } from "@/ui/states";
@@ -58,7 +61,13 @@ export default function RouteScreen() {
   const tc = useTranslations("common");
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
-  const route = useQuery(orpc.routes.detail.queryOptions({ input: { id } }));
+  const route = useQuery({
+    queryKey: [...orpc.routes.detail.queryOptions({ input: { id } }).queryKey],
+    queryFn: withOfflineFallback(
+      () => api.routes.detail({ id }),
+      () => offlineRouteById(id),
+    ),
+  });
   const data = route.data;
 
   const line = useMemo(
@@ -181,6 +190,7 @@ export default function RouteScreen() {
         </View>
 
         <View style={[styles.body, { backgroundColor: colors.background }]}>
+          <SavedCopyNotice date={data.savedCopyAt} />
           <View style={styles.title}>
             <Text variant="footnote" tone="accent" weight="600" uppercase>
               {data.categoryName} · {data.municipalityName}

@@ -1,4 +1,5 @@
 import { isDefinedError } from "@orpc/client";
+import { reportTrafficInput } from "@ruta/contracts";
 import { municipalityAt } from "@ruta/shared/boundaries";
 import { STREET_EXTENTS, type StreetExtent } from "@ruta/shared/road-geometry";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -16,11 +17,14 @@ import MapView, { Polyline } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { useTranslations } from "use-intl";
+import { useMe } from "@/features/auth/session";
 import { basemapProps } from "@/features/map/basemap";
 import { useBoundaries } from "@/features/map/data";
 import { lineCoordinates, regionAt } from "@/features/map/geometry";
 import { useLocationPermission } from "@/features/map/use-location-permission";
 import { askForPushAfterContribution } from "@/features/notifications/push";
+import { isNetworkError } from "@/features/offline/fallback";
+import { enqueueOutbox } from "@/features/offline/outbox";
 import { orpc } from "@/lib/api";
 import { requestId } from "@/lib/ids";
 import { Button } from "@/ui/button";
@@ -44,6 +48,8 @@ const SABANETA: [number, number] = [-71.3435, 19.4747];
 export default function ReportTrafficScreen() {
   const t = useTranslations("contribute");
   const tc = useTranslations("common");
+  const to = useTranslations("offline");
+  const { me } = useMe();
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -83,7 +89,24 @@ export default function ReportTrafficScreen() {
         void askForPushAfterContribution();
         router.back();
       },
-      onError: (error) => {
+      onError: async (error, input) => {
+        if (isNetworkError(error) && me?.kind === "member" && me.userId) {
+          try {
+            await enqueueOutbox({
+              userId: me.userId,
+              procedure: "traffic.report",
+              input: reportTrafficInput.parse(input),
+            });
+            toast.show({
+              title: to("queuedToast"),
+              body: to("queuedToastBody"),
+            });
+            router.back();
+            return;
+          } catch {
+            // Keep the observation intact when local persistence fails.
+          }
+        }
         if (isDefinedError(error) && error.code === "DUPLICATE_REPORT") {
           toast.show({
             title: t("traffic.duplicate"),

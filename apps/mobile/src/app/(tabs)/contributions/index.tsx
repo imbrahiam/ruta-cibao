@@ -17,12 +17,14 @@ import { useState } from "react";
 import { RefreshControl, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useMe } from "@/features/auth/session";
+import { useOutbox } from "@/features/offline/outbox";
 import { useAgo } from "@/i18n/ago";
 import { orpc } from "@/lib/api";
 import { canOpenTarget, openTarget } from "@/lib/targets";
 import { BrandMark } from "@/ui/brand";
 import { Button } from "@/ui/button";
 import { Icon } from "@/ui/icon";
+import { ListRow, ListSection } from "@/ui/list";
 import { PressableScale } from "@/ui/pressable";
 import { Segmented } from "@/ui/segmented";
 import { EmptyState, Skeleton } from "@/ui/states";
@@ -30,6 +32,7 @@ import { Card, IconButton } from "@/ui/surfaces";
 import { Badge, type BadgeTone } from "@/ui/tags";
 import { Text } from "@/ui/text";
 import { radius, space, useTheme } from "@/ui/theme";
+import { useToast } from "@/ui/toast";
 
 type Status =
   | "draft"
@@ -163,7 +166,12 @@ function MyContributions({ header }: { header: React.ReactElement }) {
       contentInsetAdjustmentBehavior="automatic"
       style={{ backgroundColor: colors.background }}
       contentContainerStyle={styles.list}
-      ListHeaderComponent={header}
+      ListHeaderComponent={
+        <>
+          {header}
+          <QueuedContributions />
+        </>
+      }
       ItemSeparatorComponent={() => <View style={styles.gap} />}
       refreshControl={
         <RefreshControl
@@ -267,6 +275,83 @@ function MyContributions({ header }: { header: React.ReactElement }) {
         );
       }}
     />
+  );
+}
+
+function QueuedContributions() {
+  const t = useTranslations("offline");
+  const tc = useTranslations("common");
+  const outbox = useOutbox();
+  const toast = useToast();
+  const [busy, setBusy] = useState<string | null>(null);
+  const act = async (id: string, action: "retry" | "remove") => {
+    setBusy(id);
+    try {
+      if (action === "retry") await outbox.retry(id);
+      else await outbox.remove(id);
+    } catch {
+      toast.show({
+        title: tc("errorTitle"),
+        body: tc("errorBody"),
+        tone: "error",
+      });
+    } finally {
+      setBusy(null);
+    }
+  };
+  if (outbox.items.length === 0) return null;
+  return (
+    <ListSection title={t("outboxSection")}>
+      {outbox.items.map((item) => {
+        const reason = item.errorReason;
+        const explanation =
+          reason === "stale_report" ||
+          reason === "duplicate" ||
+          reason === "municipality_mismatch" ||
+          reason === "outside_province" ||
+          reason === "invalid_street" ||
+          reason === "unauthenticated"
+            ? t(`outboxErrors.${reason}`)
+            : item.blocked
+              ? t("outboxErrors.generic")
+              : null;
+        return (
+          <View key={item.requestId}>
+            <ListRow
+              title={item.title}
+              subtitle={[
+                item.blocked
+                  ? t("outboxStatusBlocked")
+                  : t("outboxStatusWaiting"),
+                explanation,
+              ]
+                .filter(Boolean)
+                .join(". ")}
+              icon={item.blocked ? CircleX : Clock}
+            />
+            {reason !== "stale_report" ? (
+              <ListRow
+                title={t("outboxRetryAction")}
+                onPress={
+                  busy || outbox.flushing
+                    ? undefined
+                    : () => void act(item.requestId, "retry")
+                }
+              />
+            ) : null}
+            <ListRow
+              title={t("outboxRemoveAction")}
+              destructive
+              onPress={
+                busy || outbox.flushing
+                  ? undefined
+                  : () => void act(item.requestId, "remove")
+              }
+            />
+          </View>
+        );
+      })}
+    </ListSection>
   );
 }
 

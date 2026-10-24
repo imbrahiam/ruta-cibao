@@ -5,9 +5,19 @@ import { Bookmark, Clock, Mountain, Search } from "lucide-react-native";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
+import {
+  offlinePlaceListItem,
+  withOfflineFallback,
+} from "@/features/offline/fallback";
+import { SavedCopyNotice } from "@/features/offline/saved-copy-notice";
+import {
+  offlineCategories,
+  offlinePlaces,
+  offlineRoutes,
+} from "@/features/offline/store";
 import { PlaceListRow } from "@/features/places/place-list-row";
 import { useHiddenTargets } from "@/features/safety/hidden-targets";
-import { orpc } from "@/lib/api";
+import { api, orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
 import { mediaUrl } from "@/lib/ids";
 import { CategoryBadge } from "@/ui/category-badge";
@@ -35,17 +45,54 @@ export default function ExploreScreen() {
   const [municipality, setMunicipality] = useState<string | null>(null);
 
   const municipalities = useQuery(orpc.municipalities.list.queryOptions());
-  const categories = useQuery(orpc.places.categories.queryOptions());
-  const places = useQuery(
-    orpc.places.browse.queryOptions({
-      input: { municipality: municipality ?? "", limit: 48 },
-    }),
-  );
-  const routes = useQuery(
-    orpc.routes.browse.queryOptions({
-      input: { municipalityId: municipality ?? undefined, limit: 20 },
-    }),
-  );
+  const categories = useQuery({
+    queryKey: [...orpc.places.categories.queryOptions().queryKey],
+    queryFn: withOfflineFallback(
+      () => api.places.categories(),
+      async () =>
+        (await offlineCategories()).flatMap((item) =>
+          item.kind === "place" || item.kind === "business"
+            ? [{ ...item, kind: item.kind }]
+            : [],
+        ),
+    ),
+  });
+  const places = useQuery({
+    queryKey: [
+      ...orpc.places.browse.queryOptions({
+        input: { municipality: municipality ?? "", limit: 48 },
+      }).queryKey,
+    ],
+    queryFn: withOfflineFallback(
+      () => api.places.browse({ municipality: municipality ?? "", limit: 48 }),
+      async () => {
+        const items = (
+          await offlinePlaces({ municipalityId: municipality ?? undefined })
+        ).map(offlinePlaceListItem);
+        return { items, total: items.length };
+      },
+    ),
+  });
+  const routes = useQuery({
+    queryKey: [
+      ...orpc.routes.browse.queryOptions({
+        input: { municipalityId: municipality ?? undefined, limit: 20 },
+      }).queryKey,
+    ],
+    queryFn: withOfflineFallback(
+      () =>
+        api.routes.browse({
+          municipalityId: municipality ?? undefined,
+          limit: 20,
+        }),
+      async () => {
+        const items = await offlineRoutes({
+          municipalityId: municipality ?? undefined,
+        });
+        return { items, total: items.length };
+      },
+    ),
+  });
 
   const hidden = useHiddenTargets();
   const needle = fold(query.trim());
@@ -126,6 +173,9 @@ export default function ExploreScreen() {
           />
         }
       >
+        <SavedCopyNotice
+          date={places.data?.savedCopyAt ?? routes.data?.savedCopyAt}
+        />
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}

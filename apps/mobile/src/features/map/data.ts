@@ -3,6 +3,11 @@ import type { MunicipalBoundaries } from "@ruta/shared/boundaries";
 import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback } from "react";
+import { withOfflineFallback } from "@/features/offline/fallback";
+import {
+  offlineBoundaries,
+  offlinePlaceCollection,
+} from "@/features/offline/store";
 import { useHiddenTargets } from "@/features/safety/hidden-targets";
 import { orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
@@ -106,7 +111,7 @@ async function getJson<T>(path: string): Promise<T> {
 export function usePlaceCollection() {
   const hidden = useHiddenTargets();
   const select = useCallback(
-    (collection: PlaceCollection): PlaceCollection =>
+    (collection: PlaceCollection & { savedCopyAt?: string }) =>
       hidden.places.size === 0
         ? collection
         : {
@@ -119,7 +124,10 @@ export function usePlaceCollection() {
   );
   return useQuery({
     queryKey: ["map", "places"],
-    queryFn: () => getJson<PlaceCollection>("/api/places/geojson"),
+    queryFn: withOfflineFallback(
+      () => getJson<PlaceCollection>("/api/places/geojson"),
+      offlinePlaceCollection,
+    ),
     staleTime: 5 * 60_000,
     select,
   });
@@ -129,7 +137,10 @@ export function usePlaceCollection() {
 export function useBoundaries() {
   return useQuery({
     queryKey: ["map", "boundaries"],
-    queryFn: () => getJson<Boundaries>("/api/municipalities/boundaries"),
+    queryFn: withOfflineFallback(
+      () => getJson<Boundaries>("/api/municipalities/boundaries"),
+      async () => (await offlineBoundaries()) as Boundaries | null,
+    ),
     staleTime: 24 * 60 * 60_000,
   });
 }

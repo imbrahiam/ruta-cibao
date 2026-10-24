@@ -1,4 +1,5 @@
 import { FlashList } from "@shopify/flash-list";
+import { useQuery } from "@tanstack/react-query";
 import { router, Stack } from "expo-router";
 import { Search } from "lucide-react-native";
 import { useMemo, useState } from "react";
@@ -6,6 +7,9 @@ import { StyleSheet, View } from "react-native";
 import { useTranslations } from "use-intl";
 import { useBoundaries, usePlaceCollection } from "@/features/map/data";
 import { focusOnMap } from "@/features/map/focus";
+import { SavedCopyNotice } from "@/features/offline/saved-copy-notice";
+import { offlineSearch } from "@/features/offline/store";
+import { useHiddenTargets } from "@/features/safety/hidden-targets";
 import { CategoryBadge } from "@/ui/category-badge";
 import { PressableScale } from "@/ui/pressable";
 import { EmptyState } from "@/ui/states";
@@ -30,6 +34,12 @@ export default function SearchScreen() {
   const [query, setQuery] = useState("");
   const places = usePlaceCollection();
   const boundaries = useBoundaries();
+  const hidden = useHiddenTargets();
+  const savedSearch = useQuery({
+    queryKey: ["offline", "search", query],
+    queryFn: () => offlineSearch(query),
+    enabled: Boolean(places.data?.savedCopyAt),
+  });
 
   const names = useMemo(
     () =>
@@ -43,6 +53,28 @@ export default function SearchScreen() {
   );
 
   const results = useMemo(() => {
+    if (places.data?.savedCopyAt) {
+      return (savedSearch.data ?? [])
+        .filter((place) => !hidden.places.has(place.slug))
+        .map((place) => ({
+          type: "Feature" as const,
+          id: place.id,
+          geometry: {
+            type: "Point" as const,
+            coordinates: [place.location.lng, place.location.lat],
+          },
+          properties: {
+            id: place.id,
+            slug: place.slug,
+            name: place.name,
+            category: place.category.id,
+            categoryName: place.category.name,
+            municipality: place.municipality.id,
+            color: place.category.color,
+            icon: place.category.icon,
+          },
+        }));
+    }
     const needle = fold(query.trim());
     const all = places.data?.features ?? [];
     if (!needle) return all;
@@ -52,7 +84,7 @@ export default function SearchScreen() {
         `${name} ${categoryName} ${names.get(municipality) ?? ""}`,
       ).includes(needle);
     });
-  }, [places.data, query, names]);
+  }, [places.data, query, names, savedSearch.data, hidden.places]);
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -76,25 +108,28 @@ export default function SearchScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          query.trim() ? (
-            <Text
-              variant="footnote"
-              tone="tertiary"
-              uppercase
-              style={styles.header}
-            >
-              {t("results", { count: results.length })}
-            </Text>
-          ) : (
-            <Text
-              variant="footnote"
-              tone="tertiary"
-              uppercase
-              style={styles.header}
-            >
-              {t("everything")}
-            </Text>
-          )
+          <View>
+            <SavedCopyNotice date={places.data?.savedCopyAt} />
+            {query.trim() ? (
+              <Text
+                variant="footnote"
+                tone="tertiary"
+                uppercase
+                style={styles.header}
+              >
+                {t("results", { count: results.length })}
+              </Text>
+            ) : (
+              <Text
+                variant="footnote"
+                tone="tertiary"
+                uppercase
+                style={styles.header}
+              >
+                {t("everything")}
+              </Text>
+            )}
+          </View>
         }
         ListEmptyComponent={
           places.isPending ? null : (

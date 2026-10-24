@@ -34,8 +34,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslations } from "use-intl";
 import { useMemberAction } from "@/features/auth/session";
 import { focusOnMap } from "@/features/map/focus";
+import { withOfflineFallback } from "@/features/offline/fallback";
+import { SavedCopyNotice } from "@/features/offline/saved-copy-notice";
+import { offlinePlaceBySlug } from "@/features/offline/store";
 import { ContentMenu } from "@/features/safety/content-menu";
-import { orpc } from "@/lib/api";
+import { api, orpc } from "@/lib/api";
 import { API_ORIGIN } from "@/lib/config";
 import { mediaUrl } from "@/lib/ids";
 import { Button } from "@/ui/button";
@@ -68,7 +71,30 @@ export default function PlaceScreen() {
   const queryClient = useQueryClient();
   const asMember = useMemberAction();
 
-  const detail = useQuery(orpc.places.detail.queryOptions({ input: { slug } }));
+  const detail = useQuery({
+    queryKey: [
+      ...orpc.places.detail.queryOptions({ input: { slug } }).queryKey,
+    ],
+    queryFn: withOfflineFallback(
+      async () => ({
+        ...(await api.places.detail({ slug })),
+        offlineBusiness: null,
+      }),
+      async () => {
+        const saved = await offlinePlaceBySlug(slug);
+        return saved
+          ? {
+              ...saved,
+              photos: [],
+              trust: null,
+              myVerdict: null,
+              isMine: null,
+              offlineBusiness: saved.business,
+            }
+          : null;
+      },
+    ),
+  });
   const place = detail.data;
   const saved = useQuery({ ...orpc.places.saved.queryOptions(), retry: false });
   const isSaved = saved.data?.some((item) => item.slug === slug) ?? false;
@@ -76,7 +102,7 @@ export default function PlaceScreen() {
     ...orpc.businesses.claimState.queryOptions({
       input: { placeId: place?.id ?? "" },
     }),
-    enabled: Boolean(place),
+    enabled: Boolean(place) && !detail.data?.savedCopyAt,
   });
   const nearby = useQuery({
     ...orpc.places.nearby.queryOptions({
@@ -86,7 +112,7 @@ export default function PlaceScreen() {
         limit: 8,
       },
     }),
-    enabled: Boolean(place),
+    enabled: Boolean(place) && !detail.data?.savedCopyAt,
   });
 
   const toggleSaved = useMutation(
@@ -128,10 +154,7 @@ export default function PlaceScreen() {
     .filter((url): url is string => Boolean(url))
     .filter((url, index, all) => all.indexOf(url) === index)
     .map((url) => mediaUrl(url, API_ORIGIN));
-  const trust = TRUST[place.trust.state] ?? {
-    tone: "accent" as const,
-    icon: MapPin,
-  };
+  const trust = place.trust ? TRUST[place.trust.state] : undefined;
   const directions = () => {
     const destination = { ...place.location, label: place.name };
     Linking.openURL(
@@ -139,7 +162,15 @@ export default function PlaceScreen() {
     ).catch(() => Linking.openURL(directionsUrl(destination, "other")));
   };
   const mapsLink = `https://www.google.com/maps/search/?api=1&query=${place.location.lat},${place.location.lng}`;
-  const owner = business.data;
+  const owner =
+    business.data ??
+    (place.offlineBusiness
+      ? {
+          ...place.offlineBusiness,
+          claimable: false,
+          pending: false,
+        }
+      : undefined);
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
@@ -151,6 +182,7 @@ export default function PlaceScreen() {
         <Hero photos={photos} icon={place.category.icon} />
 
         <View style={[styles.body, { backgroundColor: colors.background }]}>
+          <SavedCopyNotice date={detail.data?.savedCopyAt} />
           <View style={styles.titleBlock}>
             <Text
               variant="title1"
@@ -165,11 +197,13 @@ export default function PlaceScreen() {
                 {place.category.name} · {place.municipality.name}
               </Text>
             </View>
-            <Badge
-              label={t(`trust.${place.trust.state}`)}
-              tone={trust.tone}
-              icon={trust.icon}
-            />
+            {place.trust && trust ? (
+              <Badge
+                label={t(`trust.${place.trust.state}`)}
+                tone={trust.tone}
+                icon={trust.icon}
+              />
+            ) : null}
           </View>
 
           <View style={styles.actions}>
@@ -257,7 +291,7 @@ export default function PlaceScreen() {
             </Card>
           ) : null}
 
-          {!place.isMine ? (
+          {!detail.data?.savedCopyAt && !place.isMine ? (
             <Card style={styles.block}>
               <Text variant="headline">{t("stillThere")}</Text>
               <Text variant="subhead" tone="secondary">
