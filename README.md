@@ -1,81 +1,67 @@
 # Ruta Cibao
 
 Civic map for the province of Santiago Rodríguez, Dominican Republic — Sabaneta,
-Monción and Villa Los Almácigos. Residents and visitors put places, businesses,
-ecotourism routes, traffic reports and public consultations on one map; the
-municipality moderates them from an admin panel and gets an automatic weekly PDF
-report.
+Monción and Villa Los Almácigos. Residents and visitors share places,
+businesses, routes, traffic reports and public consultations on one map; the
+municipality moderates them from a web admin panel and gets a weekly PDF report.
 
 Built for the FUNDESER **TechEmprende SR Conecta 2026** contest. MIT licensed.
 
-> Status: scaffold. The API, database and container build are wired up; the six
-> product features are not built yet. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+## What's in the repo
 
-## Stack
-
-| Layer | Choice |
+| Path | What it is |
 | --- | --- |
-| Runtime | Bun for development and builds, Node 24 in the production image |
-| Framework | Next.js 16 (App Router), React 19, TypeScript strict |
-| Database | PostgreSQL 18 + PostGIS + pgvector, via Drizzle ORM |
-| API | oRPC v2 — typed RPC for this app, OpenAPI + Scalar for everyone else |
-| Auth | Better Auth, with a JCE cédula verification step in onboarding |
-| Tooling | Biome, `bun test`, droast for the Dockerfile |
+| `apps/mobile` | The citizen app — Expo / React Native (iOS and Android) |
+| `apps/web` | Next.js 16: the API, the admin panel, the landing and share pages |
+| `packages/contracts` | oRPC contracts shared by the API and the app |
+| `packages/shared` | Shared code and the Spanish text catalogue (`messages/es.json`) |
+| `infra` | Docker Compose stack: Postgres (PostGIS), SeaweedFS, Caddy |
+| `scripts` | Seeding, OSM and boundary imports, the background worker |
 
-## Running it locally
+Stack: Bun, TypeScript, PostgreSQL 18 + PostGIS via Drizzle, oRPC v2 (typed
+RPC plus a public OpenAPI API), Better Auth with phone (Twilio Verify) or email
+(Resend) sign-in, Biome.
+
+## Run it locally
 
 You need [Bun](https://bun.sh) and Docker.
 
 ```bash
-cp .env.example .env          # then fill in the values
-openssl rand -base64 32       # -> BETTER_AUTH_SECRET
-
-docker compose -f infra/docker-compose.yml up -d   # Postgres + MinIO
-                                                   # (first run builds Postgres)
+cp .env.example .env                              # fill in the values
+docker compose -f infra/docker-compose.yml up -d  # Postgres + storage
 bun install
-bun run db:migrate            # creates the extensions, applies migrations
-bun run dev
+bun run db:migrate
+bun run db:seed && bun run db:seed:demo           # optional demo content
+bun run dev                                       # API + admin on :3000
+bun run mobile:ios                                # or mobile:android
 ```
 
-- App: <http://localhost:3000>
+- Admin panel: <http://localhost:3000/admin>
 - API reference: <http://localhost:3000/api/docs>
-- OpenAPI document: <http://localhost:3000/api/spec.json>
-
-Set `JCE_USE_MOCK=1` to develop without touching the real cédula registry. The
-registry allows 50 uncached lookups per hour across every client, so leave the
-mock on unless you are specifically testing that path.
 
 ## Scripts
 
 | Command | What it does |
 | --- | --- |
-| `bun run dev` | Development server |
-| `bun run build` | Production build (standalone output) |
-| `bun run typecheck` | `tsc --noEmit` |
-| `bun run lint` | Biome: format, lint, import order |
-| `bun test` | Unit tests |
-| `bun run db:generate` | Write a migration from the schema |
-| `bun run db:migrate` | Apply pending migrations |
-| `bun run auth:generate` | Regenerate the Better Auth tables |
+| `bun run dev` / `build` / `start` | Web server |
+| `bun run worker` | Background jobs |
+| `bun run mobile` | Expo dev server |
+| `bun run typecheck` / `lint` | TypeScript (web + mobile) / Biome |
+| `bun test` | Tests |
+| `bun run db:generate` / `db:migrate` | Write / apply migrations |
 
-## Documentation
+## Docs
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the pieces fit together
-- [DEPLOYMENT.md](docs/DEPLOYMENT.md) — VPS with Docker Compose, and Railway
+- [DEPLOYMENT.md](docs/DEPLOYMENT.md) — VPS with Docker Compose, and the contest demo
 - [OPERATIONS.md](docs/OPERATIONS.md) — runbook
 
-## License
+## License and data
 
 MIT — see [LICENSE](LICENSE).
 
-### Map data
-
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright)
-  contributors, under the ODbL. The map shows this credit behind its (i)
-  button, which is what the licence requires.
-- Basemap tiles and style from [Protomaps](https://protomaps.com) (style CC0,
-  code BSD-3).
+  contributors, under the ODbL.
 - Municipal boundaries: Oficina Nacional de Estadística, via
-  [OCHA COD-AB](https://data.humdata.org/dataset/cod-ab-dom) (CC BY-IGO).
-  Pinned in `data/boundaries/`; checked against OpenStreetMap and ONE's
-  published areas.
+  [OCHA COD-AB](https://data.humdata.org/dataset/cod-ab-dom) (CC BY-IGO),
+  pinned in `data/boundaries/`.
