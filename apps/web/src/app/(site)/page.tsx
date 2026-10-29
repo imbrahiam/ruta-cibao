@@ -105,7 +105,6 @@ export default function LandingPage() {
               description: t("studio.territoryAlmacigos"),
             },
           ]}
-          conceptLabel={t("studio.territoryConcept")}
         />
         <Link href="/territory" className={styles.territoryAction}>
           {t("studio.territoryExplore")}

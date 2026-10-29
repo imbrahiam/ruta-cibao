@@ -282,9 +282,6 @@ export function HeroConcept() {
           </div>
         </div>
       </div>
-      <figcaption className={styles.caption}>
-        {t("studio.conceptLabel")}
-      </figcaption>
     </RevealFigure>
   );
 }
@@ -318,9 +315,6 @@ export function RoutesConcept() {
           {t("studio.roadConditions")}
         </span>
       </div>
-      <figcaption className={styles.caption}>
-        {t("studio.conceptLabel")}
-      </figcaption>
     </RevealFigure>
   );
 }
@@ -371,9 +365,6 @@ export function LocalConcept() {
           <span />
         </div>
       </div>
-      <figcaption className={styles.caption}>
-        {t("studio.conceptLabel")}
-      </figcaption>
     </RevealFigure>
   );
 }
@@ -432,9 +423,6 @@ export function CommunityConcept() {
           <MessagesSquare size={25} strokeWidth={1.5} />
         </div>
       </div>
-      <figcaption className={styles.caption}>
-        {t("studio.conceptLabel")}
-      </figcaption>
     </RevealFigure>
   );
 }

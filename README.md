@@ -81,10 +81,13 @@ implementation adapts that visual grammar rather than copying its assets.
 The header stays in normal document flow. The header, footer and public pages
 share a light theme; the admin theme remains separate. Encuentro, an open C and
 meeting point on a flat iris tile (`#7860a8`), is the active web and native identity.
-Original map/product illustrations are explicitly labelled as visual concepts,
-not actual app screenshots. The landing does not use the Monción or Sabaneta
+Original map/product illustrations are conceptual, not geographic data or actual
+app screenshots. The landing does not use the Monción or Sabaneta
 photographs. Real screenshots appear only when supplied. Store links remain
 configuration-driven, with coming-soon states for unavailable downloads.
+The shared footer pairs the Dominican flag with the province, separates discovery
+and help links from legal utilities, and uses soft hover/focus treatments with
+reduced-motion support.
 
 ### Social-app identity
 

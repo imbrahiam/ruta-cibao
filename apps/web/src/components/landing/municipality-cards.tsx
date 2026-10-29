@@ -7,7 +7,6 @@ type MunicipalityCardsProps = {
     { name: string; description: string },
     { name: string; description: string },
   ];
-  conceptLabel: string;
 };
 
 const COMPOSITIONS = [
@@ -32,10 +31,7 @@ const COMPOSITIONS = [
 ] as const;
 
 /** Original paper collages, deliberately not geographic representations. */
-export function MunicipalityCards({
-  municipalities,
-  conceptLabel,
-}: MunicipalityCardsProps) {
+export function MunicipalityCards({ municipalities }: MunicipalityCardsProps) {
   return (
     <div className={styles.collection}>
       <ul className={styles.cards}>
@@ -84,7 +80,6 @@ export function MunicipalityCards({
           );
         })}
       </ul>
-      <p className={styles.caption}>{conceptLabel}</p>
     </div>
   );
 }

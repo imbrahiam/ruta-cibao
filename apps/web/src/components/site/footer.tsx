@@ -1,83 +1,94 @@
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
 import { getT } from "@/lib/web/i18n";
 import { site } from "@/lib/web/site";
 import styles from "./site-shell.module.css";
 
-const LINK =
-  "inline-flex min-h-11 items-center rounded-full px-1 text-[15px] text-ink-2 underline-offset-4 hover:text-ink hover:underline";
-
 export function SiteFooter() {
   const t = getT("landing");
 
   return (
     <footer className={styles.footer}>
-      <div className="flex flex-col gap-10 md:flex-row md:justify-between">
-        <div className="flex max-w-sm flex-col gap-4">
-          <Logo label={t("brand")} />
-          <p className="t-small text-ink-2">{t("province")}</p>
-          <p className="t-small text-ink-2">{t("notice")}</p>
+      <div className={styles.footerMain}>
+        <div className={styles.footerIdentity}>
+          <Link href="/" className={styles.footerBrand} aria-label={t("back")}>
+            <Logo label={t("brand")} />
+          </Link>
+          <p className={styles.footerOrigin}>
+            <span className={styles.flag} aria-hidden="true">
+              🇩🇴
+            </span>
+            <span>{t("province")}</span>
+          </p>
         </div>
-        <nav aria-label={t("pages.navLabel")}>
-          <ul className="flex flex-col gap-0.5">
+        <nav className={styles.footerGroup} aria-label={t("pages.navLabel")}>
+          <h2>{t("footerExplore")}</h2>
+          <ul>
             <li>
-              <Link href="/" className={LINK}>
-                {t("back")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/experience" className={LINK}>
+              <Link href="/experience" className={styles.footerLink}>
                 {t("pages.experience")}
               </Link>
             </li>
             <li>
-              <Link href="/territory" className={LINK}>
+              <Link href="/territory" className={styles.footerLink}>
                 {t("pages.territory")}
               </Link>
             </li>
             <li>
-              <Link href="/download" className={LINK}>
+              <Link href="/download" className={styles.footerLink}>
                 {t("pages.download")}
               </Link>
             </li>
           </ul>
         </nav>
-        <nav aria-label={t("footerLabel")}>
-          <ul className="flex flex-col gap-0.5">
+        <nav className={styles.footerGroup} aria-label={t("footerLabel")}>
+          <h2>{t("footerHelp")}</h2>
+          <ul>
             <li>
-              <Link href="/privacy" className={LINK}>
-                {t("privacy")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/terms" className={LINK}>
-                {t("terms")}
-              </Link>
-            </li>
-            <li>
-              <Link href="/support" className={LINK}>
+              <Link href="/support" className={styles.footerLink}>
                 {t("support")}
               </Link>
             </li>
             <li>
-              <Link href="/account/delete" className={LINK}>
+              <Link href="/account/delete" className={styles.footerLink}>
                 {t("deletion")}
               </Link>
             </li>
-            {site.sourceUrl ? (
-              <li>
-                <a href={site.sourceUrl} rel="noopener" className={LINK}>
-                  {t("source")}
-                </a>
-              </li>
-            ) : null}
             <li>
-              <Link href="/admin" className={LINK}>
+              <Link href="/admin" className={styles.footerLink}>
                 {t("staff")}
               </Link>
             </li>
           </ul>
         </nav>
+      </div>
+      <div className={styles.footerBottom}>
+        <p className={styles.footerNotice}>{t("notice")}</p>
+        <ul className={styles.footerLegal}>
+          <li>
+            <Link href="/privacy" className={styles.footerLink}>
+              {t("privacy")}
+            </Link>
+          </li>
+          <li>
+            <Link href="/terms" className={styles.footerLink}>
+              {t("terms")}
+            </Link>
+          </li>
+          {site.sourceUrl ? (
+            <li>
+              <a
+                href={site.sourceUrl}
+                rel="noopener"
+                className={styles.footerLink}
+              >
+                {t("source")}
+                <ArrowUpRight size={13} aria-hidden="true" />
+              </a>
+            </li>
+          ) : null}
+        </ul>
       </div>
     </footer>
   );
