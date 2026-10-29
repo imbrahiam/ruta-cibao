@@ -86,8 +86,12 @@ app screenshots. The landing does not use the Monción or Sabaneta
 photographs. Real screenshots appear only when supplied. Store links remain
 configuration-driven, with coming-soon states for unavailable downloads.
 The shared footer pairs the Dominican flag with the province, separates discovery
-and help links from legal utilities, and uses soft hover/focus treatments with
-reduced-motion support.
+and help links from legal utilities. Link hover reveals only a lavender underline;
+keyboard focus retains a visible outline, and motion respects reduced-motion settings.
+`/support` guides residents through the in-app support path, with a decorative
+account/help illustration, three short steps and native expandable FAQs for access,
+place data, offline use and account deletion. Its links lead to real public routes;
+no contact form, live response promise or unpublished support address is invented.
 
 ### Social-app identity
 
@@ -133,6 +137,9 @@ independent of text blur and width changes.
 A stable screen-reader label and reduced-motion preference keep a static version
 available. Changes stop while the document is hidden; page copy and visual
 contents remain server-rendered inside small client motion boundaries.
+The `/experience` and `/territory` hero headings reuse the same rotating-word and
+brush behavior. Their fixed two-line compositions keep the route's meaning stable,
+with yellow and lavender brush accents rather than changing the text color.
 Mobbin MCP was previously queried but required a paid plan and returned no
 references. No third-party screens, testimonials, usage figures or videos are
 fabricated.

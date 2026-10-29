@@ -1,5 +1,6 @@
 import { MapPin, MessagesSquare, Route } from "lucide-react";
 import type { Metadata } from "next";
+import { RouteHeadline } from "@/components/landing/rotating-headline";
 import { PublicPage, PublicPageAction } from "@/components/site/public-page";
 import styles from "@/components/site/public-page.module.css";
 import { getT } from "@/lib/web/i18n";
@@ -167,7 +168,18 @@ export default function TerritoryPage() {
   return (
     <PublicPage
       current="territory"
-      title={t("pages.territoryTitle")}
+      title={
+        <RouteHeadline
+          firstLine={t("pages.territoryHeadingFirst")}
+          lead={t("pages.territoryHeadingLead")}
+          phrases={[
+            t("pages.territoryHeadingWordOne"),
+            t("pages.territoryHeadingWordTwo"),
+            t("pages.territoryHeadingWordThree"),
+          ]}
+          tone="lavender"
+        />
+      }
       intro={t("pages.territoryIntro")}
     >
       <div className={styles.municipalities}>
@@ -185,7 +197,6 @@ export default function TerritoryPage() {
           </article>
         ))}
       </div>
-      <p className={styles.notice}>{t("pages.territoryIllustration")}</p>
 
       <section className={styles.shared} aria-labelledby="shared-title">
         <div>

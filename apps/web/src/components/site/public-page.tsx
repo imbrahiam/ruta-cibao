@@ -15,7 +15,7 @@ export function PublicPage({
   children,
 }: {
   current: PublicPageName;
-  title: string;
+  title: ReactNode;
   intro: string;
   children: ReactNode;
 }) {
@@ -25,7 +25,7 @@ export function PublicPage({
         <header className={styles.hero}>
           <h1
             className={
-              current === "territory" ? styles.twoLineTitle : undefined
+              current === "download" ? undefined : styles.animatedTitle
             }
           >
             {title}

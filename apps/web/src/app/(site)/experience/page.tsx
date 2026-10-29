@@ -5,6 +5,7 @@ import {
   LocalConcept,
   RoutesConcept,
 } from "@/components/landing/concept-visual";
+import { RouteHeadline } from "@/components/landing/rotating-headline";
 import { PublicPage } from "@/components/site/public-page";
 import styles from "@/components/site/public-page.module.css";
 import { getT } from "@/lib/web/i18n";
@@ -21,7 +22,18 @@ export default function ExperiencePage() {
   return (
     <PublicPage
       current="experience"
-      title={t("pages.experienceTitle")}
+      title={
+        <RouteHeadline
+          firstLine={t("pages.experienceHeadingFirst")}
+          lead={t("pages.experienceHeadingLead")}
+          phrases={[
+            t("pages.experienceHeadingWordOne"),
+            t("pages.experienceHeadingWordTwo"),
+            t("pages.experienceHeadingWordThree"),
+          ]}
+          tone="yellow"
+        />
+      }
       intro={t("pages.experienceIntro")}
     >
       <section className={styles.split} aria-labelledby="places-title">
@@ -75,7 +87,6 @@ export default function ExperiencePage() {
         </div>
         <CommunityConcept />
       </section>
-      <p className={styles.notice}>{t("pages.experienceNotice")}</p>
     </PublicPage>
   );
 }

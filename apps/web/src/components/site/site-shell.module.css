@@ -215,9 +215,6 @@
   font-size: 14px;
   line-height: 1.5;
   text-decoration: none;
-  transition:
-    color 180ms ease,
-    background-color 180ms ease;
 }
 
 .footerLink::after {
@@ -232,12 +229,6 @@
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 180ms ease;
-}
-
-.footerLink:hover,
-.footerLink:focus-visible {
-  background: #f0efe9;
-  color: #2a2a27;
 }
 
 .footerLink:hover::after,
