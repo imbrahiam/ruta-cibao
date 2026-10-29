@@ -425,7 +425,7 @@ institution, done from the server.
    ```bash
    rc run --rm migrate bun run scripts/grant-staff.ts +18095551234 admin --approved-in-person
    # A moderator is confined to one municipality:
-   rc run --rm migrate bun run scripts/grant-staff.ts staff@example.do moderator --municipality <municipality-id>
+   rc run --rm migrate bun run scripts/grant-staff.ts staff@example.do moderator --municipality REPLACE_ME
    # roles: moderator | admin | none     (none removes the role)
    ```
 
@@ -583,16 +583,21 @@ forward-only; a mistake is fixed by the next migration.
 
 ### 12.1 Cutting a release
 
-On a development machine, with a clean tree and every check passing:
+On a development machine, with a clean tree, a running disposable database and
+object store, and a recent backup:
 
 ```bash
+DATABASE_URL=postgresql://ruta:ruta@localhost:5432/ruta_cibao_tests \
+S3_BUCKET=ruta-cibao-tests \
+BACKUP_DIR=/var/backups/ruta-cibao \
 bun run scripts/release.sh 1.2.3
 git push origin main --follow-tags
 ```
 
-The script runs the type, lint, test and documentation checks, then creates an
-annotated tag `v1.2.3`. CI builds the images from that tag. A tag is the thing
-you deploy and the thing you roll back to; a branch is not.
+The script runs the type, lint, database and storage, build, documentation and
+quality checks, restores the newest backup into a throwaway database, then
+creates an annotated tag `v1.2.3`. CI builds the images from that tag. A tag is
+the thing you deploy and the thing you roll back to; a branch is not.
 
 ## 13. Day-to-day operation
 
@@ -631,12 +636,12 @@ calling the developers:
 ## Release checks and operational guarantees
 
 - `bun run typecheck` generates Next route types before TypeScript runs.
-- Run `bun run lint`, `bun run test`, `bun run scripts/check-docs.ts` and
-  `bun run build` before tagging.
+- Run `bun run lint`, `bun run test:db`, `bun run check:docs`,
+  `bun run check:quality` and `bun run build` before tagging.
 - Apply every migration through `0037` before serving the new image. The
   migrator container does this automatically.
 - Run database integration tests only against an isolated migrated database:
-  `RUN_DB_TESTS=1 bun run test:db`.
+  `bun run test:db`.
 - `/api/health` is liveness; `/api/ready` checks database tables, object
   storage and a worker heartbeat no older than two minutes. Alert on readiness
   failures.

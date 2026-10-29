@@ -36,11 +36,11 @@ rename cannot silently retire the promise.
 | safety-and-blocking | A report is scoped to the content's municipality, and blocking hides raw contributions from the blocker only. | `tests/safety.integration.test.ts` :: `blocking hides raw contributions from the blocker only and is reversible` |
 | identity-and-staff | Staff procedures need a verified, session-bound second factor and stay inside the staff member's municipality. | `tests/staff-totp.integration.test.ts` :: `denies staff procedures without a verified staff session and grants session-bound access after TOTP or recovery code step-up` |
 | notifications | Traffic fan-out needs explicit municipal and category consent and never copies unreviewed text. | `tests/native-notifications.integration.test.ts` :: `traffic fan-out requires explicit municipal/category consent and never copies unreviewed text` |
-| platform-edges | Liveness, readiness, the crash sink and the artifact routes answer without hanging or storing personal data. | `tests/platform.integration.test.ts` :: `a client error is accepted, logged as one JSON line, and never stored` |
+| platform-edges | Liveness, readiness, the crash sink and the artifact routes answer without hanging, and the crash sink redacts personal data. | `tests/platform.integration.test.ts` :: `a client error is accepted as one JSON line with personal data redacted` |
 | production-invariants | A failed audit rolls back its mutation, and concurrent retries commit once. | `tests/production.integration.test.ts` :: `a failed audit rolls back its domain mutation and outbox` |
 | province-data | The three municipalities match their official ONE codes and areas. | `tests/boundaries-data.test.ts` :: `carry exactly the three municipalities, by ONE P-code` |
 | observability | Every log event is one parseable line, and personal data is redacted by field name and by shape. | `tests/log.test.ts` :: `fields that name personal data are redacted at any depth` |
-| realtime-cap | One client cannot exhaust the realtime connection budget, and a released slot is reusable. | `tests/connection-limit.test.ts` :: `caps one client without affecting another` |
+| realtime-cap | The connection limiter caps one client and the process, and a released slot is reusable. | `tests/connection-limit.test.ts` :: `caps one client without affecting another` |
 
 ## 2. Every failure observable
 
@@ -60,6 +60,10 @@ The mobile app reports a crash it survived to `/api/client-errors`, which
 validates an 8 KB body, rate-limits it, and writes one sanitized log line with
 no identity, coordinates or screen content. A field failure therefore reaches
 the same log stream as a server failure.
+
+The gate's own rules are tested in `tests/quality-gate.test.ts`: a title in a
+comment or under `test.skip` is not evidence, and an empty catch is reported
+unless it carries a reason.
 
 ## 3. Every document executable
 
@@ -92,15 +96,21 @@ test runs the real module in a process configured to fail, not a mock.
 | PostgreSQL | Unreachable | Readiness reports `degraded` with `database: false`; the process stays up. | `tests/degradation.test.ts` :: `readiness turns an unreachable database into a degraded answer` |
 | Nominatim | `GEOCODER=none` | Address search returns no external results and says geocoding is off; place search still works. | `tests/degradation.test.ts` :: `a disabled geocoder returns no addresses and says so to the client` |
 | Google Places photos | No server key | The thumbnail route answers 404 and the interface falls back to its own image. | `tests/degradation.test.ts` :: `a missing image-provider key leaves the thumbnail route at 404` |
-| Realtime clients | Connection budget exhausted | New streams answer 429 with `retry-after`; existing streams keep their slots. | `tests/connection-limit.test.ts` :: `caps the process even when every client is within its own allowance` |
+| Realtime clients | Connection budget exhausted | The limiter refuses the new stream before it opens; existing streams keep their slots. | `tests/connection-limit.test.ts` :: `caps the process even when every client is within its own allowance` |
 
 ## 5. Every release reversible
 
 A tag is the deployable unit. `scripts/release.sh` refuses to create one unless
-the working tree is clean, the version is free, typecheck, lint, the unit
-suite, the production build, the documentation gate and the quality gate all
-pass. It prints the previous tag and the restore command when it finishes, so
-the rollback path is in front of the operator at the moment it matters.
+the working tree is clean, the version is free, typecheck, lint, the aggregate
+integration suite, the production build, the documentation gate and the quality
+gate all pass. It then restores the newest backup into a throwaway database
+before it tags. A release therefore costs a disposable database and object
+store, and it proves the rollback path on the way in.
+
+The integration suite refuses to run against a database whose name does not
+contain `test`, so a release cannot quietly test development data. Point the
+checkout at the disposable stack, or pass the two overrides on the command
+line.
 
 Migrations are forward-only. Rolling back therefore means restoring the backup
 taken before the update, then checking out the previous tag. That path is
@@ -124,12 +134,16 @@ Rehearsal record:
 Cut a release with:
 
 ```bash
+DATABASE_URL=postgresql://ruta:ruta@localhost:5432/ruta_cibao_tests \
+S3_BUCKET=ruta-cibao-tests \
+BACKUP_DIR=/var/backups/ruta-cibao \
 scripts/release.sh 0.1.0
 ```
 
-Add `RUN_RESTORE_REHEARSAL=1` when a recent dump is available and the local
-stack is running, so the tag is cut only after the restore path has just
-worked.
+`BACKUP_DIR` is where the newest `db-*.dump` lives. Take one with
+`infra/backup.sh` if it is stale or absent. There is no flag to skip the
+rehearsal: a tag that has not just restored a backup is a promise the project
+cannot keep.
 
 ## Suite inventory
 

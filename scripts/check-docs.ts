@@ -111,8 +111,9 @@ for (const file of docs) {
   let fence: { language: string; start: number; body: string[] } | null = null;
   for (const [index, line] of lines.entries()) {
     const lineNumber = index + 1;
+    const fenceMark = /^ {0,3}```(.*)$/.exec(line);
 
-    if (line.startsWith("```")) {
+    if (fenceMark) {
       if (fence) {
         if (["bash", "sh", "shell"].includes(fence.language)) {
           const syntax = Bun.spawnSync(["bash", "-n"], {
@@ -130,7 +131,7 @@ for (const file of docs) {
         fence = null;
       } else {
         fence = {
-          language: line.slice(3).trim(),
+          language: (fenceMark[1] ?? "").trim(),
           start: lineNumber,
           body: [],
         };

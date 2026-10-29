@@ -30,7 +30,7 @@ bun run typecheck
 echo "==> lint"
 bun run lint
 echo "==> tests"
-bun run test
+bun run test:db
 echo "==> build"
 bun run build
 echo "==> documentation"
@@ -38,13 +38,8 @@ bun run check:docs
 echo "==> quality"
 bun run check:quality
 
-# The rollback path is only real if it has just worked. This is opt-in because
-# it needs a recent dump and the local stack; pass the flag on a release cut
-# from a machine that has both.
-if [ "${RUN_RESTORE_REHEARSAL:-0}" = "1" ]; then
-  echo "==> restore rehearsal"
-  infra/restore-rehearsal.sh
-fi
+echo "==> restore rehearsal"
+infra/restore-rehearsal.sh
 
 PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo none)
 

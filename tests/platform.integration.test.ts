@@ -60,7 +60,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("platform edges", () => {
     });
   });
 
-  test("a client error is accepted, logged as one JSON line, and never stored", async () => {
+  test("a client error is accepted as one JSON line with personal data redacted", async () => {
     const lines: string[] = [];
     const original = process.stderr.write;
     process.stderr.write = ((chunk: string | Uint8Array) => {
@@ -75,7 +75,8 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("platform edges", () => {
           method: "POST",
           headers: { "x-request-id": "req-123" },
           body: JSON.stringify({
-            message: "Cannot read property 'id' of undefined",
+            message:
+              "Cannot read property 'id' of undefined for ana@example.com",
             platform: "android",
             appVersion: "0.1.0",
             route: "/place/[slug]",
@@ -92,6 +93,8 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("platform edges", () => {
     expect(record.event).toBe("client.error");
     expect(record.requestId).toBe("req-123");
     expect(record.platform).toBe("android");
+    expect(String(record.message)).toContain("[redacted]");
+    expect(JSON.stringify(record)).not.toContain("ana@example.com");
   });
 
   test("a malformed or oversized report is refused", async () => {

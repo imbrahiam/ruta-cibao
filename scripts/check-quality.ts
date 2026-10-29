@@ -21,6 +21,7 @@
  */
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
+import { declaresTest, unmarkedCatchBodies } from "./quality-rules";
 
 const root = path.resolve(import.meta.dir, "..");
 const problems: string[] = [];
@@ -133,9 +134,8 @@ async function evidence(row: Row, where: string): Promise<string | null> {
     source = await read(file);
     testSources.set(file, source);
   }
-  const quoted = [`"${title}"`, `'${title}'`, `\`${title}\``];
-  if (!quoted.some((candidate) => source?.includes(candidate))) {
-    fail(where, `names "${title}", which ${file} does not contain`);
+  if (!declaresTest(source, title)) {
+    fail(where, `names "${title}", which ${file} does not contain as a test`);
     return null;
   }
   return file;
@@ -187,34 +187,6 @@ for (const file of await filesUnder("tests", /\.integration\.test\.ts$/)) {
 // Failure observability: no silent catches.
 // ---------------------------------------------------------------------------
 
-function emptyCatchBodies(
-  source: string,
-): Array<{ line: number; body: string }> {
-  const found: Array<{ line: number; body: string }> = [];
-  for (const match of source.matchAll(/catch\s*(?:\([^)]*\))?\s*\{/g)) {
-    const start = (match.index ?? 0) + match[0].length;
-    let depth = 1;
-    let index = start;
-    while (index < source.length && depth > 0) {
-      if (source[index] === "{") depth += 1;
-      if (source[index] === "}") depth -= 1;
-      index += 1;
-    }
-    const body = source.slice(start, index - 1);
-    const stripped = body
-      .replace(/\/\/[^\n]*/g, "")
-      .replace(/\/\*[\s\S]*?\*\//g, "")
-      .trim();
-    if (stripped === "") {
-      found.push({
-        line: source.slice(0, match.index).split("\n").length,
-        body: body.trim(),
-      });
-    }
-  }
-  return found;
-}
-
 const sourceFiles = [
   ...(await filesUnder("apps/web/src", /\.(ts|tsx)$/)),
   ...(await filesUnder("apps/mobile/src", /\.(ts|tsx)$/)),
@@ -223,13 +195,11 @@ const sourceFiles = [
 ];
 for (const file of sourceFiles) {
   const source = await read(file);
-  for (const { line, body } of emptyCatchBodies(source)) {
-    if (!/\/\/ expected: \S/.test(body)) {
-      fail(
-        `${file}:${line}`,
-        "swallows an error; log it, return a deliberate value, or mark it `// expected: <reason>`",
-      );
-    }
+  for (const { line } of unmarkedCatchBodies(source)) {
+    fail(
+      `${file}:${line}`,
+      "swallows an error; log it, return a deliberate value, or mark it `// expected: <reason>`",
+    );
   }
   for (const match of source.matchAll(
     /\.catch\(\(\) => (?:undefined|\{\})\)/g,
@@ -283,14 +253,24 @@ if (tagAt === -1) {
 } else {
   const beforeTag = release.slice(0, tagAt);
   for (const gate of [
+    "bun run typecheck",
+    "bun run lint",
+    "bun run test:db",
     "bun run build",
     "bun run check:quality",
     "bun run check:docs",
-    "infra/restore-rehearsal.sh",
   ]) {
     if (!beforeTag.includes(gate)) {
       fail("scripts/release.sh", `tags without running \`${gate}\``);
     }
+  }
+  const rehearsal = beforeTag
+    .split("\n")
+    .find((line) => line.includes("infra/restore-rehearsal.sh"));
+  if (!rehearsal) {
+    fail("scripts/release.sh", "tags without proving a restore");
+  } else if (/^\s/.test(rehearsal)) {
+    fail("scripts/release.sh", "only rehearses a restore conditionally");
   }
 }
 for (const script of ["infra/restore-rehearsal.sh", "infra/restore.sh"]) {
