@@ -126,7 +126,7 @@ export async function deliverNotification(input: {
     try {
       target = parseAppTarget(notification.href ?? "");
     } catch {
-      // An obsolete or malformed target must not bypass explicit subscriptions.
+      // expected: an obsolete or malformed target must not bypass subscriptions.
     }
     if (
       preferences?.trafficEnabled &&

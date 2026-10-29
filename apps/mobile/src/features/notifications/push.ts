@@ -117,6 +117,6 @@ export async function askForPushAfterContribution(): Promise<void> {
     await SecureStore.setItemAsync(CONTRIBUTION_PROMPT_KEY, "1");
     await registerPush(true);
   } catch {
-    // A successful contribution must not become an error because push failed.
+    // expected: a successful contribution must not fail because push did.
   }
 }

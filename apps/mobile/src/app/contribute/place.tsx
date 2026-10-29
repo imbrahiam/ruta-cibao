@@ -123,7 +123,7 @@ export default function SubmitPlaceScreen() {
             router.back();
             return;
           } catch {
-            // Keep the form intact when local persistence fails.
+            // expected: a failed local save keeps the form intact.
           }
         }
         setServerError(tc("errorBody"));

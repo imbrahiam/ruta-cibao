@@ -86,7 +86,7 @@ export default function OfflineScreen() {
       await offline.download();
       toast.show({ title: t("downloadedToast") });
     } catch {
-      // Error state is captured in `offline.error` and rendered inline.
+      // expected: the error is captured in `offline.error` and rendered inline.
     }
   };
 
@@ -112,7 +112,7 @@ export default function OfflineScreen() {
           const manifest = await api.offline.manifest();
           estimatedBytes = manifest.snapshotBytes;
         } catch {
-          // Keep fallback estimate if manifest preflight fails.
+          // expected: a failed manifest preflight keeps the fallback estimate.
         }
         Alert.alert(
           t("meteredTitle"),

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { logError } from "@/lib/log";
 import { consumeRateLimit, getRequestClientKey } from "@/lib/rate-limit";
 import {
   GoogleQuotaError,
@@ -55,6 +56,11 @@ export async function GET(
     // Provider bodies, URLs and credentials must never enter application logs.
     // Over quota: tell the app to come back later rather than fail for good.
     const quota = error instanceof GoogleQuotaError;
+    logError("places.thumbnail_failed", {
+      requestId: request.headers.get("x-request-id") ?? "unknown",
+      placeId: id,
+      quota,
+    });
     return new Response(null, {
       status: quota ? 503 : 502,
       headers: {

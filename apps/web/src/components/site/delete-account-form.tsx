@@ -127,7 +127,7 @@ function DeleteAccountCard() {
         void checkReceipt(saved);
       }
     } catch {
-      // Ignore storage access errors in private browsing.
+      // expected: storage is unavailable in private browsing.
     }
   }, [checkReceipt, loadViewer]);
 
@@ -211,7 +211,7 @@ function DeleteAccountCard() {
     try {
       window.localStorage.setItem(RECEIPT_STORAGE_KEY, requestId);
     } catch {
-      // Storage may be unavailable; continue with in-memory receipt.
+      // expected: storage may be unavailable; the receipt stays in memory.
     }
     setDeleteBusy(true);
     setDeleteError(null);

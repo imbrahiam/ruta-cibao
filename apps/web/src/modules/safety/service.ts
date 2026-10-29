@@ -274,7 +274,7 @@ function decodeCursor(value: string): Cursor | null {
       return { kind: parsed[0], ref: parsed[1] };
     }
   } catch {
-    // Falls through to the invalid case below.
+    // expected: the value falls through to the invalid case below.
   }
   return null;
 }

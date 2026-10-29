@@ -112,7 +112,7 @@ export async function clearDeletionReceipt(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(DELETION_RECEIPT_KEY);
   } catch {
-    // Best-effort keychain cleanup.
+    // expected: keychain cleanup is best effort.
   }
 }
 
@@ -131,7 +131,7 @@ async function deleteSecureStoreKeyAndChunks(key: string): Promise<void> {
     }
     await SecureStore.deleteItemAsync(key);
   } catch {
-    // Keychain entries may already be absent.
+    // expected: keychain entries may already be absent.
   }
 }
 
@@ -244,7 +244,7 @@ export function DeleteAccountScreen() {
       // session revocation still leaves the status receipt on the device.
       await saveDeletionReceipt(id);
       const out = await api.me.requestDeletion({ requestId: id });
-      await saveDeletionReceipt(out.deletionId).catch(() => undefined);
+      await saveDeletionReceipt(out.deletionId).catch(() => undefined); // expected: the receipt is already in memory for this session.
       setReceipt({ deletionId: out.deletionId, status: out.status });
       await signOutLocally(queryClient);
       await clearPrivateStorage();

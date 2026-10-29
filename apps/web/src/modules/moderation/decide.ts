@@ -62,7 +62,7 @@ function revalidatePlaceCaches() {
     revalidateTag(PLACES_GEOJSON_TAG, { expire: 0 });
     revalidateTag(PLACES_TILES_TAG, { expire: 0 });
   } catch {
-    // Running outside a Next.js request context (CLI script or test).
+    // expected: there is no Next.js request context (CLI script or test).
   }
 }
 

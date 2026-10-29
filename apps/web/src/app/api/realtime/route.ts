@@ -159,7 +159,7 @@ export async function GET(request: Request) {
         try {
           controller.close();
         } catch {
-          // Already closed by the runtime.
+          // expected: already closed by the runtime.
         }
       };
 

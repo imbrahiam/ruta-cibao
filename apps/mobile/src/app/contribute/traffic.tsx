@@ -128,7 +128,7 @@ export default function ReportTrafficScreen() {
             router.back();
             return;
           } catch {
-            // Keep the observation intact when local persistence fails.
+            // expected: a failed local save keeps the observation intact.
           }
         }
         if (isDefinedError(error) && error.code === "DUPLICATE_REPORT") {

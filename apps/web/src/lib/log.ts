@@ -16,14 +16,28 @@ type Fields = Record<string, unknown>;
 const SENSITIVE =
   /(authorization|cookie|password|secret|token|otp|session|phone|email|cedula|cédula|api[-_]?key|encryption)/i;
 
+const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const PHONE = /^\+?[\d\s().-]{7,}$/;
+
 const MAX_STRING = 2_000;
 const MAX_DEPTH = 4;
 
+function scrubString(value: string): string {
+  // A field name is not always a warning: `to`, `message` and provider text
+  // can carry an address in clear. Redact the shape too, not only the key.
+  const withoutEmail = value.replace(EMAIL, "[redacted]");
+  const digits = withoutEmail.replace(/\D/g, "");
+  if (PHONE.test(withoutEmail) && digits.length >= 10 && digits.length <= 15) {
+    return "[redacted]";
+  }
+  return withoutEmail.length > MAX_STRING
+    ? `${withoutEmail.slice(0, MAX_STRING)}…`
+    : withoutEmail;
+}
+
 function scrub(value: unknown, depth = 0): unknown {
   if (depth > MAX_DEPTH) return "[depth]";
-  if (typeof value === "string") {
-    return value.length > MAX_STRING ? `${value.slice(0, MAX_STRING)}…` : value;
-  }
+  if (typeof value === "string") return scrubString(value);
   if (Array.isArray(value)) {
     return value.slice(0, 20).map((item) => scrub(item, depth + 1));
   }

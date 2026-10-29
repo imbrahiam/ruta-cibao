@@ -79,7 +79,7 @@ export default function NewConsultationScreen() {
             router.back();
             return;
           } catch {
-            // Keep the case intact when local persistence fails.
+            // expected: a failed local save keeps the case intact in memory.
           }
         }
         if (isDefinedError(error) && error.code === "MUNICIPALITY_MISMATCH") {

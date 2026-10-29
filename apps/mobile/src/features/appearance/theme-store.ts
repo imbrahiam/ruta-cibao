@@ -21,7 +21,7 @@ export async function loadTheme(): Promise<void> {
       if (isThemeId(saved)) id = saved;
     }
   } catch {
-    // An unreadable file falls back to the default theme.
+    // expected: an unreadable file falls back to the default theme.
   }
   applyTheme(id);
 }
@@ -31,6 +31,6 @@ export function setTheme(id: ThemeId): void {
   try {
     file.write(JSON.stringify({ theme: id }));
   } catch {
-    // Not persisted; the switch still applies for this session.
+    // expected: the switch applies for this session without persisting.
   }
 }

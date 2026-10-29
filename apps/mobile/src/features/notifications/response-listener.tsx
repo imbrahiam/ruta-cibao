@@ -41,7 +41,7 @@ export function NotificationResponseListener() {
       Notifications.addNotificationResponseReceivedListener(handle);
     void Notifications.getLastNotificationResponseAsync()
       .then(handle)
-      .catch(() => undefined);
+      .catch(() => undefined); // expected: a stale notification response is ignored.
     return () => {
       active = false;
       subscription.remove();

@@ -196,7 +196,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     Promise.all([forgetPreviousInstall(), loadTheme()])
-      .catch(() => undefined)
+      .catch(() => undefined) // expected: startup must continue even if local state is unreadable.
       .finally(() => {
         setReady(true);
         SplashScreen.hideAsync();

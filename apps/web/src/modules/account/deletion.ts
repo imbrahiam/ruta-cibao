@@ -645,7 +645,7 @@ export function parseTombstone(bytes: Uint8Array): DeletionTombstone | null {
       return value as DeletionTombstone;
     }
   } catch {
-    // Not a tombstone.
+    // expected: the value is not a tombstone.
   }
   return null;
 }

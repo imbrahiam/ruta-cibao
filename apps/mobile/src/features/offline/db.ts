@@ -157,8 +157,8 @@ async function openEncryptedDatabase(): Promise<SQLite.SQLiteDatabase> {
     // contents are unreadable either way; report it before replacing it so a
     // wiped queue is visible instead of silent.
     reportError(error, "offline-db-open");
-    await db.closeAsync().catch(() => undefined);
-    await SQLite.deleteDatabaseAsync(OFFLINE_DB_NAME).catch(() => undefined);
+    await db.closeAsync().catch(() => undefined); // expected: the database may already be closed.
+    await SQLite.deleteDatabaseAsync(OFFLINE_DB_NAME).catch(() => undefined); // expected: the corrupt file is replaced on the next open.
     db = await SQLite.openDatabaseAsync(OFFLINE_DB_NAME);
     await db.execAsync(`PRAGMA key = "x'${hexKey}'";`);
   }

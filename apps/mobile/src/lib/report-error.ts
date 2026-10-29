@@ -30,5 +30,5 @@ export function reportError(error: unknown, route?: string): void {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(payload),
-  }).catch(() => undefined);
+  }).catch(() => undefined); // expected: a failing reporter must not throw or loop.
 }

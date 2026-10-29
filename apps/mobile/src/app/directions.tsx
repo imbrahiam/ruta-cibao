@@ -95,7 +95,7 @@ export default function DirectionsScreen() {
         .then((permission) => {
           if (permission.granted && mounted.current) void locate();
         })
-        .catch(() => undefined);
+        .catch(() => undefined); // expected: a denied permission is already surfaced by the location state.
     });
     return () => subscription.remove();
   }, [locate, locationState]);

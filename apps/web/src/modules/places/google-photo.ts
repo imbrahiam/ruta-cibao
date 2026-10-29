@@ -94,7 +94,7 @@ async function googleJson(
     if (!response.ok) throw new Error("Google Places request failed.");
     return response.json();
   });
-  queue = run.catch(() => undefined);
+  queue = run.catch(() => undefined); // expected: the caller observes the rejection through `run`.
   return run;
 }
 

@@ -22,7 +22,7 @@ export function useMe() {
         await SecureStore.setItemAsync(
           LAST_VIEWER_KEY,
           JSON.stringify(viewer),
-        ).catch(() => undefined);
+        ).catch(() => undefined); // expected: caching the last viewer is best effort.
         return viewer;
       } catch (error) {
         // No answer is not "signed out": keep who the person was, as long as
@@ -75,9 +75,9 @@ export async function signOutLocally(
   client: QueryClient = defaultQueryClient,
 ): Promise<void> {
   try {
-    await unregisterPush().catch(() => undefined);
-    await authClient.signOut().catch(() => undefined);
-    await SecureStore.deleteItemAsync(LAST_VIEWER_KEY).catch(() => undefined);
+    await unregisterPush().catch(() => undefined); // expected: a remote unregister must not block sign-out.
+    await authClient.signOut().catch(() => undefined); // expected: local sign-out completes even if the request fails.
+    await SecureStore.deleteItemAsync(LAST_VIEWER_KEY).catch(() => undefined); // expected: the key may already be absent.
   } finally {
     await client.resetQueries();
   }

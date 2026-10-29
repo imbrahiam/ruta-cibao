@@ -57,7 +57,7 @@ async function connect(): Promise<void> {
     logError("realtime.listener_failed", errorDetails(error));
     broker.client = undefined;
     broker.connecting = undefined;
-    client.end().catch(() => {});
+    client.end().catch(() => {}); // expected: the socket is already closed.
     // Readers keep their cursors, so the reconnect replays whatever the gap
     // held rather than losing it.
     for (const listener of broker.listeners) listener();
