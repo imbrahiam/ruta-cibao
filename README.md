@@ -87,9 +87,11 @@ photographs. Real screenshots appear only when supplied. Store links remain
 configuration-driven, with coming-soon states for unavailable downloads.
 
 All visible copy comes from the Spanish catalogue; URLs remain English. A small
-Motion client component continuously loops similarly sized hero phrases, with a
-stable screen-reader label and no autoplay under reduced motion. It stops scheduling
-changes while the document is hidden. The rest of the page stays server-rendered.
+Motion client component continuously loops only the last word of the headline
+(cercana / nuestra / humana); “Tu provincia, más” stays fixed. The words use dark
+ink and a lavender underline, with reserved width to avoid alignment shifts.
+A stable screen-reader label and reduced-motion preference keep a static version
+available. Changes stop while the document is hidden; the rest stays server-rendered.
 Mobbin MCP was previously queried but required a paid plan and returned no
 references. No third-party screens, testimonials, usage figures or videos are
 fabricated.

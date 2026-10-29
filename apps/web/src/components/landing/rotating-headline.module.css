@@ -37,8 +37,13 @@
   visibility: hidden;
 }
 .phrase {
-  color: #717c5e;
+  color: #2a2a27;
   text-align: center;
+  text-decoration-line: underline;
+  text-decoration-color: #b8a6cf;
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.13em;
+  text-decoration-skip-ink: none;
 }
 .secondLine {
   display: block;
