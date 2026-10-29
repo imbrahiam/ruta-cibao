@@ -1,43 +1,22 @@
-import { MARK } from "@ruta/shared/brand";
 import { cx } from "@/lib/web/cx";
+import styles from "./logo.module.css";
 
-/**
- * The mark: a winding road that ends at a pin, drawn from the same geometry as
- * the app icon so the web and the native app show one shape.
- */
+/** A folded field guide: an original web mark, independent of native app assets. */
 export function LogoMark({ className }: { className?: string }) {
-  const { bounds, road, roadWidth, start, pin, pinDot } = MARK;
-  const pad = 40;
   return (
-    <span
-      aria-hidden
-      className={cx(
-        "inline-flex size-9 shrink-0 items-center justify-center rounded-[11px] bg-ink text-paper",
-        className,
-      )}
-    >
-      <svg
-        viewBox={`${bounds.x - pad} ${bounds.y - pad} ${bounds.width + pad * 2} ${bounds.height + pad * 2}`}
-        className="size-[66%]"
-        fill="none"
-        aria-hidden
-      >
+    <span aria-hidden className={cx(styles.mark, className)}>
+      <svg viewBox="0 0 40 40" fill="none" aria-hidden>
+        <path d="m7 12 9-4 9 4 8-4v21l-8 4-9-4-9 4V12Z" fill="currentColor" />
+        <path d="M16 8v21l9 4V12l-9-4Z" fill="#eac7a6" />
         <path
-          d={road}
-          stroke="currentColor"
-          strokeWidth={roadWidth}
+          d="m10 25 8-7 5 3 7-8"
+          stroke="#bc6142"
+          strokeWidth="1.8"
           strokeLinecap="round"
+          strokeLinejoin="round"
         />
-        <circle
-          cx={start.cx}
-          cy={start.cy}
-          r={start.r}
-          fill="var(--ink)"
-          stroke="currentColor"
-          strokeWidth={roadWidth / 2}
-        />
-        <path d={pin} fill="currentColor" />
-        <circle cx={pinDot.cx} cy={pinDot.cy} r={pinDot.r} fill="var(--ink)" />
+        <circle cx="29.5" cy="13" r="2.4" fill="#bc6142" />
+        <path d="M16 10v17M25 14v16" stroke="#b58f72" strokeOpacity=".35" />
       </svg>
     </span>
   );
@@ -53,9 +32,7 @@ export function Logo({
   return (
     <span className={cx("inline-flex items-center gap-2.5", className)}>
       <LogoMark />
-      <span className="font-display text-[19px] leading-none font-medium tracking-[-0.015em] text-ink">
-        {label}
-      </span>
+      <span className={styles.wordmark}>{label}</span>
     </span>
   );
 }

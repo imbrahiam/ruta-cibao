@@ -71,24 +71,40 @@ corrections, routes, traffic and content reports, plus consultation follow-up,
 weekly reports and administrator-only categories. These sections support the same
 citizen-facing features rather than a second public map.
 
-The landing uses an editorial, photography-led layout with local territory
-imagery, short Spanish catalogue copy and separate citizen and municipal calls to
-action. Styling is scoped to the landing; the admin theme is unchanged. Motion
-honours reduced-motion preferences and does not require an animation dependency.
-Real app screenshots appear only when supplied, without a missing-assets section.
-Store links remain configuration-driven; unavailable downloads show coming soon.
+The public site follows a photo-free product-studio direction inspired by
+[Moonjar](https://moonjar.ai/). Browser inspection measured its warm `#fafaf7`
+canvas, `#2a2a27` ink, Inter typography (52px desktop hero, 56px section headings),
+rounded black calls to action, white panels and soft layered shadows. The
+implementation adapts that visual grammar rather than copying its assets.
 
-Design references: the supplied [Moonjar site](https://moonjar.ai/) informed
-the visual-first, concise storytelling approach. Mobbin MCP was queried, but the
-connection required a paid plan and returned no design references. No third-party
-screens, testimonials, usage figures or product demo videos are fabricated.
+The header stays in normal document flow. The header, footer and public pages
+share a light theme; the admin theme remains separate. The refreshed web mark is
+an original folded field guide, not a replacement for the native app icon.
+Original map/product illustrations are explicitly labelled as visual concepts,
+not actual app screenshots. The landing does not use the Monción or Sabaneta
+photographs. Real screenshots appear only when supplied. Store links remain
+configuration-driven, with coming-soon states for unavailable downloads.
 
-Browser verification on 2026-10-29 covered 1440-pixel desktop and 390-pixel
-mobile layouts, loaded photography, experience/download anchor navigation and
-reduced motion. Neither layout overflowed horizontally. All four English public
-routes returned HTTP 200, and the live sitemap contained the new URLs. Typecheck,
-lint, documentation validation, production build and the default test suite passed
-(103 passed, 111 skipped); integration services were not exercised in this review.
+All visible copy comes from the Spanish catalogue; URLs remain English. Motion
+honours reduced-motion preferences without an animation library. Mobbin MCP was
+previously queried but required a paid plan and returned no references. No
+third-party screens, testimonials, usage figures or demo videos are fabricated.
+
+Browser verification of the photo-free revision covered 1440px desktop and
+390px mobile, including a dark system preference and reduced motion. Both
+layouts stayed within the viewport. The hero measured 52px Inter with 53.04px
+line height on desktop. The page contained no photographic image elements,
+all four scenes had visible concept captions, and reduced motion produced no
+running animations. Experience/download links reached their sections, and the
+header scrolled out of view instead of sticking. Privacy, terms, support,
+account deletion and admin entry routes returned HTTP 200. No browser errors
+were observed; authenticated admin workflows were not exercised.
+
+Additional width checks at 320px, 768px and 1024px found no horizontal overflow.
+Typecheck, lint, documentation validation and production build passed. The
+default test suite reported 103 passed, 111 skipped and 0 failed. The build
+retains two warnings about Node stdout/stderr in the Edge logger; this visual
+revision does not change that subsystem.
 
 ## Scripts
 

@@ -1,47 +1,38 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/logo";
-import { buttonStyles } from "@/components/ui/button";
 import { getT } from "@/lib/web/i18n";
 import { site } from "@/lib/web/site";
+import styles from "./site-shell.module.css";
 
-/** The public site header: the mark, and the two things a visitor may need. */
+/** Public navigation stays in document flow, including on narrow screens. */
 export function SiteHeader() {
   const t = getT("landing");
 
   return (
-    <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur">
-      <div className="container-page flex items-center justify-between gap-4 py-3">
-        <Link href="/" aria-label={t("brand")} className="rounded-full">
+    <header className={styles.header}>
+      <div className={styles.headerInner}>
+        <Link href="/" aria-label={t("brand")}>
           <Logo label={t("brand")} />
         </Link>
-        <nav aria-label={t("navLabel")} className="flex items-center gap-1">
-          <div className="hidden items-center gap-1 sm:flex">
-            <Link
-              href="/#experience"
-              className={buttonStyles({ variant: "ghost", size: "sm" })}
-            >
+        <nav aria-label={t("navLabel")} className={styles.nav}>
+          <div className={styles.desktopNav}>
+            <Link href="/#experience" className={styles.navLink}>
               {t("designExplore")}
-            </Link>
-            <Link
-              href="/#download"
-              className={buttonStyles({ variant: "primary", size: "sm" })}
-            >
-              {t("download")}
             </Link>
             {site.sourceUrl ? (
               <a
                 href={site.sourceUrl}
                 rel="noopener"
-                className={buttonStyles({ variant: "ghost", size: "sm" })}
+                className={styles.navLink}
               >
                 {t("source")}
               </a>
             ) : null}
+            <Link href="/#download" className={styles.downloadLink}>
+              {t("download")}
+            </Link>
           </div>
-          <Link
-            href="/admin"
-            className={buttonStyles({ variant: "secondary", size: "sm" })}
-          >
+          <Link href="/admin" className={styles.navLink}>
             {t("staff")}
           </Link>
         </nav>
