@@ -2,7 +2,6 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { LocationAccent } from "./location-accent";
 import styles from "./rotating-headline.module.css";
 
 type RotatingHeadlineProps = {
@@ -153,7 +152,7 @@ export function RotatingHeadline({
             </motion.span>
           </span>
           <span className={styles.secondLine}>
-            {lead} <LocationAccent text={highlight} variant="classic" />
+            {lead} <span className={styles.highlight}>{highlight}</span>
           </span>
         </span>
       </h1>

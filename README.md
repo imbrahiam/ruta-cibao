@@ -88,9 +88,13 @@ configuration-driven, with coming-soon states for unavailable downloads.
 
 ### Social-app identity proposal
 
-`/design/brand` presents the original “Encuentro” proposal without changing the
-active web or native identity. Its open C and detached meeting point use flat
-iris `#7860a8`, with black and white variants. Reference imagery was inspected
+`/design/brand` compares four original proposals without changing the active web
+or native identity: Encuentro (open C and point, iris `#7860a8`), Vínculo (linked
+strokes, forest `#28594a`), Rumbo (cut R, blue `#3468d8`) and Plaza (three radial
+forms around a point, wine `#783b57`). The original Encuentro files are unchanged.
+Each option includes app-icon and wordmark contexts, small-size displays and
+downloads; a shared monochrome row separates silhouette from color.
+Reference imagery was inspected
 in the official [Instagram](https://www.meta.com/brand/resources/instagram/instagram-brand/),
 [X](https://x.com/), [Threads](https://www.meta.com/brand/resources/threads/) and
 [Bluesky](https://bsky.social/about/support/icons) pages; no third-party marks
@@ -100,10 +104,10 @@ Downloadable SVGs and 1024px PNGs live in
 `apps/web/public/brand/proposal/`. The app-icon PNG is square with no baked-in
 corner mask; its rounded appearance is applied only in the preview. The review
 page is no-index and intentionally absent from the public sitemap.
-Browser verification covered 16/24/32/64px symbol displays, monochrome/reverse
-variants, a 390px layout without overflow, and all six downloadable assets
-returning HTTP 200 with the expected SVG/PNG types. No browser errors were
-observed. This is a design proposal, not trademark clearance.
+Browser verification covered all four 16/24/32/64px symbol displays, the shared
+monochrome comparison, a 390px layout without overflow, and all 21 downloadable
+SVG/PNG assets returning HTTP 200 with expected types. After reload the browser
+reported no errors. These are design proposals, not trademark clearance.
 
 All visible copy comes from the Spanish catalogue; URLs remain English. A small
 Motion client component continuously loops only the last word of the headline
@@ -124,11 +128,9 @@ Mobbin MCP was previously queried but required a paid plan and returned no
 references. No third-party screens, testimonials, usage figures or videos are
 fabricated.
 
-The “aquí” highlight uses a small coral-red location pin as the visual acute
-accent of the í, tilted 18 degrees. A dotless visual stem avoids a doubled accent;
-assistive technology receives the original, correctly accented “aquí.” text.
-The solid-head lollipop remains at `/design/pins` for comparison in the same
-position. Neither variant has a card or background around it.
+The landing no longer renders a location pin: “aquí.” uses its normal accented
+letter and yellow highlight. The acute-accent pin experiments remain preserved
+only at `/design/pins` for later review.
 
 Download controls use recognizable Apple and Android brand silhouettes from
 [Simple Icons](https://github.com/simple-icons/simple-icons/tree/develop/icons)

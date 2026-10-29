@@ -1,21 +1,36 @@
 {
   "landing": {
     "brandProposal": {
-      "title": "Un símbolo para encontrarnos.",
-      "intro": "Encuentro: una C abierta y un punto. Menos detalles, más identidad.",
+      "title": "Más carácter. Cuatro caminos.",
+      "intro": "La misma app, cuatro personalidades. Compara la forma primero y el color después.",
       "status": "Propuesta de identidad · El logo actual sigue activo",
-      "conceptTitle": "C de Cibao. Punto de encuentro.",
-      "conceptBody": "Una forma abierta que invita a conectar y un punto que señala lo que está cerca. Sin mapas, iniciales superpuestas ni adornos.",
-      "symbolAlt": "Propuesta Encuentro de Ruta Cibao: una C abierta con un punto en la esquina superior derecha",
-      "appTitle": "Un icono, una silueta.",
-      "appBody": "Iris como color principal. El símbolo también funciona sin color, en fondos claros y oscuros.",
-      "iris": "Iris",
-      "ink": "Tinta",
-      "reverse": "En blanco",
-      "smallTitle": "Reconocible en pequeño.",
-      "smallBody": "La misma geometría a 16, 24, 32 y 64 píxeles. Sin versiones con detalles que desaparecen.",
+      "options": {
+        "encuentro": {
+          "name": "Encuentro",
+          "body": "La propuesta original. Una C abierta y un punto: tranquila, sencilla y cercana.",
+          "color": "Iris"
+        },
+        "vinculo": {
+          "name": "Vínculo",
+          "body": "Dos trazos que se enlazan. Más social y humano: conecta personas, lugares e historias.",
+          "color": "Bosque"
+        },
+        "rumbo": {
+          "name": "Rumbo",
+          "body": "Una R firme, con un corte diagonal. Más directa y urbana, con presencia de marca.",
+          "color": "Azul"
+        },
+        "plaza": {
+          "name": "Plaza",
+          "body": "Tres formas alrededor de un punto. Una comunidad que se encuentra, no solo un lugar en el mapa.",
+          "color": "Vino"
+        }
+      },
+      "optionAlt": "Propuesta {name} para el icono de Ruta Cibao",
+      "compareTitle": "La forma también tiene que sostenerse sola.",
+      "compareBody": "Todas en tinta, al mismo tamaño. Sin color ni efectos que hagan el trabajo por el símbolo.",
+      "download": "Descargas de {name}",
       "size": "{size} px",
-      "filesTitle": "Archivos de la propuesta",
       "symbolSvg": "Símbolo · SVG",
       "symbolPng": "Símbolo transparente · PNG",
       "appSvg": "Icono de app · SVG",

@@ -1,17 +1,44 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { getT } from "@/lib/web/i18n";
 import styles from "./page.module.css";
 
 const t = getT("landing");
 const ROOT = "/brand/proposal/";
-const FILES = [
-  ["symbolSvg", "ruta-cibao-symbol.svg"],
-  ["symbolPng", "ruta-cibao-symbol.png"],
-  ["appSvg", "ruta-cibao-app-icon.svg"],
-  ["appPng", "ruta-cibao-app-icon.png"],
-  ["blackSvg", "ruta-cibao-symbol-black.svg"],
-  ["whiteSvg", "ruta-cibao-symbol-white.svg"],
+const OPTIONS = [
+  {
+    id: "encuentro",
+    color: "#7860a8",
+    paper: "#f1edf7",
+    symbol: "ruta-cibao-symbol",
+    app: "ruta-cibao-app-icon",
+    black: "ruta-cibao-symbol-black",
+  },
+  {
+    id: "vinculo",
+    color: "#28594a",
+    paper: "#e8f0eb",
+    symbol: "vinculo-symbol",
+    app: "vinculo-app",
+    black: "vinculo-black",
+  },
+  {
+    id: "rumbo",
+    color: "#3468d8",
+    paper: "#eaf0fd",
+    symbol: "rumbo-symbol",
+    app: "rumbo-app",
+    black: "rumbo-black",
+  },
+  {
+    id: "plaza",
+    color: "#783b57",
+    paper: "#f3eaf0",
+    symbol: "plaza-symbol",
+    app: "plaza-app",
+    black: "plaza-black",
+  },
 ] as const;
 const REFERENCES = [
   [
@@ -38,75 +65,115 @@ export default function BrandProposalPage() {
         <h1>{t("brandProposal.title")}</h1>
         <p>{t("brandProposal.intro")}</p>
       </header>
-      <section className={styles.identity} aria-labelledby="identity-title">
-        <div className={styles.lockup}>
-          <Image
-            src={`${ROOT}ruta-cibao-symbol.svg`}
-            alt={t("brandProposal.symbolAlt")}
-            width={192}
-            height={192}
-            preload
-          />
-          <span>{t("brand")}</span>
-        </div>
-        <div className={styles.identityCopy}>
-          <h2 id="identity-title">{t("brandProposal.conceptTitle")}</h2>
-          <p>{t("brandProposal.conceptBody")}</p>
-        </div>
-      </section>
-      <section aria-labelledby="app-title" className={styles.section}>
-        <h2 id="app-title">{t("brandProposal.appTitle")}</h2>
-        <p>{t("brandProposal.appBody")}</p>
-        <div className={styles.variants}>
-          {(
-            [
-              ["iris", "ruta-cibao-app-icon.svg"],
-              ["ink", "ruta-cibao-symbol-black.svg"],
-              ["reverse", "ruta-cibao-symbol-white.svg"],
-            ] as const
-          ).map(([name, file]) => (
-            <figure
-              key={name}
-              className={name === "reverse" ? styles.dark : styles.light}
+      <div className={styles.options}>
+        {OPTIONS.map((option, index) => {
+          const name = t(`brandProposal.options.${option.id}.name`);
+          return (
+            <section
+              key={option.id}
+              className={styles.option}
+              aria-labelledby={`${option.id}-title`}
+              style={
+                {
+                  "--option-color": option.color,
+                  "--option-paper": option.paper,
+                } as CSSProperties
+              }
             >
-              <Image
-                src={`${ROOT}${file}`}
-                alt=""
-                width={180}
-                height={180}
-                className={name === "iris" ? styles.appIcon : undefined}
-              />
-              <figcaption>{t(`brandProposal.${name}`)}</figcaption>
-            </figure>
-          ))}
-        </div>
-      </section>
-      <section className={styles.section} aria-labelledby="small-title">
-        <h2 id="small-title">{t("brandProposal.smallTitle")}</h2>
-        <p>{t("brandProposal.smallBody")}</p>
-        <div className={styles.sizes}>
-          {[16, 24, 32, 64].map((size) => (
-            <figure key={size}>
-              <div>
+              <div className={styles.art}>
+                <span className={styles.index}>
+                  {String(index + 1).padStart(2, "0")}
+                </span>
                 <Image
-                  src={`${ROOT}ruta-cibao-symbol-black.svg`}
-                  alt=""
-                  width={size}
-                  height={size}
+                  src={`${ROOT}${option.app}.svg`}
+                  alt={t("brandProposal.optionAlt", { name })}
+                  width={156}
+                  height={156}
+                  className={styles.appIcon}
+                  preload={index < 2}
                 />
+                <div className={styles.lockup}>
+                  <Image
+                    src={`${ROOT}${option.symbol}.svg`}
+                    alt=""
+                    width={48}
+                    height={48}
+                  />
+                  <span>{t("brand")}</span>
+                </div>
               </div>
-              <figcaption>{t("brandProposal.size", { size })}</figcaption>
+              <div className={styles.copy}>
+                <div className={styles.optionHeading}>
+                  <h2 id={`${option.id}-title`}>{name}</h2>
+                  <span className={styles.palette}>
+                    <i />
+                    {t(`brandProposal.options.${option.id}.color`)}
+                  </span>
+                </div>
+                <p>{t(`brandProposal.options.${option.id}.body`)}</p>
+                <div className={styles.sizes}>
+                  {[16, 24, 32, 64].map((size) => (
+                    <figure key={size}>
+                      <div>
+                        <Image
+                          src={`${ROOT}${option.black}.svg`}
+                          alt=""
+                          width={size}
+                          height={size}
+                        />
+                      </div>
+                      <figcaption>
+                        {t("brandProposal.size", { size })}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+                <nav
+                  aria-label={t("brandProposal.download", { name })}
+                  className={styles.downloads}
+                >
+                  <a href={`${ROOT}${option.symbol}.svg`} download>
+                    {t("brandProposal.symbolSvg")}
+                  </a>
+                  <a href={`${ROOT}${option.symbol}.png`} download>
+                    {t("brandProposal.symbolPng")}
+                  </a>
+                  <a href={`${ROOT}${option.app}.svg`} download>
+                    {t("brandProposal.appSvg")}
+                  </a>
+                  <a href={`${ROOT}${option.app}.png`} download>
+                    {t("brandProposal.appPng")}
+                  </a>
+                  <a href={`${ROOT}${option.black}.svg`} download>
+                    {t("brandProposal.blackSvg")}
+                  </a>
+                  {option.id === "encuentro" ? (
+                    <a href={`${ROOT}ruta-cibao-symbol-white.svg`} download>
+                      {t("brandProposal.whiteSvg")}
+                    </a>
+                  ) : null}
+                </nav>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+      <section className={styles.comparison} aria-labelledby="compare-title">
+        <h2 id="compare-title">{t("brandProposal.compareTitle")}</h2>
+        <p>{t("brandProposal.compareBody")}</p>
+        <div className={styles.monochrome}>
+          {OPTIONS.map((option) => (
+            <figure key={option.id}>
+              <Image
+                src={`${ROOT}${option.black}.svg`}
+                alt=""
+                width={112}
+                height={112}
+              />
+              <figcaption>
+                {t(`brandProposal.options.${option.id}.name`)}
+              </figcaption>
             </figure>
-          ))}
-        </div>
-      </section>
-      <section className={styles.section} aria-labelledby="files-title">
-        <h2 id="files-title">{t("brandProposal.filesTitle")}</h2>
-        <div className={styles.downloads}>
-          {FILES.map(([label, file]) => (
-            <a href={`${ROOT}${file}`} download key={file}>
-              {t(`brandProposal.${label}`)}
-            </a>
           ))}
         </div>
       </section>
