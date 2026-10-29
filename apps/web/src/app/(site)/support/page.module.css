@@ -19,10 +19,10 @@
 
 .heroIcon {
   display: inline-grid;
-  width: 76px;
-  height: 76px;
+  width: 112px;
+  height: 112px;
   place-items: center;
-  font-size: 56px;
+  font-size: 88px;
 }
 
 .emoji {
