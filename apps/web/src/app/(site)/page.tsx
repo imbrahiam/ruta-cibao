@@ -60,10 +60,6 @@ export default function LandingPage() {
         className={`${styles.wrap} ${styles.hero}`}
         aria-labelledby="hero-title"
       >
-        <p className={styles.heroNote}>
-          <span aria-hidden="true" />
-          {t("studio.forOurProvince")}
-        </p>
         <RotatingHeadline
           prefix={t("studio.headlinePrefix")}
           phrases={[

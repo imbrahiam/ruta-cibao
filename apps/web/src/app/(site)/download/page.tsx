@@ -22,7 +22,6 @@ export default function DownloadPage() {
   return (
     <PublicPage
       current="download"
-      eyebrow={t("pages.downloadEyebrow")}
       title={t("pages.downloadTitle")}
       intro={t("pages.downloadIntro")}
     >

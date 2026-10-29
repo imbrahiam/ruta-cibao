@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { getT } from "@/lib/web/i18n";
@@ -10,13 +10,11 @@ type PublicPageName = (typeof PAGES)[number];
 
 export function PublicPage({
   current,
-  eyebrow,
   title,
   intro,
   children,
 }: {
   current: PublicPageName;
-  eyebrow: string;
   title: string;
   intro: string;
   children: ReactNode;
@@ -24,29 +22,14 @@ export function PublicPage({
   return (
     <div className={styles.page}>
       <div className={styles.wrap}>
-        <div className={styles.pageNav}>
-          <Link href="/" className={styles.back}>
-            <ArrowLeft aria-hidden="true" size={15} />
-            {t("back")}
-          </Link>
-          <nav aria-label={t("pages.navLabel")}>
-            <ul className={styles.tabs}>
-              {PAGES.map((page) => (
-                <li key={page}>
-                  <Link
-                    href={`/${page}`}
-                    aria-current={current === page ? "page" : undefined}
-                  >
-                    {t(`pages.${page}`)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
         <header className={styles.hero}>
-          <p className={styles.eyebrow}>{eyebrow}</p>
-          <h1>{title}</h1>
+          <h1
+            className={
+              current === "territory" ? styles.twoLineTitle : undefined
+            }
+          >
+            {title}
+          </h1>
           <p className={styles.lead}>{intro}</p>
         </header>
         {children}

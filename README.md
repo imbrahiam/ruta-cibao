@@ -94,16 +94,45 @@ than reserving the widest word's space. The cycle changes every 2 seconds:
 entry takes 440ms, exit 240ms and width adjustment 560ms, with 0.2em vertical
 travel and 0.08em blur. These timings were measured from a browser recording of
 Moonjar; the implementation uses Motion with an ease-out curve.
+The underline is a separate SVG brush path, revealed left to right after a
+120ms delay. A non-scaling 4px stroke remains independent of text blur and width
+changes, avoiding apparent thickness changes during transitions.
 A stable screen-reader label and reduced-motion preference keep a static version
 available. Changes stop while the document is hidden; the rest stays server-rendered.
 Mobbin MCP was previously queried but required a paid plan and returned no
 references. No third-party screens, testimonials, usage figures or videos are
 fabricated.
 
-The header exposes only download and municipal access, with a soft gray
-municipal pill, explicit hover/focus states and a visible lavender text selection.
+The header places the brand at left, links to experience/territory/support in
+the center and download/municipal actions at right. Text navigation changes
+only color on hover; action pills keep distinct backgrounds and focus outlines.
+Primary and secondary public actions share 44px height and 14px type tokens.
+The hero no longer has a province eyebrow or dot. Its animated word and fixed
+prefix have matching vertical text positions, including at mobile widths.
+The same header is used on the three product pages; duplicated top tabs and back
+links have been removed. Product-page heroes have no dotted eyebrow labels.
+The territory heading has an explicit two-line break after “Tres municipios.”,
+verified at 1440px, 390px and 320px. The brush uses explicit lavender `#b8a6cf`
+and reaches its complete stroke before the next word transition.
+
+The public layout exports a single `#fafaf7` theme color and light color scheme.
+Root canvas rules follow the public layout's active `color-scheme: light`
+metadata and set both `html` and `body` to that color, even under dark system
+preferences. This also avoids matching inactive pages retained by Next.js.
+Admin pages retain their existing system-dependent canvas and theme metadata.
+The hero glow uses shared public lavender gradient tokens.
 The commerce pin retains its -18-degree outer tilt; its icon is counter-rotated
 to remain upright. The territory section uses three original paper-map collages.
+
+Browser checks confirmed matching `#fafaf7` document/body/theme metadata after
+reload, unchanged dark admin canvas, and a zero-pixel vertical difference between
+the resting word and its fixed prefix on desktop and mobile. Header and hero
+actions measured 44px with 14px text. Central navigation retained a transparent
+background on hover. The recorded brush cycle changed its stroke dash length
+while maintaining 4px width and no blur. Layout widths of 320/390/768/1024px
+had no horizontal overflow. Native Safari toolbar rendering and rubber-band
+pull-to-refresh were not directly exercised; their document colors and metadata
+were verified in Chromium.
 
 Refinement verification covered the three new routes at 1440px and 390px, their
 canonical URLs and cross-page links, plus 320px page navigation. The homepage

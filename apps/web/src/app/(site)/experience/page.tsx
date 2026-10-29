@@ -21,7 +21,6 @@ export default function ExperiencePage() {
   return (
     <PublicPage
       current="experience"
-      eyebrow={t("pages.experienceEyebrow")}
       title={t("pages.experienceTitle")}
       intro={t("pages.experienceIntro")}
     >

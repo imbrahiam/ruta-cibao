@@ -7,54 +7,6 @@
   width: min(100% - 120px, 1120px);
   margin-inline: auto;
 }
-.pageNav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding-top: 22px;
-}
-.back {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 8px;
-  color: var(--ink-2);
-  font-size: 13px;
-  text-decoration: none;
-}
-.back:hover {
-  color: var(--ink);
-  text-decoration: underline;
-  text-underline-offset: 4px;
-}
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--line);
-  border-radius: 28px;
-  list-style: none;
-}
-.tabs a {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  padding: 9px 16px;
-  border-radius: 24px;
-  color: var(--ink-2);
-  font-size: 13px;
-  text-decoration: none;
-}
-.tabs a:hover {
-  color: var(--ink);
-  background: var(--paper-2);
-}
-.tabs a[aria-current="page"] {
-  color: #fff;
-  background: var(--ink);
-}
 .hero {
   max-width: 760px;
   margin: 76px auto 64px;
@@ -68,21 +20,16 @@
   line-height: 1.6;
   letter-spacing: 0.03em;
 }
-.hero > .eyebrow::before {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  margin: 0 8px 1px 0;
-  border-radius: 50%;
-  background: #93a67e;
-  content: "";
-}
 .hero h1 {
   font-size: clamp(38px, 5vw, 60px);
   font-weight: 500;
   line-height: 1.08;
   letter-spacing: -0.045em;
   text-wrap: balance;
+}
+.hero .twoLineTitle {
+  font-size: clamp(28px, 4.6vw, 60px);
+  white-space: pre-line;
 }
 .lead {
   max-width: 560px;
@@ -293,18 +240,19 @@
 }
 .action {
   display: inline-flex;
-  min-height: 44px;
+  min-height: var(--public-action-height);
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   gap: 10px;
-  padding: 12px 20px;
+  padding: var(--public-action-padding);
   border: 1px solid var(--line);
   border-radius: 999px;
   color: var(--ink);
   background: #fff;
-  font-size: 14px;
+  font-size: var(--public-action-font-size);
   font-weight: 500;
+  line-height: var(--public-action-line-height);
   text-decoration: none;
 }
 .action:hover {
@@ -461,19 +409,6 @@
   }
   .wrap {
     width: calc(100% - 40px);
-  }
-  .pageNav {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    padding-top: 0;
-  }
-  .tabs {
-    gap: 0;
-  }
-  .tabs a {
-    padding-inline: 13px;
-    font-size: 12px;
   }
   .hero {
     margin: 52px auto 40px;

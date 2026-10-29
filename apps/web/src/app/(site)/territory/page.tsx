@@ -167,7 +167,6 @@ export default function TerritoryPage() {
   return (
     <PublicPage
       current="territory"
-      eyebrow={t("pages.territoryEyebrow")}
       title={t("pages.territoryTitle")}
       intro={t("pages.territoryIntro")}
     >

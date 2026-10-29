@@ -1,7 +1,6 @@
 {
   "landing": {
     "studio": {
-      "forOurProvince": "Hecha para Santiago Rodríguez",
       "headline": "Tu provincia, más cerca.",
       "headlineLead": "Tu próxima historia,",
       "headlineHighlight": "aquí.",
@@ -64,7 +63,6 @@
       "download": "Descargas",
       "territory": "Los tres municipios",
       "continue": "Sigue descubriendo",
-      "experienceEyebrow": "Una app. Más formas de conectar.",
       "experienceTitle": "Lo cotidiano, con otra mirada.",
       "experienceIntro": "Encuentra un lugar, prepara tu próximo recorrido y participa en lo que importa a tu comunidad. Así se conecta lo nuestro en Ruta Cibao.",
       "experienceDescription": "Conoce el mapa, los lugares, las rutas, los avisos de tránsito y la participación comunitaria de Ruta Cibao para Santiago Rodríguez.",
@@ -80,7 +78,6 @@
       "experienceCommunityTitle": "Las ideas merecen una conversación.",
       "experienceCommunityBody": "Abre una consulta, apoya una prioridad y sigue sus respuestas y cambios de estado. Los informes municipales en PDF reúnen la actividad registrada para consultar avances y pendientes.",
       "experienceNotice": "Esta página presenta la experiencia de la app, no un mapa web interactivo. Las ilustraciones son conceptos originales, no capturas ni datos en vivo.",
-      "downloadEyebrow": "Lo nuestro va contigo",
       "downloadTitle": "Un lugar para llevar lo de aquí.",
       "downloadIntro": "Consulta la disponibilidad de Ruta Cibao para tu teléfono. Sin redirecciones automáticas: tú eliges cómo continuar.",
       "downloadDescription": "Consulta las descargas disponibles de Ruta Cibao para iPhone y Android y abre el sitio en tu teléfono con el código QR.",
@@ -97,8 +94,7 @@
       "downloadStepThreeBody": "Antes de compartir, conoce cómo tratamos tus datos y las reglas para participar con respeto.",
       "downloadHelpTitle": "¿Necesitas orientación?",
       "downloadHelpBody": "Consulta las opciones de soporte y recuerda: Ruta Cibao no es un servicio de emergencias.",
-      "territoryEyebrow": "Santiago Rodríguez, en común",
-      "territoryTitle": "Tres municipios. Un mismo nosotros.",
+      "territoryTitle": "Tres municipios.\nUn mismo nosotros.",
       "territoryIntro": "Sabaneta, Monción y Villa Los Almácigos. Tres nombres para seguir descubriendo lugares, caminos y conversaciones de nuestra provincia.",
       "territoryDescription": "Una mirada editorial a los tres municipios de Santiago Rodríguez: Sabaneta, Monción y Villa Los Almácigos, conectados en Ruta Cibao.",
       "territorySabanetaBody": "Un lugar para empezar a mirar lo cotidiano de otra manera: encontrar un negocio, conocer un lugar y abrir una conversación sobre lo que compartimos.",

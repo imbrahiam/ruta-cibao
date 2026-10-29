@@ -122,6 +122,29 @@ export function RotatingHeadline({
                   {phrases[shownIndex]}
                 </motion.span>
               </AnimatePresence>
+              <svg
+                className={styles.underline}
+                viewBox="0 0 100 10"
+                preserveAspectRatio="none"
+                fill="none"
+                aria-hidden="true"
+              >
+                <motion.path
+                  key={shownIndex}
+                  d="M2 6 Q50 3 98 5"
+                  stroke="#b8a6cf"
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                  initial={{ pathLength: reducedMotion ? 1 : 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{
+                    duration: reducedMotion ? 0 : 0.44,
+                    delay: reducedMotion ? 0 : 0.12,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                />
+              </svg>
             </motion.span>
           </span>
           <span className={styles.secondLine}>

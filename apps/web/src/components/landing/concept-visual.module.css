@@ -18,8 +18,8 @@
   border-radius: 50%;
   background: radial-gradient(
     ellipse,
-    #d9d1f080 0%,
-    #e8e2f44d 45%,
+    var(--public-glow-center) 0%,
+    var(--public-glow-edge) 45%,
     transparent 70%
   );
   filter: blur(25px);

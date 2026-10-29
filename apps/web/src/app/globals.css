@@ -255,12 +255,23 @@
     scroll-padding-top: 88px;
   }
 
+  html:has(meta[name="color-scheme"][content="light"]) {
+    --paper: #fafaf7;
+    --ink: #2a2a27;
+    background: #fafaf7;
+    color-scheme: light;
+  }
+
   body {
     min-height: 100dvh;
     background: var(--paper);
     font-size: 15px;
     line-height: 1.55;
     letter-spacing: -0.008em;
+  }
+
+  html:has(meta[name="color-scheme"][content="light"]) body {
+    background: #fafaf7;
   }
 
   ::selection {
