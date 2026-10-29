@@ -13,6 +13,9 @@
  *   - a relative Markdown link must resolve.
  *   - a backticked repo path must exist.
  *   - a backticked migration number must have a migration file.
+ *   - every fenced `bash`/`sh` block is syntactically valid shell.
+ *   - every server env var the schema reads is documented in .env.example,
+ *     and every documented var is read somewhere outside that file.
  *   - every client-visible `NEXT_PUBLIC_*` / `EXPO_PUBLIC_*` in .env.example
  *     must be read by an app, not only by the Docker build.
  *
@@ -105,8 +108,36 @@ for (const file of docs) {
   const text = await read(file);
   const lines = text.split("\n");
 
+  let fence: { language: string; start: number; body: string[] } | null = null;
   for (const [index, line] of lines.entries()) {
     const lineNumber = index + 1;
+
+    if (line.startsWith("```")) {
+      if (fence) {
+        if (["bash", "sh", "shell"].includes(fence.language)) {
+          const syntax = Bun.spawnSync(["bash", "-n"], {
+            stdin: new TextEncoder().encode(fence.body.join("\n")),
+            stderr: "pipe",
+          });
+          if (syntax.exitCode !== 0) {
+            report(
+              file,
+              fence.start,
+              `fenced ${fence.language} block is not valid shell: ${syntax.stderr.toString().trim().split("\n")[0] ?? ""}`,
+            );
+          }
+        }
+        fence = null;
+      } else {
+        fence = {
+          language: line.slice(3).trim(),
+          start: lineNumber,
+          body: [],
+        };
+      }
+      continue;
+    }
+    if (fence) fence.body.push(line);
 
     for (const match of line.matchAll(SCRIPT_TOKEN)) {
       const name = (match[1] ?? "").replace(/[.,;:]+$/, "");
@@ -175,6 +206,29 @@ for (const name of envKeys) {
       ".env.example",
       0,
       `documents ${name}, which no app reads. Delete it or wire it.`,
+    );
+  }
+}
+
+const envSource = await read("apps/web/src/lib/env.ts");
+const schemaKeys = new Set(
+  [...envSource.matchAll(/^ {4}([A-Z][A-Z0-9_]+):/gm)].map((match) => match[1]),
+);
+for (const name of schemaKeys) {
+  if (name && !envKeys.has(name)) {
+    report(
+      ".env.example",
+      0,
+      `the server schema reads ${name} without documenting it here`,
+    );
+  }
+}
+for (const name of envKeys) {
+  if (!codeSource.includes(name)) {
+    report(
+      ".env.example",
+      0,
+      `documents ${name}, which nothing outside the example reads. Delete it.`,
     );
   }
 }

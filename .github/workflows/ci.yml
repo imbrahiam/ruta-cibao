@@ -61,6 +61,9 @@ jobs:
       - name: Documentation drift
         run: bun run check:docs
 
+      - name: Quality gates
+        run: bun run check:quality
+
       - name: Unit tests
         run: bun test tests
 

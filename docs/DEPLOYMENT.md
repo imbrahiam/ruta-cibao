@@ -217,8 +217,8 @@ Use SSH keys, not passwords, and disable password login in
 ```bash
 sudo mkdir -p /opt/ruta-cibao && sudo chown "$USER" /opt/ruta-cibao
 cd /opt/ruta-cibao
-git clone <repository URL> .
-git checkout <release tag>      # always deploy a tag, never an untested branch
+git clone https://github.com/imbrahiam/ruta-cibao.git .
+git checkout v0.1.0            # always deploy a tag, never an untested branch
 ```
 
 ### 4.1 One command alias
@@ -299,39 +299,39 @@ NODE_ENV=production                     # the containers force this anyway
 APP_URL=https://app.example.do
 NEXT_PUBLIC_APP_URL=https://app.example.do
 BETTER_AUTH_URL=https://app.example.do
-BETTER_AUTH_SECRET=<openssl rand -base64 32>
+BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 TRUSTED_PROXY=1                         # Caddy sets X-Forwarded-For
 
 # --- Read by docker compose, not by the app ------------------------------
 SITE_ADDRESS=app.example.do             # Caddy requests the certificate for this
 ACME_EMAIL=ops@example.do               # expiry warnings from Let's Encrypt
 POSTGRES_USER=ruta
-POSTGRES_PASSWORD=<openssl rand -hex 24>
+POSTGRES_PASSWORD=$(openssl rand -hex 24)
 POSTGRES_DB=ruta_cibao
 # Compose builds DATABASE_URL from the three above; this line only matters
 # for commands run outside Compose. Keep it consistent:
-DATABASE_URL=postgresql://ruta:<same password>@postgres:5432/ruta_cibao
+DATABASE_URL=postgresql://ruta:PASSWORD@postgres:5432/ruta_cibao
 
 # --- Personal data -------------------------------------------------------
-APP_ENCRYPTION_KEY=<openssl rand -hex 32>   # SEE SECTION 9.3 BEFORE GOING FURTHER
+APP_ENCRYPTION_KEY=$(openssl rand -hex 32)   # SEE SECTION 9.3 BEFORE GOING FURTHER
 
 # --- SMS and email ----------------------------------------------------------
 # Without them that sign-in method is switched off. Leave AUTH_LOG_DELIVERY=0.
-TWILIO_ACCOUNT_SID=<...>
-TWILIO_AUTH_TOKEN=<...>
-TWILIO_VERIFY_SERVICE_SID=<...>
-RESEND_API_KEY=<...>
-EMAIL_FROM=Ruta Cibao <no-responder@example.do>   # on the domain verified in Resend
+TWILIO_ACCOUNT_SID=REPLACE_ME
+TWILIO_AUTH_TOKEN=REPLACE_ME
+TWILIO_VERIFY_SERVICE_SID=REPLACE_ME
+RESEND_API_KEY=REPLACE_ME
+EMAIL_FROM="Ruta Cibao <no-responder@example.do>"   # on the domain verified in Resend
 
 # --- Push notifications --------------------------------------------------
-EXPO_PUSH_ACCESS_TOKEN=<...>
+EXPO_PUSH_ACCESS_TOKEN=REPLACE_ME
 
 # --- Storage, option A (managed) -----------------------------------------
-S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com
+S3_ENDPOINT=https://ACCOUNT.r2.cloudflarestorage.com
 S3_REGION=auto
 S3_BUCKET=ruta-cibao
-S3_ACCESS_KEY_ID=<...>
-S3_SECRET_ACCESS_KEY=<...>
+S3_ACCESS_KEY_ID=REPLACE_ME
+S3_SECRET_ACCESS_KEY=REPLACE_ME
 S3_FORCE_PATH_STYLE=0
 
 # --- Storage, option B (SeaweedFS) — instead of the block above --------------
@@ -341,7 +341,7 @@ S3_FORCE_PATH_STYLE=0
 # S3_REGION=us-east-1
 # S3_BUCKET=ruta-cibao
 # S3_ACCESS_KEY_ID=ruta-storage
-# S3_SECRET_ACCESS_KEY=<openssl rand -hex 24>
+# S3_SECRET_ACCESS_KEY=REPLACE_ME
 # S3_FORCE_PATH_STYLE=1
 
 # --- Address search ------------------------------------------------------
@@ -560,7 +560,7 @@ sees its own contributions. That last check proves the encryption key matches.
 ```bash
 cd /opt/ruta-cibao
 infra/backup.sh                      # always first: migrations are one-way
-git fetch --tags && git checkout <new tag>
+git fetch --tags && git checkout v0.2.0
 rc up -d --build                     # migrations run before the app starts
 rc ps && curl -fsS https://app.example.do/api/ready
 ```
@@ -573,8 +573,8 @@ restoring the backup taken before the update (11.4), checking out the previous
 tag, and rebuilding:
 
 ```bash
-infra/restore.sh /var/backups/ruta-cibao/db-<timestamp>.dump
-git checkout <previous tag>
+infra/restore.sh /var/backups/ruta-cibao/db-TIMESTAMP.dump
+git checkout v0.1.0
 rc up -d --build
 ```
 
