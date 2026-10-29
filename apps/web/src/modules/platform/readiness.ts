@@ -3,6 +3,19 @@ import { db } from "@/db";
 import { env } from "@/lib/env";
 import { checkStorage } from "@/lib/storage";
 
+export type Readiness = {
+  status: "ok" | "degraded";
+  checks: { database: boolean; storage: boolean; worker: boolean };
+};
+
+/** One mapping from a readiness answer to an HTTP answer, so both are tested. */
+export function readinessResponse(result: Readiness): Response {
+  return Response.json(result, {
+    status: result.status === "ok" ? 200 : 503,
+    headers: { "cache-control": "no-store" },
+  });
+}
+
 export async function readiness() {
   const [database, storage] = await Promise.allSettled([
     db.execute(
