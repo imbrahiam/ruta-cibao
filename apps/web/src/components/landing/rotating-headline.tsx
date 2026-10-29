@@ -1,6 +1,5 @@
 "use client";
 
-import { MapPin } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import styles from "./rotating-headline.module.css";
@@ -157,7 +156,13 @@ export function RotatingHeadline({
             <span className={styles.locationAccent}>
               <span className={styles.highlight}>{highlight}</span>
               <span className={styles.locationBadge}>
-                <MapPin aria-hidden="true" strokeWidth={1.7} />
+                <svg viewBox="0 0 24 28" fill="none" aria-hidden="true">
+                  <path
+                    d="M12 27s10-10.1 10-16A10 10 0 0 0 2 11c0 5.9 10 16 10 16Z"
+                    fill="currentColor"
+                  />
+                  <circle cx="12" cy="11" r="4" fill="#fffaf7" />
+                </svg>
               </span>
             </span>
           </span>
