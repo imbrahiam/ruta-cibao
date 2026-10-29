@@ -92,6 +92,7 @@ keyboard focus retains a visible outline, and motion respects reduced-motion set
 account/help illustration and native expandable FAQs for access, place data,
 offline use and account deletion. Compass and waving-hand emoji accents prefer
 Apple Color Emoji, falling back to the platform's color emoji font.
+The standalone compass is the hero's main visual cue; the hand scales with the FAQ heading.
 Its links lead to real public routes; no contact form, live response promise or
 unpublished support address is invented.
 

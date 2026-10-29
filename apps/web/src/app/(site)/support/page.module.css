@@ -19,10 +19,10 @@
 
 .heroIcon {
   display: inline-grid;
-  width: 58px;
-  height: 58px;
+  width: 76px;
+  height: 76px;
   place-items: center;
-  font-size: 32px;
+  font-size: 56px;
 }
 
 .emoji {
@@ -35,7 +35,7 @@
 .handEmoji {
   display: inline-block;
   margin-right: 0.45em;
-  font-size: 0.85em;
+  font-size: 1em;
   vertical-align: -0.03em;
 }
 
