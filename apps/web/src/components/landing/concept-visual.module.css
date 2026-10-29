@@ -676,6 +676,9 @@
   box-shadow: 0 8px 14px #2a2a2714;
   transform: rotate(-18deg);
 }
+.localPin svg {
+  transform: rotate(18deg);
+}
 .localNote {
   position: absolute;
   right: 18px;

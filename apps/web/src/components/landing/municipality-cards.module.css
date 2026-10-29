@@ -1,0 +1,297 @@
+.collection {
+  margin-top: 28px;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  list-style: none;
+  text-align: left;
+}
+.card {
+  --wash: #edf0e5;
+  --accent: #7e8e6e;
+  --path: #a7b894;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #e4e2da;
+  border-radius: 18px;
+  background: #fff;
+}
+.lavender {
+  --wash: #eeeaf3;
+  --accent: #8c7a9d;
+  --path: #b3a3c2;
+}
+.butter {
+  --wash: #f4efd9;
+  --accent: #9a8757;
+  --path: #c7b67e;
+}
+.art {
+  position: relative;
+  height: 183px;
+  overflow: hidden;
+  background: var(--wash);
+  isolation: isolate;
+}
+.backing {
+  position: absolute;
+  top: 30px;
+  right: 25px;
+  bottom: 14px;
+  left: 25px;
+  border: 1px solid #2a2a270e;
+  border-radius: 3px;
+  background: #f5f3ed;
+  box-shadow: 0 5px 10px #2a2a2708;
+  transform: rotate(7deg);
+}
+.sheet {
+  position: absolute;
+  inset: 25px 27px 20px;
+  overflow: hidden;
+  border: 1px solid #e8e5db;
+  border-radius: 3px;
+  background: #fffef9;
+  box-shadow: 0 6px 12px #2a2a270b;
+  transform: rotate(-5deg);
+}
+.sheet > svg {
+  width: 100%;
+  height: 100%;
+}
+.grid {
+  stroke: #eae7dd;
+  stroke-width: 0.8;
+}
+.secondaryPath {
+  stroke: #e5dfcf;
+  stroke-width: 11;
+}
+.routeEdge {
+  stroke: #fffef9;
+  stroke-width: 12;
+}
+.route {
+  stroke: var(--path);
+  stroke-linecap: round;
+  stroke-width: 5;
+}
+.dot {
+  fill: var(--accent);
+  stroke: #fffef9;
+  stroke-width: 3;
+}
+.tape {
+  position: absolute;
+  top: 17px;
+  left: calc(50% - 25px);
+  width: 50px;
+  height: 21px;
+  background: #d8cda778;
+  transform: rotate(-8deg);
+}
+.pin {
+  position: absolute;
+  top: 65px;
+  left: calc(50% - 23px);
+  display: grid;
+  width: 47px;
+  height: 47px;
+  place-items: center;
+  border: 1px solid #fff;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 5px 9px #2a2a271c;
+  color: #fff;
+  transform: rotate(-8deg);
+}
+.ticket {
+  position: absolute;
+  right: 17px;
+  bottom: 19px;
+  display: grid;
+  width: 66px;
+  gap: 6px;
+  border: 1px solid #e6e1d5;
+  border-radius: 3px;
+  padding: 12px 10px;
+  background: #fffefa;
+  box-shadow: 0 4px 8px #2a2a270c;
+  transform: rotate(8deg);
+}
+.ticket > span {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--wash);
+}
+.ticket > span:first-child {
+  width: 50%;
+  background: var(--path);
+}
+.ticket > span:last-child {
+  width: 75%;
+}
+.number {
+  position: absolute;
+  bottom: 20px;
+  left: 14px;
+  display: grid;
+  width: 31px;
+  height: 31px;
+  place-items: center;
+  border: 1px solid #fffdf8;
+  border-radius: 50%;
+  background: #fffdf8b8;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+.lavender .sheet {
+  transform: rotate(5deg);
+}
+.lavender .backing {
+  transform: rotate(-6deg);
+}
+.lavender .pin {
+  top: 73px;
+  left: 43%;
+  transform: rotate(7deg);
+}
+.lavender .ticket {
+  right: 18px;
+  bottom: 23px;
+  transform: rotate(-9deg);
+}
+.butter .sheet {
+  transform: rotate(-2deg);
+}
+.butter .backing {
+  transform: rotate(8deg);
+}
+.butter .pin {
+  top: 58px;
+  left: 54%;
+  transform: rotate(4deg);
+}
+.butter .ticket {
+  right: auto;
+  bottom: 21px;
+  left: 23px;
+  transform: rotate(-7deg);
+}
+.butter .number {
+  right: 15px;
+  left: auto;
+}
+.copy {
+  padding: 20px 21px 22px;
+}
+.copy h3 {
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+}
+.copy p {
+  max-width: 27ch;
+  margin-top: 7px;
+  color: #6e6c64;
+  font-size: 12px;
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+.caption {
+  margin-top: 14px;
+  color: #6e6c64;
+  font-size: 10px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (max-width: 850px) {
+  .cards {
+    gap: 12px;
+  }
+  .art {
+    height: 155px;
+  }
+  .sheet {
+    right: 15px;
+    left: 15px;
+  }
+  .backing {
+    right: 14px;
+    left: 14px;
+  }
+  .copy {
+    padding: 17px 15px 20px;
+  }
+  .copy h3 {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .card {
+    display: grid;
+    grid-template-columns: 42% minmax(0, 1fr);
+    align-items: center;
+    border-radius: 14px;
+  }
+  .art {
+    height: 154px;
+  }
+  .sheet {
+    inset: 24px 13px;
+  }
+  .backing {
+    inset: 26px 12px 19px;
+  }
+  .pin,
+  .lavender .pin,
+  .butter .pin {
+    top: 57px;
+    left: calc(50% - 19px);
+    width: 38px;
+    height: 38px;
+  }
+  .pin svg {
+    width: 21px;
+  }
+  .ticket,
+  .lavender .ticket {
+    right: 9px;
+    bottom: 17px;
+    width: 48px;
+    gap: 4px;
+    padding: 8px;
+  }
+  .butter .ticket {
+    right: auto;
+    left: 10px;
+  }
+  .number {
+    bottom: 15px;
+    left: 8px;
+    width: 25px;
+    height: 25px;
+    font-size: 9px;
+  }
+  .butter .number {
+    right: 8px;
+    left: auto;
+  }
+  .copy {
+    padding: 18px;
+  }
+  .copy p {
+    font-size: 11px;
+  }
+}

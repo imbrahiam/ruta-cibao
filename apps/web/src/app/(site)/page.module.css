@@ -43,32 +43,6 @@
   border-radius: 50%;
   background: #9cab86;
 }
-.heroTitle {
-  max-width: 700px;
-  margin-inline: auto;
-  font-size: 52px;
-  font-weight: 500;
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-  text-wrap: balance;
-}
-.highlight {
-  position: relative;
-  z-index: 0;
-  white-space: nowrap;
-}
-.highlight::after {
-  position: absolute;
-  z-index: -1;
-  right: -3px;
-  bottom: 3px;
-  left: -3px;
-  height: 0.39em;
-  border-radius: 3px;
-  background: #f4e7a4;
-  content: "";
-  transform: rotate(-1.5deg);
-}
 .heroIntro {
   max-width: 480px;
   margin: 22px auto 0;
@@ -124,29 +98,31 @@
   text-align: center;
 }
 .territory h2 {
-  color: var(--ink-2);
-  font-size: 12px;
+  max-width: 480px;
+  margin-inline: auto;
+  font-size: 28px;
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
 }
-.municipalities {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px 42px;
-  margin-top: 18px;
-  list-style: none;
-}
-.municipalities li {
+.territoryAction {
   display: inline-flex;
+  min-height: 44px;
   align-items: center;
-  gap: 7px;
-  font-size: 14px;
+  gap: 8px;
+  margin-top: 12px;
+  border-radius: 999px;
+  padding: 10px 15px;
+  color: var(--ink);
+  font-size: 12px;
   font-weight: 500;
   line-height: 1.5;
+  text-decoration: none;
+  transition: background-color 150ms ease;
 }
-.municipalities svg {
-  color: #838875;
+.territoryAction:hover {
+  background: #eeeee6;
 }
 
 .experience {
@@ -426,10 +402,6 @@
     margin-bottom: 17px;
     font-size: 11px;
   }
-  .heroTitle {
-    max-width: 520px;
-    font-size: 38px;
-  }
   .heroIntro {
     max-width: 380px;
     margin-top: 19px;
@@ -440,16 +412,6 @@
   }
   .territory {
     padding-top: 35px;
-  }
-  .municipalities {
-    gap: 12px 22px;
-  }
-  .municipalities li {
-    gap: 5px;
-    font-size: 12px;
-  }
-  .municipalities svg {
-    width: 13px;
   }
   .experience,
   .community,
@@ -537,11 +499,6 @@
   .hero {
     padding-top: 32px;
   }
-  .heroTitle {
-    font-size: 28.46px;
-    line-height: 1.02;
-    letter-spacing: -0.03em;
-  }
   .heroNote {
     margin-bottom: 16px;
     font-size: 10px;
@@ -568,18 +525,8 @@
     padding-top: 30px;
   }
   .territory h2 {
-    font-size: 11px;
-  }
-  .municipalities {
-    gap: 10px 15px;
-    margin-top: 14px;
-  }
-  .municipalities li {
-    gap: 4px;
-    font-size: 11px;
-  }
-  .municipalities svg {
-    width: 12px;
+    max-width: 270px;
+    font-size: 24px;
   }
   .sectionTitle {
     font-size: 34px;

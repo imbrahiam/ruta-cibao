@@ -1,5 +1,4 @@
 import {
-  ArrowDown,
   ArrowUpRight,
   FileText,
   MapPin,
@@ -20,7 +19,9 @@ import {
   LocalConcept,
   RoutesConcept,
 } from "@/components/landing/concept-visual";
+import { MunicipalityCards } from "@/components/landing/municipality-cards";
 import { QrCode } from "@/components/landing/qr-code";
+import { RotatingHeadline } from "@/components/landing/rotating-headline";
 import { StoreButtons } from "@/components/landing/store-buttons";
 import { getT } from "@/lib/web/i18n";
 import { site } from "@/lib/web/site";
@@ -49,8 +50,6 @@ const STORE_LABELS = {
   androidSoon: t("androidSoon"),
 };
 
-const MUNICIPALITIES = ["sabaneta", "moncion", "almacigos"] as const;
-
 export default function LandingPage() {
   const shown = SCREENS.filter((screen) => hasScreenshot(screen.file));
   const stores = Boolean(site.iosUrl || site.androidUrl);
@@ -65,24 +64,26 @@ export default function LandingPage() {
           <span aria-hidden="true" />
           {t("studio.forOurProvince")}
         </p>
-        <h1 id="hero-title" className={styles.heroTitle}>
-          {t("studio.headline")}
-          <br />
-          {t("studio.headlineLead")}{" "}
-          <span className={styles.highlight}>
-            {t("studio.headlineHighlight")}
-          </span>
-        </h1>
+        <RotatingHeadline
+          prefix={t("studio.headlinePrefix")}
+          phrases={[
+            t("studio.headlineNear"),
+            t("studio.headlineOurs"),
+            t("studio.headlineHuman"),
+          ]}
+          lead={t("studio.headlineLead")}
+          highlight={t("studio.headlineHighlight")}
+        />
         <p className={styles.heroIntro}>{t("studio.intro")}</p>
         <div className={styles.heroActions}>
-          <a href="#download" className={styles.primaryAction}>
+          <Link href="/download" className={styles.primaryAction}>
             {t("download")}
             <ArrowUpRight aria-hidden="true" size={16} />
-          </a>
-          <a href="#experience" className={styles.secondaryAction}>
+          </Link>
+          <Link href="/experience" className={styles.secondaryAction}>
             {t("studio.explore")}
-            <ArrowDown aria-hidden="true" size={15} />
-          </a>
+            <ArrowUpRight aria-hidden="true" size={15} />
+          </Link>
         </div>
         <HeroConcept />
       </section>
@@ -93,14 +94,27 @@ export default function LandingPage() {
         className={`${styles.wrap} ${styles.territory}`}
       >
         <h2 id="territory-title">{t("studio.territoryTitle")}</h2>
-        <ul className={styles.municipalities}>
-          {MUNICIPALITIES.map((key) => (
-            <li key={key}>
-              <MapPin aria-hidden="true" size={15} />
-              {t(key)}
-            </li>
-          ))}
-        </ul>
+        <MunicipalityCards
+          municipalities={[
+            {
+              name: t("sabaneta"),
+              description: t("studio.territorySabaneta"),
+            },
+            {
+              name: t("moncion"),
+              description: t("studio.territoryMoncion"),
+            },
+            {
+              name: t("almacigos"),
+              description: t("studio.territoryAlmacigos"),
+            },
+          ]}
+          conceptLabel={t("studio.territoryConcept")}
+        />
+        <Link href="/territory" className={styles.territoryAction}>
+          {t("studio.territoryExplore")}
+          <ArrowUpRight aria-hidden="true" size={15} />
+        </Link>
       </section>
 
       <section

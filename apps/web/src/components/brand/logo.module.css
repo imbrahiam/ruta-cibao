@@ -6,14 +6,14 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid #c96c4b;
+  border: 1px solid #9b92b2;
   border-radius: 10px;
-  background: linear-gradient(145deg, #f4b68b, #db7955 60%, #b95239);
+  background: linear-gradient(145deg, #d7d1e5, #b5aacb 60%, #8c7ea5);
   box-shadow:
     inset 0 1px 1px #fff8,
-    inset 0 -2px 4px #8d382533,
+    inset 0 -2px 4px #51436233,
     0 2px 4px #2a2a2714;
-  color: #fffaf0;
+  color: #fcfbff;
 }
 
 .mark svg {

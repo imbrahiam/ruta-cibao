@@ -27,7 +27,7 @@ export function Unavailable() {
           {landing("back")}
         </Link>
         <Link
-          href="/#download"
+          href="/download"
           className={buttonStyles({ variant: "secondary", size: "lg" })}
         >
           {t("download")}

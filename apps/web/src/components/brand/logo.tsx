@@ -7,16 +7,16 @@ export function LogoMark({ className }: { className?: string }) {
     <span aria-hidden className={cx(styles.mark, className)}>
       <svg viewBox="0 0 40 40" fill="none" aria-hidden>
         <path d="m7 12 9-4 9 4 8-4v21l-8 4-9-4-9 4V12Z" fill="currentColor" />
-        <path d="M16 8v21l9 4V12l-9-4Z" fill="#eac7a6" />
+        <path d="M16 8v21l9 4V12l-9-4Z" fill="#dcd5e8" />
         <path
           d="m10 25 8-7 5 3 7-8"
-          stroke="#bc6142"
+          stroke="#716184"
           strokeWidth="1.8"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        <circle cx="29.5" cy="13" r="2.4" fill="#bc6142" />
-        <path d="M16 10v17M25 14v16" stroke="#b58f72" strokeOpacity=".35" />
+        <circle cx="29.5" cy="13" r="2.4" fill="#716184" />
+        <path d="M16 10v17M25 14v16" stroke="#81718f" strokeOpacity=".35" />
       </svg>
     </span>
   );

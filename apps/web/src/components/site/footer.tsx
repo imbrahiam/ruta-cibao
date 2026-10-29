@@ -18,6 +18,30 @@ export function SiteFooter() {
           <p className="t-small text-ink-2">{t("province")}</p>
           <p className="t-small text-ink-2">{t("notice")}</p>
         </div>
+        <nav aria-label={t("pages.navLabel")}>
+          <ul className="flex flex-col gap-0.5">
+            <li>
+              <Link href="/" className={LINK}>
+                {t("back")}
+              </Link>
+            </li>
+            <li>
+              <Link href="/experience" className={LINK}>
+                {t("pages.experience")}
+              </Link>
+            </li>
+            <li>
+              <Link href="/territory" className={LINK}>
+                {t("pages.territory")}
+              </Link>
+            </li>
+            <li>
+              <Link href="/download" className={LINK}>
+                {t("pages.download")}
+              </Link>
+            </li>
+          </ul>
+        </nav>
         <nav aria-label={t("footerLabel")}>
           <ul className="flex flex-col gap-0.5">
             <li>

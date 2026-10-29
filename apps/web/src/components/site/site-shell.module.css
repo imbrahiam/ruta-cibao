@@ -9,6 +9,7 @@
   --line: #e4e2da;
   --accent: #2a2a27;
   --on-accent: #fff;
+  --accent-soft: #ddd5ee;
   --font-display: var(--font-inter), sans-serif;
   min-height: 100vh;
   background: var(--paper);
@@ -16,6 +17,11 @@
   color-scheme: light;
   font-family: var(--font-inter), sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+.site ::selection {
+  background: #d8cce9;
+  color: #242029;
 }
 
 .header {
@@ -35,13 +41,7 @@
 .nav {
   display: flex;
   align-items: center;
-  gap: 18px;
-}
-
-.desktopNav {
-  display: flex;
-  align-items: center;
-  gap: 24px;
+  gap: 8px;
 }
 
 .navLink,
@@ -57,11 +57,15 @@
 }
 
 .navLink {
+  padding: 11px 18px;
+  border-radius: 999px;
+  background: #f0efea;
   color: var(--ink);
+  transition: background-color 150ms ease;
 }
 
 .navLink:hover {
-  color: var(--ink-2);
+  background: #e4e2da;
 }
 
 .downloadLink {
@@ -74,6 +78,16 @@
 
 .downloadLink:hover {
   background: #44443e;
+}
+
+.navLink:active,
+.downloadLink:active {
+  background: #dcd9d1;
+  color: #2a2a27;
+}
+
+.navLink:focus-visible {
+  background: #e4e2da;
 }
 
 .site a:focus-visible {
@@ -94,19 +108,30 @@
   }
 
   .nav {
-    gap: 12px;
+    gap: 8px;
   }
 
-  .desktopNav {
-    display: none;
-  }
-
-  .navLink {
-    font-size: 12px;
+  .navLink,
+  .downloadLink {
+    padding: 11px 14px;
+    font-size: 13px;
   }
 
   .footer {
     margin-inline: 20px;
     padding-block: 40px 24px;
+  }
+}
+
+@media (max-width: 540px) {
+  .headerInner {
+    flex-direction: column;
+    gap: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink {
+    transition: none;
   }
 }

@@ -52,14 +52,15 @@ app; database-backed requests still need Postgres.
 | Surface | Purpose |
 | --- | --- |
 | `/` | Public landing introducing the mobile app; not an interactive web map or an admin dashboard |
+| `/experience`, `/territory`, `/download` | Dedicated product, province and app-distribution pages in the same public design system |
 | `/admin` | Municipal staff workspace; anonymous visitors see sign-in, and signing in does not grant a staff role |
 | `/s/[kind]/[ref]` | Public shared detail pages for places, routes, consultations and traffic notices |
 | `/privacy`, `/terms`, `/support`, `/account/delete` | Public privacy, terms, support and account-deletion pages |
 | `apps/mobile` | Citizen experience, including the interactive map and community participation |
 
-Public URLs and section anchors use English (`/#experience`, `/#download`);
-visible interface copy remains Spanish. Legal and account pages use the paths
-above, and the sitemap and shared-page links follow the same convention.
+Public URLs and section anchors use English. Main calls to action navigate to
+`/experience`, `/territory` and `/download`; homepage section anchors remain
+available for direct reading. Visible interface copy remains Spanish.
 
 The landing describes six product capabilities: places and services on a map,
 local businesses, routes, traffic notices, consultations with municipal follow-up,
@@ -79,16 +80,34 @@ implementation adapts that visual grammar rather than copying its assets.
 
 The header stays in normal document flow. The header, footer and public pages
 share a light theme; the admin theme remains separate. The refreshed web mark is
-an original folded field guide, not a replacement for the native app icon.
+an original lavender folded field guide, not a replacement for the native app icon.
 Original map/product illustrations are explicitly labelled as visual concepts,
 not actual app screenshots. The landing does not use the Monción or Sabaneta
 photographs. Real screenshots appear only when supplied. Store links remain
 configuration-driven, with coming-soon states for unavailable downloads.
 
-All visible copy comes from the Spanish catalogue; URLs remain English. Motion
-honours reduced-motion preferences without an animation library. Mobbin MCP was
-previously queried but required a paid plan and returned no references. No
-third-party screens, testimonials, usage figures or demo videos are fabricated.
+All visible copy comes from the Spanish catalogue; URLs remain English. A small
+Motion client component continuously loops similarly sized hero phrases, with a
+stable screen-reader label and no autoplay under reduced motion. It stops scheduling
+changes while the document is hidden. The rest of the page stays server-rendered.
+Mobbin MCP was previously queried but required a paid plan and returned no
+references. No third-party screens, testimonials, usage figures or videos are
+fabricated.
+
+The header exposes only download and municipal access, with a soft gray
+municipal pill, explicit hover/focus states and a visible lavender text selection.
+The commerce pin retains its -18-degree outer tilt; its icon is counter-rotated
+to remain upright. The territory section uses three original paper-map collages.
+
+Refinement verification covered the three new routes at 1440px and 390px, their
+canonical URLs and cross-page links, plus 320px page navigation. The homepage
+remained within 320px, 390px, 768px and 1024px widths. Browser observation confirmed
+the complete continuous headline cycle, identical rotator width/position for all
+three phrases, no pause control, live reduced-motion changes and a stable reduced
+state. A simulated hidden-document visibility event stopped phrase changes.
+Selection and municipal hover were visually inspected; no browser errors were
+observed. Typecheck, lint, docs, build and the default tests passed (103 passed,
+111 skipped, 0 failed).
 
 Browser verification of the photo-free revision covered 1440px desktop and
 390px mobile, including a dark system preference and reduced motion. Both
