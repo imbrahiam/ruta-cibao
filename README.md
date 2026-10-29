@@ -89,9 +89,11 @@ The shared footer pairs the Dominican flag with the province, separates discover
 and help links from legal utilities. Link hover reveals only a lavender underline;
 keyboard focus retains a visible outline, and motion respects reduced-motion settings.
 `/support` guides residents through the in-app support path, with a decorative
-account/help illustration, three short steps and native expandable FAQs for access,
-place data, offline use and account deletion. Its links lead to real public routes;
-no contact form, live response promise or unpublished support address is invented.
+account/help illustration and native expandable FAQs for access, place data,
+offline use and account deletion. Compass and waving-hand emoji accents prefer
+Apple Color Emoji, falling back to the platform's color emoji font.
+Its links lead to real public routes; no contact form, live response promise or
+unpublished support address is invented.
 
 ### Social-app identity
 

@@ -22,10 +22,21 @@
   width: 58px;
   height: 58px;
   place-items: center;
-  border: 1px solid #dfd7ec;
-  border-radius: 20px;
-  background: #eee8f6;
-  color: #66537e;
+  font-size: 32px;
+}
+
+.emoji {
+  font-family:
+    "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.handEmoji {
+  display: inline-block;
+  margin-right: 0.45em;
+  font-size: 0.85em;
+  vertical-align: -0.03em;
 }
 
 .eyebrow {
@@ -281,54 +292,6 @@
   font-weight: 500;
 }
 
-.steps {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.25fr;
-  gap: 28px;
-  margin: 0;
-  border-top: 1px solid #ded5e9;
-  padding: 30px 38px 34px;
-  background: #f5f1e7;
-  list-style: none;
-}
-
-.steps li {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  min-width: 0;
-}
-
-.stepNumber {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  flex-shrink: 0;
-  place-items: center;
-  border: 1px solid #d4c9e1;
-  border-radius: 50%;
-  background: #e8e1f1;
-  color: #635075;
-  font-size: 10px;
-  font-weight: 500;
-}
-
-.steps h3 {
-  padding-top: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1.5;
-  letter-spacing: -0.02em;
-}
-
-.steps p {
-  margin-top: 9px;
-  color: #6a6357;
-  font-size: 12px;
-  line-height: 1.75;
-  text-wrap: pretty;
-}
-
 .contactNote {
   max-width: 620px;
   margin: 20px auto 0;
@@ -416,7 +379,7 @@
 }
 
 .answer {
-  padding: 0 74px 24px 26px;
+  padding: 18px 74px 24px 26px;
   color: var(--ink-2);
   font-size: 14px;
   line-height: 1.85;
@@ -522,17 +485,6 @@
     height: 320px;
   }
 
-  .steps {
-    grid-template-columns: 1fr;
-    gap: 23px;
-    padding: 28px 30px;
-  }
-
-  .steps p {
-    margin-top: 4px;
-    font-size: 13px;
-  }
-
   .explore {
     align-items: flex-start;
     flex-direction: column;
@@ -594,10 +546,6 @@
     font-size: 46px;
   }
 
-  .steps {
-    padding: 27px 22px;
-  }
-
   .faq {
     margin-top: 64px;
   }
@@ -609,7 +557,7 @@
   }
 
   .answer {
-    padding: 0 19px 21px;
+    padding: 16px 19px 21px;
     font-size: 13px;
   }
 

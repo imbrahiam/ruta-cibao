@@ -62,8 +62,11 @@ export default function SupportPage() {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        <span className={styles.heroIcon} aria-hidden="true">
-          <LifeBuoy size={26} strokeWidth={1.4} />
+        <span
+          className={`${styles.heroIcon} ${styles.emoji}`}
+          aria-hidden="true"
+        >
+          🧭
         </span>
         <p className={styles.eyebrow}>{t("support")}</p>
         <h1>{t("supportTitle")}</h1>
@@ -82,42 +85,21 @@ export default function SupportPage() {
           </div>
           <SupportIllustration />
         </div>
-        <ol className={styles.steps}>
-          <li>
-            <span className={styles.stepNumber} aria-hidden="true">
-              01
-            </span>
-            <div>
-              <h3>{t("supportGuide.stepOneTitle")}</h3>
-              <p>{t("supportGuide.stepOneBody")}</p>
-            </div>
-          </li>
-          <li>
-            <span className={styles.stepNumber} aria-hidden="true">
-              02
-            </span>
-            <div>
-              <h3>{t("supportGuide.stepTwoTitle")}</h3>
-              <p>{t("supportGuide.stepTwoBody")}</p>
-            </div>
-          </li>
-          <li>
-            <span className={styles.stepNumber} aria-hidden="true">
-              03
-            </span>
-            <div>
-              <h3>{t("supportGuide.stepThreeTitle")}</h3>
-              <p>{t("supportGuide.stepThreeBody")}</p>
-            </div>
-          </li>
-        </ol>
       </section>
 
       <p className={styles.contactNote}>{t("supportContact")}</p>
 
       <section className={styles.faq} aria-labelledby="support-faq-title">
         <div className={styles.sectionHeading}>
-          <h2 id="support-faq-title">{t("supportGuide.faqTitle")}</h2>
+          <h2 id="support-faq-title">
+            <span
+              className={`${styles.handEmoji} ${styles.emoji}`}
+              aria-hidden="true"
+            >
+              👋
+            </span>
+            {t("supportGuide.faqTitle")}
+          </h2>
         </div>
         <div className={styles.questions}>
           <details className={styles.question}>
