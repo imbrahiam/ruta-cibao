@@ -1,12 +1,19 @@
 import {
+  ArrowDown,
+  ArrowDownRight,
+  ArrowUpRight,
+  Asterisk,
   FileText,
   Map as MapIcon,
+  MapPin,
   MessagesSquare,
   Route,
   Store,
   TriangleAlert,
 } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 import {
   AppScreenshot,
   hasScreenshot,
@@ -15,6 +22,7 @@ import { QrCode } from "@/components/landing/qr-code";
 import { StoreButtons } from "@/components/landing/store-buttons";
 import { getT } from "@/lib/web/i18n";
 import { site } from "@/lib/web/site";
+import styles from "./page.module.css";
 
 const t = getT("landing");
 
@@ -24,7 +32,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-/** The screenshots the owner provides, in the order they are shown. */
+/** Only owner-provided app captures are eligible for the gallery. */
 const SCREENS = [
   { file: "map", label: "mapScreen" },
   { file: "explore", label: "exploreScreen" },
@@ -32,11 +40,13 @@ const SCREENS = [
   { file: "cases", label: "casesScreen" },
 ] as const;
 
-const CAPABILITIES = [
-  { icon: MapIcon, title: "mapTitle", body: "mapBody" },
+const DISCOVERY_FEATURES = [
   { icon: Store, title: "businessTitle", body: "businessBody" },
   { icon: Route, title: "routesTitle", body: "routesBody" },
   { icon: TriangleAlert, title: "trafficTitle", body: "trafficBody" },
+] as const;
+
+const COMMUNITY_FEATURES = [
   { icon: MessagesSquare, title: "casesTitle", body: "casesBody" },
   { icon: FileText, title: "reportsTitle", body: "reportsBody" },
 ] as const;
@@ -55,131 +65,85 @@ export default function LandingPage() {
   const stores = Boolean(site.iosUrl || site.androidUrl);
 
   return (
-    <>
-      <section className="container-page grid items-center gap-12 py-14 md:grid-cols-[1.1fr_0.9fr] md:py-24">
-        <div className="animate-rise flex flex-col items-start gap-7">
-          <p className="t-label text-ink-2">{t("province")}</p>
-          <h1 className="t-display">{t("headline")}</h1>
-          <p className="t-body-lg max-w-[46ch] text-ink-2">{t("intro")}</p>
-          <div className="flex flex-col gap-3">
-            <p className="t-small font-medium text-ink">{t("download")}</p>
-            <StoreButtons
-              iosUrl={site.iosUrl}
-              androidUrl={site.androidUrl}
-              labels={STORE_LABELS}
-            />
-            {stores ? null : (
-              <p className="t-small max-w-[44ch] text-ink-3">
-                {t("availability")}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="hidden items-center justify-center gap-6 md:flex">
-          {shown.length > 0 ? (
-            <div className="flex items-start gap-5">
-              {shown.slice(0, 2).map((screen, index) => (
-                <div key={screen.file} className={index === 1 ? "mt-12" : ""}>
-                  <AppScreenshot
-                    name={screen.file}
-                    screen={t(screen.label)}
-                    priority
-                  />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <ScanCard />
-          )}
+    <div className={styles.landing}>
+      <section
+        className={`${styles.wrap} ${styles.hero}`}
+        aria-labelledby="hero-title"
+      >
+        <p className={styles.eyebrow}>
+          <span className={styles.eyebrowDot} aria-hidden />
+          {t("designEyebrow")}
+        </p>
+        <h1 id="hero-title" className={styles.heroTitle}>
+          {t("designHeadline")}
+          <span>{t("designAccent")}</span>
+        </h1>
+        <div className={styles.heroBottom}>
+          <p className={styles.heroIntro}>{t("designIntro")}</p>
+          <a href="#experience" className={styles.primaryAction}>
+            {t("designExplore")}
+            <ArrowUpRight aria-hidden size={20} />
+          </a>
         </div>
       </section>
 
-      {shown.length > 0 ? (
-        <section
-          aria-labelledby="screens-title"
-          className="border-y border-line bg-paper-2 py-16"
-        >
-          <div className="container-page flex flex-col gap-10">
-            <h2 id="screens-title" className="t-h2">
-              {t("screenshots")}
-            </h2>
-            <div className="scrollbar-none -mx-5 flex gap-6 overflow-x-auto px-5 pb-2 sm:mx-0 sm:px-0">
-              {shown.map((screen) => (
-                <AppScreenshot
-                  key={screen.file}
-                  name={screen.file}
-                  screen={t(screen.label)}
-                />
-              ))}
-            </div>
+      <div className={`${styles.wrap} ${styles.landscapeWrap}`}>
+        <figure className={styles.landscape}>
+          <Image
+            src="/places/presa-moncion.webp"
+            alt={t("designPhotoAlt")}
+            width={960}
+            height={640}
+            sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1440px) calc(100vw - 80px), 1280px"
+            preload
+            className={styles.landscapeImage}
+          />
+          <div className={styles.locationBadge}>
+            <MapPin aria-hidden size={15} />
+            {t("designPhoto")}
           </div>
-        </section>
-      ) : (
-        <section
-          aria-labelledby="screens-title"
-          className="border-y border-line bg-paper-2 py-12"
-        >
-          <div className="container-page flex flex-col gap-2">
-            <h2 id="screens-title" className="t-h3">
-              {t("screenshots")}
-            </h2>
-            <p className="t-body max-w-[60ch] text-ink-2">
-              {t("screenshotMissing")}
-            </p>
-          </div>
-        </section>
-      )}
-
-      <section
-        aria-labelledby="capabilities-title"
-        className="container-page flex flex-col gap-10 py-16 md:py-24"
-      >
-        <div className="flex max-w-2xl flex-col gap-4">
-          <h2 id="capabilities-title" className="t-h2">
-            {t("capabilities")}
-          </h2>
-          <p className="t-body-lg text-ink-2">{t("capabilitiesIntro")}</p>
-        </div>
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {CAPABILITIES.map(({ icon: Icon, title, body }) => (
-            <li
-              key={title}
-              className="flex flex-col gap-3 rounded-card bg-card p-6 shadow-ring"
+          <figcaption className={styles.landscapeCaption}>
+            <span>{t("designEdition")}</span>
+            <a
+              href="#territory"
+              className={styles.photoAction}
+              aria-label={t("designScroll")}
             >
-              <div className="flex items-center gap-2.5">
-                <Icon
-                  aria-hidden
-                  strokeWidth={1.75}
-                  className="size-5 shrink-0 text-ink"
-                />
-                <h3 className="t-h3">{t(title)}</h3>
-              </div>
-              <p className="t-body text-ink-2">{t(body)}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
+              <ArrowDown aria-hidden size={25} />
+            </a>
+          </figcaption>
+        </figure>
+        <div className={styles.photoFootnote}>
+          <p>{t("province")}</p>
+          <a href="#territory">
+            {t("designScroll")}
+            <ArrowDownRight aria-hidden size={15} />
+          </a>
+        </div>
+      </div>
 
       <section
+        id="territory"
         aria-labelledby="territory-title"
-        className="bg-pine py-16 text-on-pine md:py-24"
+        className={`${styles.wrap} ${styles.territory}`}
       >
-        <div className="container-page grid gap-10 md:grid-cols-2 md:items-end">
-          <div className="flex flex-col gap-4">
-            <h2 id="territory-title" className="t-h2">
-              {t("territoryTitle")}
-            </h2>
-            <p className="t-body-lg max-w-[44ch] text-on-pine/80">
-              {t("territoryBody")}
-            </p>
-          </div>
-          <ul className="flex flex-wrap gap-3 md:justify-end">
+        <div>
+          <p className={styles.eyebrow}>{t("designChapter")}</p>
+          <h2 id="territory-title" className={styles.sectionTitle}>
+            {t("designTerritory")}
+          </h2>
+        </div>
+        <div className={styles.territoryDetails}>
+          <Asterisk
+            className={styles.territoryMark}
+            aria-hidden
+            strokeWidth={1.3}
+          />
+          <p className={styles.body}>{t("designTerritoryBody")}</p>
+          <ul className={styles.municipalities}>
             {MUNICIPALITIES.map((key) => (
-              <li
-                key={key}
-                className="rounded-full bg-white/10 px-5 py-3 text-[17px] font-medium"
-              >
+              <li key={key}>
+                <span aria-hidden />
                 {t(key)}
               </li>
             ))}
@@ -188,40 +152,157 @@ export default function LandingPage() {
       </section>
 
       <section
-        id="descargar"
-        aria-labelledby="download-title"
-        className="container-page grid items-center gap-10 py-16 md:grid-cols-2 md:py-24"
+        id="experience"
+        aria-labelledby="experience-title"
+        className={`${styles.wrap} ${styles.experience}`}
       >
-        <div className="flex flex-col gap-5">
-          <h2 id="download-title" className="t-h2">
-            {t("downloadTitle")}
-          </h2>
-          <p className="t-body-lg max-w-[46ch] text-ink-2">
-            {t("downloadBody")}
-          </p>
-          <StoreButtons
-            iosUrl={site.iosUrl}
-            androidUrl={site.androidUrl}
-            labels={STORE_LABELS}
-          />
+        <div className={styles.sectionHeading}>
+          <div>
+            <p className={styles.eyebrow}>{t("designProduct")}</p>
+            <h2 id="experience-title" className={styles.sectionTitle}>
+              {t("designFeatures")}
+            </h2>
+          </div>
+          <p className={styles.body}>{t("designFeaturesBody")}</p>
         </div>
-        <div className="hidden justify-end md:flex">
-          <ScanCard />
+        <div className={styles.discoveryLayout}>
+          <article className={styles.discoveryPhoto}>
+            <Image
+              src="/places/parque-sabaneta.webp"
+              alt=""
+              fill
+              sizes="(max-width: 800px) calc(100vw - 32px), (max-width: 1440px) 52vw, 660px"
+              className={styles.townImage}
+            />
+            <span className={styles.townBadge}>
+              <MapPin aria-hidden size={15} />
+              {t("sabaneta")}
+            </span>
+            <div className={styles.photoFeature}>
+              <MapIcon aria-hidden size={27} strokeWidth={1.5} />
+              <h3>{t("mapTitle")}</h3>
+              <p>{t("mapBody")}</p>
+            </div>
+          </article>
+          <ul className={styles.discoveryFeatures}>
+            {DISCOVERY_FEATURES.map(({ icon: Icon, title, body }) => (
+              <li key={title} className={styles.featureRow}>
+                <div className={styles.featureIcon}>
+                  <Icon aria-hidden size={24} strokeWidth={1.5} />
+                </div>
+                <div>
+                  <h3>{t(title)}</h3>
+                  <p>{t(body)}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
-    </>
-  );
-}
 
-/** Desktop only: the phone opens this very page, with its own store first. */
-function ScanCard() {
-  return (
-    <div className="flex items-center gap-5 rounded-panel bg-card p-5 shadow-ring">
-      <QrCode value={site.origin} label={t("scan")} />
-      <div className="flex max-w-[16ch] flex-col gap-1.5">
-        <p className="text-[16px] font-medium leading-snug">{t("scan")}</p>
-        <p className="t-small text-ink-3">{t("scanHint")}</p>
-      </div>
+      {shown.length > 0 ? (
+        <section
+          aria-labelledby="screens-title"
+          className={`${styles.wrap} ${styles.screens}`}
+        >
+          <div className={styles.sectionHeading}>
+            <h2 id="screens-title" className={styles.sectionTitle}>
+              {t("screenshots")}
+            </h2>
+            <ArrowDownRight aria-hidden size={38} strokeWidth={1.2} />
+          </div>
+          <div className={styles.screenGallery}>
+            {shown.map((screen) => (
+              <AppScreenshot
+                key={screen.file}
+                name={screen.file}
+                screen={t(screen.label)}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <section aria-labelledby="community-title" className={styles.community}>
+        <div className={styles.wrap}>
+          <div className={styles.communityLayout}>
+            <div className={styles.communityIntro}>
+              <p className={styles.eyebrow}>{t("designParticipation")}</p>
+              <h2 id="community-title" className={styles.sectionTitle}>
+                {t("designCommunity")}
+              </h2>
+              <p className={styles.body}>{t("designCommunityBody")}</p>
+              <a href="#download" className={styles.communityAction}>
+                {t("designDiscover")}
+                <ArrowUpRight aria-hidden size={20} />
+              </a>
+            </div>
+            <ul className={styles.communityFeatures}>
+              {COMMUNITY_FEATURES.map(({ icon: Icon, title, body }) => (
+                <li key={title} className={styles.featureRow}>
+                  <div className={styles.featureIcon}>
+                    <Icon aria-hidden size={25} strokeWidth={1.5} />
+                  </div>
+                  <div>
+                    <h3>{t(title)}</h3>
+                    <p>{t(body)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className={styles.municipal}>
+            <div>
+              <h3>{t("designMunicipal")}</h3>
+              <p>{t("designMunicipalBody")}</p>
+            </div>
+            <Link href="/admin" className={styles.municipalAction}>
+              {t("designMunicipalAction")}
+              <ArrowUpRight aria-hidden size={19} />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="download"
+        aria-labelledby="download-title"
+        className={`${styles.wrap} ${styles.download}`}
+      >
+        <div className={styles.downloadPanel}>
+          <Asterisk
+            aria-hidden
+            className={styles.downloadMark}
+            strokeWidth={1}
+          />
+          <div className={styles.downloadContent}>
+            <p className={styles.eyebrow}>{t("brand")}</p>
+            <h2 id="download-title" className={styles.downloadTitle}>
+              {t("designDownload")}
+            </h2>
+            <p className={styles.body}>{t("designDownloadBody")}</p>
+            <div className={styles.storeActions}>
+              <StoreButtons
+                iosUrl={site.iosUrl}
+                androidUrl={site.androidUrl}
+                labels={STORE_LABELS}
+              />
+              {!stores ? (
+                <p className={styles.availability}>{t("designAvailability")}</p>
+              ) : null}
+            </div>
+          </div>
+          <div className={styles.scanCard}>
+            <div className={styles.qrFrame}>
+              <QrCode value={site.origin} label={t("scan")} />
+              <ArrowUpRight aria-hidden size={21} />
+            </div>
+            <p>{t("scan")}</p>
+            <p className={styles.scanHint}>{t("scanHint")}</p>
+          </div>
+        </div>
+        <p className={styles.closingNote}>{t("designFootnote")}</p>
+      </section>
     </div>
   );
 }

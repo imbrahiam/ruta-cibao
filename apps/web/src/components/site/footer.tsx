@@ -20,22 +20,22 @@ export function SiteFooter() {
         <nav aria-label={t("footerLabel")}>
           <ul className="flex flex-col gap-0.5">
             <li>
-              <Link href="/privacidad" className={LINK}>
+              <Link href="/privacy" className={LINK}>
                 {t("privacy")}
               </Link>
             </li>
             <li>
-              <Link href="/terminos" className={LINK}>
+              <Link href="/terms" className={LINK}>
                 {t("terms")}
               </Link>
             </li>
             <li>
-              <Link href="/soporte" className={LINK}>
+              <Link href="/support" className={LINK}>
                 {t("support")}
               </Link>
             </li>
             <li>
-              <Link href="/cuenta/eliminar" className={LINK}>
+              <Link href="/account/delete" className={LINK}>
                 {t("deletion")}
               </Link>
             </li>

@@ -15,15 +15,29 @@ export function SiteHeader() {
           <Logo label={t("brand")} />
         </Link>
         <nav aria-label={t("navLabel")} className="flex items-center gap-1">
-          {site.sourceUrl ? (
-            <a
-              href={site.sourceUrl}
-              rel="noopener"
-              className={`${buttonStyles({ variant: "ghost", size: "sm" })} hidden sm:inline-flex`}
+          <div className="hidden items-center gap-1 sm:flex">
+            <Link
+              href="/#experience"
+              className={buttonStyles({ variant: "ghost", size: "sm" })}
             >
-              {t("source")}
-            </a>
-          ) : null}
+              {t("designExplore")}
+            </Link>
+            <Link
+              href="/#download"
+              className={buttonStyles({ variant: "primary", size: "sm" })}
+            >
+              {t("download")}
+            </Link>
+            {site.sourceUrl ? (
+              <a
+                href={site.sourceUrl}
+                rel="noopener"
+                className={buttonStyles({ variant: "ghost", size: "sm" })}
+              >
+                {t("source")}
+              </a>
+            ) : null}
+          </div>
           <Link
             href="/admin"
             className={buttonStyles({ variant: "secondary", size: "sm" })}

@@ -60,7 +60,7 @@ export function ShareView({ content }: { content: ShareContent }) {
             {t("open")}
           </a>
           <Link
-            href="/#descargar"
+            href="/#download"
             className={buttonStyles({
               variant: "secondary",
               size: "lg",

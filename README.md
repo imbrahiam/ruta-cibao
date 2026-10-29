@@ -54,25 +54,41 @@ app; database-backed requests still need Postgres.
 | `/` | Public landing introducing the mobile app; not an interactive web map or an admin dashboard |
 | `/admin` | Municipal staff workspace; anonymous visitors see sign-in, and signing in does not grant a staff role |
 | `/s/[kind]/[ref]` | Public shared detail pages for places, routes, consultations and traffic notices |
-| `/privacidad`, `/terminos`, `/soporte`, `/cuenta/eliminar` | Public privacy, terms, support and account-deletion pages |
+| `/privacy`, `/terms`, `/support`, `/account/delete` | Public privacy, terms, support and account-deletion pages |
 | `apps/mobile` | Citizen experience, including the interactive map and community participation |
+
+Public URLs and section anchors use English (`/#experience`, `/#download`);
+visible interface copy remains Spanish. Legal and account pages use the paths
+above, and the sitemap and shared-page links follow the same convention.
 
 The landing describes six product capabilities: places and services on a map,
 local businesses, routes, traffic notices, consultations with municipal follow-up,
-and weekly municipal PDF reports. These cards describe the product; they are not
-six tools embedded in the landing.
+and weekly municipal PDF reports. These sections describe the product; they are
+not six tools embedded in the landing.
 
 The municipal workspace organizes moderation of places, business claims, photos,
 corrections, routes, traffic and content reports, plus consultation follow-up,
 weekly reports and administrator-only categories. These sections support the same
 citizen-facing features rather than a second public map.
 
-Local browser review on 2026-10-29: the landing displays iPhone and Android as
-coming soon and a notice in place of app screenshots. Download links and
-screenshots are conditional on configuration and supplied assets. Desktop and
-390-pixel mobile layouts were inspected; the mobile page had no horizontal
-overflow. Anonymous `/admin` displayed the municipal sign-in form; authenticated
-staff workflows were not exercised in this review.
+The landing uses an editorial, photography-led layout with local territory
+imagery, short Spanish catalogue copy and separate citizen and municipal calls to
+action. Styling is scoped to the landing; the admin theme is unchanged. Motion
+honours reduced-motion preferences and does not require an animation dependency.
+Real app screenshots appear only when supplied, without a missing-assets section.
+Store links remain configuration-driven; unavailable downloads show coming soon.
+
+Design references: the supplied [Moonjar site](https://moonjar.ai/) informed
+the visual-first, concise storytelling approach. Mobbin MCP was queried, but the
+connection required a paid plan and returned no design references. No third-party
+screens, testimonials, usage figures or product demo videos are fabricated.
+
+Browser verification on 2026-10-29 covered 1440-pixel desktop and 390-pixel
+mobile layouts, loaded photography, experience/download anchor navigation and
+reduced motion. Neither layout overflowed horizontally. All four English public
+routes returned HTTP 200, and the live sitemap contained the new URLs. Typecheck,
+lint, documentation validation, production build and the default test suite passed
+(103 passed, 111 skipped); integration services were not exercised in this review.
 
 ## Scripts
 
