@@ -32,12 +32,47 @@ docker compose -f infra/docker-compose.yml up -d  # Postgres + storage
 bun install
 bun run db:migrate
 bun run db:seed && bun run db:seed:demo           # optional demo content
-bun run dev                                       # API + admin on :3000
+bun run dev                                       # landing + API + admin on :3000
 bun run mobile:ios                                # or mobile:android
 ```
 
-- Admin panel: <http://localhost:3000/admin>
+- Landing: <http://localhost:3000/>
+- Admin panel (authorized staff only): <http://localhost:3000/admin>
 - API reference: <http://localhost:3000/api/docs>
+
+### Web-only preview
+
+With dependencies installed and `.env` configured, run `bun run dev` from the
+repository root. This starts only Next.js, not Expo, the background worker or
+Docker services. The public landing can be inspected without starting the mobile
+app; database-backed requests still need Postgres.
+
+### Which surface does what?
+
+| Surface | Purpose |
+| --- | --- |
+| `/` | Public landing introducing the mobile app; not an interactive web map or an admin dashboard |
+| `/admin` | Municipal staff workspace; anonymous visitors see sign-in, and signing in does not grant a staff role |
+| `/s/[kind]/[ref]` | Public shared detail pages for places, routes, consultations and traffic notices |
+| `/privacidad`, `/terminos`, `/soporte`, `/cuenta/eliminar` | Public privacy, terms, support and account-deletion pages |
+| `apps/mobile` | Citizen experience, including the interactive map and community participation |
+
+The landing describes six product capabilities: places and services on a map,
+local businesses, routes, traffic notices, consultations with municipal follow-up,
+and weekly municipal PDF reports. These cards describe the product; they are not
+six tools embedded in the landing.
+
+The municipal workspace organizes moderation of places, business claims, photos,
+corrections, routes, traffic and content reports, plus consultation follow-up,
+weekly reports and administrator-only categories. These sections support the same
+citizen-facing features rather than a second public map.
+
+Local browser review on 2026-10-29: the landing displays iPhone and Android as
+coming soon and a notice in place of app screenshots. Download links and
+screenshots are conditional on configuration and supplied assets. Desktop and
+390-pixel mobile layouts were inspected; the mobile page had no horizontal
+overflow. Anonymous `/admin` displayed the municipal sign-in form; authenticated
+staff workflows were not exercised in this review.
 
 ## Scripts
 
