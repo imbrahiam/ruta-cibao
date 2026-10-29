@@ -19,6 +19,24 @@ link or a push token can never cross from one to another.
 `APP_VARIANT` defaults to `development`. EAS sets it per profile; set it
 yourself for `expo run:ios` or `expo run:android`.
 
+## Brand assets
+
+Encuentro, the open C and point on iris `#7860a8`, is the active identity.
+The geometry and palette live in `packages/shared/src/brand.ts`; the native
+`BrandMark` and web logo consume that source directly.
+
+```bash
+bun run apps/mobile/scripts/generate-brand-assets.ts
+```
+
+Run from the repository root. This regenerates the 1024px launcher icon,
+512px transparent splash mark, 1024px Android foreground and monochrome layers,
+web SVG favicon and 180px Apple touch icon. Android uses a flat iris background;
+both adaptive silhouettes fit the central 66dp safe circle of a 108dp layer,
+following the [Android adaptive icon requirements](https://developer.android.com/develop/ui/compose/system/icon_design_adaptive).
+Launcher images have no baked-in corner mask. Rebuild and reinstall the native
+app to see launcher or splash changes; an OTA update cannot replace them.
+
 ## Build-time configuration
 
 These values are baked into the signed build. None of them is a secret, but a

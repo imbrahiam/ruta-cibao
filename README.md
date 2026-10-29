@@ -79,19 +79,25 @@ rounded black calls to action, white panels and soft layered shadows. The
 implementation adapts that visual grammar rather than copying its assets.
 
 The header stays in normal document flow. The header, footer and public pages
-share a light theme; the admin theme remains separate. The refreshed web mark is
-an original lavender folded field guide, not a replacement for the native app icon.
+share a light theme; the admin theme remains separate. Encuentro, an open C and
+meeting point on a flat iris tile (`#7860a8`), is the active web and native identity.
 Original map/product illustrations are explicitly labelled as visual concepts,
 not actual app screenshots. The landing does not use the Monción or Sabaneta
 photographs. Real screenshots appear only when supplied. Store links remain
 configuration-driven, with coming-soon states for unavailable downloads.
 
-### Social-app identity proposal
+### Social-app identity
 
-`/design/brand` compares four original proposals without changing the active web
-or native identity: Encuentro (open C and point, iris `#7860a8`), Vínculo (linked
-strokes, forest `#28594a`), Rumbo (cut R, blue `#3468d8`) and Plaza (three radial
-forms around a point, wine `#783b57`). The original Encuentro files are unchanged.
+Encuentro is selected. `packages/shared/src/brand.ts` supplies its geometry and
+colors to the web logo, native brand component and asset generator. Run
+`bun run apps/mobile/scripts/generate-brand-assets.ts` after changing that source
+to regenerate the browser SVG, Apple touch icon, native launcher, splash and
+Android adaptive/themed layers. Native launcher and splash updates require a new
+native build; they are not delivered by an OTA update.
+
+`/design/brand` marks Encuentro as active and preserves the three alternatives
+for comparison: Vínculo (linked strokes, forest `#28594a`), Rumbo (cut R, blue
+`#3468d8`) and Plaza (three radial forms around a point, wine `#783b57`).
 Each option includes app-icon and wordmark contexts, small-size displays and
 downloads; a shared monochrome row separates silhouette from color.
 Reference imagery was inspected

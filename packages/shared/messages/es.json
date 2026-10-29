@@ -3,11 +3,12 @@
     "brandProposal": {
       "title": "Más carácter. Cuatro caminos.",
       "intro": "La misma app, cuatro personalidades. Compara la forma primero y el color después.",
-      "status": "Propuesta de identidad · El logo actual sigue activo",
+      "status": "Encuentro · Identidad activa",
+      "active": "Identidad activa",
       "options": {
         "encuentro": {
           "name": "Encuentro",
-          "body": "La propuesta original. Una C abierta y un punto: tranquila, sencilla y cercana.",
+          "body": "La identidad elegida. Una C abierta y un punto: tranquila, sencilla y cercana.",
           "color": "Iris"
         },
         "vinculo": {
@@ -26,7 +27,7 @@
           "color": "Vino"
         }
       },
-      "optionAlt": "Propuesta {name} para el icono de Ruta Cibao",
+      "optionAlt": "Identidad {name} para el icono de Ruta Cibao",
       "compareTitle": "La forma también tiene que sostenerse sola.",
       "compareBody": "Todas en tinta, al mismo tamaño. Sin color ni efectos que hagan el trabajo por el símbolo.",
       "download": "Descargas de {name}",

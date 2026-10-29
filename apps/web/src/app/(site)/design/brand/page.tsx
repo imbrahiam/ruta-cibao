@@ -104,7 +104,14 @@ export default function BrandProposalPage() {
               </div>
               <div className={styles.copy}>
                 <div className={styles.optionHeading}>
-                  <h2 id={`${option.id}-title`}>{name}</h2>
+                  <h2 id={`${option.id}-title`}>
+                    {name}
+                    {option.id === "encuentro" ? (
+                      <span className={styles.selected}>
+                        {t("brandProposal.active")}
+                      </span>
+                    ) : null}
+                  </h2>
                   <span className={styles.palette}>
                     <i />
                     {t(`brandProposal.options.${option.id}.color`)}

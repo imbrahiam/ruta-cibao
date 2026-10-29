@@ -1,3 +1,4 @@
+import { BRAND_COLORS } from "@ruta/shared/brand";
 import es from "@ruta/shared/messages/es.json" with { type: "json" };
 import type { ConfigContext, ExpoConfig } from "expo/config";
 import { type ConfigPlugin, withEntitlementsPlist } from "expo/config-plugins";
@@ -102,7 +103,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       package: current.identifier,
       adaptiveIcon: {
-        backgroundColor: "#183F32",
+        backgroundColor: BRAND_COLORS.iris,
         foregroundImage: "./assets/images/android-icon-foreground.png",
         monochromeImage: "./assets/images/android-icon-monochrome.png",
       },
