@@ -94,9 +94,10 @@ than reserving the widest word's space. The cycle changes every 2 seconds:
 entry takes 440ms, exit 240ms and width adjustment 560ms, with 0.2em vertical
 travel and 0.08em blur. These timings were measured from a browser recording of
 Moonjar; the implementation uses Motion with an ease-out curve.
-The underline is a separate SVG brush path, revealed left to right after a
-120ms delay. A non-scaling 4px stroke remains independent of text blur and width
-changes, avoiding apparent thickness changes during transitions.
+The underline is a complete SVG brush path, revealed left to right by an animated
+clip after a 120ms delay. It does not use normalized path length or stroke dashes,
+which could truncate the stroke with a non-scaling path. The 4px stroke remains
+independent of text blur and width changes.
 A stable screen-reader label and reduced-motion preference keep a static version
 available. Changes stop while the document is hidden; the rest stays server-rendered.
 Mobbin MCP was previously queried but required a paid plan and returned no
@@ -128,8 +129,9 @@ Browser checks confirmed matching `#fafaf7` document/body/theme metadata after
 reload, unchanged dark admin canvas, and a zero-pixel vertical difference between
 the resting word and its fixed prefix on desktop and mobile. Header and hero
 actions measured 44px with 14px text. Central navigation retained a transparent
-background on hover. The recorded brush cycle changed its stroke dash length
-while maintaining 4px width and no blur. Layout widths of 320/390/768/1024px
+background on hover. Browser observation confirmed that all three words reach
+an unclipped, solid lavender stroke with 4px width and no blur. Layout widths
+of 320/390/768/1024px
 had no horizontal overflow. Native Safari toolbar rendering and rubber-band
 pull-to-refresh were not directly exercised; their document colors and metadata
 were verified in Chromium.
