@@ -23,6 +23,7 @@ import { routing } from "@/i18n/routing";
 import { recordAudit } from "@/lib/audit";
 import { decryptSensitive } from "@/lib/crypto";
 import { env } from "@/lib/env";
+import { logInfo } from "@/lib/log";
 
 const SEND_BATCH_SIZE = 100;
 const RECEIPT_BATCH_SIZE = 1_000;
@@ -231,7 +232,7 @@ export async function sendPushToUser(
   payload: PushPayload,
 ): Promise<number> {
   if (!isPushEnabled()) {
-    console.info("native_push.send.skipped");
+    logInfo("native_push.send.skipped");
     return 0;
   }
   const notificationId = z.uuid().parse(payload.notificationId);

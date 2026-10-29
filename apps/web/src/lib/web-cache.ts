@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { hashLookup } from "@/lib/crypto";
 import { env } from "@/lib/env";
+import { errorDetails, logWarn } from "@/lib/log";
 
 /**
  * Dropping the web process's public caches from another process.
@@ -36,8 +37,8 @@ export async function refreshPublicCaches(): Promise<boolean> {
       signal: AbortSignal.timeout(5_000),
     });
     return response.ok;
-  } catch {
-    console.warn("public cache refresh failed; entries expire on their own");
+  } catch (error) {
+    logWarn("public_cache.refresh_failed", errorDetails(error));
     return false;
   }
 }

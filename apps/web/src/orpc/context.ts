@@ -13,6 +13,8 @@ import type { Viewer } from "@/modules/access/viewer";
  */
 export type AppContext = {
   db: Db;
+  /** Correlates this request with its log lines and its response header. */
+  requestId: string;
   headers: Headers;
   getSession: () => Promise<ResolvedSession>;
   getViewer: () => Promise<Viewer>;
@@ -28,6 +30,7 @@ export function createContext(request: Request): AppContext {
 
   return {
     db,
+    requestId: request.headers.get("x-request-id") ?? "unknown",
     headers: request.headers,
     getSession,
     getViewer: async () => (await getSession()).viewer,

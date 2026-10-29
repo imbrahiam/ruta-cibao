@@ -5,6 +5,7 @@ import { OpenAPIReferenceHandlerPlugin } from "@orpc/openapi/plugins";
 import { onError } from "@orpc/server";
 import { ZodToJsonSchemaConverter } from "@orpc/zod";
 import { env } from "@/lib/env";
+import { errorDetails, logError, logInfo } from "@/lib/log";
 import { createContext } from "@/orpc/context";
 import { router } from "@/orpc/router";
 
@@ -22,7 +23,14 @@ const converters = [new ZodToJsonSchemaConverter()];
 const generator = new OpenAPIGenerator({ converters });
 
 const handler = new OpenAPIHandler(router, {
-  interceptors: [onError((error) => console.error(error))],
+  interceptors: [
+    onError((error, options) => {
+      logError("api.failed", {
+        requestId: options.context.requestId,
+        ...errorDetails(error),
+      });
+    }),
+  ],
   plugins: [
     // Query and path values arrive as strings; this converts them to what the
     // input schema asks for, but only where the conversion is lossless.
@@ -50,12 +58,21 @@ const handler = new OpenAPIHandler(router, {
 });
 
 async function handle(request: Request) {
+  const started = performance.now();
   const { response } = await handler.handle(request, {
     prefix: "/api",
     context: createContext(request),
   });
 
   if (!response) return new Response("Not found", { status: 404 });
+
+  logInfo("api.request", {
+    requestId: request.headers.get("x-request-id") ?? "unknown",
+    method: request.method,
+    path: new URL(request.url).pathname,
+    status: response.status,
+    ms: Math.round(performance.now() - started),
+  });
   if (new URL(request.url).pathname === "/api/offline/manifest") {
     const headers = new Headers(response.headers);
     headers.set("cache-control", "no-store");

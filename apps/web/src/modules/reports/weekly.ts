@@ -19,6 +19,7 @@ import { env } from "@/lib/env";
 import { withIdempotency } from "@/lib/idempotency";
 import { drainOutbox, enqueueJob } from "@/lib/jobs/outbox";
 import { QUEUES } from "@/lib/jobs/queues";
+import { errorDetails, logError } from "@/lib/log";
 import {
   assertModerates,
   type ModeratorViewer,
@@ -506,10 +507,8 @@ export async function generateWeeklyReportForMunicipality(
   });
 
   if (!outcome.replayed && !env.JOBS_ENABLED) {
-    await drainOutbox().catch(() => {
-      console.error(
-        "inline weekly report generation failed; outbox retains it",
-      );
+    await drainOutbox().catch((error) => {
+      logError("reports.weekly_inline_failed", errorDetails(error));
     });
     const [latest] = await db
       .select({ status: weeklyReports.status })

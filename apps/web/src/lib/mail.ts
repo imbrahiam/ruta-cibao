@@ -9,6 +9,7 @@
 import { Resend } from "resend";
 import { logDeliveryAllowed } from "@/lib/delivery";
 import { env } from "@/lib/env";
+import { logInfo } from "@/lib/log";
 
 let client: Resend | undefined;
 
@@ -54,9 +55,11 @@ export async function sendEmail(message: Message): Promise<void> {
         "Email is not configured (RESEND_API_KEY), and production never writes links to the log",
       );
     }
-    console.info(
-      `[mail] RESEND_API_KEY is not set, so nothing was sent.\n  to: ${message.to}\n  subject: ${message.subject}\n${message.text}`,
-    );
+    logInfo("mail.code_logged", {
+      to: message.to,
+      subject: message.subject,
+      message: message.text,
+    });
     return;
   }
 

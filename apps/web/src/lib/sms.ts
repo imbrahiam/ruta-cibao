@@ -12,6 +12,7 @@
  */
 import { logDeliveryAllowed } from "@/lib/delivery";
 import { env } from "@/lib/env";
+import { logInfo } from "@/lib/log";
 
 const VERIFY_API = "https://verify.twilio.com/v2";
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -97,7 +98,5 @@ export function logPhoneCode(to: string, text: string): void {
       "Phone verification is not configured (TWILIO_VERIFY_SERVICE_SID), and log delivery is off",
     );
   }
-  console.info(
-    `[sms] Twilio Verify is not configured.\n  to: ${to}\n  ${text}`,
-  );
+  logInfo("sms.code_logged", { to, message: text });
 }

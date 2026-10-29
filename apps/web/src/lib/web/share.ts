@@ -16,6 +16,7 @@ import { router } from "@/orpc/router";
  */
 const anonymous: AppContext = {
   db,
+  requestId: "share-page",
   headers: new Headers(),
   getSession: async () => ({
     session: null,

@@ -20,6 +20,7 @@
  */
 import { z } from "zod";
 import { env } from "@/lib/env";
+import { errorDetails, logInfo } from "@/lib/log";
 import { consumeRollingRateLimit } from "@/lib/rate-limit";
 
 export type GeocodeResult = {
@@ -127,10 +128,7 @@ export async function geocode(
   } catch (error) {
     // A geocoder that is down degrades search to the province's own places,
     // which is the half people search for most. It is not worth an error.
-    console.info(
-      "geocoding unavailable",
-      error instanceof Error ? error.message : error,
-    );
+    logInfo("geocoding.unavailable", errorDetails(error));
     return [];
   }
 }

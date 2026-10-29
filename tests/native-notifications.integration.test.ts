@@ -118,6 +118,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
     function context(viewer: Viewer): AppContext {
       return {
         db,
+        requestId: "test-request",
         headers: new Headers(),
         getViewer: async () => viewer,
         getSession: async () => {

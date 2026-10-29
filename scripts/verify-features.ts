@@ -47,6 +47,7 @@ function clientFor(viewer: Viewer, expectedUser?: string) {
   return createRouterClient(router, {
     context: {
       db,
+      requestId: "verify-features",
       headers: new Headers(
         expectedUser ? { "x-expected-user-id": expectedUser } : {},
       ),

@@ -39,6 +39,7 @@ import {
 import { env } from "@/lib/env";
 import { drainOutbox, enqueueJob } from "@/lib/jobs/outbox";
 import { QUEUES } from "@/lib/jobs/queues";
+import { errorDetails, logError } from "@/lib/log";
 import { getObjectBytes, putObject } from "@/lib/storage";
 import { MAX_PHOTOS_PER_PLACE } from "@/modules/places/photos";
 
@@ -429,10 +430,8 @@ export async function scheduleOfflineSnapshotRebuild(
 export async function triggerOfflineSnapshotRebuild(): Promise<void> {
   await db.transaction((tx) => scheduleOfflineSnapshotRebuild(tx));
   if (!env.JOBS_ENABLED) {
-    await drainOutbox().catch(() => {
-      console.error(
-        "inline offline snapshot rebuild failed; outbox retains it",
-      );
+    await drainOutbox().catch((error) => {
+      logError("offline.snapshot_inline_failed", errorDetails(error));
     });
   }
 }

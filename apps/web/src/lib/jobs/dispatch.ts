@@ -1,6 +1,7 @@
 /** Every dispatch is durable, even when pg-boss is unavailable. */
 import { db } from "@/db";
 import { env } from "@/lib/env";
+import { errorDetails, logError } from "@/lib/log";
 import { drainOutbox, enqueueJob } from "./outbox";
 import type { JobPayloads, QueueName } from "./queues";
 
@@ -14,8 +15,8 @@ export async function dispatch<Q extends QueueName>(
     try {
       await drainOutbox();
       return "inline";
-    } catch {
-      console.error("inline job failed; durable outbox retained it");
+    } catch (error) {
+      logError("jobs.inline_failed", errorDetails(error));
     }
   }
   return "queued";

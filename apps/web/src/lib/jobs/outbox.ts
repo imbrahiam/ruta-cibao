@@ -1,6 +1,7 @@
 import { and, asc, eq, isNull, lte } from "drizzle-orm";
 import { type DbTransaction, db } from "@/db";
 import { jobOutbox } from "@/db/schema";
+import { errorDetails, logError } from "@/lib/log";
 import { type JobPayloads, QUEUES, type QueueName } from "./queues";
 
 /** Write with the domain transaction; rollback removes the job as well. */
@@ -50,7 +51,7 @@ export async function drainOutbox(limit = 20): Promise<number> {
       });
       if (!found) break;
       processed++;
-    } catch {
+    } catch (error) {
       if (!claimed) throw new Error("Could not claim an outbox job");
       const backoffMs = Math.min(
         3_600_000,
@@ -63,8 +64,10 @@ export async function drainOutbox(limit = 20): Promise<number> {
           nextAttemptAt: new Date(Date.now() + backoffMs),
         })
         .where(eq(jobOutbox.id, claimed.id));
-      console.error("outbox job failed; retry scheduled", {
+      logError("outbox.job_failed", {
         jobId: claimed.id,
+        attempts: claimed.attempts + 1,
+        ...errorDetails(error),
       });
     }
   }

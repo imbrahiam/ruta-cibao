@@ -16,6 +16,7 @@ import { Client } from "pg";
 import { type Db, type DbTransaction, db } from "@/db";
 import { type RealtimeEvent, realtimeEvents } from "@/db/schema";
 import { env } from "@/lib/env";
+import { errorDetails, logError } from "@/lib/log";
 
 const CHANNEL = "realtime_event";
 
@@ -53,7 +54,7 @@ async function connect(): Promise<void> {
   });
 
   client.on("error", (error) => {
-    console.error("realtime listener error, will reconnect on next use", error);
+    logError("realtime.listener_failed", errorDetails(error));
     broker.client = undefined;
     broker.connecting = undefined;
     client.end().catch(() => {});

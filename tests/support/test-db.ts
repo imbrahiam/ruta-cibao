@@ -47,6 +47,7 @@ export function context(
 ): AppContext {
   return {
     db,
+    requestId: "test-request",
     headers: new Headers(),
     getViewer: async () => viewer,
     getSession: async () => {

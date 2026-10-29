@@ -1,5 +1,6 @@
 import { onError } from "@orpc/server";
 import { RPCHandler } from "@orpc/server/fetch";
+import { errorDetails, logError, logInfo } from "@/lib/log";
 import { createContext } from "@/orpc/context";
 import { router } from "@/orpc/router";
 
@@ -12,16 +13,33 @@ import { router } from "@/orpc/router";
  * tag. Enabling it would mean taking on CSRF protection for no benefit here.
  */
 const handler = new RPCHandler(router, {
-  interceptors: [onError((error) => console.error(error))],
+  interceptors: [
+    onError((error, options) => {
+      logError("rpc.failed", {
+        requestId: options.context.requestId,
+        ...errorDetails(error),
+      });
+    }),
+  ],
 });
 
 async function handle(request: Request) {
+  const started = performance.now();
   const { response } = await handler.handle(request, {
     prefix: "/api/rpc",
     context: createContext(request),
   });
 
   if (!response) return new Response("Not found", { status: 404 });
+
+  logInfo("rpc.request", {
+    requestId: request.headers.get("x-request-id") ?? "unknown",
+    method: request.method,
+    path: new URL(request.url).pathname,
+    status: response.status,
+    ms: Math.round(performance.now() - started),
+  });
+
   if (new URL(request.url).pathname === "/api/rpc/offline/manifest") {
     const headers = new Headers(response.headers);
     headers.set("cache-control", "no-store");

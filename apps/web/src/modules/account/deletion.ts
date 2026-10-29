@@ -25,6 +25,7 @@ import { env } from "@/lib/env";
 import { withIdempotency } from "@/lib/idempotency";
 import { drainOutbox, enqueueJob } from "@/lib/jobs/outbox";
 import { QUEUES } from "@/lib/jobs/queues";
+import { errorDetails, logError } from "@/lib/log";
 import { publishRealtimeEvent, userChannel } from "@/lib/realtime";
 import { deleteObject, putObject } from "@/lib/storage";
 import { refreshPublicCaches } from "@/lib/web-cache";
@@ -277,8 +278,8 @@ export async function requestAccountDeletion(
 
   // Without a worker the queued job runs here; with one it is picked up in seconds.
   if (!env.JOBS_ENABLED) {
-    await drainOutbox().catch(() => {
-      console.error("inline account deletion failed; the outbox retains it");
+    await drainOutbox().catch((error) => {
+      logError("account.deletion_inline_failed", errorDetails(error));
     });
   }
 

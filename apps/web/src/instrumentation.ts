@@ -1,3 +1,5 @@
+import { logWarn } from "@/lib/log";
+
 /**
  * Runs once when the server boots, before the first request is served.
  *
@@ -19,14 +21,10 @@ export async function register() {
     const { isVerifyConfigured } = await import("@/lib/sms");
     const { isEmailConfigured } = await import("@/lib/mail");
     if (!isVerifyConfigured()) {
-      console.warn(
-        "[boot] Twilio Verify is not configured; phone sign-in is disabled.",
-      );
+      logWarn("boot.sms_disabled");
     }
     if (!isEmailConfigured()) {
-      console.warn(
-        "[boot] Email is not configured; email sign-in is disabled.",
-      );
+      logWarn("boot.email_disabled");
     }
   }
 }

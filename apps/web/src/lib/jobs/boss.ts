@@ -21,6 +21,7 @@
  */
 import { PgBoss } from "pg-boss";
 import { env } from "@/lib/env";
+import { errorDetails, logWarn } from "@/lib/log";
 import { QUEUES, type QueueName } from "./queues";
 
 type Role = "client" | "worker";
@@ -80,10 +81,7 @@ export function getBoss(role: Role = "client"): Promise<PgBoss | null> {
       return boss;
     })
     .catch((error: unknown) => {
-      console.warn(
-        "background queue unavailable; jobs will run in-process",
-        error,
-      );
+      logWarn("jobs.queue_unavailable", errorDetails(error));
       return null;
     });
 

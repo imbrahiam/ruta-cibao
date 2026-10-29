@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { logInfo } from "@/lib/log";
 
 /**
  * Runs before every request.
@@ -55,7 +56,10 @@ function isSameSite(request: NextRequest): boolean {
 }
 
 /** Headers every response carries. */
-function withSecurityHeaders<T extends Response>(response: T): T {
+function withSecurityHeaders<T extends Response>(
+  response: T,
+  secure: boolean,
+): T {
   response.headers.set("x-content-type-options", "nosniff");
   response.headers.set("x-frame-options", "SAMEORIGIN");
   response.headers.set("referrer-policy", "strict-origin-when-cross-origin");
@@ -63,17 +67,61 @@ function withSecurityHeaders<T extends Response>(response: T): T {
     "permissions-policy",
     "geolocation=(), camera=(), microphone=(), payment=(), usb=()",
   );
+  if (secure) {
+    response.headers.set(
+      "strict-transport-security",
+      "max-age=31536000; includeSubDomains",
+    );
+  }
   return response;
 }
 
+function isSecure(request: NextRequest): boolean {
+  return (
+    request.headers.get("x-forwarded-proto") === "https" ||
+    request.nextUrl.protocol === "https:"
+  );
+}
+
+/**
+ * Every request gets an id before any handler runs.
+ *
+ * The id is generated here rather than accepted from the client: a header the
+ * caller controls is a log-injection vector, and correlating two requests that
+ * chose the same id is worth less than the risk. It is forwarded to the route
+ * and echoed on the response, so a user report ("it failed at 14:02") and a
+ * log line can be matched without guessing.
+ */
 export function proxy(request: NextRequest) {
+  const requestId = crypto.randomUUID();
+  const secure = isSecure(request);
+
   if (!SAFE_METHODS.has(request.method) && !isSameSite(request)) {
-    return NextResponse.json(
+    logInfo("request.rejected", {
+      requestId,
+      method: request.method,
+      path: request.nextUrl.pathname,
+      reason: "cross_site",
+    });
+    const response = NextResponse.json(
       { error: "cross-origin request rejected" },
       { status: 403 },
     );
+    response.headers.set("x-request-id", requestId);
+    return withSecurityHeaders(response, secure);
   }
-  return withSecurityHeaders(NextResponse.next());
+
+  logInfo("request.start", {
+    requestId,
+    method: request.method,
+    path: request.nextUrl.pathname,
+  });
+
+  const headers = new Headers(request.headers);
+  headers.set("x-request-id", requestId);
+  const response = NextResponse.next({ request: { headers } });
+  response.headers.set("x-request-id", requestId);
+  return withSecurityHeaders(response, secure);
 }
 
 export const config = {

@@ -118,6 +118,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
       };
       return {
         db,
+        requestId: "test-request",
         headers,
         getViewer: async () => viewer,
         getSession: async () => resolved,
