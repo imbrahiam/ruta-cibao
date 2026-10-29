@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LocationPin } from "@/components/landing/location-pin";
-import headlineStyles from "@/components/landing/rotating-headline.module.css";
+import { LocationAccent } from "@/components/landing/location-accent";
 import { getT } from "@/lib/web/i18n";
 import styles from "./page.module.css";
 
@@ -24,14 +23,10 @@ export default function PinComparisonPage() {
             <h2>{t(`pinComparison.${variant}`)}</h2>
             <div className={styles.sample}>
               {t("studio.headlineLead")}{" "}
-              <span className={headlineStyles.locationAccent}>
-                <span className={headlineStyles.highlight}>
-                  {t("studio.headlineHighlight")}
-                </span>
-                <span className={headlineStyles.locationBadge}>
-                  <LocationPin variant={variant} />
-                </span>
-              </span>
+              <LocationAccent
+                text={t("studio.headlineHighlight")}
+                variant={variant}
+              />
             </div>
             <p>{t(`pinComparison.${variant}Note`)}</p>
           </section>

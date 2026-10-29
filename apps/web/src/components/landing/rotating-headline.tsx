@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { LocationPin } from "./location-pin";
+import { LocationAccent } from "./location-accent";
 import styles from "./rotating-headline.module.css";
 
 type RotatingHeadlineProps = {
@@ -153,13 +153,7 @@ export function RotatingHeadline({
             </motion.span>
           </span>
           <span className={styles.secondLine}>
-            {lead}{" "}
-            <span className={styles.locationAccent}>
-              <span className={styles.highlight}>{highlight}</span>
-              <span className={styles.locationBadge}>
-                <LocationPin variant="lollipop" />
-              </span>
-            </span>
+            {lead} <LocationAccent text={highlight} variant="classic" />
           </span>
         </span>
       </h1>

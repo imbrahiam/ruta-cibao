@@ -59,27 +59,32 @@
   display: block;
 }
 .locationAccent {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.15em;
+  display: inline-block;
   white-space: nowrap;
 }
+.locationPoint {
+  position: relative;
+  display: inline-block;
+}
 .locationBadge {
+  position: absolute;
+  bottom: 0.38em;
+  left: calc(50% + 0.13em);
   display: inline-flex;
-  width: 0.72em;
-  height: 0.72em;
+  width: 0.55em;
+  height: 0.66em;
   align-items: center;
   justify-content: center;
-  align-self: center;
   color: #d95650;
-  transform: rotate(12deg) translateY(-0.04em);
+  transform: translateX(-50%) rotate(38deg);
+  transform-origin: 50% 100%;
 }
 .locationBadge svg {
   width: 100%;
   height: 100%;
 }
 .locationBadge:has([data-pin="lollipop"]) {
-  height: 1.1em;
+  height: 0.96em;
 }
 .highlight {
   position: relative;

@@ -2,11 +2,11 @@
   "landing": {
     "pinComparison": {
       "title": "Dos formas de decir aquí.",
-      "intro": "El mismo color e inclinación. Compara la silueta y la altura.",
+      "intro": "Dos siluetas que apuntan al punto final de aquí.",
       "classic": "Pin clásico",
       "lollipop": "Pin lollipop",
-      "classicNote": "La versión anterior, con punta.",
-      "lollipopNote": "La nueva versión, con cabeza roja sólida y tallito más largo.",
+      "classicNote": "La opción elegida: una punta clara para marcar la ubicación.",
+      "lollipopNote": "La alternativa redonda, con tallito dirigido al mismo punto.",
       "back": "Ver en la landing"
     },
     "studio": {
