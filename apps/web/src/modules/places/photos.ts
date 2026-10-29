@@ -6,6 +6,7 @@ import { photoUploads, placePhotos, places } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { env } from "@/lib/env";
 import { normalizePhoto } from "@/lib/image";
+import { errorDetails, logError } from "@/lib/log";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   createUploadUrl,
@@ -238,12 +239,42 @@ export async function requestPhotoUpload(
   });
 }
 
+/** The place a photo may be attached to, as this viewer is allowed to see it. */
+function visiblePlace(userId: string, placeId: string) {
+  return and(
+    eq(places.id, placeId),
+    or(
+      eq(places.status, "published"),
+      and(eq(places.status, "pending"), eq(places.createdByUserId, userId)),
+    ),
+  );
+}
+
+function reservationOwnedBy(
+  storageKey: string,
+  userId: string,
+  placeId: string,
+) {
+  return and(
+    eq(photoUploads.storageKey, storageKey),
+    eq(photoUploads.userId, userId),
+    eq(photoUploads.placeId, placeId),
+  );
+}
+
 /**
  * Recording a photo that has finished uploading.
  *
  * Only staff with authority over the place's municipality publish directly.
  * Every other photograph waits for moderation, including an author's upload
  * to their own pending place. Contact verification is not publication authority.
+ *
+ * Reading, decoding and re-encoding the image happen outside any transaction.
+ * That work takes as long as the photo is large, and holding a reservation and
+ * a place row locked across it would stall every other upload while the pool
+ * — ten connections — does the waiting. The cheap preflight gives an invalid
+ * request a fast answer; the short transaction at the end re-checks everything
+ * that could have changed and is the only place a decision is written.
  */
 export async function attachPhoto(
   db: Db,
@@ -263,104 +294,163 @@ export async function attachPhoto(
     throw new PhotoError("invalid");
   }
 
-  return db.transaction(async (tx) => {
-    const [upload] = await tx
-      .select()
+  const owned = reservationOwnedBy(
+    input.storageKey,
+    viewer.userId,
+    input.placeId,
+  );
+  // Preflight, unlocked. It exists to refuse bad input before downloading and
+  // decoding gigabytes or writing an object; correctness comes from the
+  // transaction below, which repeats every check under a row lock.
+  const [reservation] = await db
+    .select({
+      finalKey: photoUploads.finalKey,
+      status: photoUploads.status,
+      expiresAt: photoUploads.expiresAt,
+      contentType: photoUploads.contentType,
+      sizeBytes: photoUploads.sizeBytes,
+    })
+    .from(photoUploads)
+    .innerJoin(places, eq(places.id, photoUploads.placeId))
+    .where(and(owned, visiblePlace(viewer.userId, input.placeId)))
+    .limit(1);
+  if (!reservation) {
+    const [exists] = await db
+      .select({ storageKey: photoUploads.storageKey })
       .from(photoUploads)
-      .where(
-        and(
-          eq(photoUploads.storageKey, input.storageKey),
-          eq(photoUploads.userId, viewer.userId),
-          eq(photoUploads.placeId, input.placeId),
-        ),
-      )
-      .limit(1)
-      .for("update");
-    if (!upload) throw new PhotoError("invalid");
-    // Keep acknowledgement recovery independent of expiry and place visibility,
-    // but only after the temporary key and reservation owner have been checked.
-    if (upload.finalKey) {
-      if (!upload.status) throw new PhotoError("invalid");
-      return { status: upload.status };
-    }
-    const [place] = await tx
-      .select({ id: places.id, municipalityId: places.municipalityId })
-      .from(places)
-      .where(
-        and(
-          eq(places.id, input.placeId),
-          or(
-            eq(places.status, "published"),
-            and(
-              eq(places.status, "pending"),
-              eq(places.createdByUserId, viewer.userId),
-            ),
+      .where(owned)
+      .limit(1);
+    throw new PhotoError(exists ? "not_found" : "invalid");
+  }
+  // Keep acknowledgement recovery independent of expiry and place visibility,
+  // but only after the temporary key and reservation owner have been checked.
+  if (reservation.finalKey) {
+    if (!reservation.status) throw new PhotoError("invalid");
+    return { status: reservation.status };
+  }
+  if (reservation.expiresAt <= new Date()) throw new PhotoError("invalid");
+
+  const stat = await statObject(input.storageKey);
+  if (
+    !stat ||
+    stat.size !== reservation.sizeBytes ||
+    stat.size > MAX_PHOTO_BYTES ||
+    stat.contentType !== reservation.contentType
+  ) {
+    throw new PhotoError("invalid");
+  }
+  // Transport failures raise here and become a logged server error; only a
+  // file that storage returned but sharp cannot decode is the client's fault.
+  const bytes = await getObjectBytes(input.storageKey);
+  let normalized: Uint8Array;
+  try {
+    normalized = await normalizePhoto(bytes);
+  } catch {
+    throw new PhotoError("unsupported_type");
+  }
+  // Publish a server-written object. Reusing the presigned PUT can only
+  // change the temporary upload, never an already accepted photograph. The
+  // key is derived from the temporary key, so two concurrent retries write
+  // the same bytes to the same place instead of racing to different names.
+  const finalKey = canonicalPhotoKey(input.placeId, input.storageKey);
+  await putObject(finalKey, normalized, "image/webp");
+
+  try {
+    return await db.transaction(async (tx) => {
+      const [upload] = await tx
+        .select()
+        .from(photoUploads)
+        .where(owned)
+        .limit(1)
+        .for("update");
+      if (!upload) throw new PhotoError("invalid");
+      // Another request finished while this one was decoding. Its decision is
+      // the answer, not a second row with the same object key.
+      if (upload.finalKey) {
+        if (!upload.status) throw new PhotoError("invalid");
+        return { status: upload.status };
+      }
+      const [place] = await tx
+        .select({ id: places.id, municipalityId: places.municipalityId })
+        .from(places)
+        .where(visiblePlace(viewer.userId, input.placeId))
+        .limit(1)
+        .for("update");
+      if (!place) throw new PhotoError("not_found");
+      if (upload.expiresAt <= new Date()) throw new PhotoError("invalid");
+      const [published] = await tx
+        .select({ count: sql<number>`count(*)::int` })
+        .from(placePhotos)
+        .where(
+          and(
+            eq(placePhotos.placeId, place.id),
+            eq(placePhotos.status, "published"),
           ),
-        ),
-      )
-      .limit(1)
-      .for("update");
-    if (!place) throw new PhotoError("not_found");
-    if (upload.expiresAt <= new Date()) throw new PhotoError("invalid");
-    const [published] = await tx
-      .select({ count: sql<number>`count(*)::int` })
-      .from(placePhotos)
-      .where(
-        and(
-          eq(placePhotos.placeId, place.id),
-          eq(placePhotos.status, "published"),
-        ),
+        );
+      if ((published?.count ?? 0) >= MAX_PHOTOS_PER_PLACE)
+        throw new PhotoError("too_many");
+      // New photographs wait for review; only staff with authority over this
+      // municipality publish directly. A verified contact is not that authority.
+      const status = hasStaffAuthority(viewer, place.municipalityId)
+        ? "published"
+        : "pending";
+      await tx.insert(placePhotos).values({
+        placeId: place.id,
+        uploadedByUserId: viewer.userId,
+        storageKey: finalKey,
+        status,
+      });
+      await tx
+        .update(photoUploads)
+        .set({ finalKey, status })
+        .where(eq(photoUploads.storageKey, input.storageKey));
+      await recordAudit(
+        {
+          actorUserId: viewer.userId,
+          action: "place_photo.added",
+          subjectType: "place",
+          subjectId: place.id,
+          municipalityId: place.municipalityId,
+          metadata: { status },
+        },
+        tx,
       );
-    if ((published?.count ?? 0) >= MAX_PHOTOS_PER_PLACE)
-      throw new PhotoError("too_many");
-    const stat = await statObject(input.storageKey);
-    if (
-      !stat ||
-      stat.size !== upload.sizeBytes ||
-      stat.size > MAX_PHOTO_BYTES ||
-      stat.contentType !== upload.contentType
-    )
-      throw new PhotoError("invalid");
-    let normalized: Uint8Array;
-    try {
-      normalized = await normalizePhoto(await getObjectBytes(input.storageKey));
-    } catch {
-      throw new PhotoError("unsupported_type");
-    }
-    // Publish a server-written object. Reusing the presigned PUT can only
-    // change the temporary upload, never an already accepted photograph.
-    const finalKey = canonicalPhotoKey(place.id, input.storageKey);
-    await putObject(finalKey, normalized, "image/webp");
-    if (upload.expiresAt <= new Date()) throw new PhotoError("invalid");
-    // New photographs wait for review; only staff with authority over this
-    // municipality publish directly. A verified contact is not that authority.
-    const status = hasStaffAuthority(viewer, place.municipalityId)
-      ? "published"
-      : "pending";
-    await tx.insert(placePhotos).values({
-      placeId: place.id,
-      uploadedByUserId: viewer.userId,
-      storageKey: finalKey,
-      status,
+      if (status === "published") await scheduleOfflineSnapshotRebuild(tx);
+      return { status };
     });
-    await tx
-      .update(photoUploads)
-      .set({ finalKey, status })
-      .where(eq(photoUploads.storageKey, input.storageKey));
-    await recordAudit(
-      {
-        actorUserId: viewer.userId,
-        action: "place_photo.added",
-        subjectType: "place",
-        subjectId: place.id,
-        municipalityId: place.municipalityId,
-        metadata: { status },
-      },
-      tx,
-    );
-    if (status === "published") await scheduleOfflineSnapshotRebuild(tx);
-    return { status };
-  });
+  } catch (error) {
+    await discardUnreferencedObject(db, finalKey);
+    throw error;
+  }
+}
+
+/**
+ * Removes a canonical object whose database transaction did not commit.
+ *
+ * A concurrent retry may have accepted the same key while this one was
+ * rolling back, so the row is checked first: deleting it then would leave an
+ * accepted photograph pointing at nothing. Cleanup is best effort — a failure
+ * is logged with the key and swept up by the next expired-upload pass once
+ * `finalKey` is still unset.
+ */
+async function discardUnreferencedObject(
+  db: Db,
+  finalKey: string,
+): Promise<void> {
+  try {
+    const [accepted] = await db
+      .select({ id: placePhotos.id })
+      .from(placePhotos)
+      .where(eq(placePhotos.storageKey, finalKey))
+      .limit(1);
+    if (accepted) return;
+    await deleteObject(finalKey);
+  } catch (error) {
+    logError("places.photo_orphan_cleanup_failed", {
+      finalKey,
+      ...errorDetails(error),
+    });
+  }
 }
 
 /** The published photos of a place, as URLs a client can render. */
@@ -409,47 +499,68 @@ export async function cleanupPhotoUploads(db: Db): Promise<number> {
   let removed = 0;
   for (const upload of expired) {
     try {
-      const cleaned = await db.transaction(async (tx) => {
-        const [current] = await tx
+      // Confirm the row is still a candidate, then let go of the lock. The
+      // delete that follows is network I/O and must not hold a reservation row
+      // while it runs; deletion is idempotent, so a concurrent sweep retrying
+      // the same key is harmless.
+      const current = await db.transaction(async (tx) => {
+        const [row] = await tx
           .select()
           .from(photoUploads)
           .where(eq(photoUploads.storageKey, upload.storageKey))
           .limit(1)
           .for("update");
-        if (
-          !current ||
-          current.expiresAt > new Date() ||
-          current.temporaryDeletedAt
-        ) {
+        if (!row || row.expiresAt > new Date() || row.temporaryDeletedAt) {
+          return null;
+        }
+        return row;
+      });
+      if (!current) continue;
+
+      await deleteObject(current.storageKey);
+      if (!current.finalKey) {
+        // A failed finalization may have written its canonical object before
+        // its database transaction rolled back. It is not an accepted photo.
+        await deleteObject(
+          canonicalPhotoKey(current.placeId, current.storageKey),
+        );
+      }
+
+      // Mark and audit only after the objects are gone. A crash between the
+      // two leaves an unmarked, expired row whose object no longer exists;
+      // the next sweep re-runs the deletion (a no-op) and finishes the record.
+      // That partial state is preferable to a row marked deleted while its
+      // object is still in the bucket, which nothing would ever clean up.
+      const marked = await db.transaction(async (tx) => {
+        const [row] = await tx
+          .select()
+          .from(photoUploads)
+          .where(eq(photoUploads.storageKey, current.storageKey))
+          .limit(1)
+          .for("update");
+        if (!row || row.expiresAt > new Date() || row.temporaryDeletedAt) {
           return false;
         }
-        await deleteObject(current.storageKey);
-        if (!current.finalKey) {
-          // A failed finalization may have written its canonical object before
-          // its database transaction rolled back. It is not an accepted photo.
-          await deleteObject(
-            canonicalPhotoKey(current.placeId, current.storageKey),
-          );
-        }
-        // Retain every owner/request binding. An unfinished reservation can
-        // renew at its original key; a completed one remains an immutable receipt.
         await tx
           .update(photoUploads)
           .set({ temporaryDeletedAt: new Date() })
-          .where(eq(photoUploads.storageKey, current.storageKey));
+          .where(eq(photoUploads.storageKey, row.storageKey));
         await recordAudit(
           {
             action: "place_photo.upload_expired",
             subjectType: "place",
-            subjectId: upload.placeId,
+            subjectId: row.placeId,
           },
           tx,
         );
         return true;
       });
-      if (cleaned) removed++;
-    } catch {
-      console.error("temporary photo cleanup failed; will retry");
+      if (marked) removed++;
+    } catch (error) {
+      logError("places.photo_cleanup_failed", {
+        storageKey: upload.storageKey,
+        ...errorDetails(error),
+      });
     }
   }
   return removed;

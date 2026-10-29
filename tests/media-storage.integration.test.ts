@@ -546,6 +546,58 @@ describe.skipIf(process.env.RUN_STORAGE_TESTS !== "1")(
       expect(await audits(placeId, "place_photo.added")).toHaveLength(1);
     });
 
+    test("a failed finalization deletes its canonical object and can be retried", async () => {
+      const author = await member();
+      const placeId = await place(author);
+      const reserved = await reserve(author, input(placeId));
+      await upload(reserved.uploadUrl);
+      const attachment = { placeId, storageKey: reserved.storageKey };
+      const digest = createHash("sha256")
+        .update(reserved.storageKey)
+        .digest("hex");
+      const finalKey = `published-photos/${placeId}/${digest}.webp`;
+      objectKeys.add(finalKey);
+
+      // The upload and the image work succeed; the database write does not.
+      // That is the crash boundary the canonical object has to survive: an
+      // object nobody references is an orphan, not a photograph.
+      const name = `media_attach_${crypto.randomUUID().replaceAll("-", "")}`;
+      const client = await pool.connect();
+      try {
+        await client.query(
+          `CREATE FUNCTION "${name}"() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.place_id = '${placeId}' THEN RAISE EXCEPTION 'synthetic attach failure'; END IF; RETURN NEW; END $$`,
+        );
+        await client.query(
+          `CREATE TRIGGER "${name}" BEFORE INSERT ON place_photos FOR EACH ROW EXECUTE FUNCTION "${name}"()`,
+        );
+        await expect(attachPhoto(db, author, attachment)).rejects.toBeDefined();
+        expect(await statObject(finalKey)).toBeNull();
+        expect((await reservation(reserved.storageKey)).finalKey).toBeNull();
+        expect(
+          await db
+            .select()
+            .from(placePhotos)
+            .where(eq(placePhotos.placeId, placeId)),
+        ).toHaveLength(0);
+      } finally {
+        try {
+          await client.query(
+            `DROP TRIGGER IF EXISTS "${name}" ON place_photos`,
+          );
+          await client.query(`DROP FUNCTION IF EXISTS "${name}"()`);
+        } finally {
+          client.release();
+        }
+      }
+
+      // The temporary upload was never consumed, so the same attachment works.
+      expect(await attachPhoto(db, author, attachment)).toEqual({
+        status: "pending",
+      });
+      expect((await reservation(reserved.storageKey)).finalKey).toBe(finalKey);
+      expect(await audits(placeId, "place_photo.added")).toHaveLength(1);
+    });
+
     test("failed cleanup retains its reservation and safely retries an already deleted object", async () => {
       const author = await member();
       const placeId = await place(author);

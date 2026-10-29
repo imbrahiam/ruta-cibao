@@ -16,6 +16,7 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useTranslations } from "use-intl";
 import { signOutLocally, useMe } from "@/features/auth/session";
+import { clearOutboxForUser } from "@/features/offline/outbox";
 import { api, orpc } from "@/lib/api";
 import { authClient } from "@/lib/auth";
 import { requestId } from "@/lib/ids";
@@ -134,11 +135,18 @@ async function deleteSecureStoreKeyAndChunks(key: string): Promise<void> {
   }
 }
 
-/** Removes private session and push registration keys from the device keychain. */
+/**
+ * Removes what belongs to the account: session and push keys from the keychain,
+ * and queued contribution payloads from the encrypted outbox. The public
+ * offline snapshot is not private and stays.
+ */
 export async function clearPrivateStorage(): Promise<void> {
-  await Promise.all(
-    PRIVATE_SECURE_STORE_KEYS.map((key) => deleteSecureStoreKeyAndChunks(key)),
-  );
+  await Promise.all([
+    ...PRIVATE_SECURE_STORE_KEYS.map((key) =>
+      deleteSecureStoreKeyAndChunks(key),
+    ),
+    clearOutboxForUser(),
+  ]);
 }
 
 type ActiveReceipt = {

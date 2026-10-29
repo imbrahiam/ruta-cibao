@@ -1,4 +1,7 @@
 import type { RealtimeEvent } from "@/db/schema";
+import { createConnectionLimiter } from "@/lib/connection-limit";
+import { errorDetails, logError } from "@/lib/log";
+import { getRequestClientKey } from "@/lib/rate-limit";
 import { drainEvents, onRealtimeNudge, userChannel } from "@/lib/realtime";
 import { resolveSession } from "@/modules/access/session";
 
@@ -26,6 +29,13 @@ const PUBLIC_CHANNELS = new Set([
 const HEARTBEAT_MS = 25_000;
 const MAX_SEEN = 500;
 
+/**
+ * Event streams live until the client leaves, so they cannot be governed by a
+ * per-request rate limit. Four per client covers a phone, a laptop and a
+ * reconnect overlap; the process ceiling stops a distributed client.
+ */
+const connections = createConnectionLimiter({ perClient: 4, total: 500 });
+
 export async function GET(request: Request) {
   const url = new URL(request.url);
 
@@ -47,6 +57,20 @@ export async function GET(request: Request) {
   if (channels.length === 0) {
     return new Response("no readable channels requested", { status: 400 });
   }
+
+  const clientKey = getRequestClientKey(request.headers);
+  if (!connections.acquire(clientKey)) {
+    return new Response("too many open streams", {
+      status: 429,
+      headers: { "retry-after": "30" },
+    });
+  }
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    connections.release(clientKey);
+  };
 
   const lastEventId = Number.parseInt(
     request.headers.get("last-event-id") ??
@@ -104,7 +128,7 @@ export async function GET(request: Request) {
           }))
             send(event);
         } catch (error) {
-          console.error("realtime drain failed", error);
+          logError("realtime.drain_failed", errorDetails(error));
         } finally {
           draining = false;
         }
@@ -131,6 +155,7 @@ export async function GET(request: Request) {
         closed = true;
         clearInterval(heartbeat);
         unsubscribe();
+        release();
         try {
           controller.close();
         } catch {
@@ -139,6 +164,10 @@ export async function GET(request: Request) {
       };
 
       request.signal.addEventListener("abort", close);
+    },
+    // The consumer went away without the request signal firing first.
+    cancel() {
+      release();
     },
   });
 

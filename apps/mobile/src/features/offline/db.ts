@@ -1,5 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 import * as SQLite from "expo-sqlite";
+import { reportError } from "@/lib/report-error";
 
 export const OFFLINE_DB_NAME = "ruta-cibao-offline.db";
 export const OFFLINE_DB_KEY_STORAGE = "ruta-cibao.offline.db-key";
@@ -12,13 +13,14 @@ let writeChain: Promise<unknown> = Promise.resolve();
 function generateHexKey(): string {
   const bytes = new Uint8Array(32);
   const cryptoApi = globalThis.crypto as Crypto | undefined;
-  if (cryptoApi?.getRandomValues) {
-    cryptoApi.getRandomValues(bytes);
-  } else {
-    for (let i = 0; i < 32; i++) {
-      bytes[i] = Math.floor(Math.random() * 256);
-    }
+  if (!cryptoApi?.getRandomValues) {
+    // A key from Math.random is not a key. Refuse to create an encrypted store
+    // that only looks encrypted; every runtime we ship provides Web Crypto.
+    throw new Error(
+      "No secure random source available for the offline database",
+    );
   }
+  cryptoApi.getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
@@ -146,17 +148,22 @@ async function openEncryptedDatabase(): Promise<SQLite.SQLiteDatabase> {
   let db = await SQLite.openDatabaseAsync(OFFLINE_DB_NAME);
   try {
     await db.execAsync(`PRAGMA key = "x'${hexKey}'";`);
-    await applySchema(db);
-    return db;
-  } catch {
-    // Recover cleanly if a previous unencrypted or corrupted file exists on disk.
+    // Force the key check before trusting the file. Schema work stays outside
+    // this block so a failed migration can never be mistaken for a bad key and
+    // take the queued contributions with it.
+    await db.getFirstAsync("SELECT count(*) FROM sqlite_master");
+  } catch (error) {
+    // The file predates encryption, came from another key, or is corrupt. Its
+    // contents are unreadable either way; report it before replacing it so a
+    // wiped queue is visible instead of silent.
+    reportError(error, "offline-db-open");
     await db.closeAsync().catch(() => undefined);
     await SQLite.deleteDatabaseAsync(OFFLINE_DB_NAME).catch(() => undefined);
     db = await SQLite.openDatabaseAsync(OFFLINE_DB_NAME);
     await db.execAsync(`PRAGMA key = "x'${hexKey}'";`);
-    await applySchema(db);
-    return db;
   }
+  await applySchema(db);
+  return db;
 }
 
 /** Shared SQLCipher-encrypted database connection for offline content and outbox. */
