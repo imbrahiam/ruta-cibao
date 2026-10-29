@@ -89,7 +89,11 @@ configuration-driven, with coming-soon states for unavailable downloads.
 All visible copy comes from the Spanish catalogue; URLs remain English. A small
 Motion client component continuously loops only the last word of the headline
 (cercana / nuestra / humana); “Tu provincia, más” stays fixed. The words use dark
-ink and a lavender underline, with reserved width to avoid alignment shifts.
+ink and a lavender underline. A measured, animated width follows each word rather
+than reserving the widest word's space. The cycle changes every 2 seconds:
+entry takes 440ms, exit 240ms and width adjustment 560ms, with 0.2em vertical
+travel and 0.08em blur. These timings were measured from a browser recording of
+Moonjar; the implementation uses Motion with an ease-out curve.
 A stable screen-reader label and reduced-motion preference keep a static version
 available. Changes stop while the document is hidden; the rest stays server-rendered.
 Mobbin MCP was previously queried but required a paid plan and returned no
@@ -104,9 +108,11 @@ to remain upright. The territory section uses three original paper-map collages.
 Refinement verification covered the three new routes at 1440px and 390px, their
 canonical URLs and cross-page links, plus 320px page navigation. The homepage
 remained within 320px, 390px, 768px and 1024px widths. Browser observation confirmed
-the complete continuous headline cycle, identical rotator width/position for all
-three phrases, no pause control, live reduced-motion changes and a stable reduced
-state. A simulated hidden-document visibility event stopped phrase changes.
+the complete continuous headline cycle, no pause control, live reduced-motion
+changes and a stable reduced state. A simulated hidden-document visibility event
+stopped phrase changes. A later desktop recording confirmed the animated width
+varied from 173.55px to 187.70px across the three words. The 390px mobile loop did
+not overflow, and reduced motion left one sharp static word with no animations.
 Selection and municipal hover were visually inspected; no browser errors were
 observed. Typecheck, lint, docs, build and the default tests passed (103 passed,
 111 skipped, 0 failed).

@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import styles from "./rotating-headline.module.css";
 
 type RotatingHeadlineProps = {
@@ -34,11 +34,23 @@ export function RotatingHeadline({
   highlight,
 }: RotatingHeadlineProps) {
   const [index, setIndex] = useState(0);
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [width, setWidth] = useState<number | null>(null);
   const reducedMotion = useSyncExternalStore(
     subscribeToMotionPreference,
     getMotionPreference,
     getServerMotionPreference,
   );
+
+  useEffect(() => {
+    const measure = measureRef.current;
+    if (!measure) return;
+    const observer = new ResizeObserver(() => {
+      setWidth(measure.getBoundingClientRect().width);
+    });
+    observer.observe(measure);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     // Wait for the browser preference before starting; SSR always shows phrase 0.
@@ -56,7 +68,7 @@ export function RotatingHeadline({
         if (document.visibilityState === "visible") {
           setIndex((current) => (current + 1) % phrases.length);
         }
-      }, 3600);
+      }, 2000);
     };
 
     syncVisibility();
@@ -78,25 +90,39 @@ export function RotatingHeadline({
         <span aria-hidden="true">
           <span className={styles.firstLine}>
             <span>{prefix}</span>
-            <span className={styles.rotator}>
-              {phrases.map((phrase) => (
-                <span key={phrase} className={styles.measure}>
-                  {phrase}
-                </span>
-              ))}
+            <motion.span
+              className={styles.rotator}
+              initial={false}
+              animate={{ width: width ?? "auto" }}
+              transition={{
+                duration: reducedMotion ? 0 : 0.56,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
+              <span ref={measureRef} className={styles.measure}>
+                {phrases[shownIndex]}
+              </span>
               <AnimatePresence initial={false}>
                 <motion.span
                   key={shownIndex}
                   className={styles.phrase}
-                  initial={{ opacity: 0, y: "24%" }}
-                  animate={{ opacity: 1, y: "0%" }}
-                  exit={{ opacity: 0, y: "-24%" }}
-                  transition={{ duration: reducedMotion ? 0 : 0.32 }}
+                  initial={{ opacity: 0, y: "0.2em", filter: "blur(0.08em)" }}
+                  animate={{ opacity: 1, y: "0em", filter: "blur(0em)" }}
+                  exit={{
+                    opacity: 0,
+                    y: "-0.2em",
+                    filter: "blur(0.08em)",
+                    transition: { duration: reducedMotion ? 0 : 0.24 },
+                  }}
+                  transition={{
+                    duration: reducedMotion ? 0 : 0.44,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
                 >
                   {phrases[shownIndex]}
                 </motion.span>
               </AnimatePresence>
-            </span>
+            </motion.span>
           </span>
           <span className={styles.secondLine}>
             {lead} <span className={styles.highlight}>{highlight}</span>

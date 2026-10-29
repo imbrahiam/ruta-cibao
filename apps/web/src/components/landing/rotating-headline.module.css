@@ -22,6 +22,7 @@
   max-width: 100%;
 }
 .rotator {
+  position: relative;
   display: inline-grid;
   padding-block: 0.08em;
   margin-block: -0.08em;
@@ -35,8 +36,12 @@
 }
 .measure {
   visibility: hidden;
+  width: max-content;
 }
 .phrase {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0.08em;
   color: #2a2a27;
   text-align: center;
   text-decoration-line: underline;
