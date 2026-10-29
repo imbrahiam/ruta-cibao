@@ -6,13 +6,14 @@ import { FolderCog, Plus } from "lucide-react";
 import { useState } from "react";
 import { useTranslations } from "use-intl";
 import { ErrorPanel } from "@/components/admin/error-panel";
+import { catalogKind, catalogOptions } from "@/components/admin/list-queries";
+import { AdminPageHeader, AdminTableCard } from "@/components/admin/page-frame";
 import { useStaff } from "@/components/admin/staff-context";
 import { useUrlParam } from "@/components/admin/use-url-param";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Placeholder } from "@/components/ui/loading";
 import { Chip, Tag } from "@/components/ui/tag";
-import { orpc } from "@/lib/web/api";
 import { cx } from "@/lib/web/cx";
 import {
   CategoryForm,
@@ -37,10 +38,6 @@ const COLUMNS =
 const COLUMNS_TRAFFIC =
   "md:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_7rem_8rem_4.5rem_7rem_6rem]";
 
-function isKind(value: string): value is CategoryKind {
-  return (KINDS as readonly string[]).includes(value);
-}
-
 /**
  * The taxonomy behind the forms and the map, for province administrators.
  *
@@ -53,19 +50,16 @@ export function CategoryManager() {
   const { staffRole } = useStaff();
   const isAdmin = staffRole === "admin";
   const [rawKind, setKind] = useUrlParam("kind", "place");
-  const kind: CategoryKind = isKind(rawKind) ? rawKind : "place";
+  const kind = catalogKind(rawKind);
   const [editing, setEditing] = useState<string | null>(null);
 
   const list = useQuery({
-    ...orpc.catalog.list.queryOptions({ input: { kind } }),
+    ...catalogOptions(kind),
     enabled: isAdmin,
   });
 
   const header = (
-    <header className="flex flex-col gap-2">
-      <h1 className="t-h2">{t("categories")}</h1>
-      <p className="t-body-lg text-ink-2">{c("intro")}</p>
-    </header>
+    <AdminPageHeader title={t("categories")} description={c("intro")} />
   );
 
   if (!isAdmin) {
@@ -140,37 +134,36 @@ export function CategoryManager() {
       ) : list.data.length === 0 ? (
         <EmptyState icon={FolderCog} title={c("empty")} />
       ) : (
-        <div
-          aria-busy={list.isFetching}
-          className="md:overflow-hidden md:rounded-card md:bg-card md:shadow-ring"
-        >
-          <div
-            aria-hidden
-            className={cx(
-              "t-label hidden gap-4 border-b border-line bg-paper-2 px-4 py-2.5 text-ink-3 md:grid",
-              columns,
-            )}
-          >
-            <span>{t("name")}</span>
-            <span>{t("icon")}</span>
-            <span>{t("color")}</span>
-            {traffic ? <span>{t("severity")}</span> : null}
-            <span>{t("sortOrder")}</span>
-            <span>{t("status")}</span>
-            <span />
-          </div>
-          <ul className="flex flex-col gap-3 md:gap-0 md:divide-y md:divide-line">
-            {list.data.map((record) => (
-              <CategoryRow
-                key={record.id}
-                record={record}
-                columns={columns}
-                open={editing === record.id}
-                onOpen={() => setEditing(record.id)}
-                onClose={() => close(`cat-edit-${record.id}`)}
-              />
-            ))}
-          </ul>
+        <div aria-busy={list.isFetching}>
+          <AdminTableCard>
+            <div
+              aria-hidden
+              className={cx(
+                "t-label hidden gap-4 border-b border-line bg-paper-2 px-4 py-2.5 text-ink-3 md:grid",
+                columns,
+              )}
+            >
+              <span>{t("name")}</span>
+              <span>{t("icon")}</span>
+              <span>{t("color")}</span>
+              {traffic ? <span>{t("severity")}</span> : null}
+              <span>{t("sortOrder")}</span>
+              <span>{t("status")}</span>
+              <span />
+            </div>
+            <ul className="flex flex-col gap-3 md:gap-0 md:divide-y md:divide-line">
+              {list.data.map((record) => (
+                <CategoryRow
+                  key={record.id}
+                  record={record}
+                  columns={columns}
+                  open={editing === record.id}
+                  onOpen={() => setEditing(record.id)}
+                  onClose={() => close(`cat-edit-${record.id}`)}
+                />
+              ))}
+            </ul>
+          </AdminTableCard>
         </div>
       )}
     </div>

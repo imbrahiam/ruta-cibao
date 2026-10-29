@@ -23,13 +23,7 @@ export function PublicPage({
     <div className={styles.page}>
       <div className={styles.wrap}>
         <header className={styles.hero}>
-          <h1
-            className={
-              current === "download" ? undefined : styles.animatedTitle
-            }
-          >
-            {title}
-          </h1>
+          <h1 className={styles.animatedTitle}>{title}</h1>
           <p className={styles.lead}>{intro}</p>
         </header>
         {children}

@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "use-intl";
 import { Select } from "@/components/ui/field";
 import { orpc } from "@/lib/web/api";
+import { resolveMunicipalityFilter } from "./list-queries";
 import { useStaff } from "./staff-context";
 
 /**
@@ -18,11 +19,7 @@ import { useStaff } from "./staff-context";
 export function useMunicipalityFilter(): string | undefined {
   const params = useSearchParams();
   const { staffScope } = useStaff();
-  const value = params.get("municipality") ?? undefined;
-  if (Array.isArray(staffScope) && staffScope.length === 1) {
-    return staffScope[0];
-  }
-  return value;
+  return resolveMunicipalityFilter(params, staffScope);
 }
 
 export function MunicipalityFilter() {

@@ -168,6 +168,10 @@ here fails the quality gate.
 | `tests/staff-totp.integration.test.ts` | Second factor, staff session, municipality scope |
 | `tests/submit-place.integration.test.ts` | Submission, duplicates, idempotency, business details |
 
+Administrative navigation boundary regressions live in
+`tests/admin-navigation.test.ts`: empty municipality filters, locked and
+multi-municipality scopes, section aliases and segment-aware record navigation.
+
 ## Running the gates
 
 ```bash

@@ -1,11 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ChartColumn } from "lucide-react";
-import Link from "next/link";
+import { ChartColumn } from "lucide-react";
 import type { ReactNode } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { ErrorPanel } from "@/components/admin/error-panel";
+import { AdminPageHeader } from "@/components/admin/page-frame";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Placeholder } from "@/components/ui/loading";
 import { orpc } from "@/lib/web/api";
@@ -75,20 +75,9 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
     orpc.reports.detail.queryOptions({ input: { reportId } }),
   );
 
-  const back = (
-    <Link
-      href="/admin/reports"
-      className="t-small -ml-1 inline-flex min-h-11 items-center gap-1.5 self-start rounded-full px-1 text-ink-2 hover:text-ink"
-    >
-      <ArrowLeft aria-hidden className="size-4" />
-      {r("back")}
-    </Link>
-  );
-
   if (query.isPending) {
     return (
       <div className="flex flex-col gap-4">
-        {back}
         <div role="status" aria-busy="true" className="flex flex-col gap-3">
           <span className="sr-only">{t("loading")}</span>
           <Placeholder className="h-28" />
@@ -101,7 +90,6 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
   if (query.isError) {
     return (
       <div className="flex flex-col gap-4">
-        {back}
         {failureKind(query.error) === "not_found" ? (
           <EmptyState icon={ChartColumn} title={r("notFound")} />
         ) : (
@@ -121,31 +109,30 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
 
   return (
     <article className="flex flex-col gap-6" aria-busy={query.isFetching}>
-      {back}
-
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="flex flex-col gap-2">
-          <p className="t-label text-ink-3">{report.municipalityName}</p>
-          <h1 className="t-h2">{week}</h1>
-          <div className="flex flex-wrap items-center gap-3">
-            <ReportStatusTag status={report.status} />
-            {report.generatedAt ? (
-              <p className="t-small text-ink-3">
-                {r("generatedAt", {
-                  date: format.dateTime(new Date(report.generatedAt), "long"),
-                })}
-              </p>
-            ) : null}
+      <AdminPageHeader
+        title={week}
+        description={report.municipalityName}
+        actions={
+          <div className="md:w-72">
+            <PdfActions
+              reportId={report.id}
+              status={report.status}
+              label={{ municipality: report.municipalityName, week }}
+            />
           </div>
+        }
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <ReportStatusTag status={report.status} />
+          {report.generatedAt ? (
+            <p className="t-small text-ink-3">
+              {r("generatedAt", {
+                date: format.dateTime(new Date(report.generatedAt), "long"),
+              })}
+            </p>
+          ) : null}
         </div>
-        <div className="md:w-72">
-          <PdfActions
-            reportId={report.id}
-            status={report.status}
-            label={{ municipality: report.municipalityName, week }}
-          />
-        </div>
-      </header>
+      </AdminPageHeader>
 
       {report.status !== "ready" ? (
         <p className="t-body rounded-card bg-paper-2 p-5 text-ink-2">

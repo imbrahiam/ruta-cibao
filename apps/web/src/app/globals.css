@@ -25,6 +25,8 @@
   --accent-hover: #242421;
   --accent-soft: #12121114;
   --on-accent: #fafaf7;
+  --selection-background: #d8cce9;
+  --selection-foreground: #242029;
   /* Near-black monochrome band (territory section, footer). */
   --pine: #121211;
   --on-pine: #f3f2ee;
@@ -275,8 +277,8 @@
   }
 
   ::selection {
-    background: var(--accent-soft);
-    color: var(--ink);
+    background: var(--selection-background);
+    color: var(--selection-foreground);
   }
 
   :focus-visible {

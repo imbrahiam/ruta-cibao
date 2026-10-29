@@ -2,6 +2,7 @@ import { ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { QrCode } from "@/components/landing/qr-code";
+import { RouteHeadline } from "@/components/landing/rotating-headline";
 import { StoreButtons } from "@/components/landing/store-buttons";
 import { PublicPage, PublicPageAction } from "@/components/site/public-page";
 import styles from "@/components/site/public-page.module.css";
@@ -17,12 +18,21 @@ export const metadata: Metadata = {
 };
 
 export default function DownloadPage() {
-  const available = Boolean(site.iosUrl || site.androidUrl);
-
   return (
     <PublicPage
       current="download"
-      title={t("pages.downloadTitle")}
+      title={
+        <RouteHeadline
+          firstLine={t("pages.downloadHeadingFirst")}
+          lead={t("pages.downloadHeadingLead")}
+          phrases={[
+            t("pages.downloadHeadingWordOne"),
+            t("pages.downloadHeadingWordTwo"),
+            t("pages.downloadHeadingWordThree"),
+          ]}
+          tone="lavender"
+        />
+      }
       intro={t("pages.downloadIntro")}
     >
       <section className={styles.panel} aria-labelledby="download-title">
@@ -42,11 +52,6 @@ export default function DownloadPage() {
               }}
             />
           </div>
-          <p className={styles.availability}>
-            {available
-              ? t("pages.downloadAvailable")
-              : t("studio.availability")}
-          </p>
         </div>
         <div className={styles.scan}>
           <div className={styles.qr}>

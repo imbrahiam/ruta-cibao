@@ -2,12 +2,12 @@
 
 import type { ApiInputs, ApiOutputs } from "@ruta/contracts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, MapPin, MessagesSquare } from "lucide-react";
-import Link from "next/link";
+import { MapPin, MessagesSquare } from "lucide-react";
 import { useState } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { ErrorPanel, InlineError } from "@/components/admin/error-panel";
 import { useOutcome } from "@/components/admin/outcome";
+import { AdminPageHeader } from "@/components/admin/page-frame";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -45,22 +45,11 @@ export function CaseDetail({ slug }: { slug: string }) {
     orpc.consultations.detail.queryOptions({ input: { slug } }),
   );
 
-  const back = (
-    <Link
-      href="/admin/consultations"
-      className="t-small -ml-1 inline-flex min-h-11 items-center gap-1.5 self-start rounded-full px-1 text-ink-2 hover:text-ink"
-    >
-      <ArrowLeft aria-hidden className="size-4" />
-      {c("back")}
-    </Link>
-  );
-
   // A background refetch that fails (a case hidden a moment ago, a dropped
   // connection) must not blank a case the reviewer is reading: data wins.
   if (!query.data) {
     return (
       <div className="flex flex-col gap-4">
-        {back}
         {query.isPending ? (
           <div role="status" aria-busy="true" className="flex flex-col gap-3">
             <span className="sr-only">{t("loading")}</span>
@@ -82,11 +71,7 @@ export function CaseDetail({ slug }: { slug: string }) {
 
   return (
     <article className="flex flex-col gap-6" aria-busy={query.isFetching}>
-      {back}
-
-      <header className="flex flex-col gap-3">
-        <p className="t-label text-ink-3">{item.municipalityName}</p>
-        <h1 className="t-h2">{item.title}</h1>
+      <AdminPageHeader title={item.title} description={item.municipalityName}>
         <div className="flex flex-wrap items-center gap-2">
           <CaseStatusTag status={item.status} />
           <PublicationTag status={item.publicationStatus} />
@@ -111,7 +96,7 @@ export function CaseDetail({ slug }: { slug: string }) {
             value={consultations("supports", { count: item.supportCount })}
           />
         </dl>
-      </header>
+      </AdminPageHeader>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-6">

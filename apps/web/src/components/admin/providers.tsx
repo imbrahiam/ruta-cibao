@@ -1,18 +1,21 @@
 "use client";
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { type ReactNode, useState } from "react";
+import { createContext, type ReactNode, useContext, useState } from "react";
 import { IntlProvider } from "use-intl/react";
 import { formats, TIME_ZONE } from "@/i18n/config";
 import { LOCALE } from "@/lib/web/i18n";
 import { makeQueryClient } from "@/lib/web/query";
 import { OutcomeProvider } from "./outcome";
 
-/**
- * Everything a staff screen needs from above: the catalogue slice, one query
- * client per browser session, and the confirmation region decisions announce
- * their result into.
- */
+const ResetSessionContext = createContext<(() => void) | null>(null);
+
+export function useResetAdminSession() {
+  const reset = useContext(ResetSessionContext);
+  if (!reset) throw new Error("useResetAdminSession needs <AdminProviders>");
+  return reset;
+}
+
 export function AdminProviders({
   messages,
   children,
@@ -20,7 +23,19 @@ export function AdminProviders({
   messages: Record<string, unknown>;
   children: ReactNode;
 }) {
-  const [queryClient] = useState(makeQueryClient);
+  const [session, setSession] = useState(() => ({
+    client: makeQueryClient(),
+    generation: 0,
+  }));
+
+  const resetSession = () => {
+    // Remount observers as well as clearing data; late mutations keep the discarded client.
+    session.client.clear();
+    setSession({
+      client: makeQueryClient(),
+      generation: session.generation + 1,
+    });
+  };
 
   return (
     <IntlProvider
@@ -29,9 +44,11 @@ export function AdminProviders({
       timeZone={TIME_ZONE}
       formats={formats}
     >
-      <QueryClientProvider client={queryClient}>
-        <OutcomeProvider>{children}</OutcomeProvider>
-      </QueryClientProvider>
+      <ResetSessionContext.Provider value={resetSession}>
+        <QueryClientProvider key={session.generation} client={session.client}>
+          <OutcomeProvider>{children}</OutcomeProvider>
+        </QueryClientProvider>
+      </ResetSessionContext.Provider>
     </IntlProvider>
   );
 }

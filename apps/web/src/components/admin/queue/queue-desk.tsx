@@ -10,11 +10,12 @@ import { Fragment, type ReactNode, useRef } from "react";
 import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { orpc } from "@/lib/web/api";
+import { moderationQueueOptions, pendingRoutesOptions } from "../list-queries";
 import {
   MunicipalityFilter,
   useMunicipalityFilter,
 } from "../municipality-filter";
+import { AdminPageHeader, AdminTableCard, AdminToolbar } from "../page-frame";
 import { QueryState } from "../query-state";
 import { CaseRow } from "./case-row";
 import { ClaimRow } from "./claim-row";
@@ -24,7 +25,7 @@ import { PhotoRow } from "./photo-row";
 import { PlaceRow } from "./place-row";
 import { ReportRow } from "./report-row";
 import { RouteRow } from "./route-row";
-import { QUEUE_LIMIT, QUEUES, type QueueSlug } from "./slugs";
+import { QUEUE_LIMIT, type QueueSlug } from "./slugs";
 import { TrafficRow } from "./traffic-row";
 import { DeskContext, useDeskActions } from "./use-decision";
 
@@ -68,9 +69,7 @@ export function QueueDesk({ queue }: { queue: QueueSlug }) {
 function ModerationDesk({ queue }: { queue: Exclude<QueueSlug, "routes"> }) {
   const municipalityId = useMunicipalityFilter();
   const query = useQuery({
-    ...orpc.moderation.queue.queryOptions({
-      input: { queue: QUEUES[queue].api, municipalityId, limit: QUEUE_LIMIT },
-    }),
+    ...moderationQueueOptions(queue, municipalityId),
     placeholderData: keepPreviousData,
   });
 
@@ -124,9 +123,7 @@ function ModerationDesk({ queue }: { queue: Exclude<QueueSlug, "routes"> }) {
 function RoutesDesk() {
   const municipalityId = useMunicipalityFilter();
   const query = useQuery({
-    ...orpc.routes.browse.queryOptions({
-      input: { scope: "pending", municipalityId, limit: QUEUE_LIMIT },
-    }),
+    ...pendingRoutesOptions(municipalityId),
     placeholderData: keepPreviousData,
   });
 
@@ -161,28 +158,26 @@ function Desk<T>({
   return (
     <DeskContext.Provider value={actions}>
       <div className="flex flex-col gap-6">
-        <header className="flex flex-col gap-2">
-          <h1 id="queue-title" className="t-h2">
-            {t(TITLE[slug])}
-          </h1>
-          <p className="t-body-lg max-w-[60ch] text-ink-2">
-            {q(`intro.${INTRO[slug]}`)}
-          </p>
-        </header>
+        <AdminPageHeader
+          id="queue-title"
+          title={t(TITLE[slug])}
+          description={q(`intro.${INTRO[slug]}`)}
+        />
 
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="min-w-0 flex-1 basis-56">
-            <MunicipalityFilter />
-          </div>
-          <Button
-            onClick={() => query.refetch()}
-            disabled={query.isFetching}
-            className="min-h-11 md:min-h-0"
-          >
-            <RefreshCw aria-hidden />
-            {query.isFetching ? t("shell.updating") : t("refresh")}
-          </Button>
-        </div>
+        <AdminToolbar
+          actions={
+            <Button
+              onClick={() => query.refetch()}
+              disabled={query.isFetching}
+              className="min-h-11 md:min-h-0"
+            >
+              <RefreshCw aria-hidden />
+              {query.isFetching ? t("shell.updating") : t("refresh")}
+            </Button>
+          }
+        >
+          <MunicipalityFilter />
+        </AdminToolbar>
 
         <section
           ref={region}
@@ -214,14 +209,14 @@ function Desk<T>({
                       </p>
                     ) : null}
                   </div>
-                  <div className="md:overflow-hidden md:rounded-card md:bg-card md:shadow-ring">
+                  <AdminTableCard>
                     <ColumnHeader />
                     <ul className="flex flex-col gap-3 md:gap-0 md:divide-y md:divide-line">
                       {items.map((row) => (
                         <Fragment key={row.key}>{row.node}</Fragment>
                       ))}
                     </ul>
-                  </div>
+                  </AdminTableCard>
                 </div>
               );
             }}

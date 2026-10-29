@@ -125,21 +125,14 @@
 .stores {
   margin-top: 28px;
 }
-.stores a {
+.stores :is(a, button) {
   background: var(--ink);
   color: #fff;
   border-color: var(--ink);
 }
-.stores a:hover {
+.stores :is(a, button):hover {
   background: #44443d;
   color: #fff;
-}
-.availability {
-  max-width: 460px;
-  margin-top: 20px;
-  color: var(--ink-2);
-  font-size: 12px;
-  line-height: 1.75;
 }
 .scan {
   padding: 24px;

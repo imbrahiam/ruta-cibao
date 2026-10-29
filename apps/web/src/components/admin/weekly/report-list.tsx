@@ -6,11 +6,17 @@ import { ChartColumn, FileText } from "lucide-react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
+import { weeklyReportOptions } from "@/components/admin/list-queries";
 import {
   MunicipalityFilter,
   useMunicipalityFilter,
 } from "@/components/admin/municipality-filter";
 import { useOutcome } from "@/components/admin/outcome";
+import {
+  AdminPageHeader,
+  AdminTableCard,
+  AdminToolbar,
+} from "@/components/admin/page-frame";
 import { QueryState } from "@/components/admin/query-state";
 import { useStaff } from "@/components/admin/staff-context";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
@@ -63,9 +69,7 @@ export function WeeklyReportList() {
   const municipalityId = useMunicipalityFilter();
   const municipalities = useQuery(orpc.municipalities.list.queryOptions());
 
-  const list = useQuery(
-    orpc.reports.list.queryOptions({ input: { municipalityId, limit: 26 } }),
-  );
+  const list = useQuery(weeklyReportOptions(municipalityId));
 
   const targetMunicipalities = municipalityId
     ? [municipalityId]
@@ -91,30 +95,29 @@ export function WeeklyReportList() {
   );
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-3">
-        <h1 className="t-h2">{w("title")}</h1>
-        <p className="t-body-lg text-ink-2">{w("intro")}</p>
+      <AdminPageHeader title={w("title")} description={w("intro")}>
         <p className="t-body flex w-fit items-center gap-2 rounded-card bg-paper-2 px-4 py-3 font-medium text-ink">
           {t("cadence")}
         </p>
-      </header>
+      </AdminPageHeader>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="min-w-0 flex-1 basis-56">
-          <MunicipalityFilter />
-        </div>
-        <Button
-          variant="accent"
-          className="min-h-11 md:min-h-0"
-          disabled={generate.isPending || targetMunicipalities.length === 0}
-          onClick={() =>
-            generate.mutate({ municipalityIds: targetMunicipalities })
-          }
-        >
-          <FileText aria-hidden />
-          {generate.isPending ? reports("preparingPdf") : t("generate")}
-        </Button>
-      </div>
+      <AdminToolbar
+        actions={
+          <Button
+            variant="accent"
+            className="min-h-11 md:min-h-0"
+            disabled={generate.isPending || targetMunicipalities.length === 0}
+            onClick={() =>
+              generate.mutate({ municipalityIds: targetMunicipalities })
+            }
+          >
+            <FileText aria-hidden />
+            {generate.isPending ? reports("preparingPdf") : t("generate")}
+          </Button>
+        }
+      >
+        <MunicipalityFilter />
+      </AdminToolbar>
       <InlineError error={generate.error} />
 
       <QueryState query={list}>
@@ -126,7 +129,7 @@ export function WeeklyReportList() {
               body={reports("emptyHint")}
             />
           ) : (
-            <div className="md:overflow-hidden md:rounded-card md:bg-card md:shadow-ring">
+            <AdminTableCard>
               <div
                 aria-hidden
                 className={`t-label hidden gap-4 border-b border-line bg-paper-2 px-4 py-2.5 text-ink-3 md:grid ${COLUMNS}`}
@@ -210,7 +213,7 @@ export function WeeklyReportList() {
                   );
                 })}
               </ul>
-            </div>
+            </AdminTableCard>
           )
         }
       </QueryState>

@@ -300,16 +300,12 @@
 .storeActions {
   margin-top: 24px;
 }
-.storeActions a {
+.storeActions :is(a, button) {
   background: #2a2a27;
   color: #fff;
 }
-.storeActions a:hover {
+.storeActions :is(a, button):hover {
   background: #44443d;
-}
-.storeActions span {
-  background: #f1f0eb;
-  color: #6e6c64;
 }
 .availability {
   max-width: 49ch;
@@ -372,9 +368,6 @@
   }
   .downloadContent .sectionTitle {
     font-size: 43px;
-  }
-  .storeActions > div {
-    flex-wrap: wrap;
   }
 }
 

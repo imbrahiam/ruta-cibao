@@ -7,9 +7,18 @@ import { useState } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { ErrorPanel, InlineError } from "@/components/admin/error-panel";
 import {
+  consultationListOptions,
+  consultationStatus,
+} from "@/components/admin/list-queries";
+import {
   MunicipalityFilter,
   useMunicipalityFilter,
 } from "@/components/admin/municipality-filter";
+import {
+  AdminPageHeader,
+  AdminTableCard,
+  AdminToolbar,
+} from "@/components/admin/page-frame";
 import { useUrlParam } from "@/components/admin/use-url-param";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -17,14 +26,7 @@ import { Select } from "@/components/ui/field";
 import { Placeholder } from "@/components/ui/loading";
 import { Chip } from "@/components/ui/tag";
 import { orpc } from "@/lib/web/api";
-import {
-  CASE_STATUSES,
-  type CaseStatus,
-  CaseStatusTag,
-  PublicationTag,
-} from "./case-tags";
-
-const PAGE_SIZE = 24;
+import { CASE_STATUSES, CaseStatusTag, PublicationTag } from "./case-tags";
 
 /**
  * Case, municipality, status, support, replies, date: one grid for the header
@@ -33,14 +35,6 @@ const PAGE_SIZE = 24;
  */
 const COLUMNS =
   "md:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_9.5rem_6.5rem_7.5rem_7rem]";
-
-type StatusFilter = CaseStatus | "all";
-
-function isStatusFilter(value: string): value is StatusFilter {
-  return (
-    value === "all" || (CASE_STATUSES as readonly string[]).includes(value)
-  );
-}
 
 /**
  * Citizen cases for triage. Opens on what waits for an answer; every filter
@@ -55,26 +49,12 @@ export function CaseList() {
   const [rawStatus, setStatus] = useUrlParam("status", "open");
   const [category, setCategory] = useUrlParam("category");
   const [moreError, setMoreError] = useState<unknown>(null);
-  const status: StatusFilter = isStatusFilter(rawStatus) ? rawStatus : "open";
+  const status = consultationStatus(rawStatus);
 
   const categories = useQuery(orpc.consultations.categories.queryOptions());
 
   const list = useInfiniteQuery(
-    orpc.consultations.browse.infiniteOptions({
-      input: (offset: number) => ({
-        municipality: municipality ?? "",
-        category,
-        status: status === "all" ? undefined : status,
-        mine: false,
-        offset,
-        limit: PAGE_SIZE,
-      }),
-      initialPageParam: 0,
-      getNextPageParam: (last, _pages, lastOffset) => {
-        const next = lastOffset + last.items.length;
-        return last.items.length > 0 && next < last.total ? next : undefined;
-      },
-    }),
+    consultationListOptions({ municipalityId: municipality, category, status }),
   );
 
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
@@ -82,20 +62,17 @@ export function CaseList() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="t-h2">{c("title")}</h1>
-        <p className="t-body-lg text-ink-2">{c("lede")}</p>
-        <div>
+      <AdminPageHeader
+        title={c("title")}
+        description={c("lede")}
+        actions={
           <ButtonLink href="/admin/queue/consultations" size="sm">
             {c("pendingQueue")}
           </ButtonLink>
-        </div>
-      </header>
+        }
+      />
 
-      <section
-        aria-label={t("shell.filters")}
-        className="flex flex-col gap-4 md:flex-row md:items-end md:gap-6"
-      >
+      <AdminToolbar>
         <MunicipalityFilter />
         <div className="flex max-w-xs flex-col gap-1.5">
           <label htmlFor="case-category" className="text-[14px] font-medium">
@@ -115,7 +92,7 @@ export function CaseList() {
             ))}
           </Select>
         </div>
-      </section>
+      </AdminToolbar>
 
       <fieldset className="scrollbar-none -mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
         <legend className="sr-only">{c("statusGroup")}</legend>
@@ -154,7 +131,7 @@ export function CaseList() {
             {c("shown", { shown: items.length, total })}
           </p>
 
-          <div className="md:overflow-hidden md:rounded-card md:bg-card md:shadow-ring">
+          <AdminTableCard>
             <div
               aria-hidden
               className={`t-label hidden gap-4 border-b border-line bg-paper-2 px-4 py-2.5 text-ink-3 md:grid ${COLUMNS}`}
@@ -204,7 +181,7 @@ export function CaseList() {
                 </li>
               ))}
             </ul>
-          </div>
+          </AdminTableCard>
 
           {list.hasNextPage ? (
             <div className="flex flex-col items-stretch gap-2 md:items-start">

@@ -67,10 +67,50 @@ local businesses, routes, traffic notices, consultations with municipal follow-u
 and weekly municipal PDF reports. These sections describe the product; they are
 not six tools embedded in the landing.
 
+### Staff workspace
+
 The municipal workspace organizes moderation of places, business claims, photos,
 corrections, routes, traffic and content reports, plus consultation follow-up,
 weekly reports and administrator-only categories. These sections support the same
 citizen-facing features rather than a second public map.
+
+The workspace uses a grouped, collapsible sidebar, a contextual topbar and shared
+page headers, filter bars and table frames. `apps/web/src/components/admin/nav.ts` owns the
+section registry, pending-count bindings and the consultation-queue alias.
+Desktop collapse is remembered in an `/admin`-scoped UI cookie. Mobile navigation
+uses a native modal dialog with focus trapping, Escape dismissal and visible focus
+restoration when crossing back to desktop.
+
+The sidebar and breadcrumbs remember each list's URL filters for the current
+authenticated workspace. Detail headings publish their title through the page
+context, so breadcrumbs return to the filtered list rather than a separate back
+button. Existing moderation controls and English route paths remain unchanged.
+
+`apps/web/src/components/admin/list-queries.ts` supplies the same typed query options to list
+screens and intent-based prefetching. Sidebar and overview links warm routes and
+data on pointer, keyboard focus or touch. Query freshness stays at 15 seconds,
+with focus refetch and no automatic mutation retries. Empty municipality filters
+are normalized once; a moderator's single assigned municipality takes precedence.
+
+`AdminShell` requires a verified staff member with an authorized scope before
+mounting protected navigation or queries. Successful sign-out clears and replaces
+the query client and remounts its observers, isolating subsequent accounts and late
+callbacks. A reported sign-out failure keeps the current client and displays an error.
+
+The existing ink/paper palette, editorial typography and automatic system dark
+mode are retained. Shared opaque lavender selection tokens keep selected text
+readable even inside dark buttons.
+
+Browser smoke checks covered all 11 administrative sections, desktop collapse
+persistence, mobile dialog focus and breakpoint transitions, light/dark layouts,
+empty municipality filters, consultation and report breadcrumbs, and preserved
+list filters. Photo and consultation intent prefetches were reused on navigation.
+Sign-out removed protected navigation; the moderator session hid Categories and
+refused its direct URL without requesting catalog data. No moderation decisions
+or report generation were performed.
+
+### Public visual design
+
 
 The public site follows a photo-free product-studio direction inspired by
 [Moonjar](https://moonjar.ai/). Browser inspection measured its warm `#fafaf7`
@@ -141,9 +181,9 @@ independent of text blur and width changes.
 A stable screen-reader label and reduced-motion preference keep a static version
 available. Changes stop while the document is hidden; page copy and visual
 contents remain server-rendered inside small client motion boundaries.
-The `/experience` and `/territory` hero headings reuse the same rotating-word and
-brush behavior. Their fixed two-line compositions keep the route's meaning stable,
-with yellow and lavender brush accents rather than changing the text color.
+The `/experience`, `/territory` and `/download` hero headings reuse the same
+rotating-word and brush behavior. Their fixed two-line compositions keep the
+route's meaning stable, with yellow and lavender accents rather than text-color changes.
 Mobbin MCP was previously queried but required a paid plan and returned no
 references. No third-party screens, testimonials, usage figures or videos are
 fabricated.
@@ -152,12 +192,15 @@ The landing no longer renders a location pin: “aquí.” uses its normal accen
 letter and yellow highlight. The acute-accent pin experiments remain preserved
 only at `/design/pins` for later review.
 
-Download controls use recognizable Apple and Android brand silhouettes from
+Download controls use the App Store and Google Play glyphs from
 [Simple Icons](https://github.com/simple-icons/simple-icons/tree/develop/icons)
-(CC0 geometry; trademarks belong to their respective owners), not generic
-outline phone symbols. Both glyphs render at 18px and reuse the control's color.
-Browser checks covered the hero in desktop/mobile, the comparison page and both
-platform logos on `/download`; the 390px layout had no overflow or browser errors.
+(CC0 geometry; trademarks belong to their respective owners), not device logos.
+Both stores have the same active appearance. Configured store URLs render real
+links; otherwise enabled buttons announce “Próximamente” on activation without
+inventing a destination. The phone's own store remains first.
+Desktop and 390px mobile browser checks verified both enabled store controls,
+their upcoming-release feedback, all three rotating phrases and the lavender
+brush. Reduced motion settled on a static phrase without horizontal overflow.
 
 On desktop with a fine hover pointer, concept scenes fade in once over 650ms.
 Their scroll depth is spring-smoothed and bounded to ±18px. Selected devices and
@@ -224,7 +267,7 @@ all four scenes had visible concept captions, and reduced motion produced no
 running animations. Experience/download links reached their sections, and the
 header scrolled out of view instead of sticking. Privacy, terms, support,
 account deletion and admin entry routes returned HTTP 200. No browser errors
-were observed; authenticated admin workflows were not exercised.
+were observed. Those earlier public-site checks did not exercise authenticated admin workflows.
 
 Additional width checks at 320px, 768px and 1024px found no horizontal overflow.
 Typecheck, lint, documentation validation and production build passed. The
