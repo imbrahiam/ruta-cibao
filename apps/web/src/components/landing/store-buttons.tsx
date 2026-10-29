@@ -1,9 +1,9 @@
 "use client";
 
-import { Apple, Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { cx } from "@/lib/web/cx";
+import { PlatformLogo } from "./platform-logo";
 
 type Platform = "ios" | "android" | "other";
 
@@ -47,14 +47,12 @@ export function StoreButtons({
     {
       key: "ios",
       url: iosUrl,
-      Icon: Apple,
       label: labels.ios,
       soon: labels.iosSoon,
     },
     {
       key: "android",
       url: androidUrl,
-      Icon: Smartphone,
       label: labels.android,
       soon: labels.androidSoon,
     },
@@ -62,7 +60,7 @@ export function StoreButtons({
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row">
-      {items.map(({ key, url, Icon, label, soon }) => {
+      {items.map(({ key, url, label, soon }) => {
         const first = platform === key;
         const order = first ? "order-first" : "";
         if (!url) {
@@ -77,7 +75,7 @@ export function StoreButtons({
                 order,
               )}
             >
-              <Icon aria-hidden className="size-[18px]" />
+              <PlatformLogo platform={key} />
               {soon}
             </span>
           );
@@ -95,7 +93,7 @@ export function StoreButtons({
               order,
             )}
           >
-            <Icon aria-hidden />
+            <PlatformLogo platform={key} />
             {label}
           </a>
         );

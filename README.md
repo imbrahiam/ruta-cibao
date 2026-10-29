@@ -124,12 +124,18 @@ Mobbin MCP was previously queried but required a paid plan and returned no
 references. No third-party screens, testimonials, usage figures or videos are
 fabricated.
 
-The “aquí” highlight uses the classic coral-red location pin. It sits slightly
-above and to the right of the final punctuation, tilted 38 degrees to point
-diagonally toward the period without covering it. The solid-head lollipop is
-preserved alongside it at `/design/pins`, aimed at the same punctuation.
-Both are decorative and have no card or
-background around them.
+The “aquí” highlight uses a small coral-red location pin as the visual acute
+accent of the í, tilted 18 degrees. A dotless visual stem avoids a doubled accent;
+assistive technology receives the original, correctly accented “aquí.” text.
+The solid-head lollipop remains at `/design/pins` for comparison in the same
+position. Neither variant has a card or background around it.
+
+Download controls use recognizable Apple and Android brand silhouettes from
+[Simple Icons](https://github.com/simple-icons/simple-icons/tree/develop/icons)
+(CC0 geometry; trademarks belong to their respective owners), not generic
+outline phone symbols. Both glyphs render at 18px and reuse the control's color.
+Browser checks covered the hero in desktop/mobile, the comparison page and both
+platform logos on `/download`; the 390px layout had no overflow or browser errors.
 
 On desktop with a fine hover pointer, concept scenes fade in once over 650ms.
 Their scroll depth is spring-smoothed and bounded to ±18px. Selected devices and
