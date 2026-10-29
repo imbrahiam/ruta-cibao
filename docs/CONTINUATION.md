@@ -1,16 +1,22 @@
 # Mobile and tourist passport continuation — 2026-10-13
 
-This is the current handoff for the interrupted mobile review. The older
+> **Historical record. Superseded.** This document describes the web PWA,
+> MapLibre basemap and cédula verification work as it stood on 2026-10-13. Those
+> subsystems were removed when the product moved to the native app. The
+> commands and paths below are not maintained and some no longer exist; use
+> `docs/ARCHITECTURE.md`, `docs/DEPLOYMENT.md` and `docs/MOBILE.md` for the
+> current system.
+
+This was the handoff for the interrupted mobile review. The older
 `PRODUCTION-HANDOFF.md` records earlier infrastructure and identity work; its
-port 3210 launcher is no longer present. Current development is on port 3000.
-The local production QA server uses port 3211. Neither instance is a deployment.
-The working tree includes substantial earlier work: preserve it.
+port 3210 launcher is no longer present. Development is on port 3000. The local
+production QA server used port 3211. Neither instance is a deployment.
 
 ## Completed
 
 | Priority | Outcome | Implementation |
 | --- | --- | --- |
-| 5 | Expired cédula holds are rechecked under a row lock after the registry call. A holder who submitted photos while another request waited keeps their reservation. | `src/modules/citizen/verify-cedula.ts`; concurrency regression in `tests/cedula-hold.integration.test.ts` |
+| 5 | Expired cédula holds are rechecked under a row lock after the registry call. A holder who submitted photos while another request waited keeps their reservation. | The removed cédula module; its concurrency regression test was removed with it |
 | 5 | MapLibre is the default in code, `.env.example`, Docker and Compose. Google remains an explicit deployment option. | `src/lib/env.public.ts`, `src/components/map/citizen-map.tsx`, `infra/` |
 | 5 | Category filters also filter cluster counts, radii and hit targets; initial filters and selection apply when the map is ready. | `src/lib/tiles.ts`, `src/lib/map/layers.ts`, both map renderers |
 | 5 | Software WebGL falls back to Leaflet. The Pixel emulator's Chrome uses SwiftShader; its vector canvas did not composite despite loaded tiles and successful GPU readback. The online raster fallback rendered successfully in production. | `src/lib/map/render-support.ts` |
@@ -25,7 +31,7 @@ The working tree includes substantial earlier work: preserve it.
 | Outcome | Implementation |
 | --- | --- |
 | The province is outlined, municipalities dashed and named, the rest of the country dimmed until street level — on MapLibre and the Leaflet fallback. | `provinceLayers()` in `src/lib/map/layers.ts`; boundaries route sends label points and the outside mask |
-| A cluster cell holding one place is drawn as that place's pin and opens on the first tap. | `src/lib/tiles.ts`, `CLUSTERS_SINGLE_LAYER_ID` |
+| A cluster cell holding one place is drawn as that place's pin and opens on the first tap. | `src/lib/tiles.ts`, the single-cluster layer constant |
 | Traffic chips are dots below street zoom, so they stop covering pins; Leaflet chips are centred on their point (they were offset left). | `overlayChip()` in `overlay-features.ts`, `globals.css` |
 | MapLibre no longer drops overlays, selection highlight or category filters that arrive while tiles load (`isStyleLoaded()` is false whenever any source is loading). | `citizen-map-maplibre.tsx` |
 | Basemap POIs hidden; overflow "+" is primary-filled and clears the desktop zoom buttons. | `style.ts`, `map-actions.tsx` |
@@ -59,8 +65,9 @@ shipping the API to another environment. No applied migration was edited.
 - `RUN_DB_TESTS=1 bun test tests/passport.integration.test.ts`: 4 passed,
   covering anonymous access, proximity, unpublished places, concurrent retries,
   encrypted storage, private reads, audit count and archived content.
-- `RUN_DB_TESTS=1 JCE_USE_MOCK=1 bun test tests/cedula-hold.integration.test.ts`:
-  passed the lock/concurrent-review regression. No live registry lookup.
+- `RUN_DB_TESTS=1 JCE_USE_MOCK=1 bun test tests/cedula-hold.integration.test.ts`
+  (removed with the cédula flow): passed the lock/concurrent-review regression.
+  No live registry lookup.
 - Collaborative browser at Pixel dimensions: place-sheet expansion, stamp
   creation with a fictional visitor and simulated GPS, and persisted passport
   display were verified. The temporary account and stamp were removed.
@@ -74,11 +81,9 @@ shipping the API to another environment. No applied migration was edited.
   `droast` is absent, and `bunx droast` resolves to an npm 404. Docker image
   rebuild/roast verification remains a CI/release task.
 
-The raster fallback requests only visible OSM tiles through the browser and
-honours normal HTTP caching. It is not offered as an offline download. For a
-municipal deployment, configure a suitable raster service and its attribution
-with `NEXT_PUBLIC_RASTER_TILE_URL` and `NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION`.
-See https://operations.osmfoundation.org/policies/tiles/.
+The raster fallback requested only visible OSM tiles through the browser and
+honoured normal HTTP caching. It was removed with the web map; the native app
+has its own map and offline snapshot. See https://operations.osmfoundation.org/policies/tiles/ for the retired tile policy.
 
 ## Remaining tasks by priority
 
@@ -93,7 +98,7 @@ Priority is engineering impact: 5 blocks release, 1 is optional polish.
 | 4 | Mobile performance measurement | Compare cold/warm production loads on a mid-range physical Android over Slow 4G; record bytes, time until map usable and gesture responsiveness. Emulator SwiftShader results do not establish physical-device FPS. |
 | 4 | Catalogue and passport field QA | Try denied/coarse GPS on physical phones, long place names, account switch, no signal and subsequent recovery. Passport stamps require a live server; there is no offline stamp queue. |
 | 3 | Ecotourism route content | Await the routes the user will provide. Existing submission/moderation/directory support is present; do not fabricate official routes or distances. Validate the supplied paths and municipality ownership before publishing. |
-| 2 | Recapture PWA screenshots on staging | Local captures are committed (`SCREENSHOT_CHANNEL=chrome bun run screenshots` against a production build). Recapture against staging once it carries real content, then rebuild. |
+| 2 | Recapture PWA screenshots on staging | The PWA screenshot pipeline was removed with the PWA; this item is closed |
 | 1 | Optional passport expansion | Municipality milestones, share cards or prize programmes require separately agreed requirements and review of visit verification. Current stamps stay private. |
 
 ## SMS and iOS

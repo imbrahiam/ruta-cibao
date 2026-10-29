@@ -196,6 +196,13 @@ const serverSchema = z
         path: ["APP_URL"],
         message: "must use HTTPS in production",
       });
+    if (!local && !value.TRUSTED_PROXY)
+      context.addIssue({
+        code: "custom",
+        path: ["TRUSTED_PROXY"],
+        message:
+          "must be 1 behind the compose proxy, or every client shares one rate-limit bucket",
+      });
     if (auth.origin !== app.origin)
       context.addIssue({
         code: "custom",

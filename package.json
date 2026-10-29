@@ -22,6 +22,8 @@
     "lint:fix": "biome check --write",
     "format": "biome format --write",
     "test": "bun test tests",
+    "test:db": "RUN_DB_TESTS=1 RUN_STORAGE_TESTS=1 bun test tests",
+    "check:docs": "bun run scripts/check-docs.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun run apps/web/src/db/migrate.ts",
     "db:push": "drizzle-kit push",

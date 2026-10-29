@@ -48,6 +48,8 @@ bun run mobile:ios                                # or mobile:android
 | `bun run mobile` | Expo dev server |
 | `bun run typecheck` / `lint` | TypeScript (web + mobile) / Biome |
 | `bun test` | Tests |
+| `bun run test:db` | Tests that need Postgres and storage |
+| `bun run check:docs` | Fails when a document names something that does not exist |
 | `bun run db:generate` / `db:migrate` | Write / apply migrations |
 
 ## Docs
@@ -55,6 +57,7 @@ bun run mobile:ios                                # or mobile:android
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the pieces fit together
 - [DEPLOYMENT.md](docs/DEPLOYMENT.md) — VPS with Docker Compose, and the contest demo
 - [OPERATIONS.md](docs/OPERATIONS.md) — runbook
+- [MOBILE.md](docs/MOBILE.md) — building and publishing the phone app
 
 ## License and data
 

@@ -1,7 +1,13 @@
 # Production handoff — 2026-10-03
 
-Current mobile/passport continuation: `docs/CONTINUATION.md` (2026-10-13).
-The preview launcher below describes the earlier review environment.
+> **Historical record. Superseded.** This describes the earlier review
+> environment, including a PWA preview, cédula verification and a local launcher
+> that no longer exist. Do not follow its commands. Current guidance is in
+> `docs/DEPLOYMENT.md`, `docs/OPERATIONS.md` and `docs/MOBILE.md`.
+
+The mobile/passport continuation this document pointed to is also historical:
+`docs/CONTINUATION.md` (2026-10-13). The preview launcher below describes the
+earlier review environment.
 
 ## Current preview
 

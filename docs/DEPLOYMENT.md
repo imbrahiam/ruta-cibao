@@ -9,27 +9,33 @@ one.
 Companion documents:
 
 - `docs/OPERATIONS.md` — what to do when something breaks.
-- `docs/MOBILE.md` — the installable app and the Google Play listing.
+- `docs/MOBILE.md` — building and publishing the phone app.
 - `docs/ARCHITECTURE.md` — how the system is put together, for developers.
 
 ---
 
 ## 0. Status of this guide — read first
 
-Every step below has been checked against the source code. It has **not** yet
-been rehearsed end to end on a clean server. Before real residents' data goes
-in, someone outside the development team must follow this guide on a fresh
-machine, without help, and the open question below must be decided.
+Every command below names a script, a container or a variable that exists in
+the repository. The stack has not yet been rehearsed end to end on a clean
+server. Before real residents' data goes in, someone outside the development
+team must follow this guide on a fresh machine, without help, and the open
+question below must be decided.
 
 **Sign-in is by verified phone (Twilio Verify) or email (Resend).** No cédula
 or identity document is collected. A municipal resident badge is optional and
 granted in person by scoped staff; staff authority comes from
-`scripts/grant-staff.ts` and requires TOTP enrollment.
+`scripts/grant-staff.ts` and requires TOTP enrollment. Passkeys are available
+for staff on the web admin.
 
 The intended public origin is `https://rutacibao.com`, subject to the domain
 being purchased. Deliver the Docker images and Compose stack; deployment on the
 recipient's private VPS does not require a hosted account owned by the developer.
 Use a staging origin and an isolated database before the final launch.
+
+The open question is the one in section 2.2: **which Google Maps key the
+municipality owns**, or whether the iOS build uses Apple Maps instead. The
+server runs without either; without one, the phone app cannot draw a map.
 
 ### 0.1 The contest demo (`demo.rutacibao.com`)
 
@@ -47,11 +53,12 @@ real service. Differences from section 6:
 - Load content with `bun run db:seed`, the OSM import
   (`bun run scripts/import-osm-content.ts`) and `bun run scripts/seed-demo.ts`.
 
-The phones run the `demo` EAS profile (`apps/mobile/eas.json`): the preview
-variant (`do.rutacibao.app.preview`) pointed at `https://demo.rutacibao.com`.
-Set `GOOGLE_MAPS_MOBILE_API_KEY` as an EAS environment variable (its Google
-Cloud project needs billing enabled, or the map draws no tiles); until then
-`EXPO_PUBLIC_MAP_PROVIDER=apple` draws the iOS map with Apple Maps.
+The demo phones run the `demo` EAS profile (`apps/mobile/eas.json`): the
+preview variant (`do.rutacibao.app.preview`) pointed at
+`https://demo.rutacibao.com`. Set `GOOGLE_MAPS_MOBILE_API_KEY` as an EAS
+environment variable (its Google Cloud project needs billing enabled, or the
+map draws no tiles); until then set `EXPO_PUBLIC_MAP_PROVIDER=apple` for the
+iOS build, which draws Apple Maps with no key.
 
 ```bash
 cd apps/mobile
@@ -71,6 +78,8 @@ What the code already guarantees, so you do not have to:
   limit, and actually be a JPEG, PNG or WebP.
 - Address search respects the public geocoder's limits (one request per
   second, no autocomplete, answers cached).
+- A production boot refuses `TRUSTED_PROXY=0`, because behind Caddy every
+  client would otherwise share one rate-limit bucket.
 
 ---
 
@@ -89,18 +98,20 @@ What the code already guarantees, so you do not have to:
          └────┬─────┘
               │        ┌──────────┐
               ├────────►  worker  │  scheduled jobs: weekly reports, expiry,
-              │        └────┬─────┘  notifications, cédula retries
+              │        └────┬─────┘  notifications, account deletion, snapshots
          ┌────▼─────────────▼──┐
          │ PostgreSQL 18        │  PostGIS + pgvector
          └──────────────────────┘
 ```
 
-Six containers, defined in `infra/docker-compose.yml`: `caddy`, `app`,
-`worker`, `postgres`, `storage`, a one-shot `storage-init`, and `migrate`. They run on one
-server.
+Seven containers, defined in `infra/docker-compose.yml`: `caddy`, `app`,
+`worker`, `postgres`, `storage`, a one-shot `storage-init`, and a one-shot
+`migrate`. They run on one server. The phone app is built separately and is not
+served by this stack; see `docs/MOBILE.md`.
 
-**The worker is not optional.** Without it, weekly reports are never produced
-and traffic reports never expire.
+**The worker is not optional.** Without it, weekly reports are never produced,
+traffic reports never expire, and account deletions and notification deliveries
+sit in the outbox.
 
 ## 2. What you need before starting
 
@@ -131,17 +142,13 @@ These are hard to change later. Decide them before you install anything.
      operate and back up.
    - **B — SeaweedFS on the same server.** No outside provider, but you back it
      up yourself and it needs its own subdomain (`storage.<domain>`).
-3. **The map.** Set by `NEXT_PUBLIC_MAP_RENDERER`.
-   - `maplibre` **(default, recommended)**: a self-hosted map file. No key, no bill,
-     works offline on the phone. Needs one extra preparation step (step 4.2).
-   - `google`: familiar, but billed per map load. Needs a Google Cloud
-     account with billing, a key restricted to your domain, and a budget
-     alert.
-   - `leaflet`: online raster fallback, also selected automatically without
-     hardware WebGL. Defaults to OpenStreetMap standard tiles; no offline
-     download or bulk prefetch. For a municipal deployment, supply your own
-     `NEXT_PUBLIC_RASTER_TILE_URL` and the matching provider attribution in
-     `NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION` at build time.
+3. **The phone map.** The app draws its map with Google Maps or, on iOS only,
+   Apple Maps.
+   - **Google (default, recommended for Android):** one key, billing enabled,
+     restricted to the app bundle identifiers. No server key is needed for the
+     map itself.
+   - **Apple Maps on iOS:** no key and no bill, but it is iOS-only, so an
+     Android build still needs Google.
 
 ### 2.3 Accounts the municipality must own
 
@@ -154,10 +161,14 @@ platform.
 | Domain registrar (NIC.DO for `.do`) | The address | Yes |
 | **Twilio** | Sign-in codes by SMS (the main way in) | **Yes** |
 | **Resend** | Sign-in links and notifications by email | **Yes** |
-| Cédula lookup provider (`JCE_API_URL`) | Verifying residents | Yes |
 | Object storage provider | Photos (option A only) | Option A |
-| Google Cloud | Google sign-in, Google map renderer | Optional |
+| Google Cloud | Maps SDK key for the phone app | Yes for Android |
 | Google Play Console | Android app listing (`docs/MOBILE.md`) | Optional |
+| Apple Developer Program | iOS app listing (`docs/MOBILE.md`) | Optional |
+
+Google Routes and Places are optional server features. Without
+`GOOGLE_MAPS_SERVER_API_KEY`, in-app directions and Google photo fallback are
+unavailable; the rest of the app still works.
 
 ### 2.4 DNS records
 
@@ -223,35 +234,6 @@ source ~/.bashrc
 
 From here on, `rc` means that full command.
 
-### 4.2 The map file (only for `maplibre`)
-
-The map files are generated, not stored in the repository. They must exist in
-`public/` **before** the image is built, because the build copies them in.
-
-```bash
-# Bun, to run the preparation scripts
-curl -fsSL https://bun.sh/install | bash && source ~/.bashrc
-bun install --frozen-lockfile
-
-# The pmtiles tool: one binary. From the releases page below, copy the link
-# to the latest "Linux_x86_64.tar.gz" asset ("Linux_arm64" on an ARM server).
-mkdir -p .tooling
-curl -fsSL -o /tmp/pmtiles.tar.gz "<link to the release asset>"
-tar -xzf /tmp/pmtiles.tar.gz -C .tooling pmtiles
-.tooling/pmtiles version
-
-bun run basemap -- mundo       # global z0–8 + Hispaniola z9–15 (~650 MB)
-bun run basemap -- provincia   # optional phone download (~9 MB)
-bun run basemap:fonts          # fetch the map label font files
-bun run basemap:glyphs         # compile MapLibre glyph ranges
-ls -lh public/basemap public/fonts
-```
-
-Releases: https://github.com/protomaps/go-pmtiles/releases.
-
-The map data is © OpenStreetMap contributors (ODbL). The attribution shown on
-the map must stay visible.
-
 ## 5. Storage
 
 ### Option A — managed S3-compatible storage
@@ -276,13 +258,13 @@ the map must stay visible.
 
 ### Option B — SeaweedFS on this server
 
-Phones upload photos straight to storage, so SeaweedFS needs its own public HTTPS
-address. Caddy already serves one: set `STORAGE_ADDRESS` in `.env` (step 6.2)
-and add its DNS record (2.4). Caddy gets the certificate, and the bucket is
-created, private, on first start. Nothing to edit by hand.
+Phones upload photos straight to storage, so SeaweedFS needs its own public
+HTTPS address. Caddy already serves one: set `STORAGE_ADDRESS` in `.env` (step
+6.2) and add its DNS record (2.4). Caddy gets the certificate, and the bucket
+is created, private, on first start. Nothing to edit by hand.
 
-SeaweedFS's own ports stay bound to `127.0.0.1`; Caddy reaches it inside Docker's
-network.
+SeaweedFS's own ports stay bound to `127.0.0.1`; Caddy reaches it inside
+Docker's network.
 
 ## 6. Configuration
 
@@ -303,8 +285,7 @@ symbols break it:
 openssl rand -base64 32     # BETTER_AUTH_SECRET
 openssl rand -hex 32        # APP_ENCRYPTION_KEY
 openssl rand -hex 24        # POSTGRES_PASSWORD
-openssl rand -hex 24        # MINIO_ROOT_PASSWORD (option B)
-docker run --rm node:24-alpine npx -y web-push generate-vapid-keys   # push keys
+openssl rand -hex 24        # S3_SECRET_ACCESS_KEY (option B)
 ```
 
 ### 6.2 Values for production
@@ -323,6 +304,7 @@ TRUSTED_PROXY=1                         # Caddy sets X-Forwarded-For
 
 # --- Read by docker compose, not by the app ------------------------------
 SITE_ADDRESS=app.example.do             # Caddy requests the certificate for this
+ACME_EMAIL=ops@example.do               # expiry warnings from Let's Encrypt
 POSTGRES_USER=ruta
 POSTGRES_PASSWORD=<openssl rand -hex 24>
 POSTGRES_DB=ruta_cibao
@@ -333,24 +315,16 @@ DATABASE_URL=postgresql://ruta:<same password>@postgres:5432/ruta_cibao
 # --- Personal data -------------------------------------------------------
 APP_ENCRYPTION_KEY=<openssl rand -hex 32>   # SEE SECTION 9.3 BEFORE GOING FURTHER
 
-# --- Cédula lookup ---------------------------------------------------------
-JCE_API_URL=<provider URL>
-JCE_API_KEY=<provider key>
-JCE_USE_MOCK=0                          # 1 invents results. Never in production
-
 # --- SMS and email ----------------------------------------------------------
 # Without them that sign-in method is switched off. Leave AUTH_LOG_DELIVERY=0.
 TWILIO_ACCOUNT_SID=<...>
 TWILIO_AUTH_TOKEN=<...>
-TWILIO_FROM=+1809XXXXXXX
+TWILIO_VERIFY_SERVICE_SID=<...>
 RESEND_API_KEY=<...>
 EMAIL_FROM=Ruta Cibao <no-responder@example.do>   # on the domain verified in Resend
 
 # --- Push notifications --------------------------------------------------
-VAPID_PUBLIC_KEY=<public key>
-NEXT_PUBLIC_VAPID_PUBLIC_KEY=<same public key>
-VAPID_PRIVATE_KEY=<private key>
-VAPID_SUBJECT=mailto:soporte@example.do
+EXPO_PUSH_ACCESS_TOKEN=<...>
 
 # --- Storage, option A (managed) -----------------------------------------
 S3_ENDPOINT=https://<account>.r2.cloudflarestorage.com
@@ -370,10 +344,6 @@ S3_FORCE_PATH_STYLE=0
 # S3_SECRET_ACCESS_KEY=<openssl rand -hex 24>
 # S3_FORCE_PATH_STYLE=1
 
-# --- Map -----------------------------------------------------------------
-NEXT_PUBLIC_MAP_RENDERER=maplibre
-NEXT_PUBLIC_BASEMAP_PMTILES_URL=/basemap/mundo-hispaniola.pmtiles
-NEXT_PUBLIC_OFFLINE_BASEMAP_PMTILES_URL=/basemap/santiago-rodriguez.pmtiles
 # --- Address search ------------------------------------------------------
 # "nominatim" uses OpenStreetMap's public geocoder within its usage policy
 # (asked only on submit, cached, one request a second). For heavy use, run your
@@ -384,9 +354,10 @@ GEOCODER=nominatim
 JOBS_ENABLED=1
 ```
 
-Leave `GOOGLE_CLIENT_*`, `IMGPROXY_*` and `ANDROID_*`
+Leave `GOOGLE_MAPS_SERVER_API_KEY`, `IMGPROXY_*` and the mobile build values
 empty unless you have set those services up. `DEV_ORIGINS` is for development
-only.
+only. The mobile build values (`EXPO_PUBLIC_*`, `GOOGLE_MAPS_MOBILE_API_KEY`,
+`APP_VARIANT`) belong in the EAS environment, not on this server.
 
 `NEXT_PUBLIC_*` values are built into the app. **Changing one requires a
 rebuild** (`rc up -d --build`). For every other value, a restart is enough.
@@ -408,6 +379,10 @@ then do `app` and `worker` start. After about a minute, `rc ps` should show
 rc logs -f caddy              # watch it obtain the certificate(s), then Ctrl+C
 rc logs app | grep '\[boot\]' # warnings about anything left unconfigured
 ```
+
+The app writes one JSON object per line. A request carries `x-request-id` on
+its response, and the same id appears on its `request.start` and `rpc.request`
+lines, so a user report can be matched to a log entry without guessing.
 
 ## 8. Load the base data
 
@@ -442,38 +417,43 @@ sets.
 There is no screen for appointing staff, on purpose. It's an act of the
 institution, done from the server.
 
-1. The person signs up in the app. The handover team checks their identity and residency in person, then uses the bootstrap command below to grant the first staff account. Subsequent residents use document review. The
-   moderation desk stays closed until their cédula is verified.
+1. The person signs up in the app. The handover team checks their identity and
+   residency in person, then uses the bootstrap command below to grant the
+   first administrator.
 2. On the server:
 
    ```bash
-   rc run --rm migrate bun run scripts/grant-staff.ts +18095551234 admin --bootstrap-verified-in-person
-   # After an administrator approves their documents, grant subsequent staff:
-   rc run --rm migrate bun run scripts/grant-staff.ts staff@example.do moderator
+   rc run --rm migrate bun run scripts/grant-staff.ts +18095551234 admin --approved-in-person
+   # A moderator is confined to one municipality:
+   rc run --rm migrate bun run scripts/grant-staff.ts staff@example.do moderator --municipality <municipality-id>
    # roles: moderator | admin | none     (none removes the role)
    ```
 
-   Use their phone number or email. The script prints who now holds which
-   role. It refuses ordinary grants until identity is verified. The bootstrap
-   flag is an attestation of an in-person check and works only for the first
-   administrator, after the registry has matched their cédula.
+   Use their phone number, email or user id. The account must already exist
+   with a verified phone or email. The script prints who now holds which role.
+   An administrator requires the explicit `--approved-in-person` attestation;
+   a moderator requires a municipality.
 
 Keep a written record of who was given which role, when, and by whose
 authority.
 
 ### 9.2 Third-party restrictions
 
-- Google map key (if used): restrict it to your domain by HTTP referrer, and
-  set a monthly budget alert in Google Cloud.
+- Google Maps mobile key: restrict it to the Android package
+  `do.rutacibao.app` and the iOS bundle id `do.rutacibao.app`, and enable only
+  the Maps SDKs. Set a monthly budget alert.
+- Google server key (if used): restrict it to Routes API and Places API (New)
+  and to the server's outbound IPs. Never ship it in the app.
 - Twilio: set a spending limit, and enable geographic permissions only for the
   Dominican Republic.
 - Resend: confirm SPF, DKIM and DMARC show as verified.
 
 ### 9.3 The encryption key — the one thing you cannot lose
 
-`APP_ENCRYPTION_KEY` encrypts every cédula. **If it is lost, or changed, every
-stored cédula becomes permanently unreadable**, and every resident has to
-verify again. Changing it is not "rotating a password".
+`APP_ENCRYPTION_KEY` encrypts personal data at rest: push device tokens and the
+account deletion inventory. **If it is lost, or changed, that data becomes
+permanently unreadable**, and every affected account must re-register its
+devices. Changing it is not "rotating a password".
 
 - Store a copy of the whole `.env` **outside the server**: a password manager
   owned by the institution, or a sealed record held by two named officials.
@@ -485,7 +465,8 @@ verify again. Changing it is not "rotating a password".
 
 | Check | How | Expected |
 | --- | --- | --- |
-| Server responds | `curl -fsS https://app.example.do/api/health` | `{"status":"ok",...}` |
+| Server responds | `curl -fsS https://app.example.do/api/health` | `{"status":"ok"}` |
+| Dependencies | `curl -fsS https://app.example.do/api/ready` | `{"status":"ok",...}` |
 | Production mode | `rc exec app printenv NODE_ENV` | `production` |
 | Containers | `rc ps` | app healthy; worker, postgres, storage, caddy up |
 | Worker | `rc logs --tail 50 worker` | Started, schedules registered, no errors |
@@ -493,14 +474,14 @@ verify again. Changing it is not "rotating a password".
 | SMS sign-in | Sign in with a real phone | Code arrives by SMS; `rc logs app` does not contain it |
 | Email sign-in | Sign in with an email | Link arrives in the inbox, not spam |
 | Photo upload | Add a photo to a place | Photo shows; the object is in the bucket |
-| Map | Pan, zoom, open a place | Map and labels draw |
+| Map | Open the phone app and pan | Map, labels and places draw |
 | Boot warnings | `rc logs app \| grep '\[boot\]'` | Nothing, or only what you chose to leave off |
-| Install | Open on Android Chrome and on an iPhone | Installs; opens on the map |
-| Offline | Airplane mode, report traffic, reconnect | Report appears in `/pendientes`, then sends |
+| Push | Send a notification from the admin panel | The phone receives it |
+| Offline | Airplane mode, submit a place, reconnect | It stays queued in the app, then sends |
 
 Do not announce the service until every row passes.
 
-## 11. Backups
+## 11. Backups and restore
 
 Nothing is backed up until you set this up. Do it before real data arrives.
 
@@ -514,9 +495,10 @@ Nothing is backed up until you set this up. Do it before real data arrives.
 
 ### 11.2 The nightly script
 
-`infra/backup.sh` dumps the database and, when photos are in the local SeaweedFS,
-copies the bucket. It keeps 14 days (`KEEP_DAYS`) in `/var/backups/ruta-cibao`
-(`BACKUP_DIR`). It deliberately does **not** copy `.env` (see 9.3).
+`infra/backup.sh` dumps the database and, when photos are in the local
+SeaweedFS, copies the bucket. It keeps 14 days (`KEEP_DAYS`) in
+`/var/backups/ruta-cibao` (`BACKUP_DIR`). It deliberately does **not** copy
+`.env` (see 9.3).
 
 ```bash
 sudo mkdir -p /var/backups/ruta-cibao && sudo chown "$USER" /var/backups/ruta-cibao
@@ -532,18 +514,34 @@ group):
 
 ### 11.3 Off the server
 
-A backup on the same server dies with the server. Copy `/var/backups/ruta-cibao`
-every night to storage in a different place: another provider's bucket, or an
-institutional file server. `rclone sync` or `restic` both work. Encrypt the
-copy, because the dump contains personal data.
+A backup on the same server dies with the server. `infra/backup-offsite.sh`
+copies the local snapshots to a machine you name, with `rsync` over SSH:
+
+```bash
+export BACKUP_REMOTE=backup@files.example.do:/srv/ruta-cibao
+/opt/ruta-cibao/infra/backup-offsite.sh
+```
+
+Put the same command after the nightly backup in the same crontab line, or in
+a second line ten minutes later. Encrypt the remote volume, because the dump
+contains personal data. `rclone` or `restic` work equally well if the
+institution already runs one.
 
 ### 11.4 Restore — practise it
 
 Restore once onto a **staging** server before launch, and then every three
 months. An untested backup is not a backup.
 
-On a server set up through step 7, with the **same `.env`** (same encryption
-key):
+`infra/restore-rehearsal.sh` restores the newest local dump into a throwaway
+database on the running Postgres and drops it afterwards. It touches no
+production table and needs no downtime:
+
+```bash
+/opt/ruta-cibao/infra/restore-rehearsal.sh
+```
+
+A real restore replaces the database and objects. On a server set up through
+step 7, with the **same `.env`** (same encryption key):
 
 ```bash
 cd /opt/ruta-cibao
@@ -551,11 +549,11 @@ infra/restore.sh /path/to/db-YYYY-MM-DD.dump \
                  /path/to/objects/objects-YYYY-MM-DD.tar   # second file: option B only
 ```
 
-It asks you to type `restaurar` before replacing anything, then stops the app,
+It asks you to type `RESTORE` before replacing anything, then stops the app,
 restores, re-applies migrations and starts everything again.
 
-Then sign in, open a place with photos, and confirm a verified resident still
-shows as verified. That last check proves the encryption key matches.
+Then sign in, open a place with photos, and confirm a signed-in account still
+sees its own contributions. That last check proves the encryption key matches.
 
 ## 12. Updating to a new version
 
@@ -564,31 +562,53 @@ cd /opt/ruta-cibao
 infra/backup.sh                      # always first: migrations are one-way
 git fetch --tags && git checkout <new tag>
 rc up -d --build                     # migrations run before the app starts
-rc ps && curl -fsS https://app.example.do/api/health
+rc ps && curl -fsS https://app.example.do/api/ready
 ```
 
 Read the release notes for new `.env` variables first. To compare:
 `diff <(grep -o '^[A-Z_]*' .env.example | sort) <(grep -o '^[A-Z_]*' .env | sort)`.
 
 **Rolling back.** Database migrations cannot be undone. Rolling back means
-restoring the backup taken before the update (11.4) and checking out the
-previous tag.
+restoring the backup taken before the update (11.4), checking out the previous
+tag, and rebuilding:
 
-Never edit an applied migration file in `drizzle/`.
+```bash
+infra/restore.sh /var/backups/ruta-cibao/db-<timestamp>.dump
+git checkout <previous tag>
+rc up -d --build
+```
+
+Never edit an applied migration file in `drizzle/`. Migrations are
+forward-only; a mistake is fixed by the next migration.
+
+### 12.1 Cutting a release
+
+On a development machine, with a clean tree and every check passing:
+
+```bash
+bun run scripts/release.sh 1.2.3
+git push origin main --follow-tags
+```
+
+The script runs the type, lint, test and documentation checks, then creates an
+annotated tag `v1.2.3`. CI builds the images from that tag. A tag is the thing
+you deploy and the thing you roll back to; a branch is not.
 
 ## 13. Day-to-day operation
 
 - **Watch:** `rc ps`, `rc logs --since 1h app worker`, and disk space (`df -h`).
-  A full disk stops the database.
-- **External monitoring:** point an uptime monitor at `/api/health`, checking
-  every minute and alerting the duty person. That endpoint only proves the web
-  server answers. Also check the worker log daily, until better health checks
-  exist.
-- **Cédula quota:** the lookup service allows 50 new lookups per hour across
-  everyone. A busy onboarding day queues verifications, which complete over
-  the following hours. See `OPERATIONS.md`.
+  A full disk stops the database. Container logs rotate at 10 MB × 5 files per
+  service, so a chatty day cannot fill the disk on its own.
+- **External monitoring:** point an uptime monitor at `/api/health` every
+  minute, and at `/api/ready` every five. Alert the duty person on either.
+  `health` proves the web process answers; `ready` proves the database, the
+  object store and the worker heartbeat are all present.
+- **Log search:** every line is JSON. Filter with `jq`, for example
+  `rc logs app --since 1h | jq 'select(.level=="error")'`. Errors from the
+  phone app arrive through `/api/client-errors` on the same stream.
 - **Staging:** keep a second, smaller server at `staging.<domain>` with its
-  own `.env` and keys. Apply every update there first.
+  own `.env` and keys. Apply every update there first, and rehearse the restore
+  there.
 
 ## 14. Handover checklist
 
@@ -611,33 +631,34 @@ calling the developers:
 ## Release checks and operational guarantees
 
 - `bun run typecheck` generates Next route types before TypeScript runs.
-- Run `bun run lint`, `bun run build`, and `JCE_USE_MOCK=1 bun test tests`.
-- Apply every migration through `0024` before serving the new image.
-- Run DB integration tests only against an isolated migrated database:
-  `RUN_DB_TESTS=1 JCE_USE_MOCK=1 bun test tests/production.integration.test.ts`.
-- `/api/health` is liveness; `/api/ready` checks database tables, storage bucket,
-  and a worker heartbeat no older than two minutes. Alert on readiness failures.
+- Run `bun run lint`, `bun run test`, `bun run scripts/check-docs.ts` and
+  `bun run build` before tagging.
+- Apply every migration through `0037` before serving the new image. The
+  migrator container does this automatically.
+- Run database integration tests only against an isolated migrated database:
+  `RUN_DB_TESTS=1 bun run test:db`.
+- `/api/health` is liveness; `/api/ready` checks database tables, object
+  storage and a worker heartbeat no older than two minutes. Alert on readiness
+  failures.
 - The worker drains `job_outbox` every five seconds. Failures remain pending and
   retry with backoff; delivery is at least once, so a crash after an external
   provider accepts a message can cause a repeat delivery.
-- JCE reservations use one shared rolling 47/hour budget across live requests
-  and retries. Persisted resolved answers never consume another upstream lookup.
-  The remaining three slots are headroom, not capacity for another deployment:
-  separate stacks or external API clients still share the provider's hard quota.
 - Temporary photo uploads expire after 24 hours. Accepted images are decoded,
   resized, stripped of metadata and copied to a server-written key; reusing an
   upload URL cannot replace an accepted image.
-- Identity evidence is removed after a decision. Failed deletions are retried
-  by the hourly cleanup. Pending reviews expire after 30 days and must be
-  resubmitted. Encrypted backups can retain earlier evidence until their own
-  retention expires; never describe deletion as immediate erasure of backups.
+- Account deletion is requested in one transaction and carried out by a job.
+  The receipt stays queryable until the cleanup finishes. Failed deletions are
+  retried by the hourly cleanup. Encrypted backups can retain earlier data
+  until their own retention expires; never describe deletion as immediate
+  erasure of backups.
 - `infra/backup.sh` uses Compose to parse configuration and supports the actual
   SeaweedFS S3 service. Set `BACKUP_OBJECTS=0` only when objects are managed
   separately and their restore procedure has been tested. Keep every snapshot
   encrypted on disk and off-host, with keys kept separately.
 
 The recipient must supply the purchased domain, DNS access, VPS, production
-secrets, working SMS/email accounts, an off-host backup destination, and an
-operator. Use encrypted host volumes for database and storage (including names,
-email and phone stored by Better Auth), and encrypted backup storage. The code
-alone cannot provision those organizational resources.
+secrets, working SMS/email accounts, a Google Maps key or an Apple Maps
+decision, an off-host backup destination, and an operator. Use encrypted host
+volumes for database and storage (including names, email and phone stored by
+Better Auth), and encrypted backup storage. The code alone cannot provision
+those organizational resources.

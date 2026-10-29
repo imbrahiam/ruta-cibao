@@ -7,15 +7,27 @@ municipality after handoff.
 
 | Check | Command | Healthy result |
 | --- | --- | --- |
-| App | `curl -fsS https://<host>/api/health` | `{"status":"ok",...}` |
+| Liveness | `curl -fsS https://<host>/api/health` | `{"status":"ok"}` |
+| Readiness | `curl -fsS https://<host>/api/ready` | `{"status":"ok","checks":{"database":true,"storage":true,"worker":true}}` |
 | Containers | `docker compose -f infra/docker-compose.yml ps` | app and postgres `healthy` |
 | Database | `docker compose -f infra/docker-compose.yml exec postgres pg_isready` | `accepting connections` |
 | Extensions | `\dx` in psql | `postgis` and `vector` present |
+
+Liveness means the web process can answer. Readiness means the database, the
+object store and a worker heartbeat within two minutes are all present. Alert
+on both, and read the `checks` object to see which dependency is down.
 
 ## The app will not start
 
 Startup validates the environment first, so read the first error line: it names
 the variable and what was wrong with it. Compare against `.env.example`.
+
+Two common refusals:
+
+- `TRUSTED_PROXY` must be `1` on a non-local origin. Behind Caddy it sets
+  `X-Forwarded-For`; without it every client shares one rate-limit bucket.
+- `APP_URL`, `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` must be the same
+  origin. A mismatch is rejected rather than half-working.
 
 If the environment is fine, the next likeliest cause is Postgres refusing
 connections — check `DATABASE_URL` and that the database container is healthy.
@@ -23,16 +35,37 @@ connections — check `DATABASE_URL` and that the database container is healthy.
 ## A sign-in method is missing
 
 On a production server, phone sign-in only appears when Twilio is configured
-(`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_FROM`), and email sign-in
-only when `RESEND_API_KEY` is set. The app says which is off at boot:
+(`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_VERIFY_SERVICE_SID`), and
+email sign-in only when `RESEND_API_KEY` is set. The app says which is off at
+boot:
 
 ```bash
-docker compose --env-file .env -f infra/docker-compose.yml --profile full logs app | grep '\[boot\]'
+docker compose --env-file .env -f infra/docker-compose.yml --profile full logs app | grep 'boot_'
 ```
 
 This is on purpose. The alternative — writing the code to the log — would let
 anyone who can read the log sign in as anyone. `AUTH_LOG_DELIVERY=1` restores
 the log route for a demo server with invented users only.
+
+## SMS codes are not arriving
+
+Twilio Verify generates and checks the code, so the failure is almost always
+account-side. Check, in order:
+
+1. The Twilio console shows the Verify service as active, and
+   `TWILIO_VERIFY_SERVICE_SID` matches it.
+2. Geographic permissions allow the Dominican Republic.
+3. The fraud guard blocked the destination, or the spending limit was reached.
+4. The number is in E.164 form (`+1809…`). The app normalises it; a rejected
+   number is shown to the person, not silently dropped.
+
+A Twilio error is logged as one `sms.send_failed` line with the provider code
+and no destination number. The person can retry; requesting a new code does not
+reuse the previous one.
+
+If the log says `sms.code_logged`, no provider is configured and the code went
+to the log. That is development or a deliberate demo (`AUTH_LOG_DELIVERY=1`),
+never production.
 
 ## Photo uploads fail
 
@@ -46,6 +79,9 @@ The phone uploads straight to storage, so the browser has to reach it:
 3. An upload that reached storage but is refused when attached was checked and
    rejected: larger than 8 MB, or not really a JPEG, PNG or WebP. The object is
    deleted; the person sees the upload error and can try another photo.
+
+The log line is `places.photo_cleanup_failed` when a rejected upload could not
+be removed from storage. It is retried by the cleanup sweep.
 
 ## Warm Google place photos before a demo
 
@@ -84,24 +120,6 @@ migration rather than editing an applied one — the journal in `drizzle/` recor
 what has run, and rewriting history there desynchronises every other
 environment.
 
-## Cédula lookups are failing
-
-The registry allows **50 uncached lookups per rolling hour, shared globally
-across all API keys**. Cache hits are free and unlimited, so repeat lookups of
-the same cédula never consume quota.
-
-A failing lookup is not an outage for the user: onboarding degrades to
-"verification pending" and retries later. Check, in order:
-
-1. `JCE_USE_MOCK` — if it is `1`, no real lookups are happening at all.
-2. A 429 in the logs means the hourly quota is spent. `reset_at` in the response
-   says when it comes back.
-3. A 401 means the API key is wrong or has been revoked.
-4. A 500 or 502 is upstream. Nothing to do but let the retry job run.
-
-Never re-query a cédula that has already resolved. The name is stored on the
-profile; re-verifying spends shared quota for no new information.
-
 ## The background worker
 
 One container, `worker`, running `scripts/worker.ts`. It owns the pg-boss schema
@@ -119,7 +137,8 @@ without opening the database.
 **Nothing is running.** Check `JOBS_ENABLED`. At `0` the worker exits
 immediately and says so, and the app runs every job in-process on the request
 that caused it instead — which is correct but slower, and means no cron at all:
-reports are never built and traffic reports never lapse.
+reports are never built, traffic reports never lapse, and account deletions only
+move when their request is retried.
 
 **A schedule did not fire.** Schedules are re-registered on every boot, so
 restarting the worker is the fix for a cron that was edited but not picked up.
@@ -142,21 +161,61 @@ from the report's frozen figures; no browser is involved. A missing PDF means
 the upload to object storage failed, so check the worker log for an S3 error
 and the `S3_*` values in `.env`. Re-running the job regenerates it.
 
+**An account deletion is stuck.** `me.deletionStatus` reports `pending` until
+the job finishes. Look for `account.deletion_inline_failed` (no worker) or the
+`account.deletion` queue in `pgboss.job`. The request transaction already
+revoked sessions and banned the account, so retrying is safe.
+
+## Observability
+
+Every response carries `x-request-id`. The same id appears on the request's
+`request.start`, `rpc.request` or `api.request` line, and on any error line from
+that request. Ask a user for the id shown in the error report, then:
+
+```bash
+docker compose --env-file .env -f infra/docker-compose.yml --profile full logs app --since 24h \
+  | grep '"<request-id>"'
+```
+
+Logs are JSON, one object per line. `errorDetails` includes the stack; the
+logger redacts fields whose names look personal (`phone`, `email`, `token`,
+`secret`, `authorization`, `cookie`, `password`, `otp`, `session`, `cedula`,
+`api_key`, `encryption`) and truncates long values.
+
+Crashes and render failures in the phone app arrive at `/api/client-errors` and
+are written as `client.error` lines with the same shape. The endpoint accepts
+one bounded JSON body, rate-limits 30 reports per hour per client, and stores
+nothing. A phone in the field therefore leaves a trace without a vendor SDK.
+
+If the log stream itself is the problem (container restarting, no output), check
+`rc ps` and the container's exit code first. `docker compose logs` reads the
+rotated files; nothing older than five files per service is kept.
+
 ## Secrets
 
 Secrets live in `.env` on the host and nowhere else — not in the image, not in
 the repository, not in a log line. To rotate one, edit `.env` and recreate the
 affected container.
 
-If a secret leaks, rotate it before anything else. For the JCE key, ask the
-provider to revoke that specific key; other keys keep working.
+If a secret leaks, rotate it before anything else. Twilio lets you revoke one
+auth token; Resend and the storage provider do the same for their keys. Rotating
+`APP_ENCRYPTION_KEY` is different: it makes existing ciphertext unreadable, so
+read `DEPLOYMENT.md` section 9.3 first.
+
+## Backup and restore
+
+`infra/backup.sh` takes the nightly snapshot; `infra/backup-offsite.sh` mirrors
+it to another machine; `infra/restore-rehearsal.sh` proves the newest snapshot
+restores into a throwaway database. The full procedure, including the real
+restore, is `DEPLOYMENT.md` section 11.
+
+A backup is not verified until the rehearsal passes. Run it after changing
+Postgres, the storage layout or the backup script.
 
 ## Planned
 
-- Log aggregation and error tracking (Sentry, pino).
 - External uptime and backlog alerting on the recipient’s monitoring service.
-
-Backup and restore are described in `DEPLOYMENT.md`, section 11.
+  The endpoints and log lines exist; the alert routing is institutional.
 
 ## Readiness and retained work
 
@@ -167,10 +226,10 @@ The worker drains `job_outbox` every five seconds; inspect unprocessed rows,
 Failed work remains durable and retries with backoff. External delivery is at
 least once: a crash after provider acceptance can deliver a message twice.
 
-Identity decisions attempt document deletion immediately. Hourly cleanup
-retries failed deletions and expires requests waiting longer than 30 days.
-`documents_purged_at` only records successful deletion of all objects.
-Backups may retain earlier evidence until their own retention expires.
+Account deletion removes the account, its contributions and its private storage
+in a job. The receipt stays queryable until the job finishes. Failed deletions
+are retried by the hourly cleanup. Encrypted backups may retain earlier data
+until their own retention expires.
 
 The intended domain is `rutacibao.com`. Domain purchase, DNS, private VPS,
 production providers, encrypted disk volumes, off-host backups and monitoring

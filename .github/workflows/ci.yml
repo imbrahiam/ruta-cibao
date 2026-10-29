@@ -58,6 +58,9 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Documentation drift
+        run: bun run check:docs
+
       - name: Unit tests
         run: bun test tests
 
@@ -65,11 +68,7 @@ jobs:
         run: bun run db:migrate
 
       - name: Database integration guarantees
-        run: |
-          RUN_DB_TESTS=1 bun test tests/production.integration.test.ts
-          RUN_DB_TESTS=1 bun test tests/safety.integration.test.ts
-          RUN_DB_TESTS=1 bun test tests/native-notifications.integration.test.ts
-          RUN_DB_TESTS=1 bun test tests/staff-totp.integration.test.ts
+        run: RUN_DB_TESTS=1 bun test tests
 
       - name: Start isolated object storage
         run: |
@@ -85,10 +84,11 @@ jobs:
           bun -e 'import {S3Client,CreateBucketCommand} from "@aws-sdk/client-s3"; const client=new S3Client({endpoint:process.env.S3_ENDPOINT,region:"us-east-1",forcePathStyle:true,credentials:{accessKeyId:process.env.S3_ACCESS_KEY_ID,secretAccessKey:process.env.S3_SECRET_ACCESS_KEY}}); await client.send(new CreateBucketCommand({Bucket:process.env.S3_BUCKET}));'
 
       - name: Media storage, account deletion, and offline snapshot guarantees
-        run: |
-          RUN_STORAGE_TESTS=1 bun test tests/media-storage.integration.test.ts
-          RUN_DB_TESTS=1 RUN_STORAGE_TESTS=1 bun test tests/account-deletion.integration.test.ts
-          RUN_DB_TESTS=1 RUN_STORAGE_TESTS=1 bun test tests/offline-snapshot.integration.test.ts
+        run: >-
+          RUN_DB_TESTS=1 RUN_STORAGE_TESTS=1 bun test
+          tests/media-storage.integration.test.ts
+          tests/account-deletion.integration.test.ts
+          tests/offline-snapshot.integration.test.ts
 
       - name: Build
         run: bun run build

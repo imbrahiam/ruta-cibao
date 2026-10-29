@@ -45,6 +45,34 @@ const withoutPushEntitlement: ConfigPlugin = (config) =>
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const current = VARIANTS[variant()];
+  const provider =
+    process.env.EXPO_PUBLIC_MAP_PROVIDER === "apple" ? "apple" : "google";
+
+  // A build that points at localhost, or draws a keyless Google map, installs
+  // and signs without complaint and is useless in the field. Fail the build
+  // instead, where the person who can fix it is already looking.
+  if (current === VARIANTS.production) {
+    const origin = process.env.EXPO_PUBLIC_API_ORIGIN;
+    if (!origin?.startsWith("https://")) {
+      throw new Error(
+        "Production builds require EXPO_PUBLIC_API_ORIGIN set to the public https origin.",
+      );
+    }
+  }
+  if (
+    provider === "apple" &&
+    current.identifier === VARIANTS.production.identifier
+  ) {
+    // Apple Maps is iOS-only; an Android build with it would render nothing.
+    if (process.env.EXPO_OS === "android") {
+      throw new Error("EXPO_PUBLIC_MAP_PROVIDER=apple is iOS-only.");
+    }
+  }
+  if (provider === "google" && !process.env.GOOGLE_MAPS_MOBILE_API_KEY) {
+    throw new Error(
+      "Google Maps needs GOOGLE_MAPS_MOBILE_API_KEY at build time, or set EXPO_PUBLIC_MAP_PROVIDER=apple on iOS.",
+    );
+  }
 
   const expo: ExpoConfig = {
     ...config,

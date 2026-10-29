@@ -10,6 +10,16 @@
 
 name: ruta-cibao
 
+# Bound the log a container can leave behind. Without this, Docker's json-file
+# driver grows in /var/lib/docker until the disk fills and takes Postgres with
+# it. Ten megabytes per file and five files is enough to investigate an
+# incident and small enough to ignore.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   postgres:
     # Built locally: no published image carries PostGIS and pgvector together.
@@ -17,6 +27,7 @@ services:
       context: ./postgres
     image: ruta-cibao/postgres:18-postgis3.6-pgvector
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-ruta}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ruta}
@@ -50,6 +61,7 @@ services:
   storage:
     image: chrislusf/seaweedfs:4.48
     restart: unless-stopped
+    logging: *default-logging
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
@@ -136,14 +148,8 @@ services:
         NEXT_PUBLIC_IOS_URL: ${NEXT_PUBLIC_IOS_URL:-}
         NEXT_PUBLIC_ANDROID_URL: ${NEXT_PUBLIC_ANDROID_URL:-}
         NEXT_PUBLIC_SOURCE_URL: ${NEXT_PUBLIC_SOURCE_URL:-}
-        NEXT_PUBLIC_MAP_RENDERER: ${NEXT_PUBLIC_MAP_RENDERER:-maplibre}
-        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
-        NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ${NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID:-}
-        NEXT_PUBLIC_RASTER_TILE_URL: ${NEXT_PUBLIC_RASTER_TILE_URL:-}
-        NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION: ${NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION:-}
-        NEXT_PUBLIC_MAPTILER_KEY: ${NEXT_PUBLIC_MAPTILER_KEY:-}
-        NEXT_PUBLIC_BASEMAP_PMTILES_URL: ${NEXT_PUBLIC_BASEMAP_PMTILES_URL:-}
     restart: unless-stopped
+    logging: *default-logging
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-ruta}:${POSTGRES_PASSWORD:-ruta}@postgres:5432/${POSTGRES_DB:-ruta_cibao}
       # Pinned here because `environment` beats `env_file`: a `.env` copied
@@ -173,8 +179,8 @@ services:
       - no-new-privileges:true
 
   # The background worker. Its own container so a slow job never shares a
-  # process with the one serving map tiles — and so the app can be scaled to
-  # several instances without three of them racing the same cron.
+  # process with the one answering requests — and so the app can be scaled to
+  # several instances without each of them racing the same cron.
   #
   # It owns the pg-boss schema: it is the only service that migrates it, which
   # is what stops a rolling deploy running two migrations at once.
@@ -185,6 +191,7 @@ services:
       dockerfile: infra/Dockerfile
       target: worker
     restart: unless-stopped
+    logging: *default-logging
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-ruta}:${POSTGRES_PASSWORD:-ruta}@postgres:5432/${POSTGRES_DB:-ruta_cibao}
       # APP_URL comes from `.env` unchanged: it is the public origin, and the
@@ -212,12 +219,15 @@ services:
     profiles: ["full"]
     image: caddy:2.10-alpine
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "80:80"
       - "443:443"
     environment:
       # Set to your domain on the VPS; localhost keeps TLS off in development.
       SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      # Let's Encrypt sends certificate warnings here. Set it on the VPS.
+      ACME_EMAIL: ${ACME_EMAIL:-ops@localhost.invalid}
       # The public address of the self-hosted object store, when photos are
       # stored there. Unused (and harmless) with R2 or S3.
       STORAGE_ADDRESS: ${STORAGE_ADDRESS:-storage.localhost}

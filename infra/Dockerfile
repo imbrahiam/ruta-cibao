@@ -30,35 +30,18 @@ COPY . .
 # `NEXT_PUBLIC_*` is the exception, and it is not a preference — Next inlines
 # these into the client bundle, so a value that arrives at runtime arrives too
 # late and reads as `undefined` in the browser. Every one of them is therefore a
-# build argument, which is what makes "changing an env value" enough to point a
-# deployment at a different maps key or switch the renderer.
-#
-# Public browser map values are restricted by referrer; private credentials
-# stay in the runtime environment and never appear here.
+# build argument. Private credentials stay in the runtime environment and never
+# appear here.
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ARG NEXT_PUBLIC_IOS_URL=
 ARG NEXT_PUBLIC_ANDROID_URL=
 ARG NEXT_PUBLIC_SOURCE_URL=
-ARG NEXT_PUBLIC_MAP_RENDERER=maplibre
-ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
-ARG NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=
-ARG NEXT_PUBLIC_RASTER_TILE_URL=
-ARG NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION=
-ARG NEXT_PUBLIC_MAPTILER_KEY=
-ARG NEXT_PUBLIC_BASEMAP_PMTILES_URL=
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
     NEXT_PUBLIC_IOS_URL=${NEXT_PUBLIC_IOS_URL} \
     NEXT_PUBLIC_ANDROID_URL=${NEXT_PUBLIC_ANDROID_URL} \
-    NEXT_PUBLIC_SOURCE_URL=${NEXT_PUBLIC_SOURCE_URL} \
-    NEXT_PUBLIC_MAP_RENDERER=${NEXT_PUBLIC_MAP_RENDERER} \
-    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY} \
-    NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=${NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID} \
-    NEXT_PUBLIC_RASTER_TILE_URL=${NEXT_PUBLIC_RASTER_TILE_URL} \
-    NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION=${NEXT_PUBLIC_RASTER_TILE_ATTRIBUTION} \
-    NEXT_PUBLIC_MAPTILER_KEY=${NEXT_PUBLIC_MAPTILER_KEY} \
-    NEXT_PUBLIC_BASEMAP_PMTILES_URL=${NEXT_PUBLIC_BASEMAP_PMTILES_URL}
+    NEXT_PUBLIC_SOURCE_URL=${NEXT_PUBLIC_SOURCE_URL}
 RUN bun run build \
     && find apps/web/.next/standalone/node_modules/@img -maxdepth 1 -type d -name "*linuxmusl*" -exec rm -rf {} +
 
