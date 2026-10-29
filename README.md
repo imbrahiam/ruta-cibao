@@ -86,6 +86,25 @@ not actual app screenshots. The landing does not use the Monción or Sabaneta
 photographs. Real screenshots appear only when supplied. Store links remain
 configuration-driven, with coming-soon states for unavailable downloads.
 
+### Social-app identity proposal
+
+`/design/brand` presents the original “Encuentro” proposal without changing the
+active web or native identity. Its open C and detached meeting point use flat
+iris `#7860a8`, with black and white variants. Reference imagery was inspected
+in the official [Instagram](https://www.meta.com/brand/resources/instagram/instagram-brand/),
+[X](https://x.com/), [Threads](https://www.meta.com/brand/resources/threads/) and
+[Bluesky](https://bsky.social/about/support/icons) pages; no third-party marks
+are included in the proposal assets.
+
+Downloadable SVGs and 1024px PNGs live in
+`apps/web/public/brand/proposal/`. The app-icon PNG is square with no baked-in
+corner mask; its rounded appearance is applied only in the preview. The review
+page is no-index and intentionally absent from the public sitemap.
+Browser verification covered 16/24/32/64px symbol displays, monochrome/reverse
+variants, a 390px layout without overflow, and all six downloadable assets
+returning HTTP 200 with the expected SVG/PNG types. No browser errors were
+observed. This is a design proposal, not trademark clearance.
+
 All visible copy comes from the Spanish catalogue; URLs remain English. A small
 Motion client component continuously loops only the last word of the headline
 (cercana / nuestra / humana); “Tu provincia, más” stays fixed. The words use dark
