@@ -3,7 +3,7 @@ import { createHmac } from "node:crypto";
 import { base32 } from "@better-auth/utils/base32";
 import { createOTP } from "@better-auth/utils/otp";
 import { call } from "@orpc/server";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import {
   GET as getAuthRoute,
   POST as postAuthRoute,
@@ -12,12 +12,15 @@ import { db } from "@/db";
 import {
   auditEvents,
   municipalities,
+  rollingRateLimits,
   staffSessionVerifications,
   twoFactor,
   user,
   weeklyReports,
 } from "@/db/schema";
 import { getAuth } from "@/lib/auth";
+import { hashLookup } from "@/lib/crypto";
+import { getRequestClientKey } from "@/lib/rate-limit";
 import {
   assertStaffSessionVerified,
   revokeUserStaffSessions,
@@ -59,6 +62,18 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
     beforeAll(async () => {
       assertDedicatedLocalDatabase();
       guarded = true;
+      // Step-up windows persist across runs. Without this, a second run starts
+      // with the bucket already spent and fails for a reason that has nothing
+      // to do with the code under test.
+      const client = getRequestClientKey(new Headers());
+      await db
+        .delete(rollingRateLimits)
+        .where(
+          eq(
+            rollingRateLimits.key,
+            hashLookup("rolling-rate-limit", `staff-step-up-client\0${client}`),
+          ),
+        );
       await db.insert(municipalities).values([
         { id: townA, name: `Municipio A ${prefix}` },
         { id: townB, name: `Municipio B ${prefix}` },
