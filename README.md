@@ -105,9 +105,11 @@ Mobbin MCP was previously queried but required a paid plan and returned no
 references. No third-party screens, testimonials, usage figures or videos are
 fabricated.
 
-The “aquí” highlight has a decorative red location pin with a white circular
-center and a 12-degree tilt. It has no surrounding card, background or border,
-stays next to the word and is hidden from assistive technology.
+The “aquí” highlight uses a decorative red lollipop location pin with a solid
+circular head, a longer thin stem and a 12-degree tilt. The previous pointed pin is
+preserved alongside it at `/design/pins`, a no-index visual comparison page.
+Both have no surrounding card, background or border and are hidden from
+assistive technology.
 
 On desktop with a fine hover pointer, concept scenes fade in once over 650ms.
 Their scroll depth is spring-smoothed and bounded to ±18px. Selected devices and

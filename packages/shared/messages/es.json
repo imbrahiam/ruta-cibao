@@ -1,5 +1,14 @@
 {
   "landing": {
+    "pinComparison": {
+      "title": "Dos formas de decir aquí.",
+      "intro": "El mismo color e inclinación. Compara la silueta y la altura.",
+      "classic": "Pin clásico",
+      "lollipop": "Pin lollipop",
+      "classicNote": "La versión anterior, con punta.",
+      "lollipopNote": "La nueva versión, con cabeza roja sólida y tallito más largo.",
+      "back": "Ver en la landing"
+    },
     "studio": {
       "headline": "Tu provincia, más cerca.",
       "headlineLead": "Tu próxima historia,",

@@ -1,0 +1,63 @@
+.page {
+  width: min(100% - 40px, 1120px);
+  margin: 70px auto 90px;
+  text-align: center;
+}
+.page h1 {
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+.intro {
+  margin: 20px auto 40px;
+  color: var(--ink-2);
+}
+.variants {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+.variant {
+  padding: 32px 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: var(--card);
+}
+.variant h2 {
+  font-size: 15px;
+  font-weight: 500;
+}
+.sample {
+  margin-block: 44px;
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+.variant p {
+  color: var(--ink-2);
+  font-size: 14px;
+}
+.back {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 36px;
+  padding: var(--public-action-padding);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: var(--public-action-font-size);
+  text-decoration: none;
+}
+.back:hover {
+  background: #44443e;
+}
+@media (max-width: 760px) {
+  .variants {
+    grid-template-columns: 1fr;
+  }
+}
