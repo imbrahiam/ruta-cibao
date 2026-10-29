@@ -1,5 +1,6 @@
 "use client";
 
+import { MapPin } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import styles from "./rotating-headline.module.css";
@@ -152,7 +153,13 @@ export function RotatingHeadline({
             </motion.span>
           </span>
           <span className={styles.secondLine}>
-            {lead} <span className={styles.highlight}>{highlight}</span>
+            {lead}{" "}
+            <span className={styles.locationAccent}>
+              <span className={styles.highlight}>{highlight}</span>
+              <span className={styles.locationBadge}>
+                <MapPin aria-hidden="true" strokeWidth={1.7} />
+              </span>
+            </span>
           </span>
         </span>
       </h1>

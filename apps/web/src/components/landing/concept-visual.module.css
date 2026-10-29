@@ -1117,14 +1117,22 @@
   .communityPaper,
   .communityBubble {
     transition: translate 650ms cubic-bezier(0.22, 1, 0.36, 1);
+    translate: 0 var(--hover-lift, 0px);
+  }
+
+  .phone,
+  .floatingNote,
+  .routeSlip,
+  .communityBubble {
+    translate: 0 calc(var(--hover-lift, 0px) + var(--idle-y, 0px));
   }
 
   .heroFigure:hover .phone {
-    translate: 0 -10px;
+    --hover-lift: -14px;
   }
 
   .heroFigure:hover .desktop {
-    translate: 0 -3px;
+    --hover-lift: -5px;
   }
 
   .heroFigure:hover .floatingNote,
@@ -1132,16 +1140,16 @@
   .detailFigure:hover .routeSlip,
   .detailFigure:hover .localPin,
   .communityFigure:hover .communityBubble {
-    translate: 0 -6px;
+    --hover-lift: -9px;
   }
 
   .detailFigure:hover .routeMapPaper,
   .detailFigure:hover .shopCard,
   .communityFigure:hover .reportPaper {
-    translate: 0 -8px;
+    --hover-lift: -10px;
   }
 
   .communityFigure:hover .communityPaper {
-    translate: 0 -4px;
+    --hover-lift: -6px;
   }
 }

@@ -58,6 +58,32 @@
 .secondLine {
   display: block;
 }
+.locationAccent {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15em;
+  white-space: nowrap;
+}
+.locationBadge {
+  display: inline-flex;
+  width: 0.72em;
+  height: 0.72em;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  border: 1px solid #ddca83;
+  border-radius: 0.2em;
+  background: linear-gradient(145deg, #fff7d5, #f1df9e);
+  box-shadow:
+    inset 0 1px 1px #fff,
+    0 3px 7px #6a592618;
+  color: #756238;
+  transform: rotate(12deg) translateY(-0.04em);
+}
+.locationBadge svg {
+  width: 65%;
+  height: 65%;
+}
 .highlight {
   position: relative;
   z-index: 0;

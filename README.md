@@ -105,18 +105,22 @@ Mobbin MCP was previously queried but required a paid plan and returned no
 references. No third-party screens, testimonials, usage figures or videos are
 fabricated.
 
-On desktop with a fine hover pointer, concept scenes have a one-time Motion
-entrance when 18% enters the viewport: 16px of travel over 650ms with a light
-opacity transition. Content is already visible before hydration. Hover lifts the
-phone 10px, the map window 3px and supporting paper pieces 4–8px. CSS individual
-translation preserves the illustrations' original rotations and scale.
-These effects have no idle loops or continuous scroll listeners, and are disabled
-on touch/mobile layouts and under reduced motion.
+The “aquí” highlight has a decorative location badge: a 12-degree tilted yellow
+tile with a soft gradient, fine border and small shadow. It stays next to the
+word and is hidden from assistive technology.
 
-Browser verification observed the hover offsets and preserved phone rotation,
-650ms viewport keyframes, no replay after leaving/re-entering, and static visible
-scenes under reduced motion and at 390px. The mobile page did not overflow and
-the browser reported no errors.
+On desktop with a fine hover pointer, concept scenes fade in once over 650ms.
+Their scroll depth is spring-smoothed and bounded to ±18px. Selected devices and
+notes float through a 7px, 5.6-second idle cycle. Hover adds a 14px phone lift,
+5px map-window lift and 6–10px paper lifts, preserving original rotation/scale.
+Idle animation and scroll subscriptions stop outside the viewport or in hidden
+documents. All depth/idle/hover effects are disabled on touch/mobile layouts and
+under reduced motion; content is visible before hydration.
+
+Browser verification observed changing idle offsets, bounded depth changes after
+scroll, and cleanup of the idle variable outside the viewport. Reduced motion
+returned the scene transform and phone translation to none. The location badge
+fit the 390px layout without overflow, and the browser reported no errors.
 
 The header places the brand at left, links to experience/territory/support in
 the center and download/municipal actions at right. Text navigation changes
