@@ -46,9 +46,11 @@ if [ "${RUN_RESTORE_REHEARSAL:-0}" = "1" ]; then
   infra/restore-rehearsal.sh
 fi
 
+PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo none)
+
 git tag -a "v$VERSION" -m "Ruta Cibao $VERSION"
 echo "tagged v$VERSION at $(git rev-parse --short HEAD)"
 echo "next: git push origin main --follow-tags"
 echo
-echo "to roll back: deploy the previous tag (currently $(git describe --tags --abbrev=0 2>/dev/null || echo none))"
+echo "to roll back: deploy the previous tag (currently $PREVIOUS_TAG)"
 echo "and restore the database with infra/restore.sh before restarting the worker."
