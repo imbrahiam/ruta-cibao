@@ -1101,3 +1101,47 @@
     height: 48px;
   }
 }
+
+@media (min-width: 801px) and (hover: hover) and (pointer: fine) and (
+    prefers-reduced-motion: no-preference
+  ) {
+  .phone,
+  .desktop,
+  .floatingNote,
+  .routeNote,
+  .routeMapPaper,
+  .routeSlip,
+  .shopCard,
+  .localPin,
+  .reportPaper,
+  .communityPaper,
+  .communityBubble {
+    transition: translate 650ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .heroFigure:hover .phone {
+    translate: 0 -10px;
+  }
+
+  .heroFigure:hover .desktop {
+    translate: 0 -3px;
+  }
+
+  .heroFigure:hover .floatingNote,
+  .heroFigure:hover .routeNote,
+  .detailFigure:hover .routeSlip,
+  .detailFigure:hover .localPin,
+  .communityFigure:hover .communityBubble {
+    translate: 0 -6px;
+  }
+
+  .detailFigure:hover .routeMapPaper,
+  .detailFigure:hover .shopCard,
+  .communityFigure:hover .reportPaper {
+    translate: 0 -8px;
+  }
+
+  .communityFigure:hover .communityPaper {
+    translate: 0 -4px;
+  }
+}

@@ -99,10 +99,24 @@ clip after a 120ms delay. It does not use normalized path length or stroke dashe
 which could truncate the stroke with a non-scaling path. The 4px stroke remains
 independent of text blur and width changes.
 A stable screen-reader label and reduced-motion preference keep a static version
-available. Changes stop while the document is hidden; the rest stays server-rendered.
+available. Changes stop while the document is hidden; page copy and visual
+contents remain server-rendered inside small client motion boundaries.
 Mobbin MCP was previously queried but required a paid plan and returned no
 references. No third-party screens, testimonials, usage figures or videos are
 fabricated.
+
+On desktop with a fine hover pointer, concept scenes have a one-time Motion
+entrance when 18% enters the viewport: 16px of travel over 650ms with a light
+opacity transition. Content is already visible before hydration. Hover lifts the
+phone 10px, the map window 3px and supporting paper pieces 4–8px. CSS individual
+translation preserves the illustrations' original rotations and scale.
+These effects have no idle loops or continuous scroll listeners, and are disabled
+on touch/mobile layouts and under reduced motion.
+
+Browser verification observed the hover offsets and preserved phone rotation,
+650ms viewport keyframes, no replay after leaving/re-entering, and static visible
+scenes under reduced motion and at 390px. The mobile page did not overflow and
+the browser reported no errors.
 
 The header places the brand at left, links to experience/territory/support in
 the center and download/municipal actions at right. Text navigation changes

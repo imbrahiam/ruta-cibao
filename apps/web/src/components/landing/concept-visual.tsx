@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getT } from "@/lib/web/i18n";
 import styles from "./concept-visual.module.css";
+import { RevealFigure } from "./reveal-figure";
 
 const t = getT("landing");
 
@@ -152,7 +153,7 @@ function IllustratedMap() {
 
 export function HeroConcept() {
   return (
-    <figure className={styles.heroFigure}>
+    <RevealFigure className={styles.heroFigure}>
       <div className={styles.heroScene} aria-hidden="true">
         <div className={styles.orbitOne} />
         <div className={styles.orbitTwo} />
@@ -284,13 +285,13 @@ export function HeroConcept() {
       <figcaption className={styles.caption}>
         {t("studio.conceptLabel")}
       </figcaption>
-    </figure>
+    </RevealFigure>
   );
 }
 
 export function RoutesConcept() {
   return (
-    <figure className={`${styles.detailFigure} ${styles.routesFigure}`}>
+    <RevealFigure className={styles.detailFigure}>
       <div className={styles.routesScene} aria-hidden="true">
         <span className={styles.sceneTag}>
           <Route size={14} />
@@ -320,13 +321,13 @@ export function RoutesConcept() {
       <figcaption className={styles.caption}>
         {t("studio.conceptLabel")}
       </figcaption>
-    </figure>
+    </RevealFigure>
   );
 }
 
 export function LocalConcept() {
   return (
-    <figure className={`${styles.detailFigure} ${styles.localFigure}`}>
+    <RevealFigure className={styles.detailFigure}>
       <div className={styles.localScene} aria-hidden="true">
         <span className={styles.sceneTag}>
           <Store size={14} />
@@ -373,13 +374,13 @@ export function LocalConcept() {
       <figcaption className={styles.caption}>
         {t("studio.conceptLabel")}
       </figcaption>
-    </figure>
+    </RevealFigure>
   );
 }
 
 export function CommunityConcept() {
   return (
-    <figure className={styles.communityFigure}>
+    <RevealFigure className={styles.communityFigure}>
       <div className={styles.communityScene} aria-hidden="true">
         <span className={styles.sceneTag}>
           <MessagesSquare size={14} />
@@ -434,6 +435,6 @@ export function CommunityConcept() {
       <figcaption className={styles.caption}>
         {t("studio.conceptLabel")}
       </figcaption>
-    </figure>
+    </RevealFigure>
   );
 }
