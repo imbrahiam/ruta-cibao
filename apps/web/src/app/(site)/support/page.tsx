@@ -4,12 +4,12 @@ import {
   LifeBuoy,
   MessageCircle,
   Send,
-  ShieldCheck,
   UserRound,
 } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getT } from "@/lib/web/i18n";
+import { FaqItem } from "./faq-item";
 import styles from "./page.module.css";
 
 const t = getT("landing");
@@ -69,7 +69,10 @@ export default function SupportPage() {
           🧭
         </span>
         <p className={styles.eyebrow}>{t("support")}</p>
-        <h1>{t("supportTitle")}</h1>
+        <h1>
+          {t("supportHeadingLead")}{" "}
+          <span className={styles.heroWord}>{t("supportHeadingWord")}</span>
+        </h1>
         <p className={styles.heroIntro}>{t("supportGuide.intro")}</p>
       </header>
 
@@ -102,46 +105,22 @@ export default function SupportPage() {
           </h2>
         </div>
         <div className={styles.questions}>
-          <details className={styles.question}>
-            <summary>
-              {t("supportGuide.faqAccessTitle")}
-              <span className={styles.toggle} aria-hidden="true" />
-            </summary>
-            <div className={styles.answer}>
-              <p>{t("supportGuide.faqAccessBody")}</p>
-            </div>
-          </details>
-          <details className={styles.question}>
-            <summary>
-              {t("supportGuide.faqPlaceTitle")}
-              <span className={styles.toggle} aria-hidden="true" />
-            </summary>
-            <div className={styles.answer}>
-              <p>{t("supportGuide.faqPlaceBody")}</p>
-            </div>
-          </details>
-          <details className={styles.question}>
-            <summary>
-              {t("supportGuide.faqRoutesTitle")}
-              <span className={styles.toggle} aria-hidden="true" />
-            </summary>
-            <div className={styles.answer}>
-              <p>{t("supportGuide.faqRoutesBody")}</p>
-            </div>
-          </details>
-          <details className={styles.question}>
-            <summary>
-              {t("supportGuide.faqPrivacyTitle")}
-              <span className={styles.toggle} aria-hidden="true" />
-            </summary>
-            <div className={styles.answer}>
-              <p>{t("supportGuide.faqPrivacyBody")}</p>
-              <Link href="/account/delete" className={styles.textAction}>
-                {t("supportGuide.privacyAction")}
-                <ArrowUpRight size={16} aria-hidden="true" />
-              </Link>
-            </div>
-          </details>
+          <FaqItem title={t("supportGuide.faqAccessTitle")}>
+            <p>{t("supportGuide.faqAccessBody")}</p>
+          </FaqItem>
+          <FaqItem title={t("supportGuide.faqPlaceTitle")}>
+            <p>{t("supportGuide.faqPlaceBody")}</p>
+          </FaqItem>
+          <FaqItem title={t("supportGuide.faqRoutesTitle")}>
+            <p>{t("supportGuide.faqRoutesBody")}</p>
+          </FaqItem>
+          <FaqItem title={t("supportGuide.faqPrivacyTitle")}>
+            <p>{t("supportGuide.faqPrivacyBody")}</p>
+            <Link href="/account/delete" className={styles.textAction}>
+              {t("supportGuide.privacyAction")}
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </Link>
+          </FaqItem>
         </div>
       </section>
 
@@ -154,14 +133,6 @@ export default function SupportPage() {
           {t("supportGuide.exploreAction")}
           <ArrowUpRight size={17} aria-hidden="true" />
         </Link>
-      </aside>
-
-      <aside className={styles.safety} aria-labelledby="support-safety-title">
-        <ShieldCheck size={19} strokeWidth={1.5} aria-hidden="true" />
-        <div>
-          <h2 id="support-safety-title">{t("supportSafetyTitle")}</h2>
-          <p>{t("supportSafety")}</p>
-        </div>
       </aside>
     </div>
   );

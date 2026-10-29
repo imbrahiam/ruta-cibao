@@ -258,9 +258,9 @@
         "body": "El código propio se distribuye bajo su licencia MIT. Las fotografías, datos y servicios de terceros conservan sus respectivas licencias. Comparte únicamente material propio o autorizado."
       }
     },
-    "supportTitle": "Estamos para orientarte.",
+    "supportHeadingLead": "Estamos para",
+    "supportHeadingWord": "orientarte.",
     "supportIntro": "Para pedir ayuda, abre Cuenta → Soporte en la app. Describe la pantalla y el problema, sin incluir códigos de acceso ni información privada de otras personas.",
-    "supportSafety": "Si existe peligro inmediato, utiliza los servicios de emergencia locales. Un reporte en Ruta Cibao no es una llamada de emergencia.",
     "supportContact": "El contacto público de soporte se publicará antes de la distribución abierta de la app.",
     "supportGuide": {
       "intro": "Encuentra una respuesta y sigue con lo tuyo.",
@@ -308,8 +308,7 @@
     "deleteStatusCompleted": "Eliminación completada.",
     "deleteCheckReceipt": "Consultar estado por comprobante",
     "deleteReceiptInvalid": "Escribe un comprobante válido.",
-    "deleteOfflineTitle": "Sin conexión y borradores locales",
-    "supportSafetyTitle": "En caso de emergencia"
+    "deleteOfflineTitle": "Sin conexión y borradores locales"
   },
   "share": {
     "open": "Abrir en la app",

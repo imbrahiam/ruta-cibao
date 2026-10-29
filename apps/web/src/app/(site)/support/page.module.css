@@ -5,7 +5,7 @@
 }
 
 .page a:focus-visible,
-.page summary:focus-visible {
+.page button:focus-visible {
   outline: 3px solid #746391;
   outline-offset: 5px;
 }
@@ -23,6 +23,24 @@
   height: 112px;
   place-items: center;
   font-size: 88px;
+}
+
+.heroWord {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.heroWord::after {
+  position: absolute;
+  right: 0;
+  bottom: -0.06em;
+  left: 0;
+  height: 4px;
+  border-radius: 999px;
+  background: #b8a6cf;
+  content: "";
+  transform: rotate(-1deg);
 }
 
 .emoji {
@@ -324,27 +342,28 @@
   background: #fdfdfb;
 }
 
-.question summary {
+.questionTrigger {
   display: flex;
+  width: 100%;
   min-height: 76px;
   align-items: center;
   justify-content: space-between;
   gap: 22px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
   border-radius: 17px;
   padding: 20px 26px;
   cursor: pointer;
   font-size: 15px;
   font-weight: 500;
   line-height: 1.6;
-  list-style: none;
   transition: background-color 150ms ease;
 }
 
-.question summary::-webkit-details-marker {
-  display: none;
-}
-
-.question summary:hover {
+.questionTrigger:hover {
   background: #f2eef7;
 }
 
@@ -372,10 +391,15 @@
 
 .toggle::after {
   transform: rotate(90deg);
+  transition: transform 220ms ease;
 }
 
-.question[open] .toggle::after {
-  display: none;
+.questionTrigger[aria-expanded="true"] .toggle::after {
+  transform: rotate(0deg);
+}
+
+.answerFrame {
+  overflow: hidden;
 }
 
 .answer {
@@ -435,33 +459,6 @@
 
 .secondaryAction:hover {
   background: #eae5d7;
-}
-
-.safety {
-  display: flex;
-  max-width: 640px;
-  align-items: flex-start;
-  gap: 12px;
-  margin: 42px auto 0;
-  color: var(--ink-2);
-}
-
-.safety > svg {
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.safety h2 {
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.6;
-}
-
-.safety p {
-  margin-top: 5px;
-  font-size: 12px;
-  line-height: 1.75;
-  text-wrap: pretty;
 }
 
 @media (max-width: 850px) {
@@ -550,7 +547,7 @@
     margin-top: 64px;
   }
 
-  .question summary {
+  .questionTrigger {
     gap: 15px;
     padding: 19px;
     font-size: 14px;
@@ -565,16 +562,12 @@
     margin-top: 48px;
     padding: 26px;
   }
-
-  .safety {
-    margin-top: 32px;
-    padding-inline: 5px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .page a,
-  .question summary {
+  .questionTrigger,
+  .toggle::after {
     transition: none;
   }
 }

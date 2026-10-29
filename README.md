@@ -86,10 +86,11 @@ app screenshots. The landing does not use the Monción or Sabaneta
 photographs. Real screenshots appear only when supplied. Store links remain
 configuration-driven, with coming-soon states for unavailable downloads.
 The shared footer pairs the Dominican flag with the province, separates discovery
-and help links from legal utilities. Link hover reveals only a lavender underline;
-keyboard focus retains a visible outline, and motion respects reduced-motion settings.
+and help links from legal utilities. Link hover reveals only a lavender brush,
+drawn left to right with clipping rather than scaling its thickness. Keyboard focus
+retains a visible outline, and motion respects reduced-motion settings.
 `/support` guides residents through the in-app support path, with a decorative
-account/help illustration and native expandable FAQs for access, place data,
+account/help illustration and accessible, Motion-animated FAQs for access, place data,
 offline use and account deletion. Compass and waving-hand emoji accents prefer
 Apple Color Emoji, falling back to the platform's color emoji font.
 The standalone compass is the hero's main visual cue; the hand scales with the FAQ heading.
