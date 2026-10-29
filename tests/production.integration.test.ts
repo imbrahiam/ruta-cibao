@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { eq, sql } from "drizzle-orm";
-import { db, pool } from "@/db";
+import { db } from "@/db";
 import {
   auditEvents,
   categories,
@@ -33,14 +33,42 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
   () => {
     const prefix = `review-${crypto.randomUUID()}`;
     const municipalityId = `${prefix}-town`;
+    const otherMunicipalityId = `${prefix}-other`;
+    const insideMunicipalityId = `${prefix}-inside`;
+    const adjacentMunicipalityId = `${prefix}-adjacent`;
+    const consultationCategoryId = `${prefix}-case`;
     const applicantId = `${prefix}-applicant`;
     const moderatorId = `${prefix}-moderator`;
     let moderator: ModeratorViewer;
     let applicant: MemberViewer;
+
+    /** A small synthetic square in the Gulf of Guinea, away from real borders. */
+    function square(west: number, south: number): string {
+      const east = west + 0.01;
+      const north = south + 0.01;
+      return `SRID=4326;MULTIPOLYGON(((${west} ${south},${east} ${south},${east} ${north},${west} ${north},${west} ${south})))`;
+    }
+
     beforeAll(async () => {
-      await db
-        .insert(municipalities)
-        .values({ id: municipalityId, name: "Test municipality" });
+      await db.insert(municipalities).values([
+        { id: municipalityId, name: "Test municipality" },
+        { id: otherMunicipalityId, name: "Other municipality" },
+        {
+          id: insideMunicipalityId,
+          name: "Synthetic inside",
+          boundary: square(0, 0),
+        },
+        {
+          id: adjacentMunicipalityId,
+          name: "Synthetic adjacent",
+          boundary: square(1, 1),
+        },
+      ]);
+      await db.insert(categories).values({
+        id: consultationCategoryId,
+        kind: "consultation",
+        name: `Synthetic cases ${prefix}`,
+      });
       await db.insert(user).values([
         {
           id: applicantId,
@@ -96,9 +124,13 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         .delete(user)
         .where(sql`${user.id} in (${applicantId}, ${moderatorId})`);
       await db
+        .delete(categories)
+        .where(eq(categories.id, consultationCategoryId));
+      await db
         .delete(municipalities)
-        .where(eq(municipalities.id, municipalityId));
-      await pool.end();
+        .where(
+          sql`${municipalities.id} in (${municipalityId}, ${otherMunicipalityId}, ${insideMunicipalityId}, ${adjacentMunicipalityId})`,
+        );
     });
     test("a failed audit rolls back its domain mutation and outbox", async () => {
       const reportId = crypto.randomUUID();
@@ -197,22 +229,16 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
     });
 
     test("a moderator changing their own municipality keeps staff jurisdiction", async () => {
-      const [other] = await db
-        .select({ id: municipalities.id })
-        .from(municipalities)
-        .where(sql`${municipalities.id} <> ${municipalityId}`)
-        .limit(1);
-      if (!other) throw new Error("A second municipality is required");
       await updateProfile(moderator, {
         requestId: crypto.randomUUID(),
         displayName: "Reviewer",
-        municipalityId: other.id,
+        municipalityId: otherMunicipalityId,
       });
       const [profile] = await db
         .select()
         .from(memberProfiles)
         .where(eq(memberProfiles.userId, moderatorId));
-      expect(profile?.municipalityId).toBe(other.id);
+      expect(profile?.municipalityId).toBe(otherMunicipalityId);
       expect(profile?.staffMunicipalityId).toBe(municipalityId);
     });
 
@@ -252,41 +278,20 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
     });
 
     test("a case whose point lies in another municipality is refused without side effects", async () => {
-      const [category] = await db
-        .select({ id: categories.id })
-        .from(categories)
-        .where(eq(categories.kind, "consultation"))
-        .limit(1);
-      const [pair] = await db
-        .execute<{
-          inside: string;
-          other: string;
-          lng: number;
-          lat: number;
-        }>(
-          sql`select a.id as inside, b.id as other,
-              ST_X(ST_PointOnSurface(a.boundary)) as lng,
-              ST_Y(ST_PointOnSurface(a.boundary)) as lat
-            from municipalities a join municipalities b on a.id <> b.id
-            where a.boundary is not null and b.boundary is not null limit 1`,
-        )
-        .then((result) => result.rows);
-      if (!category || !pair) throw new Error("Seeded boundaries required");
-
       const title = `Mismatch ${prefix}`;
       const error = await openConsultation(applicant, {
         requestId: crypto.randomUUID(),
-        categoryId: category.id,
+        categoryId: consultationCategoryId,
         title,
         body: "A case body long enough to pass the forty character minimum.",
-        municipalityId: pair.other,
-        location: { lng: Number(pair.lng), lat: Number(pair.lat) },
+        municipalityId: adjacentMunicipalityId,
+        location: { lng: 0.005, lat: 0.005 },
       }).catch((caught: unknown) => caught);
 
       expect(error).toBeInstanceOf(ConsultationError);
       expect((error as ConsultationError).reason).toBe("municipality_mismatch");
       expect((error as ConsultationError).pointMunicipalityId).toBe(
-        pair.inside,
+        insideMunicipalityId,
       );
       const created = await db
         .select({ id: consultations.id })

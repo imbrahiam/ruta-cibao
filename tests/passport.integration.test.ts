@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { call } from "@orpc/server";
 import { and, eq, inArray, sql } from "drizzle-orm";
-import { db, pool } from "@/db";
+import { db } from "@/db";
 import {
   auditEvents,
   categories,
@@ -93,11 +93,11 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
       await db.delete(places).where(inArray(places.id, [placeId, hiddenId]));
       await db.delete(categories).where(eq(categories.id, prefix));
       await db.delete(municipalities).where(eq(municipalities.id, prefix));
-      await pool.end();
     });
     test("anonymous requests cannot read or stamp a passport", async () => {
       const context = {
         db,
+        requestId: "test-request",
         headers: new Headers(),
         getViewer: async () => ({ kind: "anonymous" as const }),
         getSession: async () => ({
