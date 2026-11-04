@@ -16,6 +16,8 @@ struct RutaCibaoApp: App {
         if let cookie = ProcessInfo.processInfo.environment["RUTA_DEBUG_SESSION"], cookie.contains("=") {
             store.write(key: "rutacibao.session.cookies", value: cookie)
         }
+        // `SIMCTL_CHILD_RUTA_DEBUG_OFFLINE=1` starts with every API call failing like a dropped connection.
+        if ProcessInfo.processInfo.environment["RUTA_DEBUG_OFFLINE"] == "1" { DebugNetwork.shared.offline = true }
         #endif
         graph = createAppGraph(config: AppConfig.current, secureStore: store)
     }
@@ -26,7 +28,22 @@ struct RutaCibaoApp: App {
                 .environment(\.graph, graph)
                 .environment(delegate.links)
                 // Custom-scheme and universal links share the notification router.
-                .onOpenURL { delegate.links.open($0.absoluteString) }
+                .onOpenURL { url in
+                    #if DEBUG
+                    // Simulator has no way to cut the network: `rutacibao-dev://debug/offline|online|download|sync`.
+                    if url.host == "debug" {
+                        switch url.lastPathComponent {
+                        case "offline": DebugNetwork.shared.offline = true
+                        case "online": DebugNetwork.shared.offline = false
+                        case "download": graph.offline.download()
+                        case "sync": graph.offline.flush()
+                        default: break
+                        }
+                        return
+                    }
+                    #endif
+                    delegate.links.open(url.absoluteString)
+                }
                 .task {
                     delegate.graph = graph
                     // Signed in: make sure this phone gets the account's notices.

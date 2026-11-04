@@ -75,6 +75,18 @@ struct TrafficReportScreen: View {
             guard let graph else { return }
             let model = self.model ?? TrafficReportModel(graph: graph)
             self.model = model
+            #if DEBUG
+            // `SIMCTL_CHILD_RUTA_DEBUG_FORM=send`: first kind, a point in Sabaneta, submit (offline-queue runs).
+            if ProcessInfo.processInfo.environment["RUTA_DEBUG_FORM"] == "send" {
+                Task { @MainActor in
+                    while model.state.categories.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
+                    model.viewModel.selectCategory(id: model.state.categories[0].id)
+                    model.viewModel.setLocation(latitude: 19.4626, longitude: -71.3592)
+                    try? await Task.sleep(for: .milliseconds(500))
+                    model.viewModel.send()
+                }
+            }
+            #endif
             await model.observe()
         }
     }

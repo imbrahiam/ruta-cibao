@@ -131,6 +131,24 @@ private struct Composer: View {
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) { footer }
         .onAppear { focus = .title }
+        #if DEBUG
+        // `SIMCTL_CHILD_RUTA_DEBUG_FORM=send` (+ `RUTA_DEBUG_PHOTOS=/a.jpg,/b.jpg`): fills the case, attaches the
+        // files through the same JPEG pipeline as the picker, and sends it (the system picker can't be driven here).
+        .task {
+            let env = ProcessInfo.processInfo.environment
+            guard env["RUTA_DEBUG_FORM"] == "send" else { return }
+            while state.categories.isEmpty || state.municipalities.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
+            title = "Basura acumulada en la calle Duarte"
+            text = "Hace dos semanas que no pasa el camión de la basura y se acumula en la esquina."
+            if let basura = state.categories.first(where: { $0.name == "Basura" }) { vm.selectCategory(id: basura.id) }
+            if let town = state.municipalities.first(where: { $0.name == "Sabaneta" }) { vm.selectMunicipality(id: town.id) }
+            for path in (env["RUTA_DEBUG_PHOTOS"] ?? "").split(separator: ",") {
+                if let image = UIImage(contentsOfFile: String(path)), let jpeg = PhotoAttach.jpeg(image) { vm.addPhoto(jpeg: BytesKt.byteArrayOf(data: jpeg)) }
+            }
+            try? await Task.sleep(for: .milliseconds(800))
+            vm.send()
+        }
+        #endif
         .sheet(isPresented: $picking) {
             LocationPicker(start: pinned) { vm.setLocation(latitude: $0.latitude, longitude: $0.longitude) }
         }
