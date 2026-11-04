@@ -10,6 +10,8 @@ import rutacibao.core.AppConfig
 import rutacibao.core.SecureStore
 import rutacibao.data.PushRepository
 import rutacibao.data.Session
+import rutacibao.data.StaffRepository
+import rutacibao.data.StaffSource
 import rutacibao.data.createHttpClient
 import rutacibao.data.createRutaApi
 import io.ktor.client.HttpClient
@@ -29,6 +31,9 @@ public interface AppGraph {
     @Provides
     @SingleIn(AppScope::class)
     public fun provideRutaApi(client: HttpClient, config: AppConfig): RutaApi = createRutaApi(client, config)
+
+    @Provides
+    public fun provideStaffSource(repository: StaffRepository): StaffSource = repository
 
     @DependencyGraph.Factory
     public fun interface Factory {

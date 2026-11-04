@@ -47,5 +47,7 @@ public class ScreenScope(private val graph: AppGraph) {
     public fun comments(): rutacibao.presentation.comments.CommentsViewModel = get { graph.viewModels.comments() }
     public fun businessForm(): rutacibao.presentation.business.BusinessFormViewModel = get { graph.viewModels.businessForm() }
 
+    public fun gestion(): rutacibao.presentation.gestion.GestionViewModel = get { graph.viewModels.gestion() }
+
     public fun close(): Unit = store.clear()
 }

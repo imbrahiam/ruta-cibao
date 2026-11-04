@@ -18,7 +18,7 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
  * - unions of the same primitive        -> that primitive
  * - anything else                       -> JsonElement
  *
- * Staff-only groups are left out: the native apps are for residents.
+ * The catalog group is left out: it feeds the web admin only.
  */
 
 type Schema = {
@@ -58,7 +58,7 @@ type Spec = {
   components?: { schemas?: Record<string, Schema> };
 };
 
-const EXCLUDED_GROUPS = new Set(["moderation", "staff", "catalog", "reports"]);
+const EXCLUDED_GROUPS = new Set(["catalog"]);
 const PACKAGE = "rutacibao.api";
 const INT_MAX = 2_147_483_647;
 const KOTLIN_KEYWORDS = new Set([

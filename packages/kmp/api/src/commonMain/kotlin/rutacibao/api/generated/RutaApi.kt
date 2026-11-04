@@ -20,6 +20,7 @@ import rutacibao.api.ApiTransport
 public class RutaApi(private val transport: ApiTransport) {
     public val me: MeApi = MeApi(transport)
     public val municipalities: MunicipalitiesApi = MunicipalitiesApi(transport)
+    public val moderation: ModerationApi = ModerationApi(transport)
     public val notifications: NotificationsApi = NotificationsApi(transport)
     public val offline: OfflineApi = OfflineApi(transport)
     public val places: PlacesApi = PlacesApi(transport)
@@ -29,8 +30,10 @@ public class RutaApi(private val transport: ApiTransport) {
     public val comments: CommentsApi = CommentsApi(transport)
     public val directions: DirectionsApi = DirectionsApi(transport)
     public val businesses: BusinessesApi = BusinessesApi(transport)
+    public val reports: ReportsApi = ReportsApi(transport)
     public val routes: RoutesApi = RoutesApi(transport)
     public val safety: SafetyApi = SafetyApi(transport)
+    public val staff: StaffApi = StaffApi(transport)
 
     /** Liveness probe */
     public suspend fun health(): HealthOutput =
@@ -106,6 +109,140 @@ public class MunicipalitiesApi internal constructor(private val transport: ApiTr
             queryKeys = emptySet(),
             hasBody = false,
             output = serializer<List<MunicipalitiesListItem>>(),
+        )
+}
+
+public class ModerationApi internal constructor(private val transport: ApiTransport) {
+    /** How much is waiting */
+    public suspend fun counts(): ModerationCountsOutput =
+        transport.call(
+            method = "GET",
+            path = "/moderation/counts",
+            input = null,
+            pathKeys = emptySet(),
+            queryKeys = emptySet(),
+            hasBody = false,
+            output = serializer<ModerationCountsOutput>(),
+        )
+
+    /** What is waiting for a decision */
+    public suspend fun queue(input: ModerationQueueInput): ModerationQueueOutput =
+        transport.call(
+            method = "GET",
+            path = "/moderation/queue",
+            input = transport.encode(ModerationQueueInput.serializer(), input),
+            pathKeys = emptySet(),
+            queryKeys = setOf("queue", "municipalityId", "limit"),
+            hasBody = false,
+            output = serializer<ModerationQueueOutput>(),
+        )
+
+    /** Publish or reject a submitted place */
+    public suspend fun decidePlace(input: ModerationDecidePlaceInput): ModerationDecidePlaceOutput =
+        transport.call(
+            method = "POST",
+            path = "/moderation/places/{placeId}",
+            input = transport.encode(ModerationDecidePlaceInput.serializer(), input),
+            pathKeys = setOf("placeId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ModerationDecidePlaceOutput>(),
+        )
+
+    /** Resolve or dismiss a report */
+    public suspend fun decideReport(input: ModerationDecideReportInput): ModerationDecideReportOutput =
+        transport.call(
+            method = "POST",
+            path = "/moderation/reports/{reportId}",
+            input = transport.encode(ModerationDecideReportInput.serializer(), input),
+            pathKeys = setOf("reportId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ModerationDecideReportOutput>(),
+        )
+
+    /** Publish or refuse a photo */
+    public suspend fun decidePhoto(input: ModerationDecidePhotoInput): ModerationDecidePhotoOutput =
+        transport.call(
+            method = "POST",
+            path = "/moderation/photos/{photoId}",
+            input = transport.encode(ModerationDecidePhotoInput.serializer(), input),
+            pathKeys = setOf("photoId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ModerationDecidePhotoOutput>(),
+        )
+
+    /** Approve or refuse a business claim */
+    public suspend fun decideClaim(input: ModerationDecideClaimInput): ModerationDecideClaimOutput =
+        transport.call(
+            method = "POST",
+            path = "/moderation/claims/{claimId}",
+            input = transport.encode(ModerationDecideClaimInput.serializer(), input),
+            pathKeys = setOf("claimId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ModerationDecideClaimOutput>(),
+        )
+
+    /** Take a traffic report off the map */
+    public suspend fun removeTraffic(input: ModerationRemoveTrafficInput): ModerationRemoveTrafficOutput =
+        transport.call(
+            method = "DELETE",
+            path = "/moderation/traffic/{reportId}",
+            input = transport.encode(ModerationRemoveTrafficInput.serializer(), input),
+            pathKeys = setOf("reportId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ModerationRemoveTrafficOutput>(),
+        )
+
+    /** Action or dismiss a report about content */
+    public suspend fun decideContentReport(input: ModerationDecideContentReportInput): ModerationDecideContentReportOutput =
+        transport.call(
+            method = "POST",
+            path = "/moderation/content-reports/{reportId}",
+            input = transport.encode(ModerationDecideContentReportInput.serializer(), input),
+            pathKeys = setOf("reportId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ModerationDecideContentReportOutput>(),
+        )
+
+    /** Publish or hide a case or a traffic report's text */
+    public suspend fun decidePublication(input: ModerationDecidePublicationInput): ModerationDecidePublicationOutput =
+        transport.call(
+            method = "POST",
+            path = "/moderation/publication",
+            input = transport.encode(ModerationDecidePublicationInput.serializer(), input),
+            pathKeys = emptySet(),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ModerationDecidePublicationOutput>(),
+        )
+
+    /** Grant or revoke the in-person resident badge */
+    public suspend fun setResidencyVerified(input: ModerationSetResidencyVerifiedInput): ModerationSetResidencyVerifiedOutput =
+        transport.call(
+            method = "POST",
+            path = "/moderation/members/{userId}/residency",
+            input = transport.encode(ModerationSetResidencyVerifiedInput.serializer(), input),
+            pathKeys = setOf("userId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ModerationSetResidencyVerifiedOutput>(),
+        )
+
+    /** Lay a reported stretch on the map provider's road */
+    public suspend fun snapRoad(input: ModerationSnapRoadInput): ModerationSnapRoadOutput =
+        transport.call(
+            method = "POST",
+            path = "/moderation/snap-road",
+            input = transport.encode(ModerationSnapRoadInput.serializer(), input),
+            pathKeys = emptySet(),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ModerationSnapRoadOutput>(),
         )
 }
 
@@ -627,6 +764,56 @@ public class BusinessesApi internal constructor(private val transport: ApiTransp
         )
 }
 
+public class ReportsApi internal constructor(private val transport: ApiTransport) {
+    /** Recent weekly reports */
+    public suspend fun list(input: ReportsListInput = ReportsListInput()): List<ReportsListItem> =
+        transport.call(
+            method = "GET",
+            path = "/reports",
+            input = transport.encode(ReportsListInput.serializer(), input),
+            pathKeys = emptySet(),
+            queryKeys = setOf("municipalityId", "limit"),
+            hasBody = false,
+            output = serializer<List<ReportsListItem>>(),
+        )
+
+    /** One weekly report */
+    public suspend fun detail(input: ReportsDetailInput): ReportsDetailOutput =
+        transport.call(
+            method = "GET",
+            path = "/reports/{reportId}",
+            input = transport.encode(ReportsDetailInput.serializer(), input),
+            pathKeys = setOf("reportId"),
+            queryKeys = emptySet(),
+            hasBody = false,
+            output = serializer<ReportsDetailOutput>(),
+        )
+
+    /** Ask for the PDF to be rendered */
+    public suspend fun render(input: ReportsRenderInput): ReportsRenderOutput =
+        transport.call(
+            method = "POST",
+            path = "/reports/{reportId}/pdf",
+            input = transport.encode(ReportsRenderInput.serializer(), input),
+            pathKeys = setOf("reportId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ReportsRenderOutput>(),
+        )
+
+    /** Generate or retry the most recent completed weekly report for a municipality */
+    public suspend fun generate(input: ReportsGenerateInput): ReportsGenerateOutput =
+        transport.call(
+            method = "POST",
+            path = "/reports/generate",
+            input = transport.encode(ReportsGenerateInput.serializer(), input),
+            pathKeys = emptySet(),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ReportsGenerateOutput>(),
+        )
+}
+
 public class RoutesApi internal constructor(private val transport: ApiTransport) {
     public suspend fun map(input: RoutesMapInput): RoutesMapOutput =
         transport.call(
@@ -754,5 +941,31 @@ public class SafetyApi internal constructor(private val transport: ApiTransport)
             queryKeys = setOf("cursor", "limit"),
             hasBody = false,
             output = serializer<SafetyHiddenTargetsOutput>(),
+        )
+}
+
+public class StaffApi internal constructor(private val transport: ApiTransport) {
+    /** Step up a staff session with a TOTP code */
+    public suspend fun verifyTotp(input: StaffVerifyTotpInput): StaffVerifyTotpOutput =
+        transport.call(
+            method = "POST",
+            path = "/staff/verify-totp",
+            input = transport.encode(StaffVerifyTotpInput.serializer(), input),
+            pathKeys = emptySet(),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<StaffVerifyTotpOutput>(),
+        )
+
+    /** Step up a staff session with a one-time recovery code */
+    public suspend fun verifyRecoveryCode(input: StaffVerifyRecoveryCodeInput): StaffVerifyRecoveryCodeOutput =
+        transport.call(
+            method = "POST",
+            path = "/staff/verify-recovery-code",
+            input = transport.encode(StaffVerifyRecoveryCodeInput.serializer(), input),
+            pathKeys = emptySet(),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<StaffVerifyRecoveryCodeOutput>(),
         )
 }

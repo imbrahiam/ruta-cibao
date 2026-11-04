@@ -19,7 +19,9 @@ import rutacibao.api.generated.PlacesSavedItem
 import rutacibao.data.AccountRepository
 import rutacibao.data.AuthRepository
 import rutacibao.data.Session
+import rutacibao.data.StaffSource
 import rutacibao.presentation.UiError
+import rutacibao.presentation.gestion.toKindCounts
 
 public data class AccountUiState(
     val signedIn: Boolean = false,
@@ -32,6 +34,8 @@ public data class AccountUiState(
     val savingProfile: Boolean = false,
     val profileSaved: Boolean = false,
     val deletion: Deletion = Deletion.Idle,
+    /** Waiting reviews for staff; null for everyone else. */
+    val staffPending: Int? = null,
     val error: UiError? = null,
 ) {
     public enum class Deletion { Idle, Working, Requested, NeedsRecentSignIn, Failed }
@@ -46,6 +50,7 @@ public class AccountViewModel(
     private val session: Session,
     private val auth: AuthRepository,
     private val account: AccountRepository,
+    private val staff: StaffSource,
 ) : ViewModel() {
     private val _state = MutableStateFlow(AccountUiState(signedIn = session.isSignedIn.value))
     public val state: StateFlow<AccountUiState> = _state.asStateFlow()
@@ -124,10 +129,17 @@ public class AccountViewModel(
                 val saved = async { runCatching { account.saved() }.getOrDefault(emptyList()) }
                 val passport = async { runCatching { account.passport() }.getOrNull() }
                 val preferences = async { runCatching { account.preferences() }.getOrNull() }
+                val signedMe = me.await()
+                val pending = if (signedMe.staffRole == MeGetOutput.StaffRole.None) {
+                    null
+                } else {
+                    runCatching { staff.counts().toKindCounts().sumOf { it.count } }.getOrDefault(0)
+                }
                 _state.update {
                     it.copy(
                         loading = false,
-                        me = me.await(),
+                        me = signedMe,
+                        staffPending = pending,
                         municipalities = municipalities.await(),
                         saved = saved.await(),
                         passport = passport.await(),

@@ -15,6 +15,7 @@ import rutacibao.presentation.contributions.ContributionsViewModel
 import rutacibao.presentation.contributions.InboxViewModel
 import rutacibao.presentation.consultations.NewConsultationViewModel
 import rutacibao.presentation.map.MapViewModel
+import rutacibao.presentation.gestion.GestionViewModel
 
 /**
  * Factories for every shared ViewModel, one function per screen. Each call
@@ -36,7 +37,9 @@ public class ViewModels(
     private val safetyProvider: Provider<SafetyViewModel>,
     private val commentsProvider: Provider<CommentsViewModel>,
     private val businessFormProvider: Provider<BusinessFormViewModel>,
+    private val gestionProvider: Provider<GestionViewModel>,
 ) {
+    public fun gestion(): GestionViewModel = gestionProvider()
     public fun businessForm(): BusinessFormViewModel = businessFormProvider()
     public fun comments(): CommentsViewModel = commentsProvider()
     public fun safety(): SafetyViewModel = safetyProvider()

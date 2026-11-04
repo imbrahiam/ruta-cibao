@@ -39,6 +39,7 @@ const NAMESPACES = [
   "directions",
   "errors",
   "explore",
+  "gestion",
   "layout",
   "map",
   "mapLayers",

@@ -1737,5 +1737,46 @@
     "notificationsBody": "Te avisamos cuando el ayuntamiento responda tus consultas y cuando haya algo en la vía cerca de ti.",
     "enableNotifications": "Activar notificaciones",
     "notNow": "Ahora no"
+  },
+  "gestion": {
+    "title": "Gestión",
+    "weekly": "Informe semanal",
+    "weeklyUnavailable": "El PDF todavía se está preparando. Inténtalo de nuevo en un minuto.",
+    "all": "Todo",
+    "empty": "No hay nada pendiente.",
+    "pending": "{count, plural, =0 {Nada pendiente} one {# pendiente} other {# pendientes}}",
+    "kind": {
+      "place": "Lugar",
+      "placeReport": "Corrección",
+      "photo": "Foto",
+      "claim": "Titularidad",
+      "traffic": "Tránsito",
+      "contentReport": "Contenido",
+      "consultation": "Consulta"
+    },
+    "action": {
+      "publish": "Publicar",
+      "reject": "Rechazar",
+      "resolve": "Marcar resuelto",
+      "dismiss": "Descartar",
+      "approve": "Aprobar",
+      "hide": "Ocultar",
+      "remove": "Retirar"
+    },
+    "noteTitle": "Motivo",
+    "noteHint": "Explica tu decisión (mínimo 10 caracteres).",
+    "noteTooShort": "Escribe un motivo de al menos 10 caracteres.",
+    "stepUpTitle": "Verifica tu acceso",
+    "stepUpBody": "Para continuar, verifica el segundo factor de tu sesión municipal.",
+    "totpCode": "Código de la app autenticadora",
+    "recoveryCode": "Código de recuperación",
+    "useRecovery": "Usar un código de recuperación",
+    "useAuthenticator": "Usar la app autenticadora",
+    "stepUpInvalid": "Código incorrecto. Inténtalo de nuevo.",
+    "enrollOnWeb": "Activa la verificación en dos pasos en el panel web para continuar.",
+    "replyTitle": "Responder como ayuntamiento",
+    "replyStatus": "Estado en que queda la consulta",
+    "replySend": "Enviar respuesta",
+    "replyTooShort": "La respuesta necesita al menos 10 caracteres."
   }
 }

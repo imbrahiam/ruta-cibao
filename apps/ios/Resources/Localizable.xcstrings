@@ -3785,6 +3785,409 @@
         }
       }
     },
+    "gestion.action.approve": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprobar"
+          }
+        }
+      }
+    },
+    "gestion.action.dismiss": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descartar"
+          }
+        }
+      }
+    },
+    "gestion.action.hide": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar"
+          }
+        }
+      }
+    },
+    "gestion.action.publish": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar"
+          }
+        }
+      }
+    },
+    "gestion.action.reject": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechazar"
+          }
+        }
+      }
+    },
+    "gestion.action.remove": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirar"
+          }
+        }
+      }
+    },
+    "gestion.action.resolve": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marcar resuelto"
+          }
+        }
+      }
+    },
+    "gestion.all": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo"
+          }
+        }
+      }
+    },
+    "gestion.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No hay nada pendiente."
+          }
+        }
+      }
+    },
+    "gestion.enrollOnWeb": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activa la verificación en dos pasos en el panel web para continuar."
+          }
+        }
+      }
+    },
+    "gestion.kind.claim": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titularidad"
+          }
+        }
+      }
+    },
+    "gestion.kind.consultation": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulta"
+          }
+        }
+      }
+    },
+    "gestion.kind.contentReport": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contenido"
+          }
+        }
+      }
+    },
+    "gestion.kind.photo": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto"
+          }
+        }
+      }
+    },
+    "gestion.kind.place": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lugar"
+          }
+        }
+      }
+    },
+    "gestion.kind.placeReport": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corrección"
+          }
+        }
+      }
+    },
+    "gestion.kind.traffic": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tránsito"
+          }
+        }
+      }
+    },
+    "gestion.noteHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explica tu decisión (mínimo 10 caracteres)."
+          }
+        }
+      }
+    },
+    "gestion.noteTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motivo"
+          }
+        }
+      }
+    },
+    "gestion.noteTooShort": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe un motivo de al menos 10 caracteres."
+          }
+        }
+      }
+    },
+    "gestion.pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "zero": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Nada pendiente"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld pendiente"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld pendientes"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "gestion.recoveryCode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de recuperación"
+          }
+        }
+      }
+    },
+    "gestion.replySend": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar respuesta"
+          }
+        }
+      }
+    },
+    "gestion.replyStatus": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estado en que queda la consulta"
+          }
+        }
+      }
+    },
+    "gestion.replyTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Responder como ayuntamiento"
+          }
+        }
+      }
+    },
+    "gestion.replyTooShort": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La respuesta necesita al menos 10 caracteres."
+          }
+        }
+      }
+    },
+    "gestion.stepUpBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Para continuar, verifica el segundo factor de tu sesión municipal."
+          }
+        }
+      }
+    },
+    "gestion.stepUpInvalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código incorrecto. Inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "gestion.stepUpTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verifica tu acceso"
+          }
+        }
+      }
+    },
+    "gestion.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gestión"
+          }
+        }
+      }
+    },
+    "gestion.totpCode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código de la app autenticadora"
+          }
+        }
+      }
+    },
+    "gestion.useAuthenticator": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar la app autenticadora"
+          }
+        }
+      }
+    },
+    "gestion.useRecovery": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Usar un código de recuperación"
+          }
+        }
+      }
+    },
+    "gestion.weekly": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informe semanal"
+          }
+        }
+      }
+    },
+    "gestion.weeklyUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El PDF todavía se está preparando. Inténtalo de nuevo en un minuto."
+          }
+        }
+      }
+    },
     "layout.consultationDetailBody": {
       "extractionState": "manual",
       "localizations": {

@@ -638,6 +638,54 @@ enum L10n {
         }
     }
 
+    enum Gestion {
+        static var title: String { String(localized: LocalizedStringResource("gestion.title")) }
+        static var weekly: String { String(localized: LocalizedStringResource("gestion.weekly")) }
+        static var weeklyUnavailable: String { String(localized: LocalizedStringResource("gestion.weeklyUnavailable")) }
+        static var all: String { String(localized: LocalizedStringResource("gestion.all")) }
+        static var empty: String { String(localized: LocalizedStringResource("gestion.empty")) }
+        static func pending(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("gestion.pending", comment: ""), count
+            )
+        }
+        static var noteTitle: String { String(localized: LocalizedStringResource("gestion.noteTitle")) }
+        static var noteHint: String { String(localized: LocalizedStringResource("gestion.noteHint")) }
+        static var noteTooShort: String { String(localized: LocalizedStringResource("gestion.noteTooShort")) }
+        static var stepUpTitle: String { String(localized: LocalizedStringResource("gestion.stepUpTitle")) }
+        static var stepUpBody: String { String(localized: LocalizedStringResource("gestion.stepUpBody")) }
+        static var totpCode: String { String(localized: LocalizedStringResource("gestion.totpCode")) }
+        static var recoveryCode: String { String(localized: LocalizedStringResource("gestion.recoveryCode")) }
+        static var useRecovery: String { String(localized: LocalizedStringResource("gestion.useRecovery")) }
+        static var useAuthenticator: String { String(localized: LocalizedStringResource("gestion.useAuthenticator")) }
+        static var stepUpInvalid: String { String(localized: LocalizedStringResource("gestion.stepUpInvalid")) }
+        static var enrollOnWeb: String { String(localized: LocalizedStringResource("gestion.enrollOnWeb")) }
+        static var replyTitle: String { String(localized: LocalizedStringResource("gestion.replyTitle")) }
+        static var replyStatus: String { String(localized: LocalizedStringResource("gestion.replyStatus")) }
+        static var replySend: String { String(localized: LocalizedStringResource("gestion.replySend")) }
+        static var replyTooShort: String { String(localized: LocalizedStringResource("gestion.replyTooShort")) }
+
+        enum Kind {
+            static var place: String { String(localized: LocalizedStringResource("gestion.kind.place")) }
+            static var placeReport: String { String(localized: LocalizedStringResource("gestion.kind.placeReport")) }
+            static var photo: String { String(localized: LocalizedStringResource("gestion.kind.photo")) }
+            static var claim: String { String(localized: LocalizedStringResource("gestion.kind.claim")) }
+            static var traffic: String { String(localized: LocalizedStringResource("gestion.kind.traffic")) }
+            static var contentReport: String { String(localized: LocalizedStringResource("gestion.kind.contentReport")) }
+            static var consultation: String { String(localized: LocalizedStringResource("gestion.kind.consultation")) }
+        }
+
+        enum Action {
+            static var publish: String { String(localized: LocalizedStringResource("gestion.action.publish")) }
+            static var reject: String { String(localized: LocalizedStringResource("gestion.action.reject")) }
+            static var resolve: String { String(localized: LocalizedStringResource("gestion.action.resolve")) }
+            static var dismiss: String { String(localized: LocalizedStringResource("gestion.action.dismiss")) }
+            static var approve: String { String(localized: LocalizedStringResource("gestion.action.approve")) }
+            static var hide: String { String(localized: LocalizedStringResource("gestion.action.hide")) }
+            static var remove: String { String(localized: LocalizedStringResource("gestion.action.remove")) }
+        }
+    }
+
     enum Layout {
         static var mapPane: String { String(localized: LocalizedStringResource("layout.mapPane")) }
         static var detailPane: String { String(localized: LocalizedStringResource("layout.detailPane")) }
