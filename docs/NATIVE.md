@@ -151,9 +151,13 @@ the alternative is MapLibre Native on both, decided per feature, not up front.
 | Account: profile, saved, passport, notifications, privacy, about, delete | ☑ | ☑ | ☑ |
 | Gestión (staff): review queue, ayuntamiento reply, weekly PDF, step-up | ☑ | ☑ | ☑ |
 | Notices inbox (Avisos), catalogue key + params | ☑ | ☑ | ☑ |
-| Photo upload (place, consultation) | ☐ | ☐ | ☐ |
-| Offline bundle + outbox | ☐ | ☐ | ☐ |
-| Push notifications + deep links (`/s/[kind]/[ref]`) | ☐ | ☐ | ☐ |
+| Photo upload (consultation) | ☑ | ☑ | ☑ |
+| Photo upload (place) | ☑ | ☐ | ☐ |
+| Offline bundle + outbox | ☑ | ☑ | ☑ |
+| Place feedback (¿Sigue aquí?, Reportar un problema) | ☑ | ☑ | ☑ |
+| Deep links (`/s/[kind]/[ref]`, `/contributions`) | ☑ | ☑ | ☑ |
+| Push: delivery + tap (FCM) | ☑ | n/a | ☑ |
+| Push: delivery + tap (APNs) | ☑ | ☐ (needs a device) | n/a |
 
 ## Local testing
 
@@ -185,6 +189,13 @@ screenshot runs, compiled out of Release:
 
 Simulator builds sign ad hoc (`CODE_SIGN_IDENTITY[sdk=iphonesimulator*] = -`), because the Keychain
 refuses unsigned apps.
+
+- `SIMCTL_CHILD_RUTA_DEBUG_OFFLINE=1` starts with every API call failing like a dropped connection (iOS has no way to cut the
+  simulator's network). Flip it at runtime with `xcrun simctl openurl booted rutacibao-dev://debug/offline|online`, and use
+  `.../debug/download` (offline bundle) and `.../debug/sync` (flush the outbox). Android uses `adb shell svc wifi|data disable|enable`.
+- `SIMCTL_CHILD_RUTA_DEBUG_FORM=send` submits the open form: traffic (first kind, Sabaneta), or the consultation composer, which also
+  takes `SIMCTL_CHILD_RUTA_DEBUG_PHOTOS=/a.jpg,/b.jpg` (the system photo picker can't be driven). `SIMCTL_CHILD_RUTA_DEBUG_PLACE=exists|gone|report`
+  answers or opens the report form on the place sheet, and `..._PLACE_SEND=1` sends the report.
 
 ## Gestión actions
 
@@ -272,7 +283,8 @@ logo, from `scripts/brand/generate-brand-assets.ts`.
   keeps APNs' `apns-id` (`provider_message_id`). APNs answers synchronously, so a
   410/`BadDeviceToken` disables the device on the spot and the receipts job is a no-op. Config:
   `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY` (.p8 text), `APNS_TOPIC`, `APNS_ENVIRONMENT`.
-  Android devices register but wait for FCM (not wired yet).
+  Android devices go over FCM HTTP v1 (`lib/fcm.ts`, `FCM_PROJECT_ID` / `FCM_CLIENT_EMAIL` / `FCM_PRIVATE_KEY`). Delivery runs in the
+  jobs worker (`notification.deliver`), so the worker needs the FCM env, not the web process.
 - Shared (`PushRepository`): stable installation id, binds the platform token to the signed-in
   account, re-binds after sign-in, unbinds before sign-out.
 - iOS (`App/Push.swift`): `aps-environment` entitlement (development/production per config), asks
@@ -283,11 +295,16 @@ logo, from `scripts/brand/generate-brand-assets.ts`.
 
 ## Known gaps (next up)
 
-- Consultation photos: `consultation_photos` (migration 0038) is read by browse and detail, and
-  `db:seed:demo` attaches the Wikimedia samples in `apps/web/public/demo/consultations` (credits there).
-  Server-relative URLs are resolved by `AppConfig.absolute` (iOS `AppConfig.url`, Android `absoluteUrl`).
-  Next: the upload pipeline (signed PUT + moderation + audit event, same as place photos) and attaching
-  photos in "new consultation".
+- Consultation photos: uploads work end to end on both apps (signed PUT, `consultation_photo.upload_reserved` / `.added` audit rows,
+  shown in Gestión and, after approval, in the feed and detail). Local dev: the signed URL points at `localhost:9000`, so the Android
+  emulator needs `adb reverse tcp:9000 tcp:9000` as well as 3000, otherwise the upload hangs on the spinner. `db:seed:demo` still
+  attaches the Wikimedia samples in `apps/web/public/demo/consultations` (credits there).
+- Place photo upload from the native apps is not exercised yet (the offline outbox can carry it).
+- iOS push: banner delivery is verified with `simctl push`; a tap on the banner could not be driven without UI automation, so the tap
+  path is proven through `rutacibao-dev://` links (same `DeepLinks.open`). Real APNs needs a device.
+- Android https App Links (autoVerify) need a verified domain, so only the `rutacibao-dev://` scheme was exercised on the emulator.
+- The Android emulator's graphics HAL can wedge after long screenshot sessions (composer/allocator pinned at 100% CPU, `screencap` hangs).
+  It needs an emulator restart; nothing in the app causes it.
 - iOS images use `AsyncImage` (no disk cache). Move to Nuke before the map ships thumbnails.
 - New accounts skip the profile step (choosing a display name). Add it with sign-in polish.
 
