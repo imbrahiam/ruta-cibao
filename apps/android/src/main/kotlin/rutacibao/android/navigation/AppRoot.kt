@@ -49,6 +49,7 @@ import rutacibao.android.feature.contribute.ContributeAction
 import rutacibao.android.feature.contribute.ContributionsScreen
 import rutacibao.android.feature.contribute.SuggestPlaceScreen
 import rutacibao.android.feature.contribute.TrafficReportScreen
+import rutacibao.android.feature.gestion.GestionScreen
 import rutacibao.android.feature.map.MapScreen
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.rootViewModel
@@ -73,6 +74,7 @@ sealed interface Route : NavKey {
     @Serializable data object TrafficReport : Route
     @Serializable data object SuggestPlace : Route
     @Serializable data class AccountSub(val page: AccountPage) : Route
+    @Serializable data object Gestion : Route
 }
 
 /** Screens with their own bottom bar: the tab bar steps aside. */
@@ -83,16 +85,28 @@ private fun NavKey?.isForm() = this is Route.NewConsultation || this is Route.Tr
  * they are null in release.
  */
 @Composable
-fun AppRoot(debugTab: String? = null, debugCompose: String? = null) {
+fun AppRoot(
+    debugTab: String? = null,
+    debugCompose: String? = null,
+    debugSlug: String? = null,
+    debugStepUp: Boolean = false,
+) {
     val initial = when (debugTab) {
         "consultations" -> Tab.Consultations
         "contributions" -> Tab.Contributions
-        "account" -> Tab.Account
-        else -> Tab.Map
+        "account", "gestion" -> Tab.Account
+        else -> if (debugSlug != null) Tab.Consultations else Tab.Map
     }
     var selected by rememberSaveable { mutableStateOf(initial) }
     // One back stack per tab, so switching tabs keeps each tab's place.
     val stacks = Tab.entries.associateWith { rememberNavBackStack(it.root) }
+
+    LaunchedEffect(debugTab, debugSlug) {
+        when {
+            debugTab == "gestion" -> stacks.getValue(Tab.Account).add(Route.Gestion)
+            debugSlug != null -> stacks.getValue(Tab.Consultations).add(Route.Consultation(debugSlug))
+        }
+    }
 
     LaunchedEffect(debugCompose) {
         val route: Route = when (debugCompose) {
@@ -164,7 +178,8 @@ fun AppRoot(debugTab: String? = null, debugCompose: String? = null) {
                             onOpenConsultation = { push(Route.Consultation(it)) },
                         )
                     }
-                    entry<Route.Account> { AccountScreen(onOpen = { push(Route.AccountSub(it)) }) }
+                    entry<Route.Account> { AccountScreen(onOpen = { push(Route.AccountSub(it)) }, onOpenGestion = { push(Route.Gestion) }) }
+                    entry<Route.Gestion> { GestionScreen(onBack = ::pop, debugStepUp = debugStepUp) }
                     entry<Route.Consultation> { ConsultationDetailScreen(it.slug, onBack = ::pop) }
                     entry<Route.NewConsultation> {
                         NewConsultationScreen(

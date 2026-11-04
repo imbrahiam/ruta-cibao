@@ -396,7 +396,7 @@ private fun VerifyStep(state: SignInUiState, vm: SignInViewModel) {
 }
 
 @Composable
-private fun CodeCells(code: String, error: Boolean, focus: FocusRequester, onCode: (String) -> Unit, modifier: Modifier = Modifier) {
+internal fun CodeCells(code: String, error: Boolean, focus: FocusRequester, onCode: (String) -> Unit, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     var focused by remember { mutableStateOf(false) }
     val reduced = LocalReducedMotion.current

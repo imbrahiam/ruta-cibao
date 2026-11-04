@@ -21,10 +21,12 @@ class MainActivity : ComponentActivity() {
         // and `--es ruta_debug_compose consultation|traffic|place`. Compiled to nulls in release.
         val debugTab = if (BuildConfig.DEBUG) intent.getStringExtra("ruta_debug_tab") else null
         val debugCompose = if (BuildConfig.DEBUG) intent.getStringExtra("ruta_debug_compose") else null
+        val debugSlug = if (BuildConfig.DEBUG) intent.getStringExtra("ruta_debug_slug") else null
+        val debugStepUp = BuildConfig.DEBUG && intent.getStringExtra("ruta_debug_stepup") == "1"
         setContent {
             CompositionLocalProvider(LocalAppGraph provides graph) {
                 CompositionLocalProvider(LocalRootOwner provides this) {
-                    RutaAppTheme { AppRoot(debugTab = debugTab, debugCompose = debugCompose) }
+                    RutaAppTheme { AppRoot(debugTab, debugCompose, debugSlug, debugStepUp) }
                 }
             }
         }

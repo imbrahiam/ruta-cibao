@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PanTool
@@ -41,8 +42,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
@@ -67,7 +70,7 @@ import rutacibao.presentation.account.AccountViewModel
 enum class AccountPage { Profile, Saved, Passport, Notifications, Privacy, About, Deletion }
 
 @Composable
-fun AccountScreen(onOpen: (AccountPage) -> Unit) {
+fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
     val graph = LocalAppGraph.current
     val vm: AccountViewModel = rootViewModel("account") { graph.viewModels.account() }
     val state by vm.state.collectAsStateWithLifecycle()
@@ -109,15 +112,25 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit) {
 
                 SectionTitle(stringResource(R.string.account_yours))
                 Group {
-                    NavRow(AccountPage.Profile, stringResource(R.string.account_profile), Icons.Filled.Person, Color(0xFF0A84FF), onOpen = onOpen)
-                    NavRow(AccountPage.Saved, stringResource(R.string.account_saved), Icons.Filled.Bookmark, Color(0xFFFF9500), count = state.saved.size, onOpen = onOpen)
-                    NavRow(AccountPage.Passport, stringResource(R.string.account_passport), Icons.Filled.Verified, Color(0xFFAF52DE), count = (state.passport?.total ?: 0).toInt(), onOpen = onOpen)
-                    NavRow(AccountPage.Notifications, stringResource(R.string.notification_settings_title), Icons.Filled.Notifications, Color(0xFFFF3B30), onOpen = onOpen, last = true)
+                    NavRow(stringResource(R.string.account_profile), Icons.Filled.Person, Color(0xFF0A84FF), onClick = { onOpen(AccountPage.Profile) })
+                    NavRow(stringResource(R.string.account_saved), Icons.Filled.Bookmark, Color(0xFFFF9500), count = state.saved.size, onClick = { onOpen(AccountPage.Saved) })
+                    NavRow(stringResource(R.string.account_passport), Icons.Filled.Verified, Color(0xFFAF52DE), count = (state.passport?.total ?: 0).toInt(), onClick = { onOpen(AccountPage.Passport) })
+                    state.staffPending?.let { pending ->
+                        NavRow(
+                            stringResource(R.string.gestion_title),
+                            Icons.Filled.Checklist,
+                            Color(0xFF30A45A),
+                            count = pending,
+                            value = if (pending == 0) stringResource(R.string.gestion_pending_zero) else pluralStringResource(R.plurals.gestion_pending, pending, pending),
+                            onClick = onOpenGestion,
+                        )
+                    }
+                    NavRow(stringResource(R.string.notification_settings_title), Icons.Filled.Notifications, Color(0xFFFF3B30), onClick = { onOpen(AccountPage.Notifications) }, last = true)
                 }
                 SectionTitle(stringResource(R.string.account_about))
                 Group {
-                    NavRow(AccountPage.Privacy, stringResource(R.string.account_privacy), Icons.Filled.PanTool, Color(0xFF5E5CE6), onOpen = onOpen)
-                    NavRow(AccountPage.About, stringResource(R.string.account_about_app), Icons.Filled.Info, Color(0xFF8E8E93), onOpen = onOpen, last = true)
+                    NavRow(stringResource(R.string.account_privacy), Icons.Filled.PanTool, Color(0xFF5E5CE6), onClick = { onOpen(AccountPage.Privacy) })
+                    NavRow(stringResource(R.string.account_about_app), Icons.Filled.Info, Color(0xFF8E8E93), onClick = { onOpen(AccountPage.About) }, last = true)
                 }
                 Box(Modifier.height(24.dp))
                 Group {
@@ -206,18 +219,20 @@ private fun Group(content: @Composable () -> Unit) {
 /** A row with a coloured rounded-square icon, its label always visible, and a chevron. */
 @Composable
 private fun NavRow(
-    page: AccountPage,
     title: String,
     icon: ImageVector,
     color: Color,
     count: Int? = null,
     last: Boolean = false,
-    onOpen: (AccountPage) -> Unit,
+    value: String? = null,
+    onClick: () -> Unit,
 ) {
     val palette = LocalPalette.current
     Column {
         Row(
-            Modifier.fillMaxWidth().defaultMinSize(minHeight = 56.dp).clickable(role = Role.Button) { onOpen(page) }.padding(horizontal = 16.dp),
+            Modifier.fillMaxWidth().defaultMinSize(minHeight = 56.dp).clickable(role = Role.Button, onClick = onClick)
+                .then(if (value != null) Modifier.semantics { stateDescription = value } else Modifier)
+                .padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
