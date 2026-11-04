@@ -19,6 +19,8 @@ core-ktx = "1.19.1"
 splashscreen = "1.2.0"
 maps-compose = "9.0.1"
 coil = "3.6.3"
+firebase-messaging = "25.0.1"
+work = "2.11.1"
 
 android-compileSdk = "37"
 android-targetSdk = "36"
@@ -52,6 +54,8 @@ compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview"
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 maps-compose = { module = "com.google.maps.android:maps-compose", version.ref = "maps-compose" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebase-messaging" }
+androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 
 # Build logic
 kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
