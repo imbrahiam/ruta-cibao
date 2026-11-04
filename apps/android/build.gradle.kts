@@ -14,6 +14,8 @@ val mapsKey: String = providers.gradleProperty("ruta.googleMapsKey").getOrElse("
 // Public Firebase Android application config, not the server service-account key.
 // Manual FirebaseOptions avoids requiring a committed google-services.json/plugin.
 val firebaseApplicationId = providers.gradleProperty("ruta.firebaseApplicationId").getOrElse("")
+// The `.dev` package is a second Firebase app in the same project.
+val firebaseApplicationIdDev = providers.gradleProperty("ruta.firebaseApplicationIdDev").getOrElse(firebaseApplicationId)
 val firebaseApiKey = providers.gradleProperty("ruta.firebaseApiKey").getOrElse("")
 val firebaseProjectId = providers.gradleProperty("ruta.firebaseProjectId").getOrElse("")
 val firebaseSenderId = providers.gradleProperty("ruta.firebaseSenderId").getOrElse("")
@@ -48,6 +50,7 @@ android {
             applicationIdSuffix = ".dev"
             buildConfigField("String", "APP_SCHEME", "\"rutacibao-dev\"")
             buildConfigField("String", "VARIANT", "\"Development\"")
+            buildConfigField("String", "FIREBASE_APPLICATION_ID", quoted(firebaseApplicationIdDev))
             manifestPlaceholders["appScheme"] = "rutacibao-dev"
         }
         release {
