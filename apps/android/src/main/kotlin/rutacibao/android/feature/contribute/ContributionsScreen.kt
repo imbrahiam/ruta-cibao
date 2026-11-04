@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -120,12 +121,7 @@ fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation:
         modifier = Modifier.semantics { paneTitle = screenName },
     ) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-            item {
-                Text(
-                    screenName, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 20.dp).semantics { heading() },
-                )
-            }
+            item { Spacer(Modifier.height(12.dp)) }
             item { ActionTiles { action -> if (state.signedIn) onStart(action) else signingIn = true } }
 
             if (state.signedIn) {

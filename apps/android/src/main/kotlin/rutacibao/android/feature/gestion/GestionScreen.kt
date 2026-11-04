@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -103,10 +105,11 @@ import rutacibao.presentation.gestion.GestionUiState
 import rutacibao.presentation.gestion.GestionViewModel
 import rutacibao.presentation.gestion.NoteRequest
 import rutacibao.presentation.gestion.PdfState
+import rutacibao.presentation.gestion.Emphasis
+import rutacibao.presentation.gestion.ReviewAction
 import rutacibao.presentation.gestion.ReviewItem
 import rutacibao.presentation.gestion.ReviewKind
 import rutacibao.presentation.gestion.StepUpState
-import rutacibao.presentation.gestion.Verdict
 
 private val Inset = 16.dp
 
@@ -117,7 +120,13 @@ private val Inset = 16.dp
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GestionScreen(onBack: () -> Unit, debugStepUp: Boolean = false, linkedReportId: String? = null, linkRequestId: Long = 0) {
+fun GestionScreen(
+    onBack: () -> Unit,
+    onOpenConsultation: (String) -> Unit = {},
+    debugStepUp: Boolean = false,
+    linkedReportId: String? = null,
+    linkRequestId: Long = 0,
+) {
     val graph = LocalAppGraph.current
     val vm: GestionViewModel = viewModel(key = "gestion") { graph.viewModels.gestion() }
     val state by vm.state.collectAsStateWithLifecycle()
@@ -157,7 +166,7 @@ fun GestionScreen(onBack: () -> Unit, debugStepUp: Boolean = false, linkedReport
         },
     ) { padding ->
         PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = vm::refresh, modifier = Modifier.padding(padding).fillMaxSize()) {
-            Content(state, vm, downloadFailed = downloadFailed, onOpenReport = { downloadFailed = false; vm.openReport() })
+            Content(state, vm, downloadFailed = downloadFailed, onOpenConsultation = onOpenConsultation, onOpenReport = { downloadFailed = false; vm.openReport() })
         }
     }
 
@@ -185,7 +194,13 @@ fun GestionScreen(onBack: () -> Unit, debugStepUp: Boolean = false, linkedReport
 }
 
 @Composable
-private fun Content(state: GestionUiState, vm: GestionViewModel, downloadFailed: Boolean, onOpenReport: () -> Unit) {
+private fun Content(
+    state: GestionUiState,
+    vm: GestionViewModel,
+    downloadFailed: Boolean,
+    onOpenConsultation: (String) -> Unit,
+    onOpenReport: () -> Unit,
+) {
     when (state.phase) {
         GestionUiState.Phase.Loading -> LoadingState()
         GestionUiState.Phase.Failed -> ErrorState(state.error ?: UiError.Unknown, onRetry = vm::retry)
@@ -213,7 +228,12 @@ private fun Content(state: GestionUiState, vm: GestionViewModel, downloadFailed:
             } else {
                 item(key = "chips") { Chips(state, vm::select) }
                 items(state.visibleItems, key = { it.id }) { item ->
-                    ReviewCard(item, busy = item.id in state.inFlight, decide = { vm.decide(item, it) })
+                    ReviewCard(item, busy = item.id in state.inFlight) { action ->
+                        when (action) {
+                            is ReviewAction.Decide -> vm.decide(item, action)
+                            is ReviewAction.OpenThread -> onOpenConsultation(action.slug)
+                        }
+                    }
                 }
             }
         }
@@ -339,7 +359,15 @@ private val ReviewKind.glyph: ImageVector
         ReviewKind.Consultation -> Icons.Filled.Forum
     }
 
-/** The catalogue key a [ReviewKind] button names, as a string resource. */
+private fun stateLabel(key: String): Int = when (key) {
+    "gestion.state.textPending" -> R.string.gestion_state_text_pending
+    "gestion.state.textPublished" -> R.string.gestion_state_text_published
+    "gestion.state.textHidden" -> R.string.gestion_state_text_hidden
+    "gestion.state.casePending" -> R.string.gestion_state_case_pending
+    else -> R.string.gestion_state_case_published
+}
+
+/** The catalogue key a review button names, as a string resource. */
 private fun actionLabel(labelKey: String): Int = when (labelKey) {
     "gestion.action.publish" -> R.string.gestion_action_publish
     "gestion.action.reject" -> R.string.gestion_action_reject
@@ -348,11 +376,16 @@ private fun actionLabel(labelKey: String): Int = when (labelKey) {
     "gestion.action.approve" -> R.string.gestion_action_approve
     "gestion.action.hide" -> R.string.gestion_action_hide
     "gestion.action.remove" -> R.string.gestion_action_remove
+    "gestion.action.removeTraffic" -> R.string.gestion_action_remove_traffic
+    "gestion.action.publishText" -> R.string.gestion_action_publish_text
+    "gestion.action.hideText" -> R.string.gestion_action_hide_text
+    "gestion.action.hideCase" -> R.string.gestion_action_hide_case
+    "gestion.action.respond" -> R.string.gestion_action_respond
     else -> R.string.gestion_action_reject
 }
 
 @Composable
-private fun ReviewCard(item: ReviewItem, busy: Boolean, decide: (Verdict) -> Unit) {
+private fun ReviewCard(item: ReviewItem, busy: Boolean, act: (ReviewAction) -> Unit) {
     val palette = LocalPalette.current
     Column(
         Modifier
@@ -370,6 +403,15 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, decide: (Verdict) -> Uni
                 style = MaterialTheme.typography.labelLarge,
                 color = palette.textSecondary,
             )
+            item.stateKey?.let { key ->
+                Spacer(Modifier.weight(1f))
+                Text(
+                    stringResource(stateLabel(key)),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = palette.textSecondary,
+                    modifier = Modifier.clip(CircleShape).background(palette.inset).padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
         }
         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Text(item.title, style = MaterialTheme.typography.titleMedium)
@@ -400,23 +442,30 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, decide: (Verdict) -> Uni
         item.snippet?.takeIf { it.isNotBlank() }?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(
-                onClick = { decide(Verdict.Reject) },
-                enabled = !busy,
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-            ) {
-                Text(stringResource(actionLabel(item.kind.reject.labelKey)), fontWeight = FontWeight.SemiBold)
+        val primary = item.actions.firstOrNull { it.emphasis == Emphasis.Primary }
+        val secondary = item.actions.filter { it.emphasis == Emphasis.Secondary }
+        if (secondary.size <= 1) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                secondary.forEach { ActionButton(it, busy, act, primary = false, Modifier.weight(1f)) }
+                primary?.let { ActionButton(it, busy, act, primary = true, Modifier.weight(1f)) }
             }
-            Button(
-                onClick = { decide(Verdict.Approve) },
-                enabled = !busy,
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-            ) {
-                Text(stringResource(actionLabel(item.kind.approve.labelKey)), fontWeight = FontWeight.SemiBold)
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                primary?.let { ActionButton(it, busy, act, primary = true, Modifier.fillMaxWidth()) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    secondary.forEach { ActionButton(it, busy, act, primary = false, Modifier.weight(1f)) }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun ActionButton(action: ReviewAction, busy: Boolean, act: (ReviewAction) -> Unit, primary: Boolean, modifier: Modifier) {
+    val label = @Composable { Text(stringResource(actionLabel(action.labelKey)), fontWeight = FontWeight.SemiBold) }
+    val size = modifier.heightIn(min = 48.dp)
+    if (primary) Button(onClick = { act(action) }, enabled = !busy, modifier = size) { label() }
+    else OutlinedButton(onClick = { act(action) }, enabled = !busy, modifier = size) { label() }
 }
 
 // ------------------------------------------------------------------ reason sheet
@@ -453,7 +502,7 @@ private fun NoteSheet(request: NoteRequest, onSend: (String) -> Unit, onDismiss:
                 }
             }
             PrimaryButton(
-                stringResource(actionLabel(request.item.kind.spec(request.verdict).labelKey)),
+                stringResource(actionLabel(request.action.labelKey)),
                 { onSend(note) },
                 Modifier.fillMaxWidth(),
             )

@@ -237,8 +237,8 @@ fun AppRoot(
                         )
                     }
                     entry<Route.Account> { AccountScreen(onOpen = { push(Route.AccountSub(it)) }, onOpenGestion = { push(Route.Gestion) }) }
-                    entry<Route.Gestion> { GestionScreen(onBack = ::pop, debugStepUp = debugStepUp) }
-                    entry<Route.Report> { GestionScreen(onBack = ::pop, linkedReportId = it.id, linkRequestId = it.requestId) }
+                    entry<Route.Gestion> { GestionScreen(onBack = ::pop, onOpenConsultation = { push(Route.Consultation(it)) }, debugStepUp = debugStepUp) }
+                    entry<Route.Report> { GestionScreen(onBack = ::pop, onOpenConsultation = { push(Route.Consultation(it)) }, linkedReportId = it.id, linkRequestId = it.requestId) }
                     entry<Route.Consultation> { ConsultationDetailScreen(it.slug, onBack = ::pop) }
                     entry<Route.NewConsultation> {
                         NewConsultationScreen(
