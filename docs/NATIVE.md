@@ -172,7 +172,7 @@ screenshot runs, compiled out of Release:
   and `still` also answers "Sigue ahí" after 5 s. Android: `adb shell am start ... --es ruta_debug_traffic select|still`.
 
 - `SIMCTL_CHILD_RUTA_DEBUG_TAB=gestion` opens Cuenta with Gestión (staff only) pushed. `SIMCTL_CHILD_RUTA_DEBUG_STEPUP=1` shows the
-  second-factor sheet (the local demo staff skip the step-up on the server). `SIMCTL_CHILD_RUTA_DEBUG_GESTION=approve|reject` with
+  second-factor sheet (the local demo staff skip the step-up on the server). `SIMCTL_CHILD_RUTA_DEBUG_GESTION=approve|reject|remove|respond` with
   `..._GESTION_KIND=<place|photo|claim|traffic|consultation|contentReport|placeReport>` decides the first card of that kind (a reject
   also takes `..._GESTION_NOTE=<text>` and `..._GESTION_SEND=1`); `=report` opens the latest weekly PDF.
   `SIMCTL_CHILD_RUTA_DEBUG_REPLY=<text>` (+ `..._REPLY_SEND=1`) fills and sends the staff reply on an open consultation.
@@ -185,6 +185,24 @@ screenshot runs, compiled out of Release:
 
 Simulator builds sign ad hoc (`CODE_SIGN_IDENTITY[sdk=iphonesimulator*] = -`), because the Keychain
 refuses unsigned apps.
+
+## Gestión actions
+
+A card's buttons come from the item, not the screen: `ReviewItem.actions` (shared, tested) returns the
+`ReviewAction`s for its current state, and `after(verdict)` says whether the card leaves the desk or
+stays updated, mirroring the web desk. Traffic always offers Retirar aviso and offers the text decision
+only while the text is pending; a pending consultation offers Publicar / Ocultar, a published one
+Responder (opens the thread, where the staff composer is) and Ocultar caso. The server keeps live
+traffic and published-but-unanswered cases in its queue, so deciding on them changes the card instead
+of removing it.
+
+## Android and iOS parity
+
+Android follows iOS's look with Material parts: a floating capsule tab bar (`navigation/TabBar.kt`), the
+map under the status bar with a stacked controls capsule (base-map toggle, locate), glass search pill and
+chips, sheets with a close button and the category badge, "iris" (`ui/Highlight.kt`, mirrors iOS
+`RutaHighlight`) for primary buttons, the selected tab and switches. Not mirrored: the AR camera button
+and Liquid Glass blur (Compose has no live blur; the glass colour is 92% opaque).
 
 ## Category look on iOS
 
