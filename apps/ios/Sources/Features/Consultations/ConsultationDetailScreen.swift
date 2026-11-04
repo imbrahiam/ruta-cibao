@@ -446,6 +446,11 @@ private struct StaffReplyComposer: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
+        // Two rows tall, so the thread must not show through it.
+        .background(palette.background)
+        .overlay(alignment: .top) {
+            Rectangle().fill(palette.hairline).frame(height: 1)
+        }
         .onChange(of: state.replySent) { _, sent in
             if sent {
                 text = ""
