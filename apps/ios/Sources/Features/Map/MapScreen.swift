@@ -59,6 +59,7 @@ private struct MapContent: View {
     @State private var camera: MapCameraPosition = .region(Province.region)
     @State private var region: MKCoordinateRegion = Province.region
     @State private var framed = false
+    @State private var linkedTraffic: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var searching = Self.debugSearch
     @Namespace private var glass
@@ -236,6 +237,11 @@ private struct MapContent: View {
         .onChange(of: links.pending, initial: true) { _, _ in openLinkedItem() }
         .onChange(of: state.all.count) { _, _ in openLinkedItem() }
         .onChange(of: state.routes.count) { _, _ in openLinkedItem() }
+        .onChange(of: state.selectedTraffic?.id) { _, id in
+            guard let id, id == linkedTraffic, let notice = state.selectedTraffic else { return }
+            linkedTraffic = nil
+            focus(latitude: notice.latitude, longitude: notice.longitude)
+        }
         .onChange(of: navigator.route) { _, route in
             guard let route, navigator.phase != .navigating else { return }
             let rect = route.polyline.boundingMapRect
@@ -357,8 +363,14 @@ private struct MapContent: View {
             show(route)
         case .traffic(let id):
             links.pending = nil
+            linkedTraffic = id
             vm.openTraffic(id: id)
-        default:
+        case .consultation, .report, .contributions:
+            // Another tab takes the link; a sheet left open here would cover it.
+            vm.dismissSheet()
+            vm.dismissRoute()
+            vm.dismissTraffic()
+        case nil:
             break
         }
     }
