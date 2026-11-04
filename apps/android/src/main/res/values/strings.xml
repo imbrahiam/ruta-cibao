@@ -5,6 +5,7 @@
     <string name="notifications_route_reviewed">Tu ruta ya fue revisada. Consulta el resultado y las notas del equipo municipal.</string>
     <string name="notifications_title">Notificaciones</string>
     <string name="notifications_push_generic">Tienes una actualización en Ruta Cibao. Abre la aplicación para verla.</string>
+    <string name="notifications_push_unavailable">Las notificaciones del teléfono no están disponibles en esta instalación. Tus avisos siguen disponibles en Aportes.</string>
     <string name="notifications_errors_invalid_preferences">Revisa tus preferencias de notificaciones.</string>
     <string name="notifications_errors_invalid_municipalities">Selecciona hasta tres municipios válidos.</string>
     <string name="notifications_errors_invalid_categories">Selecciona categorías de tránsito activas.</string>
@@ -41,6 +42,17 @@
     <string name="comments_reported">Gracias. Lo revisaremos.</string>
     <string name="comments_more">Ver más</string>
     <string name="comments_options">Opciones del comentario</string>
+    <string name="comments_participant_mode">Comentar</string>
+    <string name="comments_official_mode">Respuesta oficial</string>
+    <string name="comments_composer_mode">Publicar como</string>
+    <string name="comments_sign_in_to_comment">Entra para comentar</string>
+    <string name="comments_sign_in_to_experience">Entra para compartir tu experiencia</string>
+    <string name="comments_send_failed">No se pudo publicar. Tu texto sigue aquí.</string>
+    <string name="comments_action_failed">No se pudo completar la acción.</string>
+    <string name="comments_official_reply_failed">No se pudo enviar la respuesta. Tu texto sigue aquí.</string>
+    <string name="comments_official_replies">Respuestas oficiales</string>
+    <string name="comments_status_after">Estado después de responder</string>
+    <string name="comments_official_reply">Respuesta oficial</string>
     <string name="about_title">Acerca de</string>
     <string name="about_tagline">Descubre la provincia Santiago Rodríguez y participa en lo que pasa en ella.</string>
     <string name="about_version">Versión %1$s (%2$s)</string>
@@ -225,6 +237,7 @@
     <string name="contribute_photos_remove">Quitar la foto %1$d</string>
     <string name="contribute_photos_denied">Ruta Cibao no tiene permiso para usar la cámara o tus fotos</string>
     <string name="contribute_photos_denied_body">Puedes darlo en Ajustes. El lugar se puede enviar sin fotos.</string>
+    <string name="contribute_photos_read_error">No pudimos preparar esta foto. Elige otra e inténtalo de nuevo.</string>
     <string name="contribute_photos_uploading">Subiendo fotos (%1$d de %2$d)</string>
     <plurals name="contribute_photos_failed">
         <item quantity="one">Una foto no se pudo subir</item>
@@ -465,6 +478,8 @@
     <string name="map_location_denied_body">Puedes activarla en Ajustes, o seguir usando el mapa sin ella.</string>
     <string name="map_location_failed">No pudimos obtener tu ubicación</string>
     <string name="map_traffic_gone">Ese reporte ya no está en el mapa</string>
+    <string name="map_basemap_unavailable">Fondo del mapa no disponible</string>
+    <string name="map_basemap_unavailable_body">Esta versión no tiene configurado el mapa de Android. Puedes consultar los lugares y las rutas en la lista.</string>
     <string name="map_layers_title">Capas del mapa</string>
     <string name="map_layers_basemap">Mapa base</string>
     <string name="map_layers_standard">Mapa</string>
@@ -660,6 +675,7 @@
     <string name="place_report_details">Detalles</string>
     <string name="place_report_sent">Reporte enviado</string>
     <string name="place_report_sent_body">El equipo municipal lo revisará.</string>
+    <string name="place_report_details_required">Escribe al menos 10 caracteres para explicar el problema.</string>
     <string name="place_reasons_incorrect_information">La información es incorrecta</string>
     <string name="place_reasons_closed">Cerró o ya no existe</string>
     <string name="place_reasons_duplicate">Está repetido</string>

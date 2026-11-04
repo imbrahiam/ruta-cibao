@@ -73,12 +73,15 @@ import rutacibao.android.feature.map.LocationPickerDialog
 import rutacibao.android.ui.CategoryAvatar
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.LocalPalette
+import rutacibao.android.ui.Notice
+import rutacibao.android.ui.PhotoAttach
 import rutacibao.android.ui.PrimaryButton
 import rutacibao.android.ui.PushedScreen
 import rutacibao.android.ui.categoryIcon
 import rutacibao.android.ui.parseCategoryColor
 import rutacibao.presentation.consultations.NewConsultationUiState
 import rutacibao.presentation.consultations.NewConsultationViewModel
+import rutacibao.presentation.UiError
 
 /** Composing a case, Threads-composer style: write first, then attach the topic, the municipality and (optionally) a point. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -93,6 +96,16 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
     var picking by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(state.openedSlug) { state.openedSlug?.let(onOpened) }
+    if (state.queued) {
+        PushedScreen(title = stringResource(R.string.consultations_new_title), onBack = onBack) { padding ->
+            Column(Modifier.fillMaxSize().padding(padding).padding(24.dp), verticalArrangement = Arrangement.Center) {
+                Text(stringResource(R.string.offline_queued_toast), style = MaterialTheme.typography.headlineSmall)
+                Text(stringResource(R.string.offline_queued_toast_body))
+                PrimaryButton(text = stringResource(R.string.common_close), onClick = onBack)
+            }
+        }
+        return
+    }
 
     val category = state.categories.firstOrNull { it.id == state.categoryId }
     val municipality = state.municipalities.firstOrNull { it.id == state.municipalityId }
@@ -112,7 +125,7 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
                         BodyRing(state.bodyLength, 40)
                         Box(Modifier.weight(1f))
                         PrimaryButton(
-                            text = stringResource(R.string.consultations_submit),
+                            text = stringResource(if (state.submitted) R.string.common_retry else R.string.consultations_submit),
                             onClick = vm::send,
                             busy = state.sending,
                             height = 44.dp,
@@ -137,6 +150,7 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
                         onChange = { title = it.take(NewConsultationUiState.TITLE.last); vm.updateTitle(it) },
                         placeholder = stringResource(R.string.consultations_title_label),
                         style = TextStyle(fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
+                        enabled = !state.submitted,
                     )
                     Problem(NewConsultationUiState.Problem.Title in state.problems, stringResource(R.string.consultations_errors_title))
                     PlainField(
@@ -145,6 +159,7 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
                         placeholder = stringResource(R.string.consultations_body_label),
                         style = TextStyle(fontSize = 15.sp, lineHeight = 21.sp),
                         minLines = 4,
+                        enabled = !state.submitted,
                     )
                     Problem(NewConsultationUiState.Problem.Body in state.problems, stringResource(R.string.consultations_errors_body))
 
@@ -178,6 +193,16 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
                     }
                     Problem(NewConsultationUiState.Problem.Category in state.problems, stringResource(R.string.consultations_errors_category))
                     Problem(NewConsultationUiState.Problem.Municipality in state.problems, stringResource(R.string.consultations_errors_municipality))
+                    PhotoAttach(
+                        max = NewConsultationUiState.MAX_PHOTOS,
+                        photos = state.photos.map { it.jpeg },
+                        enabled = !state.submitted,
+                        add = vm::addPhoto,
+                        remove = vm::removePhoto,
+                    )
+                    state.error?.let { error ->
+                        Notice(Icons.Filled.ErrorOutline, stringResource(if (error == UiError.Offline) R.string.common_offline else R.string.common_error_title), null, palette.dangerInk)
+                    }
 
                     Row(Modifier.padding(top = 28.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
                         Icon(Icons.Outlined.Visibility, contentDescription = null, Modifier.size(16.dp).padding(top = 2.dp), tint = palette.textTertiary)
@@ -199,11 +224,12 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
 }
 
 @Composable
-private fun PlainField(value: String, onChange: (String) -> Unit, placeholder: String, style: TextStyle, minLines: Int = 1) {
+private fun PlainField(value: String, onChange: (String) -> Unit, placeholder: String, style: TextStyle, minLines: Int = 1, enabled: Boolean = true) {
     val palette = LocalPalette.current
     BasicTextField(
         value = value,
         onValueChange = onChange,
+        enabled = enabled,
         textStyle = style.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         minLines = minLines,

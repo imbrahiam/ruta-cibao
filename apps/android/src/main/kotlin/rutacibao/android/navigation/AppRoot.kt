@@ -3,6 +3,9 @@ package rutacibao.android.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.filled.ChatBubble
@@ -54,6 +57,12 @@ import rutacibao.android.feature.map.MapScreen
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.rootViewModel
 import rutacibao.presentation.contributions.ContributionsViewModel
+import rutacibao.data.AppTarget
+import rutacibao.android.BuildConfig
+import rutacibao.android.platform.PushNotifications
+import rutacibao.presentation.contributions.InboxViewModel
+
+data class LinkRequest(val id: Long, val href: String, val target: AppTarget)
 
 /** Top-level destinations, in the same order as the iOS tab bar. Icon and label are always shown. */
 enum class Tab(val label: Int, val icon: ImageVector, val iconSelected: ImageVector, val root: NavKey) {
@@ -75,6 +84,7 @@ sealed interface Route : NavKey {
     @Serializable data object SuggestPlace : Route
     @Serializable data class AccountSub(val page: AccountPage) : Route
     @Serializable data object Gestion : Route
+    @Serializable data class Report(val id: String, val requestId: Long) : Route
 }
 
 /** Screens with their own bottom bar: the tab bar steps aside. */
@@ -84,12 +94,15 @@ private fun NavKey?.isForm() = this is Route.NewConsultation || this is Route.Tr
  * `debugTab` / `debugCompose` are debug-build test hooks (intent extras read in MainActivity);
  * they are null in release.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppRoot(
     debugTab: String? = null,
     debugCompose: String? = null,
     debugSlug: String? = null,
     debugStepUp: Boolean = false,
+    link: LinkRequest? = null,
+    onLinkHandled: (LinkRequest) -> Unit = {},
 ) {
     val initial = when (debugTab) {
         "consultations" -> Tab.Consultations
@@ -100,6 +113,43 @@ fun AppRoot(
     var selected by rememberSaveable { mutableStateOf(initial) }
     // One back stack per tab, so switching tabs keeps each tab's place.
     val stacks = Tab.entries.associateWith { rememberNavBackStack(it.root) }
+    var mapPlace by rememberSaveable { mutableStateOf<String?>(null) }
+    var mapRoute by rememberSaveable { mutableStateOf<String?>(null) }
+    var mapTraffic by rememberSaveable { mutableStateOf<String?>(null) }
+    var mapRequest by rememberSaveable { mutableStateOf(0L) }
+    var inboxRequest by rememberSaveable { mutableStateOf(0L) }
+
+    fun openTarget(target: AppTarget, requestId: Long) {
+        when (target.kind) {
+            "place", "route", "traffic" -> {
+                mapPlace = target.ref.takeIf { target.kind == "place" }
+                mapRoute = target.ref.takeIf { target.kind == "route" }
+                mapTraffic = target.ref.takeIf { target.kind == "traffic" }
+                mapRequest = requestId
+                stacks.getValue(Tab.Map).popToRoot()
+                selected = Tab.Map
+            }
+            "consultation" -> {
+                stacks.getValue(Tab.Consultations).popToRoot()
+                stacks.getValue(Tab.Consultations).add(Route.Consultation(target.ref!!))
+                selected = Tab.Consultations
+            }
+            "report" -> {
+                stacks.getValue(Tab.Account).popToRoot()
+                stacks.getValue(Tab.Account).add(Route.Report(target.ref!!, requestId))
+                selected = Tab.Account
+            }
+            "contributions" -> {
+                stacks.getValue(Tab.Contributions).popToRoot()
+                inboxRequest = requestId
+                selected = Tab.Contributions
+            }
+        }
+    }
+
+    LaunchedEffect(link?.id) {
+        link?.let { openTarget(it.target, it.id); onLinkHandled(it) }
+    }
 
     LaunchedEffect(debugTab, debugSlug) {
         when {
@@ -121,9 +171,11 @@ fun AppRoot(
     }
 
     val stack = stacks.getValue(selected)
-    val showBar = !stack.lastOrNull().isForm()
+    val showBar = !stack.lastOrNull().isForm() && !WindowInsets.isImeVisible
     val graph = LocalAppGraph.current
     val contributions: ContributionsViewModel = rootViewModel("contributions") { graph.viewModels.contributions() }
+    val inbox: InboxViewModel = rootViewModel("inbox") { graph.viewModels.inbox() }
+    LaunchedEffect(inbox) { PushNotifications.revision.collect { inbox.refresh() } }
 
     Scaffold(
         bottomBar = {
@@ -163,7 +215,7 @@ fun AppRoot(
                     rememberViewModelStoreNavEntryDecorator(),
                 ),
                 entryProvider = entryProvider {
-                    entry<Route.Home> { MapScreen() }
+                    entry<Route.Home> { MapScreen(mapPlace, mapRoute, mapTraffic, mapRequest) }
                     entry<Route.Consultations> { ConsultationsScreen(onOpen = { push(Route.Consultation(it)) }) }
                     entry<Route.Contributions> {
                         ContributionsScreen(
@@ -178,10 +230,15 @@ fun AppRoot(
                             },
                             onOpenConsultation = { push(Route.Consultation(it)) },
                             startOnInbox = debugCompose == "inbox",
+                            inboxRequest = inboxRequest,
+                            onOpenHref = { href ->
+                                AppTarget.parse(href, BuildConfig.API_ORIGIN, BuildConfig.APP_SCHEME)?.let { openTarget(it, System.nanoTime()) }
+                            },
                         )
                     }
                     entry<Route.Account> { AccountScreen(onOpen = { push(Route.AccountSub(it)) }, onOpenGestion = { push(Route.Gestion) }) }
                     entry<Route.Gestion> { GestionScreen(onBack = ::pop, debugStepUp = debugStepUp) }
+                    entry<Route.Report> { GestionScreen(onBack = ::pop, linkedReportId = it.id, linkRequestId = it.requestId) }
                     entry<Route.Consultation> { ConsultationDetailScreen(it.slug, onBack = ::pop) }
                     entry<Route.NewConsultation> {
                         NewConsultationScreen(

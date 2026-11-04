@@ -70,6 +70,7 @@ import rutacibao.android.ui.CategoryAvatar
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.LocalPalette
 import rutacibao.android.ui.Notice
+import rutacibao.android.ui.PhotoAttach
 import rutacibao.android.ui.PrimaryButton
 import rutacibao.android.ui.PushedScreen
 import rutacibao.android.ui.categoryIcon
@@ -93,7 +94,7 @@ fun TrafficReportScreen(onBack: () -> Unit, onSent: () -> Unit) {
     var detail by rememberSaveable { mutableStateOf("") }
 
     if (state.sent) {
-        DoneScreen(stringResource(R.string.contribute_traffic_sent), stringResource(R.string.contribute_traffic_sent_body)) { onSent(); onBack() }
+        DoneScreen(stringResource(if (state.queued) R.string.offline_queued_toast else R.string.contribute_traffic_sent), stringResource(if (state.queued) R.string.offline_queued_toast_body else R.string.contribute_traffic_sent_body)) { onSent(); onBack() }
         return
     }
     PushedScreen(
@@ -179,7 +180,7 @@ fun SuggestPlaceScreen(onBack: () -> Unit, onSent: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
 
     if (state.sent) {
-        DoneScreen(stringResource(R.string.contribute_place_sent), stringResource(R.string.contribute_place_sent_body)) { onSent(); onBack() }
+        DoneScreen(stringResource(if (state.queued) R.string.offline_queued_toast else R.string.contribute_place_sent), stringResource(if (state.queued) R.string.offline_queued_toast_body else R.string.contribute_place_sent_body)) { onSent(); onBack() }
         return
     }
     val chosen = state.categories.firstOrNull { it.id == state.categoryId }
@@ -239,6 +240,13 @@ fun SuggestPlaceScreen(onBack: () -> Unit, onSent: () -> Unit) {
             Problem(SuggestPlaceUiState.Problem.Location in state.problems, stringResource(R.string.contribute_place_errors_location))
 
             FieldBox(address, { address = it.take(240); vm.updateAddress(it) }, stringResource(R.string.contribute_place_address))
+            PhotoAttach(
+                max = SuggestPlaceUiState.MAX_PHOTOS,
+                photos = state.photos.map { it.jpeg },
+                enabled = !state.sending,
+                add = vm::addPhoto,
+                remove = vm::removePhoto,
+            )
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(Icons.Outlined.VerifiedUser, contentDescription = null, Modifier.size(16.dp).padding(top = 2.dp), tint = palette.textTertiary)

@@ -6,9 +6,18 @@ plugins {
 
 // Public, non-secret config baked into the build (see AppConfig).
 val apiOrigin: String = providers.gradleProperty("ruta.apiOrigin").get()
+val appLinkHost: String = uri(apiOrigin).host
 
 // Google Maps key: never committed. Pass `-Pruta.googleMapsKey=...` or set it in ~/.gradle/gradle.properties.
 val mapsKey: String = providers.gradleProperty("ruta.googleMapsKey").getOrElse("")
+
+// Public Firebase Android application config, not the server service-account key.
+// Manual FirebaseOptions avoids requiring a committed google-services.json/plugin.
+val firebaseApplicationId = providers.gradleProperty("ruta.firebaseApplicationId").getOrElse("")
+val firebaseApiKey = providers.gradleProperty("ruta.firebaseApiKey").getOrElse("")
+val firebaseProjectId = providers.gradleProperty("ruta.firebaseProjectId").getOrElse("")
+val firebaseSenderId = providers.gradleProperty("ruta.firebaseSenderId").getOrElse("")
+fun quoted(value: String) = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\""
 
 android {
     namespace = "rutacibao.android"
@@ -25,6 +34,12 @@ android {
         buildConfigField("String", "VARIANT", "\"Production\"")
         buildConfigField("boolean", "HAS_MAPS_KEY", mapsKey.isNotBlank().toString())
         manifestPlaceholders["googleMapsKey"] = mapsKey
+        manifestPlaceholders["appScheme"] = "rutacibao"
+        manifestPlaceholders["appLinkHost"] = appLinkHost
+        buildConfigField("String", "FIREBASE_APPLICATION_ID", quoted(firebaseApplicationId))
+        buildConfigField("String", "FIREBASE_API_KEY", quoted(firebaseApiKey))
+        buildConfigField("String", "FIREBASE_PROJECT_ID", quoted(firebaseProjectId))
+        buildConfigField("String", "FIREBASE_SENDER_ID", quoted(firebaseSenderId))
     }
 
     buildTypes {
@@ -33,6 +48,7 @@ android {
             applicationIdSuffix = ".dev"
             buildConfigField("String", "APP_SCHEME", "\"rutacibao-dev\"")
             buildConfigField("String", "VARIANT", "\"Development\"")
+            manifestPlaceholders["appScheme"] = "rutacibao-dev"
         }
         release {
             isMinifyEnabled = true
@@ -71,6 +87,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.firebase.messaging)
+    implementation(libs.androidx.work.runtime)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)

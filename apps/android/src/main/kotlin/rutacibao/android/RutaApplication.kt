@@ -1,6 +1,12 @@
 package rutacibao.android
 
 import android.app.Application
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import rutacibao.android.platform.PushNotifications
+import rutacibao.android.platform.OfflineSyncWorker
 import rutacibao.android.platform.KeystoreSecureStore
 import rutacibao.core.AppConfig
 import rutacibao.shared.AppGraph
@@ -9,6 +15,7 @@ import rutacibao.shared.createAppGraph
 class RutaApplication : Application() {
     lateinit var graph: AppGraph
         private set
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override fun onCreate() {
         super.onCreate()
@@ -22,6 +29,14 @@ class RutaApplication : Application() {
             ),
             secureStore = KeystoreSecureStore(this),
         )
+        graph.offline.start()
+        OfflineSyncWorker.schedule(this)
+        PushNotifications.initialize(this)
+        applicationScope.launch {
+            graph.session.isSignedIn.collect { signedIn ->
+                if (signedIn) PushNotifications.sync(this@RutaApplication)
+            }
+        }
     }
 
     /**

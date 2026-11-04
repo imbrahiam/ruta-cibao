@@ -117,7 +117,7 @@ private val Inset = 16.dp
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GestionScreen(onBack: () -> Unit, debugStepUp: Boolean = false) {
+fun GestionScreen(onBack: () -> Unit, debugStepUp: Boolean = false, linkedReportId: String? = null, linkRequestId: Long = 0) {
     val graph = LocalAppGraph.current
     val vm: GestionViewModel = viewModel(key = "gestion") { graph.viewModels.gestion() }
     val state by vm.state.collectAsStateWithLifecycle()
@@ -125,6 +125,9 @@ fun GestionScreen(onBack: () -> Unit, debugStepUp: Boolean = false) {
     var downloadFailed by remember { mutableStateOf(false) }
     var forcedStepUp by remember { mutableStateOf<StepUpState?>(if (debugStepUp) StepUpState.Asking() else null) }
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    LaunchedEffect(linkedReportId, linkRequestId) {
+        linkedReportId?.let(vm::openLinkedReport)
+    }
 
     LaunchedEffect(state.pdfUrl) {
         val url = state.pdfUrl ?: return@LaunchedEffect
@@ -383,6 +386,16 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, decide: (Verdict) -> Uni
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(12.dp)).background(palette.inset),
             )
+        }
+        if (item is ReviewItem.Consultation) {
+            item.photoUrls.forEachIndexed { index, url ->
+                AsyncImage(
+                    model = url,
+                    contentDescription = stringResource(R.string.contribute_photos_photo_label, index + 1),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxWidth().height(240.dp).clip(RoundedCornerShape(12.dp)).background(palette.inset),
+                )
+            }
         }
         item.snippet?.takeIf { it.isNotBlank() }?.let {
             Text(it, style = MaterialTheme.typography.bodyMedium, maxLines = 3, overflow = TextOverflow.Ellipsis)

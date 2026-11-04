@@ -62,6 +62,9 @@ import rutacibao.android.ui.LocalPalette
 import rutacibao.android.ui.PrimaryButton
 import rutacibao.api.generated.PlacesDetailOutput
 import rutacibao.presentation.map.PlaceSheet
+import rutacibao.api.generated.PlacesConfirmInput
+import rutacibao.api.generated.PlacesReportInput
+import rutacibao.android.feature.comments.PlaceExperiencesSheet
 
 /** Detail URLs may be relative to the API; thumbnails already arrive absolute. */
 internal fun absoluteUrl(raw: String?): String? = when {
@@ -78,6 +81,12 @@ fun PlaceSheet(
     /** Asks to claim; false when sign-in is needed first. */
     onRequestClaim: () -> Boolean,
     onBusinessChanged: () -> Unit,
+    onConfirm: (PlacesConfirmInput.Verdict) -> Unit,
+    onReport: () -> Unit,
+    onReportReason: (PlacesReportInput.Reason) -> Unit,
+    onReportDetails: (String) -> Unit,
+    onSubmitReport: () -> Unit,
+    onCloseReport: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val place = sheet.place
@@ -85,6 +94,7 @@ fun PlaceSheet(
     val palette = LocalPalette.current
     val context = LocalContext.current
     var form by remember(place.id) { mutableStateOf<BusinessFormMode?>(null) }
+    var experiences by remember(place.id) { mutableStateOf(false) }
     val contact = when (val b = sheet.business) {
         is BusinessState.Listed -> b.contact
         is BusinessState.Owned -> b.contact
@@ -104,7 +114,7 @@ fun PlaceSheet(
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary,
                 )
-                detail?.trust?.let { TrustLine(it.state) }
+                if (!sheet.cached) detail?.trust?.let { TrustLine(it.state) }
             }
         }
 
@@ -150,6 +160,8 @@ fun PlaceSheet(
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
             }
         }
+        OutlinedExperiencesButton { experiences = true }
+        PlaceFeedback(sheet, onConfirm, onReport)
         when (val b = sheet.business) {
             is BusinessState.Listed -> if (b.canClaim) {
                 BusinessRow(Icons.Outlined.Storefront, stringResource(R.string.place_claim_title)) {
@@ -175,6 +187,18 @@ fun PlaceSheet(
     }
     form?.let { mode ->
         BusinessFormDialog(place.id, mode, contact, onDone = onBusinessChanged, onDismiss = { form = null })
+    }
+    if (experiences) PlaceExperiencesSheet(placeSlug = place.slug, placeName = place.name, onDismiss = { experiences = false })
+    sheet.report?.let {
+        PlaceReportDialog(it, onReportReason, onReportDetails, onSubmitReport, onCloseReport)
+    }
+}
+
+@Composable
+private fun OutlinedExperiencesButton(onClick: () -> Unit) {
+    androidx.compose.material3.OutlinedButton(onClick, Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null)
+        Text(stringResource(R.string.comments_experiences), Modifier.padding(start = 10.dp))
     }
 }
 

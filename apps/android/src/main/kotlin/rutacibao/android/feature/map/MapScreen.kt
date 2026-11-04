@@ -115,23 +115,42 @@ private const val ClosestSpan = 0.0045
 
 /** The province on one screen: our places carry the map (POIs are off); glyph pins, thinned out far away, named close up. */
 @Composable
-fun MapScreen() {
+fun MapScreen(
+    openPlaceSlug: String? = null,
+    openRouteId: String? = null,
+    openTrafficId: String? = null,
+    openRequestId: Long = 0,
+) {
     val screenName = stringResource(R.string.tabs_map)
-    if (!mapsAvailable) {
-        // No Maps key in this build (see gradle.properties): say so instead of drawing a broken map.
-        MessageState(
-            title = stringResource(R.string.common_error_title),
-            body = stringResource(R.string.common_error_body),
-            modifier = Modifier.semantics { paneTitle = screenName },
-            icon = Icons.Filled.Map,
-        )
-        return
-    }
     val graph = LocalAppGraph.current
     val vm: MapViewModel = viewModel { graph.viewModels.map() }
     val state by vm.state.collectAsStateWithLifecycle()
-    MapContent(vm, state, Modifier.semantics { paneTitle = screenName })
+    var handledRequest by rememberSaveable { mutableStateOf<Long?>(null) }
+    LaunchedEffect(openRequestId) {
+        if (handledRequest == openRequestId) return@LaunchedEffect
+        handledRequest = openRequestId
+        when {
+            openPlaceSlug != null -> vm.openPlace(openPlaceSlug)
+            openRouteId != null -> vm.openRoute(openRouteId)
+            openTrafficId != null -> vm.openTraffic(openTrafficId)
+        }
+    }
+    if (mapsAvailable) {
+        MapContent(vm, state, Modifier.semantics { paneTitle = screenName })
+    } else {
+        PlaceBrowser(vm, state, Modifier.semantics { paneTitle = screenName })
+    }
     if (state.signInRequested) SignInDialog(onDismiss = vm::signInHandled)
+    if (state.linkError != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = vm::linkErrorHandled,
+            title = { Text(stringResource(R.string.common_error_title)) },
+            text = { Text(stringResource(R.string.common_error_body)) },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = vm::linkErrorHandled) { Text(stringResource(R.string.common_close)) }
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -286,7 +305,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
             val sheet = state.sheet
             val route = state.route
             if (sheet != null) {
-                PlaceSheet(sheet, onSave = vm::toggleSaved, onRequestClaim = vm::requestClaim, onBusinessChanged = vm::refreshBusiness, modifier = Modifier.fillMaxHeight())
+                PlaceDetail(sheet, vm, Modifier.fillMaxHeight())
             } else if (route != null) {
                 RouteSheet(route, modifier = Modifier.fillMaxHeight())
             } else if (selectedTraffic != null) {

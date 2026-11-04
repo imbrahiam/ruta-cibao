@@ -86,6 +86,7 @@ fun AccountPageScreen(page: AccountPage, onBack: () -> Unit) {
         AccountPage.Privacy -> PrivacyPage(onBack)
         AccountPage.About -> AboutPage(onBack)
         AccountPage.Deletion -> DeletionPage(state, vm, onBack)
+        AccountPage.Offline -> OfflinePage(onBack)
     }
 }
 

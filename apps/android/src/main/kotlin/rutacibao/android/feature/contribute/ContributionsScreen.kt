@@ -1,6 +1,9 @@
 package rutacibao.android.feature.contribute
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -44,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -97,7 +101,7 @@ private enum class Section { Mine, Inbox }
 /** "Aportes": start a contribution, and follow the ones you've made and the notices about them. */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation: (String) -> Unit, startOnInbox: Boolean = false) {
+fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation: (String) -> Unit, startOnInbox: Boolean = false, inboxRequest: Long = 0, onOpenHref: (String) -> Unit = {}) {
     val graph = LocalAppGraph.current
     val vm: ContributionsViewModel = rootViewModel("contributions") { graph.viewModels.contributions() }
     val inbox: InboxViewModel = rootViewModel("inbox") { graph.viewModels.inbox() }
@@ -106,6 +110,9 @@ fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation:
     var signingIn by rememberSaveable { mutableStateOf(false) }
     var section by rememberSaveable { mutableStateOf(if (startOnInbox) Section.Inbox else Section.Mine) }
     val screenName = stringResource(R.string.contributions_title)
+    LaunchedEffect(inboxRequest) {
+        if (inboxRequest != 0L) { section = Section.Inbox; inbox.refresh() }
+    }
 
     PullToRefreshBox(
         isRefreshing = state.refreshing,
@@ -114,17 +121,19 @@ fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation:
     ) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
             item {
-                Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 16.dp), Alignment.Center) {
-                    BrandMark(28.dp, Modifier.semantics { contentDescription = screenName; heading() })
-                }
+                Text(
+                    screenName, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 20.dp).semantics { heading() },
+                )
             }
             item { ActionTiles { action -> if (state.signedIn) onStart(action) else signingIn = true } }
 
             if (state.signedIn) {
                 stickyHeader { SectionTabs(section, notices.unread) { section = it } }
+                if (section == Section.Mine) item { rutacibao.android.feature.account.PendingContributions() }
                 item {
                     Column {
-                        if (section == Section.Mine) Mine(state, vm, onOpenConsultation) else Inbox(notices, inbox, onOpenConsultation)
+                        if (section == Section.Mine) Mine(state, vm, onOpenConsultation) else Inbox(notices, inbox, onOpenHref)
                     }
                 }
             } else {
@@ -190,7 +199,7 @@ private fun Inbox(state: InboxUiState, vm: InboxViewModel, open: (String) -> Uni
             state.items.forEach { notice ->
                 NoticeRow(notice) {
                     vm.markRead(notice.id)
-                    notice.consultationSlug?.let(open)
+                    notice.href?.let(open)
                 }
             }
         }
@@ -213,9 +222,7 @@ private fun NoticeRow(notice: Notice, onClick: () -> Unit) {
                 .padding(horizontal = PostInset, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(PostGap),
         ) {
-            Box(Modifier.size(PostAvatar).background(color.copy(alpha = 0.16f), CircleShape), Alignment.Center) {
-                Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = color)
-            }
+            KindBadge(icon, color, PostAvatar)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(
                     noticeMessage(context, notice.messageKey, notice.params),
@@ -244,7 +251,7 @@ private fun noticeLook(key: String): Pair<ImageVector, Color> = when {
 /** Three big tiles: icon and label, always both. */
 @Composable
 private fun ActionTiles(start: (ContributeAction) -> Unit) {
-    val palette = LocalPalette.current
+    val dark = isSystemInDarkTheme()
     Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         listOf(
             Triple(ContributeAction.Consultation, Icons.Filled.ChatBubble to Indigo, R.string.contributions_example_case_title),
@@ -255,23 +262,22 @@ private fun ActionTiles(start: (ContributeAction) -> Unit) {
             Column(
                 Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(palette.inset)
-                    .clickable(role = Role.Button) { start(action) }
-                    .padding(horizontal = 6.dp, vertical = 14.dp),
+                    .clickable(role = Role.Button) { start(action) },
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Box(Modifier.size(44.dp).background(color.copy(alpha = 0.14f), CircleShape), Alignment.Center) {
-                    Icon(icon, contentDescription = null, Modifier.size(22.dp), tint = color)
+                Box(
+                    Modifier.fillMaxWidth().height(72.dp).clip(RoundedCornerShape(18.dp))
+                        .background(kindGradient(color)),
+                    Alignment.Center,
+                ) {
+                    Icon(icon, contentDescription = null, Modifier.size(24.dp), tint = if (dark) contrastInk(color) else Color.White)
                 }
                 Text(
                     stringResource(label),
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
                     textAlign = TextAlign.Center,
                     minLines = 2,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
@@ -346,9 +352,7 @@ private fun ContributionRow(item: PlacesContributionsItem, opens: Boolean, onCli
                 .padding(horizontal = PostInset, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(PostGap),
         ) {
-            Box(Modifier.size(PostAvatar).background(color.copy(alpha = 0.16f), CircleShape).clearAndSetSemantics { }, Alignment.Center) {
-                Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = color)
-            }
+            KindBadge(icon, color, PostAvatar)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(item.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
@@ -372,5 +376,19 @@ private fun ContributionRow(item: PlacesContributionsItem, opens: Boolean, onCli
             }
         }
         Hairline()
+    }
+}
+
+private fun kindGradient(color: Color) = Brush.linearGradient(listOf(color, Color(
+    red = color.red * 0.78f, green = color.green * 0.78f, blue = color.blue * 0.78f, alpha = 1f,
+)))
+
+private fun contrastInk(color: Color): Color =
+    if ((color.luminance() + 0.05f) / 0.05f > 1.05f / (color.luminance() + 0.05f)) Color.Black else Color.White
+
+@Composable
+private fun KindBadge(icon: ImageVector, color: Color, size: androidx.compose.ui.unit.Dp) {
+    Box(Modifier.size(size).background(kindGradient(color), CircleShape), Alignment.Center) {
+        Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = contrastInk(color))
     }
 }

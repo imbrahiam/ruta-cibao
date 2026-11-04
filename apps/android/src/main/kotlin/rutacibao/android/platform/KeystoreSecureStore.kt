@@ -4,7 +4,6 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
-import androidx.core.content.edit
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
@@ -38,11 +37,11 @@ class KeystoreSecureStore(context: Context) : SecureStore {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, key())
         val payload = cipher.iv + cipher.doFinal(value.toByteArray(Charsets.UTF_8))
-        prefs.edit { putString(key, Base64.encodeToString(payload, Base64.NO_WRAP)) }
+        check(prefs.edit().putString(key, Base64.encodeToString(payload, Base64.NO_WRAP)).commit()) { "Secure storage write failed" }
     }
 
     override fun delete(key: String) {
-        prefs.edit { remove(key) }
+        check(prefs.edit().remove(key).commit()) { "Secure storage delete failed" }
     }
 
     private fun key(): SecretKey {

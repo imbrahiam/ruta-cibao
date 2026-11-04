@@ -7,6 +7,7 @@ object MessageArgs {
         "notifications.routeReviewed" to listOf(),
         "notifications.title" to listOf(),
         "notifications.pushGeneric" to listOf(),
+        "notifications.pushUnavailable" to listOf(),
         "notifications.errors.invalidPreferences" to listOf(),
         "notifications.errors.invalidMunicipalities" to listOf(),
         "notifications.errors.invalidCategories" to listOf(),

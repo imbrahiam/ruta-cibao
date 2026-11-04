@@ -42,6 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import rutacibao.android.feature.comments.ThreadAvatar
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -67,7 +69,7 @@ import rutacibao.presentation.account.AccountViewModel
 
 /** Sub-screens of the account tab; the root pushes them on the tab's own stack. */
 @Serializable
-enum class AccountPage { Profile, Saved, Passport, Notifications, Privacy, About, Deletion }
+enum class AccountPage { Profile, Saved, Passport, Notifications, Privacy, About, Deletion, Offline }
 
 @Composable
 fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
@@ -102,19 +104,23 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
                     textAlign = TextAlign.Center,
                 )
             }
+            TextButton(onClick = { onOpen(AccountPage.Offline) }) { Text(stringResource(R.string.offline_row_title)) }
             PrimaryButton(stringResource(R.string.account_sign_in), { showSignIn = true }, Modifier.fillMaxWidth())
         }
     } else {
         val palette = LocalPalette.current
         PullToRefreshBox(isRefreshing = false, onRefresh = vm::refresh, modifier = Modifier.semantics { paneTitle = screenName }) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
-                Header(state.me?.displayName, state.me?.residencyVerified == true, state.municipalityName, state.me?.phoneNumber ?: state.me?.email)
-
+                Text(
+                    stringResource(R.string.account_title), style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 20.dp).semantics { heading() },
+                )
+                Header(state.me?.displayName, state.me?.image, state.me?.residencyVerified == true, state.municipalityName, state.me?.phoneNumber ?: state.me?.email) {
+                    onOpen(AccountPage.Profile)
+                }
                 SectionTitle(stringResource(R.string.account_yours))
+                AccountShortcuts(state.saved.size, (state.passport?.total ?: 0).toInt(), onOpen)
                 Group {
-                    NavRow(stringResource(R.string.account_profile), Icons.Filled.Person, Color(0xFF0A84FF), onClick = { onOpen(AccountPage.Profile) })
-                    NavRow(stringResource(R.string.account_saved), Icons.Filled.Bookmark, Color(0xFFFF9500), count = state.saved.size, onClick = { onOpen(AccountPage.Saved) })
-                    NavRow(stringResource(R.string.account_passport), Icons.Filled.Verified, Color(0xFFAF52DE), count = (state.passport?.total ?: 0).toInt(), onClick = { onOpen(AccountPage.Passport) })
                     state.staffPending?.let { pending ->
                         NavRow(
                             stringResource(R.string.gestion_title),
@@ -125,7 +131,11 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
                             onClick = onOpenGestion,
                         )
                     }
-                    NavRow(stringResource(R.string.notification_settings_title), Icons.Filled.Notifications, Color(0xFFFF3B30), onClick = { onOpen(AccountPage.Notifications) }, last = true)
+                    NavRow(stringResource(R.string.notification_settings_title), Icons.Filled.Notifications, Color(0xFFFF3B30), onClick = { onOpen(AccountPage.Notifications) })
+                    NavRow(stringResource(R.string.offline_row_title), Icons.Filled.Info, Color(0xFF30A45A), onClick = { onOpen(AccountPage.Offline) }, last = true)
+                    if (rutacibao.android.platform.PushNotifications.capability != rutacibao.android.platform.PushNotifications.Capability.Available) {
+                        Text(stringResource(R.string.notifications_push_unavailable), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))
+                    }
                 }
                 SectionTitle(stringResource(R.string.account_about))
                 Group {
@@ -163,14 +173,15 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
 
 /** Name big, verified place, initials in iris (no title above it). */
 @Composable
-private fun Header(name: String?, verified: Boolean, municipality: String?, contact: String?) {
+private fun Header(name: String?, image: String?, verified: Boolean, municipality: String?, contact: String?, onClick: () -> Unit) {
     val palette = LocalPalette.current
-    val initials = (name ?: "").split(" ").filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }
     Row(
-        Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 20.dp, bottom = 16.dp),
+        Modifier.padding(horizontal = 24.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer).clickable(role = Role.Button, onClick = onClick).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        ThreadAvatar(name, image, size = 64.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(
                 name ?: " ",
@@ -187,13 +198,10 @@ private fun Header(name: String?, verified: Boolean, municipality: String?, cont
                 Text(contact, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
             }
         }
-        Box(Modifier.size(64.dp).background(RutaBrand.iris.copy(alpha = 0.16f), CircleShape), Alignment.Center) {
-            Text(initials, style = TextStyleBold24, color = RutaBrand.iris)
-        }
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = palette.textTertiary)
     }
 }
 
-private val TextStyleBold24 = androidx.compose.ui.text.TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
 @Composable
 private fun SectionTitle(text: String) {
@@ -214,6 +222,34 @@ private fun Group(content: @Composable () -> Unit) {
             .clip(RoundedCornerShape(16.dp))
             .background(MaterialTheme.colorScheme.surfaceContainer),
     ) { content() }
+}
+
+@Composable
+private fun AccountShortcuts(saved: Int, passport: Int, onOpen: (AccountPage) -> Unit) {
+    val content: @Composable (Modifier) -> Unit = { modifier ->
+        AccountShortcut(stringResource(R.string.account_saved), Icons.Filled.Bookmark, saved, modifier) { onOpen(AccountPage.Saved) }
+        AccountShortcut(stringResource(R.string.account_passport), Icons.Filled.Verified, passport, modifier) { onOpen(AccountPage.Passport) }
+    }
+    if (LocalConfiguration.current.fontScale > 1.3f) {
+        Column(Modifier.padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content(Modifier.fillMaxWidth()) }
+    } else {
+        Row(Modifier.padding(horizontal = 24.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) { content(Modifier.weight(1f)) }
+    }
+}
+
+@Composable
+private fun AccountShortcut(title: String, icon: ImageVector, count: Int, modifier: Modifier, onClick: () -> Unit) {
+    Column(
+        modifier.clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(role = Role.Button, onClick = onClick).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Icon(icon, contentDescription = null, tint = LocalPalette.current.accent)
+            Text(count.toString(), style = MaterialTheme.typography.titleMedium, color = LocalPalette.current.textSecondary)
+        }
+        Text(title, style = MaterialTheme.typography.titleSmall)
+    }
 }
 
 /** A row with a coloured rounded-square icon, its label always visible, and a chevron. */
