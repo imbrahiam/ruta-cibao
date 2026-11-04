@@ -296,7 +296,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
         }
     }
 
-    val named = span.first < 0.035
+    val named = span.second < 0.035
     val selectedPlace = state.sheet?.place?.id
     // Google Maps style: one place per cell, more as you zoom; the selection always stays.
     val visible = remember(state.places, span, selectedPlace) {

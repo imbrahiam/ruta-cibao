@@ -24,6 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PanTool
@@ -133,21 +136,21 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
                         )
                     }
                     NavRow(stringResource(R.string.notification_settings_title), Icons.Filled.Notifications, Color(0xFFFF3B30), onClick = { onOpen(AccountPage.Notifications) })
-                    NavRow(stringResource(R.string.offline_row_title), Icons.Filled.Info, Color(0xFF30A45A), onClick = { onOpen(AccountPage.Offline) }, last = true)
+                    NavRow(stringResource(R.string.offline_row_title), Icons.Filled.Download, Color(0xFF30A45A), onClick = { onOpen(AccountPage.Offline) }, last = true)
                     if (rutacibao.android.platform.PushNotifications.capability != rutacibao.android.platform.PushNotifications.Capability.Available) {
                         Text(stringResource(R.string.notifications_push_unavailable), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))
                     }
                 }
-                SectionTitle(stringResource(R.string.account_about))
+                Box(Modifier.height(12.dp))
                 Group {
-                    NavRow(stringResource(R.string.account_privacy), Icons.Filled.PanTool, Color(0xFF5E5CE6), onClick = { onOpen(AccountPage.Privacy) })
+                    NavRow(stringResource(R.string.account_privacy), Icons.Filled.PanTool, Color(0xFF0A84FF), onClick = { onOpen(AccountPage.Privacy) })
                     NavRow(stringResource(R.string.account_about_app), Icons.Filled.Info, Color(0xFF8E8E93), onClick = { onOpen(AccountPage.About) }, last = true)
                 }
                 Box(Modifier.height(24.dp))
                 Group {
-                    PlainRow(stringResource(R.string.account_sign_out), palette.text) { confirmSignOut = true }
+                    PlainRow(stringResource(R.string.account_sign_out), palette.text, Icons.AutoMirrored.Filled.Logout, chevron = false) { confirmSignOut = true }
                     HorizontalDivider(Modifier.padding(start = 16.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                    PlainRow(stringResource(R.string.account_deletion_row_title), palette.dangerInk) { onOpen(AccountPage.Deletion) }
+                    PlainRow(stringResource(R.string.account_deletion_row_title), palette.dangerInk, Icons.Filled.Delete, chevron = true) { onOpen(AccountPage.Deletion) }
                 }
             }
         }
@@ -296,11 +299,14 @@ private fun NavRow(
 }
 
 @Composable
-private fun PlainRow(title: String, ink: Color, onClick: () -> Unit) {
+private fun PlainRow(title: String, ink: Color, icon: ImageVector, chevron: Boolean, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().defaultMinSize(minHeight = 56.dp).clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(title, style = MaterialTheme.typography.bodyLarge, color = ink)
+        Icon(icon, contentDescription = null, Modifier.size(30.dp).padding(3.dp), tint = ink)
+        Text(title, style = MaterialTheme.typography.bodyLarge, color = ink, modifier = Modifier.weight(1f))
+        if (chevron) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = LocalPalette.current.textTertiary)
     }
 }

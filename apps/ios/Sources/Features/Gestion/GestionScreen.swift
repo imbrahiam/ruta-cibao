@@ -38,12 +38,6 @@ private struct Content: View {
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                Text(L10n.Gestion.title)
-                    .font(.largeTitle.bold())
-                    .accessibilityAddTraits(.isHeader)
-                    .padding(.horizontal, GestionMetrics.inset)
-                    .padding(.top, 12)
-                    .padding(.bottom, 16)
                 if let report = state.latestReport {
                     ReportRow(report: report, loading: state.pdf == .loading, unavailable: state.pdf == .unavailable || downloadFailed) {
                         downloadFailed = false
@@ -99,6 +93,8 @@ private struct Content: View {
                 dismiss: { model.debugStepUp = nil; vm.dismissStepUp() }
             )
         }
+        .navigationTitle(L10n.Gestion.title)
+        .navigationBarTitleDisplayMode(.inline)
         .alert(L10n.Common.errorTitle, isPresented: Binding(get: { state.error != nil && state.phase != .failed }, set: { if !$0 { vm.errorHandled() } })) {
             Button(L10n.Common.close, role: .cancel) {}
         } message: {
