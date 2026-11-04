@@ -5,7 +5,7 @@
 # the directory produced by backup.sh; retention is decided locally, so the
 # remote copy follows it.
 set -euo pipefail
-: "${BACKUP_REMOTE:?usage: BACKUP_REMOTE=user@host:/path infra/backup-offsite.sh}"
+: "${BACKUP_REMOTE:?usage: BACKUP_REMOTE=user@host:/path infra/backup/backup-offsite.sh}"
 DEST=${BACKUP_DIR:-/var/backups/ruta-cibao}
 
 [ -d "$DEST" ] || {

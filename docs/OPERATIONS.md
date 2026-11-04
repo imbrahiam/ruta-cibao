@@ -89,7 +89,7 @@ App photographs take precedence. For published places already matched to Google,
 warm the running web process's six-hour, memory-only photo cache with:
 
 ```bash
-bun run scripts/data/warm-google-photos.ts http://localhost:3000
+bun run scripts/db/warm-google-photos.ts http://localhost:3000
 ```
 
 The script reads matched places from the public GeoJSON endpoint and requests
@@ -116,7 +116,7 @@ docker compose -f infra/docker-compose.yml --profile migrate run --rm migrate
 ```
 
 Re-running is safe. If a migration fails halfway, fix it forward with a new
-migration rather than editing an applied one — the journal in `drizzle/` records
+migration rather than editing an applied one — the journal in `apps/web/drizzle/` records
 what has run, and rewriting history there desynchronises every other
 environment.
 
@@ -204,8 +204,8 @@ read `DEPLOYMENT.md` section 9.3 first.
 
 ## Backup and restore
 
-`infra/backup.sh` takes the nightly snapshot; `infra/backup-offsite.sh` mirrors
-it to another machine; `infra/restore-rehearsal.sh` proves the newest snapshot
+`infra/backup/backup.sh` takes the nightly snapshot; `infra/backup/backup-offsite.sh` mirrors
+it to another machine; `infra/backup/restore-rehearsal.sh` proves the newest snapshot
 restores into a throwaway database. The full procedure, including the real
 restore, is `DEPLOYMENT.md` section 11.
 

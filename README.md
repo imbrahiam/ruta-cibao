@@ -142,7 +142,7 @@ unpublished support address is invented.
 
 Encuentro is selected. `packages/shared/src/brand.ts` supplies its geometry and
 colors to the web logo, the native brand component and the web asset generator.
-Run `bun run scripts/generate-brand-assets.ts` after changing that source to
+Run `bun run scripts/brand/generate-brand-assets.ts` after changing that source to
 regenerate the browser SVG, the Apple touch icon and the native app icon.
 
 `/design/brand` marks Encuentro as active and preserves the three alternatives
@@ -286,6 +286,31 @@ revision does not change that subsystem.
 | `bun run check:docs` | Fails when a document names something that does not exist |
 | `bun run db:generate` / `db:migrate` | Write / apply migrations |
 
+## Repository layout
+
+```text
+apps/
+  web/            Next.js: public site, admin panel and the API
+    src/          app routes, oRPC procedures, domain modules, db schema
+    drizzle/      SQL migrations (forward-only)
+    tests/        bun test suites
+  ios/            SwiftUI app (XcodeGen project)
+  android/        Jetpack Compose app
+packages/
+  contracts/      API contract and the generated OpenAPI document
+  shared/         copy catalogue (es.json), brand and design tokens
+  kmp/            Kotlin Multiplatform core shared by both native apps
+native/           Gradle root for android + kmp: wrapper, version catalog, build-logic
+scripts/
+  db/             seed and import scripts; sources/ holds the pinned GeoJSON
+  ops/            worker, staff grants, release, runtime preparation
+  checks/         docs and quality gates, feature verifiers
+  brand/          icon generator and full-resolution illustrations
+infra/            Dockerfile, Compose, Caddy, Postgres image
+  backup/         backup, off-site copy, restore and restore rehearsal
+docs/             architecture, deployment, operations, native, quality
+```
+
 ## Docs
 
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the pieces fit together
@@ -301,4 +326,4 @@ MIT — see [LICENSE](LICENSE).
   contributors, under the ODbL.
 - Municipal boundaries: Oficina Nacional de Estadística, via
   [OCHA COD-AB](https://data.humdata.org/dataset/cod-ab-dom) (CC BY-IGO),
-  pinned in `data/boundaries/`.
+  pinned in `scripts/db/sources/boundaries/`.

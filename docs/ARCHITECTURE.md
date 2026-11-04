@@ -126,7 +126,7 @@ geometry.
 
 Enable Places API (New) and billing for `GOOGLE_MAPS_SERVER_API_KEY`, alongside
 Routes API. Run `bun run db:migrate`, then
-`bun run scripts/data/match-google-places.ts` to match published places without app
+`bun run scripts/db/match-google-places.ts` to match published places without app
 photos sequentially, with 200 ms spacing. Only matches within 250 metres are
 accepted; IDs and negative checks expire for rechecking after 30 days. Every
 completed check atomically records a system `places.google_match_checked` audit

@@ -3,11 +3,11 @@ import { writeFile } from "node:fs/promises";
 /**
  * Refreshes the three municipal polygons from the exact OpenStreetMap
  * relations used by the Protomaps basemap. Run deliberately, review the diff,
- * then `bun run scripts/data/import-boundaries.ts`; boundaries never change during
+ * then `bun run scripts/db/import-boundaries.ts`; boundaries never change during
  * normal app operation.
  */
 const OUTPUT = new URL(
-  "../../data/boundaries/santiago-rodriguez.geojson",
+  "./sources/boundaries/santiago-rodriguez.geojson",
   import.meta.url,
 );
 

@@ -34,7 +34,7 @@ import {
 } from "@/modules/places/photos";
 
 // Run only against a migrated, disposable local database and private test bucket:
-// RUN_STORAGE_TESTS=1 bun test tests/media-storage.integration.test.ts
+// RUN_STORAGE_TESTS=1 bun test apps/web/tests/media-storage.integration.test.ts
 // Both the database and bucket names must contain a delimited "test" or "tests".
 // Never use the application's normal development database or residents' data.
 function assertDedicatedLocalEnvironment() {

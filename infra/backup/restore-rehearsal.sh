@@ -5,7 +5,7 @@
 # schema and the core tables came back, then drops it. Safe to run while the
 # service is up; the only shared resource is disk and connection slots.
 set -euo pipefail
-TASK_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+TASK_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$TASK_ROOT"
 DEST=${BACKUP_DIR:-/var/backups/ruta-cibao}
 DUMP=${1:-$(ls -1t "$DEST"/db-*.dump 2>/dev/null | head -n 1)}

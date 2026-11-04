@@ -39,7 +39,7 @@ echo "==> quality"
 bun run check:quality
 
 echo "==> restore rehearsal"
-infra/restore-rehearsal.sh
+infra/backup/restore-rehearsal.sh
 
 PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo none)
 
@@ -48,4 +48,4 @@ echo "tagged v$VERSION at $(git rev-parse --short HEAD)"
 echo "next: git push origin main --follow-tags"
 echo
 echo "to roll back: deploy the previous tag (currently $PREVIOUS_TAG)"
-echo "and restore the database with infra/restore.sh before restarting the worker."
+echo "and restore the database with infra/backup/restore.sh before restarting the worker."

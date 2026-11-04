@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Destructive restore into the configured stack. Rehearse on an isolated stack.
 set -euo pipefail
-DUMP=${1:?usage: infra/restore.sh <db dump> [objects tar]}
+DUMP=${1:?usage: infra/backup/restore.sh <db dump> [objects tar]}
 OBJECTS=${2:-}
 [ -f "$DUMP" ] || { echo "database snapshot missing" >&2; exit 1; }
 DUMP=$(cd "$(dirname "$DUMP")" && pwd)/$(basename "$DUMP")
@@ -9,7 +9,7 @@ if [ -n "$OBJECTS" ]; then
   [ -f "$OBJECTS" ] || { echo "object snapshot missing" >&2; exit 1; }
   OBJECTS=$(cd "$(dirname "$OBJECTS")" && pwd)/$(basename "$OBJECTS")
 fi
-TASK_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+TASK_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$TASK_ROOT"
 COMPOSE=(docker compose --env-file .env -f infra/docker-compose.yml --profile full --profile maintenance)
 read -r -p "This replaces the configured database and objects. Type RESTORE to continue: " answer

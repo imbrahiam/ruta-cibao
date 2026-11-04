@@ -8,7 +8,7 @@
  * (San Ignacio de Sabaneta, Monción, Villa Los Almácigos).
  *
  * Deterministic offline import:
- * Reads committed GeoJSON from `data/content/santiago-rodriguez-osm-places.geojson`.
+ * Reads committed GeoJSON from `scripts/db/sources/content/santiago-rodriguez-osm-places.geojson`.
  * Stable UUID v5 identifiers are derived from `osm:${osmType}:${osmId}`, ensuring
  * idempotency across re-runs.
  *
@@ -25,13 +25,13 @@
  * Writes an append-only `audit_events` row per import batch.
  *
  * How to refresh:
- * Run `bun run scripts/data/import-osm-content.ts --refresh` to re-query the Overpass
+ * Run `bun run scripts/db/import-osm-content.ts --refresh` to re-query the Overpass
  * API (with automatic fallback mirrors), re-filter against the database's
- * PostGIS municipal boundaries, write updated snapshots to `data/content/`,
+ * PostGIS municipal boundaries, write updated snapshots to `scripts/db/sources/content/`,
  * and import them. Review the diff before committing.
  *
- *   bun run scripts/data/import-osm-content.ts
- *   bun run scripts/data/import-osm-content.ts --refresh
+ *   bun run scripts/db/import-osm-content.ts
+ *   bun run scripts/db/import-osm-content.ts --refresh
  */
 
 import { createHash } from "node:crypto";
@@ -43,15 +43,15 @@ import { auditEvents, categories, municipalities, places } from "@/db/schema";
 import { env } from "@/lib/env";
 
 const PLACES_SNAPSHOT = new URL(
-  "../../data/content/santiago-rodriguez-osm-places.geojson",
+  "./sources/content/santiago-rodriguez-osm-places.geojson",
   import.meta.url,
 );
 const ALL_POIS_SNAPSHOT = new URL(
-  "../../data/content/santiago-rodriguez-osm-all-pois.geojson",
+  "./sources/content/santiago-rodriguez-osm-all-pois.geojson",
   import.meta.url,
 );
 const UNMAPPED_KINDS_SNAPSHOT = new URL(
-  "../../data/content/osm-unmapped-kinds.json",
+  "./sources/content/osm-unmapped-kinds.json",
   import.meta.url,
 );
 
@@ -683,7 +683,7 @@ export async function refreshSnapshots(): Promise<void> {
     features: allFeatures,
   };
 
-  await mkdir(new URL("../../data/content", import.meta.url), {
+  await mkdir(new URL("./sources/content", import.meta.url), {
     recursive: true,
   });
   await Bun.write(
@@ -699,7 +699,7 @@ export async function refreshSnapshots(): Promise<void> {
     `${JSON.stringify(unmappedKinds, null, 2)}\n`,
   );
 
-  console.log("Wrote updated snapshots under data/content/.");
+  console.log("Wrote updated snapshots under scripts/db/sources/content/.");
 }
 
 export type DuplicateCollapse = {

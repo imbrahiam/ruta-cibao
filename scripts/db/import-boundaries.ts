@@ -15,12 +15,12 @@
  * values (800.8, 207.1 and 138.9 km²).
  *
  * The reviewed polygons are kept in
- * `data/boundaries/santiago-rodriguez.geojson` and joined by ONE's P-code, not
+ * `scripts/db/sources/boundaries/santiago-rodriguez.geojson` and joined by ONE's P-code, not
  * by name. Normal imports are offline and deterministic. Refresh them
- * deliberately with `bun run scripts/data/fetch-boundaries.ts`, review the diff,
+ * deliberately with `bun run scripts/db/fetch-boundaries.ts`, review the diff,
  * then import; a boundary must never change silently under a running platform.
  *
- *   bun run scripts/data/import-boundaries.ts
+ *   bun run scripts/db/import-boundaries.ts
  *
  * Idempotent — it overwrites whatever is there with the same geometry.
  */
@@ -29,7 +29,7 @@ import { db } from "@/db";
 import { municipalities } from "@/db/schema";
 
 const SOURCE = new URL(
-  "../../data/boundaries/santiago-rodriguez.geojson",
+  "./sources/boundaries/santiago-rodriguez.geojson",
   import.meta.url,
 );
 

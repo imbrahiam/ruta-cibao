@@ -9,10 +9,10 @@
   },
   "include": [
     "scripts/**/*.ts",
-    "tests/**/*.ts",
+    "apps/web/tests/**/*.ts",
     "packages/shared/**/*.ts",
     "packages/contracts/**/*.ts",
-    "drizzle.config.ts"
+    "apps/web/drizzle.config.ts"
   ],
   "exclude": ["node_modules"]
 }

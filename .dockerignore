@@ -24,10 +24,16 @@ storage-data
 .claude
 .codex
 .tooling
-tests
+apps/web/tests
 coverage
 *.log
 *.tsbuildinfo
 .DS_Store
-scripts/verify-*.ts
+scripts/checks/verify-*.ts
 *.pmtiles
+
+# native apps never enter the server image
+native
+apps/ios
+apps/android
+packages/kmp

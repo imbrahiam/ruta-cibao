@@ -3,7 +3,7 @@
 # .env is parsed by Compose, never executed as shell code or backed up.
 set -euo pipefail
 umask 077
-TASK_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+TASK_ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 cd "$TASK_ROOT"
 COMPOSE=(docker compose --env-file .env -f infra/docker-compose.yml --profile full --profile maintenance)
 DEST=${BACKUP_DIR:-/var/backups/ruta-cibao}

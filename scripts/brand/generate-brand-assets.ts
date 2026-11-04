@@ -1,7 +1,7 @@
 /**
  * Regenerate the identity assets from the shared Encuentro geometry: the web
  * favicon SVG and Apple touch icon, and the iOS app icon (the same mark).
- * Run: bun run scripts/generate-brand-assets.ts
+ * Run: bun run scripts/brand/generate-brand-assets.ts
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";

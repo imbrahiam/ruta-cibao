@@ -51,19 +51,18 @@ COPY tsconfig.json ./
 COPY packages ./packages
 COPY apps/web/src ./apps/web/src
 COPY scripts ./scripts
-COPY data/boundaries ./data/boundaries
-COPY drizzle /migrations
-RUN bun build scripts/ops/init-storage.ts --target=bun --minify --outfile=/runtime/init-storage.ts \
+COPY apps/web/drizzle /migrations
+RUN bun build scripts/ops/init-storage.ts --target=bun --minify --outfile=/runtime/scripts/ops/init-storage.ts \
     && bun build scripts/ops/worker.ts --target=bun --minify \
       --outfile=/runtime/src/modules/jobs/worker.js --external=sharp --external=pg-native \
     && bun build apps/web/src/db/migrate.ts --target=bun --minify \
       --outfile=/runtime/apps/web/src/db/migrate.ts --external=pg-native \
-    && bun build scripts/data/seed.ts scripts/data/import-boundaries.ts scripts/data/import-roads.ts scripts/ops/grant-staff.ts scripts/ops/apply-deletion-ledger.ts \
-      --target=bun --minify --outdir=/runtime/scripts --external=pg-native \
+    && bun build scripts/db/seed.ts scripts/db/import-boundaries.ts scripts/db/import-roads.ts scripts/ops/grant-staff.ts scripts/ops/apply-deletion-ledger.ts \
+      --target=bun --minify --root=scripts --outdir=/runtime/scripts --external=pg-native \
     && bun run scripts/ops/runtime-notices.ts /runtime/THIRD-PARTY-NOTICES.txt \
     && bun run scripts/ops/prepare-runtime.ts /worker-dependencies sharp \
     && find /migrations/meta -type f ! -name _journal.json -delete \
-    && for script in seed import-boundaries import-roads grant-staff apply-deletion-ledger; do \
+    && for script in db/seed db/import-boundaries db/import-roads ops/grant-staff ops/apply-deletion-ledger; do \
          mv "/runtime/scripts/$script.js" "/runtime/scripts/$script.ts"; \
        done
 
@@ -74,7 +73,7 @@ COPY --from=runtime-build /runtime/THIRD-PARTY-NOTICES.txt ./
 COPY --from=runtime-build /runtime/apps/web/src/db/migrate.ts ./apps/web/src/db/migrate.ts
 COPY --from=runtime-build /runtime/apps/web/src/db/migrate.ts ./src/db/migrate.ts
 COPY --from=runtime-build /runtime/scripts ./scripts
-COPY --from=runtime-build /app/data/boundaries ./data/boundaries
+COPY --from=runtime-build /app/scripts/db/sources/boundaries ./scripts/db/sources/boundaries
 COPY --from=runtime-build /migrations ./drizzle
 USER bun
 CMD ["bun", "run", "apps/web/src/db/migrate.ts"]
@@ -82,7 +81,7 @@ CMD ["bun", "run", "apps/web/src/db/migrate.ts"]
 FROM oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0 AS storage-init
 WORKDIR /app
 COPY --from=runtime-build /runtime/THIRD-PARTY-NOTICES.txt ./
-COPY --from=runtime-build /runtime/init-storage.ts ./scripts/init-storage.ts
+COPY --from=runtime-build /runtime/scripts/ops/init-storage.ts ./scripts/ops/init-storage.ts
 USER bun
 CMD ["bun", "run", "scripts/ops/init-storage.ts"]
 

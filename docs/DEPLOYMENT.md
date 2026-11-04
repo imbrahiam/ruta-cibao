@@ -46,12 +46,12 @@ real service. Differences from section 6:
   `https://demo.rutacibao.com`, and `DEMO_DEPLOYMENT=1` (validation refuses it
   on any host not starting with `demo.`).
 - `LOCAL_DEMO_PHONES` (the fictional 809-555-01xx numbers from
-  `scripts/data/seed-demo.ts`) and `LOCAL_DEMO_OTP` are set, so the presenter signs
+  `scripts/db/seed-demo.ts`) and `LOCAL_DEMO_OTP` are set, so the presenter signs
   in without SMS and seeded staff skip TOTP. Real numbers and emails still go
   through Twilio Verify and Resend when those are configured.
 - `APNS_*` are optional on the demo (the in-app inbox still works); required in production.
 - Load content with `bun run db:seed`, the OSM import
-  (`bun run scripts/data/import-osm-content.ts`) and `bun run scripts/data/seed-demo.ts`.
+  (`bun run scripts/db/import-osm-content.ts`) and `bun run scripts/db/seed-demo.ts`.
 
 The demo phones run the native apps (`docs/NATIVE.md`) built against
 `https://demo.rutacibao.com`.
@@ -383,9 +383,9 @@ The tables start empty. These commands fill them. Each is safe to run again,
 and re-running is how you update the data.
 
 ```bash
-rc run --rm migrate bun run scripts/data/seed.ts               # municipalities, categories
-rc run --rm migrate bun run scripts/data/import-boundaries.ts  # exact OSM municipal relations
-rc run --rm migrate bun run scripts/data/import-roads.ts       # road network (OpenStreetMap)
+rc run --rm migrate bun run scripts/db/seed.ts               # municipalities, categories
+rc run --rm migrate bun run scripts/db/import-boundaries.ts  # exact OSM municipal relations
+rc run --rm migrate bun run scripts/db/import-roads.ts       # road network (OpenStreetMap)
 ```
 
 | If you skip | What stops working |
@@ -396,7 +396,7 @@ rc run --rm migrate bun run scripts/data/import-roads.ts       # road network (O
 
 The road import downloads from Overpass and may be retried after a timeout.
 Boundary import uses the reviewed GeoJSON in the repository. To refresh it
-deliberately from OSM, run `bun run scripts/data/fetch-boundaries.ts`, review the
+deliberately from OSM, run `bun run scripts/db/fetch-boundaries.ts`, review the
 change, then import it.
 
 **Never run `seed-demo.ts` in production.** It creates fake accounts that can
@@ -488,7 +488,7 @@ Nothing is backed up until you set this up. Do it before real data arrives.
 
 ### 11.2 The nightly script
 
-`infra/backup.sh` dumps the database and, when photos are in the local
+`infra/backup/backup.sh` dumps the database and, when photos are in the local
 SeaweedFS, copies the bucket. It keeps 14 days (`KEEP_DAYS`) in
 `/var/backups/ruta-cibao` (`BACKUP_DIR`). It deliberately does **not** copy
 `.env` (see 9.3).
@@ -507,7 +507,7 @@ group):
 
 ### 11.3 Off the server
 
-A backup on the same server dies with the server. `infra/backup-offsite.sh`
+A backup on the same server dies with the server. `infra/backup/backup-offsite.sh`
 copies the local snapshots to a machine you name, with `rsync` over SSH:
 
 ```bash
@@ -525,7 +525,7 @@ institution already runs one.
 Restore once onto a **staging** server before launch, and then every three
 months. An untested backup is not a backup.
 
-`infra/restore-rehearsal.sh` restores the newest local dump into a throwaway
+`infra/backup/restore-rehearsal.sh` restores the newest local dump into a throwaway
 database on the running Postgres and drops it afterwards. It touches no
 production table and needs no downtime:
 
@@ -538,7 +538,7 @@ step 7, with the **same `.env`** (same encryption key):
 
 ```bash
 cd /opt/ruta-cibao
-infra/restore.sh /path/to/db-YYYY-MM-DD.dump \
+infra/backup/restore.sh /path/to/db-YYYY-MM-DD.dump \
                  /path/to/objects/objects-YYYY-MM-DD.tar   # second file: option B only
 ```
 
@@ -552,7 +552,7 @@ sees its own contributions. That last check proves the encryption key matches.
 
 ```bash
 cd /opt/ruta-cibao
-infra/backup.sh                      # always first: migrations are one-way
+infra/backup/backup.sh                      # always first: migrations are one-way
 git fetch --tags && git checkout v0.2.0
 rc up -d --build                     # migrations run before the app starts
 rc ps && curl -fsS https://app.example.do/api/ready
@@ -566,12 +566,12 @@ restoring the backup taken before the update (11.4), checking out the previous
 tag, and rebuilding:
 
 ```bash
-infra/restore.sh /var/backups/ruta-cibao/db-TIMESTAMP.dump
+infra/backup/restore.sh /var/backups/ruta-cibao/db-TIMESTAMP.dump
 git checkout v0.1.0
 rc up -d --build
 ```
 
-Never edit an applied migration file in `drizzle/`. Migrations are
+Never edit an applied migration file in `apps/web/drizzle/`. Migrations are
 forward-only; a mistake is fixed by the next migration.
 
 ### 12.1 Cutting a release
@@ -631,7 +631,7 @@ calling the developers:
 - `bun run typecheck` generates Next route types before TypeScript runs.
 - Run `bun run lint`, `bun run test:db`, `bun run check:docs`,
   `bun run check:quality` and `bun run build` before tagging.
-- Apply every migration in `drizzle/` before serving the new image. The
+- Apply every migration in `apps/web/drizzle/` before serving the new image. The
   migrator container does this automatically.
 - Run database integration tests only against an isolated migrated database:
   `bun run test:db`.
@@ -649,7 +649,7 @@ calling the developers:
   retried by the hourly cleanup. Encrypted backups can retain earlier data
   until their own retention expires; never describe deletion as immediate
   erasure of backups.
-- `infra/backup.sh` uses Compose to parse configuration and supports the actual
+- `infra/backup/backup.sh` uses Compose to parse configuration and supports the actual
   SeaweedFS S3 service. Set `BACKUP_OBJECTS=0` only when objects are managed
   separately and their restore procedure has been tested. Keep every snapshot
   encrypted on disk and off-host, with keys kept separately.

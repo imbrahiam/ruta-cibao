@@ -91,7 +91,7 @@ targets:
         basedOnDependencyAnalysis: false
         script: |
           if [ "$YES_OVERRIDE_KOTLIN_BUILD" = "1" ]; then exit 0; fi
-          cd "$SRCROOT/../.."
+          cd "$SRCROOT/../../native"
           ./gradlew :kmp:shared:embedAndSignAppleFrameworkForXcode
 
   RutaCibaoWidgets:

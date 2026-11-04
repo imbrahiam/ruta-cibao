@@ -120,7 +120,10 @@ async function evidence(row: Row, where: string): Promise<string | null> {
   const cell = row.Evidence ?? "";
   const match = EVIDENCE.exec(cell);
   if (!match?.[1] || !match[2]) {
-    fail(where, `evidence must read \`tests/file.test.ts\` :: \`test title\``);
+    fail(
+      where,
+      `evidence must read \`apps/web/tests/file.test.ts\` :: \`test title\``,
+    );
     return null;
   }
   const file = match[1];
@@ -174,7 +177,10 @@ for (const [index, row] of degradations.entries()) {
 }
 
 // A suite outside the matrix is a promise nobody checks.
-for (const file of await filesUnder("tests", /\.integration\.test\.ts$/)) {
+for (const file of await filesUnder(
+  "apps/web/tests",
+  /\.integration\.test\.ts$/,
+)) {
   if (!quality.includes(file)) {
     fail(
       file,
@@ -265,14 +271,17 @@ if (tagAt === -1) {
   }
   const rehearsal = beforeTag
     .split("\n")
-    .find((line) => line.includes("infra/restore-rehearsal.sh"));
+    .find((line) => line.includes("infra/backup/restore-rehearsal.sh"));
   if (!rehearsal) {
     fail("scripts/ops/release.sh", "tags without proving a restore");
   } else if (/^\s/.test(rehearsal)) {
     fail("scripts/ops/release.sh", "only rehearses a restore conditionally");
   }
 }
-for (const script of ["infra/restore-rehearsal.sh", "infra/restore.sh"]) {
+for (const script of [
+  "infra/backup/restore-rehearsal.sh",
+  "infra/backup/restore.sh",
+]) {
   if (!(await exists(script)))
     fail(script, "is missing, so a release cannot be undone");
   else if (!(await isExecutable(script))) fail(script, "is not executable");
@@ -282,19 +291,19 @@ if (!/rollback|restore/i.test(release)) {
 }
 
 // Forward-only migrations: unique, increasing prefixes.
-const migrations = (await readdir(path.join(root, "drizzle")))
+const migrations = (await readdir(path.join(root, "apps/web/drizzle")))
   .filter((name) => /^\d{4}_.*\.sql$/.test(name))
   .sort();
 const numbers = migrations.map((name) => Number(name.slice(0, 4)));
 for (const [index, number] of numbers.entries()) {
   if (index > 0 && number !== (numbers[index - 1] ?? 0) + 1) {
     fail(
-      "drizzle",
+      "apps/web/drizzle",
       `migration numbering jumps from ${String(numbers[index - 1]).padStart(4, "0")} to ${String(number).padStart(4, "0")}`,
     );
   }
 }
-if (numbers.length === 0) fail("drizzle", "has no migrations");
+if (numbers.length === 0) fail("apps/web/drizzle", "has no migrations");
 
 if (problems.length > 0) {
   console.error(`Quality check failed (${problems.length}):`);

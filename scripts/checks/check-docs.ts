@@ -95,8 +95,7 @@ const docs = [
 const ENV_TOKEN = /`([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)`/g;
 const SCRIPT_TOKEN = /bun run ([a-zA-Z0-9:_./-]+)/g;
 const LINK_TOKEN = /\[[^\]]*\]\(([^)\s]+)\)/g;
-const PATH_TOKEN =
-  /`((?:apps|packages|scripts|infra|tests|docs|drizzle|data)\/[^`\s]+)`/g;
+const PATH_TOKEN = /`((?:apps|packages|scripts|infra|docs|native)\/[^`\s]+)`/g;
 const MIGRATION_TOKEN = /`(00\d\d)`/g;
 
 for (const file of docs) {
@@ -184,7 +183,7 @@ for (const file of docs) {
       const number = match[1];
       if (!number) continue;
       const found = await Array.fromAsync(
-        new Bun.Glob(`drizzle/${number}_*.sql`).scan({ cwd: root }),
+        new Bun.Glob(`apps/web/drizzle/${number}_*.sql`).scan({ cwd: root }),
       );
       if (found.length === 0) {
         report(file, lineNumber, `names missing migration ${number}`);

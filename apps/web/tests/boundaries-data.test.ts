@@ -13,7 +13,10 @@ const OFFICIAL_KM2: Record<string, number> = {
 };
 
 const file = (await Bun.file(
-  new URL("../data/boundaries/santiago-rodriguez.geojson", import.meta.url),
+  new URL(
+    "../../../scripts/db/sources/boundaries/santiago-rodriguez.geojson",
+    import.meta.url,
+  ),
 ).json()) as {
   features: { properties: { id: string; pcode: string; areaSqKm: number } }[];
 };

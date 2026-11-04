@@ -89,9 +89,9 @@ jobs:
       - name: Media storage, account deletion, and offline snapshot guarantees
         run: >-
           RUN_DB_TESTS=1 RUN_STORAGE_TESTS=1 bun test
-          tests/media-storage.integration.test.ts
-          tests/account-deletion.integration.test.ts
-          tests/offline-snapshot.integration.test.ts
+          apps/web/tests/media-storage.integration.test.ts
+          apps/web/tests/account-deletion.integration.test.ts
+          apps/web/tests/offline-snapshot.integration.test.ts
 
       - name: Build
         run: bun run build

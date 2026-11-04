@@ -8,8 +8,8 @@ import path from "node:path";
  * disabled provider or a dead endpoint.
  */
 describe.skipIf(process.env.RUN_DB_TESTS !== "1")("degradation", () => {
-  const root = path.resolve(import.meta.dir, "..");
-  const probe = path.join(root, "tests/support/degradation-probe.ts");
+  const root = path.resolve(import.meta.dir, "../../..");
+  const probe = path.join(root, "apps/web/tests/support/degradation-probe.ts");
 
   async function run(mode: string, overrides: Record<string, string>) {
     const child = Bun.spawn(["bun", probe, mode], {

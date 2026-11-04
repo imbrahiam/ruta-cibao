@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   declaresTest,
   unmarkedCatchBodies,
-} from "../scripts/checks/quality-rules";
+} from "../../../scripts/checks/quality-rules";
 
 /**
  * The quality gate is only as good as its rules. These prove the two rules
