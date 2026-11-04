@@ -71,3 +71,4 @@ xcuserdata/
 # editor language servers (machine-specific paths)
 apps/ios/buildServer.json
 .compile
+.ui-council/
