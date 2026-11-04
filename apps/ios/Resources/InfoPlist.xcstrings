@@ -1,0 +1,39 @@
+{
+  "sourceLanguage": "es",
+  "version": "1.0",
+  "strings": {
+    "NSLocationWhenInUseUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruta Cibao usa tu ubicación para mostrarte lo que tienes cerca y ubicar tus reportes. Puedes elegir el lugar en el mapa sin compartirla."
+          }
+        }
+      }
+    },
+    "NSCameraUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruta Cibao usa la cámara para que puedas añadir fotos a un lugar o a un reporte, y para mostrarte en ella los lugares que tienes cerca."
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruta Cibao abre tus fotos solo para que elijas las que quieres añadir."
+          }
+        }
+      }
+    }
+  }
+}

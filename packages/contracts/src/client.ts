@@ -8,7 +8,7 @@ export type ApiClient = ContractRouterClient<Contract>;
 export type ApiClientOptions = {
   /** Server origin, e.g. `https://rutacibao.do` or `http://192.168.1.20:3000`. */
   origin: string;
-  /** Override for platforms whose fetch needs replacing (e.g. `expo/fetch`). */
+  /** Override for platforms whose fetch needs replacing (a test double, say). */
   fetch?: typeof globalThis.fetch;
   /**
    * Headers added to every call, resolved per request: the native app passes

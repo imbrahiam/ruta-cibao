@@ -3,7 +3,14 @@ import { openapi } from "@orpc/openapi";
 import { z } from "zod";
 
 export const contentTarget = z.object({
-  kind: z.enum(["place", "photo", "route", "traffic", "consultation"]),
+  kind: z.enum([
+    "place",
+    "photo",
+    "route",
+    "traffic",
+    "consultation",
+    "comment",
+  ]),
   ref: z.string().min(1).max(200),
 });
 export type ContentTarget = z.infer<typeof contentTarget>;

@@ -1,0 +1,53 @@
+{
+  "editor.defaultFormatter": "biomejs.biome",
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit"
+  },
+  "[swift]": { "editor.defaultFormatter": "swiftlang.swift-vscode" },
+  "[kotlin]": { "editor.defaultFormatter": "jetbrains.kotlin-server" },
+  "[python]": { "editor.defaultFormatter": null },
+  "[xml]": { "editor.defaultFormatter": "redhat.vscode-xml" },
+  "[markdown]": { "editor.defaultFormatter": "yzhang.markdown-all-in-one" },
+  "typescript.tsdk": "node_modules/typescript/lib",
+
+  // Apple's formats: string catalogs and asset metadata are JSON; property
+  // lists and entitlements are XML. Generated files stay read-mostly.
+  "files.associations": {
+    "*.xcstrings": "json",
+    "Contents.json": "json",
+    "*.geojson": "json",
+    "*.entitlements": "xml",
+    "*.plist": "xml",
+    "*.xcprivacy": "xml",
+    "*.xcscheme": "xml",
+    "*.storyboard": "xml",
+    "Caddyfile": "caddyfile",
+    // Build scripts read as Kotlin: same colours, and the Kotlin server
+    // resolves the Gradle DSL in them.
+    "*.kts": "kotlin",
+    // Every env file, including .env.example and local variants.
+    "**/.env*": "dotenv"
+  },
+  "files.readonlyInclude": {
+    "**/Generated/**": true,
+    "**/generated/**": true,
+    "apps/ios/Resources/*.xcstrings": true
+  },
+
+  // Swift: sourcekit-lsp reads the Xcode project through apps/ios/buildServer.json.
+  "swift.sourcekit-lsp.serverPath": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/sourcekit-lsp",
+  "sweetpad.build.xcodeWorkspacePath": "apps/ios/RutaCibao.xcodeproj/project.xcworkspace",
+
+  "files.exclude": {
+    "**/DerivedData": true,
+    "**/DerivedData-device": true,
+    "**/build": true,
+    "**/.gradle": true,
+    "**/.kotlin": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bun.lock": true,
+    "**/*.xcstrings": true
+  }
+}

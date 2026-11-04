@@ -1,0 +1,28 @@
+{
+  "recommendations": [
+    "biomejs.biome",
+    "oven.bun-vscode",
+    "bradlc.vscode-tailwindcss",
+    "yoavbls.pretty-ts-errors",
+    "swiftlang.swift-vscode",
+    "vscjava.vscode-gradle",
+    "redhat.vscode-yaml",
+    "tamasfe.even-better-toml",
+    "ms-python.python",
+    "mtxr.sqltools",
+    "mtxr.sqltools-driver-pg",
+    "ms-azuretools.vscode-containers",
+    "matthewpi.caddyfile-support",
+    "timonwong.shellcheck",
+    "mikestead.dotenv",
+    "editorconfig.editorconfig",
+    "usernamehw.errorlens",
+    "sweetpad.sweetpad",
+    "redhat.vscode-xml",
+    "jock.svg",
+    "mechatroner.rainbow-csv",
+    "yzhang.markdown-all-in-one",
+    "github.vscode-github-actions",
+    "mathiasfrohlich.kotlin"
+  ]
+}

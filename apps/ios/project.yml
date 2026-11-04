@@ -1,0 +1,120 @@
+# XcodeGen spec. The .xcodeproj is generated (gitignored): run `xcodegen` here.
+name: RutaCibao
+options:
+  bundleIdPrefix: do.rutacibao
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  developmentLanguage: es
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    ENABLE_USER_SCRIPT_SANDBOXING: NO   # the RutaKit phase runs Gradle in the repo
+    "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64   # RutaKit ships arm64 simulator only
+    DEVELOPMENT_LANGUAGE: es
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+configs:
+  Debug: debug
+  Release: release
+
+targets:
+  RutaCibao:
+    type: application
+    platform: iOS
+    sources:
+      - Sources
+      - Resources
+      - Shared
+    dependencies:
+      - target: RutaCibaoWidgets
+        embed: true
+    entitlements:
+      path: Sources/App/RutaCibao.entitlements
+      properties:
+        aps-environment: $(APS_ENVIRONMENT)
+    info:
+      path: Sources/App/Info.plist
+      properties:
+        CFBundleDisplayName: Ruta Cibao
+        CFBundleDevelopmentRegion: es
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: true
+        RutaApiOrigin: $(RUTA_API_ORIGIN)
+        RutaAppScheme: $(RUTA_APP_SCHEME)
+        RutaVariant: $(RUTA_VARIANT)
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [$(RUTA_APP_SCHEME)]
+        # Values are localized from the catalogue by Resources/InfoPlist.xcstrings.
+        NSLocationWhenInUseUsageDescription: NSLocationWhenInUseUsageDescription
+        NSCameraUsageDescription: NSCameraUsageDescription
+        NSPhotoLibraryUsageDescription: NSPhotoLibraryUsageDescription
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        # Turn-by-turn on the Lock Screen / Dynamic Island, updated as you move.
+        NSSupportsLiveActivities: true
+        NSSupportsLiveActivitiesFrequentUpdates: true
+        # Navigation keeps following you with the screen locked.
+        UIBackgroundModes: [location, remote-notification]
+    settings:
+      base:
+        PRODUCT_NAME: RutaCibao
+        # Simulator builds sign ad hoc ("Sign to Run Locally") so the Keychain works.
+        "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1,2"
+        FRAMEWORK_SEARCH_PATHS: $(SRCROOT)/../../packages/kmp/shared/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS: [-framework, RutaKit]
+      configs:
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: do.rutacibao.app.dev
+          APS_ENVIRONMENT: development
+          RUTA_API_ORIGIN: http://localhost:3000
+          RUTA_APP_SCHEME: rutacibao-dev
+          RUTA_VARIANT: Development
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: do.rutacibao.app
+          APS_ENVIRONMENT: production
+          RUTA_API_ORIGIN: https://rutacibao.do
+          RUTA_APP_SCHEME: rutacibao
+          RUTA_VARIANT: Production
+    preBuildScripts:
+      - name: Build RutaKit (Kotlin)
+        basedOnDependencyAnalysis: false
+        script: |
+          if [ "$YES_OVERRIDE_KOTLIN_BUILD" = "1" ]; then exit 0; fi
+          cd "$SRCROOT/../.."
+          ./gradlew :kmp:shared:embedAndSignAppleFrameworkForXcode
+
+  RutaCibaoWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Widgets
+      - Shared
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Ruta Cibao
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_NAME: RutaCibaoWidgets
+        "CODE_SIGN_IDENTITY[sdk=iphonesimulator*]": "-"
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+      configs:
+        Debug:
+          PRODUCT_BUNDLE_IDENTIFIER: do.rutacibao.app.dev.widgets
+        Release:
+          PRODUCT_BUNDLE_IDENTIFIER: do.rutacibao.app.widgets

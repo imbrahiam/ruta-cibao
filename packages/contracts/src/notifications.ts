@@ -31,10 +31,12 @@ export const subscribeNativePushInput = z.object({
   requestId: z.uuid(),
   installationId: z.uuid(),
   platform: z.enum(["ios", "android"]),
+  /** APNs device token (hex) on iOS; FCM registration token on Android. */
   token: z
     .string()
-    .regex(/^(ExponentPushToken|ExpoPushToken)\[[A-Za-z0-9_-]+\]$/)
-    .max(256),
+    .min(32)
+    .max(4096)
+    .regex(/^[A-Za-z0-9_:-]+$/),
 });
 
 export const unsubscribeNativePushInput = z.object({

@@ -75,6 +75,19 @@ export const browseConsultationsInput = z.object({
 
 export type BrowseConsultationsInput = z.infer<typeof browseConsultationsInput>;
 
+/**
+ * A photo attached to a case. Dimensions travel with the URL so a feed can
+ * reserve the right space before the image arrives (no layout jump), and
+ * `alt` is what a screen reader says instead.
+ */
+export const consultationPhoto = z.object({
+  /** Absolute, or server-relative (`/demo/…`) like place thumbnails. */
+  url: z.string().min(1),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  alt: z.string().max(300).nullable(),
+});
+
 const consultationSummary = z.object({
   id: z.string(),
   slug: z.string(),
@@ -90,12 +103,19 @@ const consultationSummary = z.object({
   municipalityName: z.string(),
   /** Display name, never an account id. */
   openedBy: z.string().nullable(),
+  /** The author's profile picture, when they have one. */
+  openedByImage: z.string().nullable().optional(),
   supportCount: z.number().int().nonnegative(),
   /** Whether the caller has added their voice. */
   supported: z.boolean(),
   responseCount: z.number().int().nonnegative(),
   createdAt: z.iso.datetime(),
   answeredAt: z.iso.datetime().nullable(),
+  /**
+   * Up to four photos, in the order the author chose. Optional until the
+   * upload pipeline (same as place photos: signed PUT, then moderation) ships.
+   */
+  photos: z.array(consultationPhoto).max(4).optional(),
 });
 
 export const browseConsultationsOutput = z.object({

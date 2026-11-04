@@ -398,12 +398,11 @@
     "published": "Publicado",
     "ready": "Disponible",
     "failed": "Falló la generación",
-    "success": "Decisión guardada.",
+    "success": "Guardado.",
     "saved": "Cambios guardados.",
-    "cadence": "Se generan cada lunes a las 6:00, hora de Santo Domingo.",
-    "render": "Generar o reintentar PDF",
+    "render": "Generar PDF",
     "download": "Descargar PDF",
-    "queued": "Generación solicitada. Actualiza para consultar el resultado.",
+    "queued": "Generación solicitada.",
     "generate": "Generar ahora",
     "name": "Nombre",
     "kind": "Tipo",
@@ -437,7 +436,6 @@
     "security": "Verificar acceso seguro",
     "cases": {
       "title": "Consultas ciudadanas",
-      "lede": "Casos que los vecinos llevaron al ayuntamiento. Empieza por los que esperan respuesta.",
       "statusGroup": "Estado de la consulta",
       "all": "Todas",
       "category": "Tema",
@@ -452,20 +450,18 @@
       "colSupport": "Apoyos",
       "colReplies": "Respuestas",
       "colDate": "Fecha",
-      "replies": "{count, plural, =0 {Sin respuestas} one {# respuesta} other {# respuestas}}",
-      "openedOn": "Abierta el {date}",
-      "back": "Volver a las consultas",
+      "facts": "Datos de la consulta",
+      "caseText": "Descripción",
+      "openedByLabel": "Abierta por",
       "officialAnonymous": "Ayuntamiento",
-      "repliedBy": "{name} · {date}",
       "statusAfterReply": "Estado tras esta respuesta: {status}",
       "noResponses": "Todavía no hay respuestas oficiales.",
-      "location": "Ubicación marcada",
+      "location": "Ubicación",
       "viewOnMap": "Ver en el mapa",
-      "replyTitle": "Responder en nombre del ayuntamiento",
-      "replyBody": "Respuesta",
-      "replyHint": "{count} de 2000 caracteres. Mínimo 10. La respuesta es pública.",
+      "replyTitle": "Responder",
+      "replyBody": "Respuesta pública",
+      "replyHint": "{count} de 2000 caracteres",
       "statusAfter": "Estado en que queda la consulta",
-      "statusAfterHint": "Elige el estado que el ayuntamiento promete con esta respuesta. No se elige solo.",
       "statusHelp": {
         "in_review": "Se está revisando el caso.",
         "answered": "Ya recibió una respuesta.",
@@ -477,32 +473,40 @@
       "errStatus": "Elige el estado en que queda la consulta.",
       "replied": "Respuesta enviada.",
       "sending": "Enviando…",
-      "publicationTitle": "Visibilidad pública",
+      "publicationTitle": "Visibilidad",
       "publication": {
         "pending": "Sin publicar",
         "published": "Publicada",
         "hidden": "Oculta"
       },
       "publicationHelp": {
-        "pending": "Solo la ve quien la abrió y el equipo. Publícala para que los vecinos puedan verla y apoyarla.",
-        "published": "Todos los vecinos pueden verla.",
-        "hidden": "Está oculta para los vecinos. Puedes publicarla de nuevo."
+        "pending": "Solo la ve quien la abrió y el equipo.",
+        "hidden": "Está oculta para los vecinos."
       },
-      "publish": "Publicar consulta",
-      "hide": "Ocultar consulta",
+      "publish": "Publicar",
+      "hide": "Ocultar",
       "hideConfirm": "Confirmar y ocultar",
-      "hideReasonHint": "Quien abrió la consulta recibirá este motivo (mínimo 10 caracteres).",
+      "hideReasonHint": "Quien abrió la consulta recibirá este motivo.",
       "errReason": "Escribe un motivo de al menos 10 caracteres.",
       "publicationDone": "Visibilidad actualizada.",
       "pendingQueue": "Pendientes de publicación"
     },
     "weeklyReport": {
       "title": "Informes semanales",
-      "intro": "Un informe por municipio y semana, con su PDF para imprimir o compartir.",
+      "intro": "Un informe por municipio y semana. Se generan cada lunes a las 6:00, hora de Santo Domingo.",
       "colWeek": "Semana",
       "colStatus": "Estado",
-      "colSummary": "Resumen",
       "colActions": "Acciones",
+      "colPlaces": "Lugares",
+      "colOpened": "Abiertos",
+      "colAnswered": "Respondidos",
+      "colStillOpen": "Sin responder",
+      "colTraffic": "Tránsito",
+      "statPlaces": "Lugares nuevos",
+      "statOpened": "Casos abiertos",
+      "statAnswered": "Respondidos",
+      "statStillOpen": "Sin responder",
+      "statTraffic": "Reportes de tránsito",
       "openFor": "Ver el informe de {municipality}, {week}",
       "downloadFor": "Descargar el PDF de {municipality}, {week}",
       "renderFor": "Generar o reintentar el PDF de {municipality}, {week}",
@@ -510,19 +514,13 @@
       "pdfStillPending": "El PDF todavía se está preparando. Inténtalo de nuevo en un minuto."
     },
     "cat": {
-      "intro": "Los tipos que se ofrecen en los formularios y mapas. Cada cambio queda registrado.",
       "kindGroup": "Tipo de categoría",
       "empty": "Todavía no hay categorías de este tipo.",
       "inactive": "Inactiva",
       "editFor": "Editar {name}",
-      "newTitle": "Nueva categoría de {kind}",
-      "editTitle": "Editar {name}",
       "hex": "Código de color",
-      "hexHint": "Seis dígitos hexadecimales, por ejemplo #1F6B52.",
       "pickColor": "Elegir color",
       "choose": "Elige una opción",
-      "sortHint": "El número menor aparece primero.",
-      "activeHint": "Las categorías inactivas dejan de ofrecerse en los formularios.",
       "saving": "Guardando…",
       "errName": "Escribe un nombre de entre 2 y 80 caracteres.",
       "errColor": "Escribe un color hexadecimal, por ejemplo #1F6B52.",
@@ -530,24 +528,37 @@
       "errSortOrder": "El orden es un número entero entre 0 y 1000.",
       "duplicate": "Ya existe una categoría con ese nombre en este tipo."
     },
+    "contactActions": {
+      "open": "Contactar a {value}",
+      "call": "Llamar",
+      "whatsapp": "WhatsApp",
+      "email": "Enviar correo",
+      "copyNumber": "Copiar número",
+      "copyEmail": "Copiar correo",
+      "numberCopied": "Número copiado",
+      "emailCopied": "Correo copiado",
+      "copyFailed": "No se pudo copiar. Selecciona el texto y cópialo a mano.",
+      "newTab": "(se abre en una pestaña nueva)",
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "copyLabel": "Copiar {what}"
+    },
     "queue": {
       "intro": {
-        "places": "Lugares y negocios enviados por vecinos, a la espera de publicación.",
-        "claims": "Personas que dicen ser dueñas de un negocio. Revisa la evidencia antes de aprobar.",
+        "places": "Lugares enviados por vecinos, a la espera de publicación.",
+        "claims": "Solicitudes de dueños de negocios. Revisa la evidencia antes de aprobar.",
         "photos": "Fotografías subidas a lugares, a la espera de publicación.",
-        "reports": "Correcciones que los vecinos piden sobre lugares ya publicados.",
+        "reports": "Correcciones que los vecinos piden sobre lugares publicados.",
         "routes": "Rutas trazadas por vecinos, a la espera de publicación.",
-        "traffic": "Avisos activos en el mapa. El texto libre se revisa antes de mostrarse; retira los avisos que ya no correspondan.",
-        "contentReports": "Reportes de vecinos sobre contenido publicado. Las amenazas y los datos personales aparecen primero.",
-        "consultations": "Consultas enviadas por vecinos que esperan decisión antes de mostrarse. Solo se publican si las apruebas."
+        "traffic": "Avisos activos en el mapa. Revisa su texto y retira los que ya no correspondan.",
+        "contentReports": "Reportes de vecinos sobre contenido publicado. Amenazas y datos personales primero.",
+        "consultations": "Consultas de vecinos que esperan decisión antes de mostrarse."
       },
-      "colItem": "Elemento",
-      "colDetail": "Detalle",
-      "colDecision": "Decisión",
       "count": "{count, plural, one {# elemento} other {# elementos}}",
       "mayBeMore": "Se muestran los primeros {count}. Puede haber más: decide algunos y actualiza la lista.",
       "emptyTitle": "Todo al día",
-      "decided": "Decisión guardada.",
+      "emptyHint": "Nada espera tu decisión. Vuelve cuando llegue algo nuevo.",
+      "position": "Elemento {index} de {total}",
       "actionOn": "{action}: {title}",
       "decisionGroup": "Decisión sobre {title}",
       "noteHintMin": "Explica tu decisión (mínimo {min} caracteres).",
@@ -563,15 +574,11 @@
       "claimedBy": "Solicitado por {name}",
       "claimedByAnon": "Solicitado por un vecino",
       "residentBadge": "Residente verificado",
-      "residentNot": "Residencia sin verificar",
       "receivedAt": "Recibido el {date} a las {time}",
       "expiresAt": "Vence el {date} a las {time}",
       "address": "Dirección",
       "description": "Descripción",
-      "coordinates": "Coordenadas",
-      "noAddress": "Sin dirección indicada",
-      "noDescription": "Sin descripción",
-      "noDetails": "Sin detalles",
+      "location": "Ubicación",
       "locationSource": {
         "map": "Marcado en el mapa",
         "gps": "Ubicación por GPS"
@@ -590,9 +597,30 @@
       "evidence": "Evidencia presentada",
       "contactPhone": "Teléfono",
       "whatsapp": "WhatsApp",
+      "phoneAndWhatsapp": "Teléfono y WhatsApp",
+      "showMore": "Ver más",
+      "showLess": "Ver menos",
       "openingHours": "Horario",
-      "notProvided": "No indicado",
       "photoAlt": "Fotografía enviada para {place}",
+      "photoOpen": "Ampliar fotografía de {place}",
+      "viewer": {
+        "zoomOut": "Alejar",
+        "zoomIn": "Acercar",
+        "fit": "Ajustar imagen",
+        "resetZoom": "Restablecer zoom",
+        "openOriginal": "Abrir original",
+        "close": "Cerrar visor",
+        "video": "Video",
+        "previous": "Medio anterior",
+        "next": "Medio siguiente",
+        "thumbnails": "Miniaturas",
+        "loading": "Cargando",
+        "loadFailed": "No se pudo cargar la imagen",
+        "retry": "Reintentar",
+        "title": "Visor de medios",
+        "counter": "{number} de {total}",
+        "showItem": "Ver {kind, select, image {imagen} other {video}} {number} de {total}"
+      },
       "photoUnavailable": "No se pudo cargar la imagen.",
       "distance": "Distancia",
       "duration": "Duración",
@@ -605,7 +633,6 @@
         "hard": "Difícil"
       },
       "services": "Servicios",
-      "noServices": "Sin servicios indicados",
       "service": {
         "water": "Agua",
         "food": "Comida",
@@ -614,7 +641,6 @@
         "parking": "Parqueo",
         "restrooms": "Baños"
       },
-      "pathAlt": "Trazado de la ruta: {points, plural, one {# punto registrado} other {# puntos registrados}}, de inicio a fin, {distance}.",
       "pathStart": "Inicio",
       "pathEnd": "Fin",
       "trafficText": "Texto del aviso",
@@ -623,12 +649,9 @@
         "published": "Texto publicado",
         "hidden": "Texto oculto"
       },
-      "noText": "Sin texto añadido",
       "publishText": "Publicar texto",
       "hideText": "Ocultar texto",
-      "removeNotice": "Retirar el aviso del mapa",
       "priority": "Prioridad alta",
-      "priorityHint": "Se revisa primero: amenaza o datos personales.",
       "contentReason": {
         "abuse": "Insulto, acoso o contenido ofensivo",
         "personal_information": "Muestra datos personales de alguien",
@@ -640,7 +663,8 @@
         "photo": "Fotografía",
         "route": "Ruta",
         "traffic": "Aviso de tránsito",
-        "consultation": "Consulta"
+        "consultation": "Consulta",
+        "comment": "Comentario"
       },
       "reportedContent": "Contenido reportado",
       "reportReasonLabel": "Motivo del reporte",
@@ -660,7 +684,60 @@
         "pending": "En revisión",
         "published": "Publicada",
         "hidden": "Oculta"
+      },
+      "map": {
+        "expand": "Ampliar",
+        "expandLabel": "Ampliar el mapa de {title}",
+        "dialogTitle": "Mapa: {title}",
+        "close": "Cerrar mapa",
+        "type": "Tipo de mapa",
+        "typeMap": "Mapa",
+        "typeSatellite": "Satélite",
+        "options": "Tipo y estilo del mapa",
+        "styleLabel": "Estilo del mapa",
+        "style": {
+          "colores": "Colores",
+          "gris": "Gris"
+        },
+        "zoomIn": "Acercar",
+        "zoomOut": "Alejar",
+        "fit": "Ajustar a todo",
+        "loading": "Cargando el mapa",
+        "unavailable": "El mapa no está disponible",
+        "noKey": "Falta la clave del mapa. Usa las coordenadas.",
+        "blocked": "No se pudo cargar el mapa. Usa las coordenadas.",
+        "theCoordinates": "las coordenadas",
+        "openGoogle": "Abrir en Google Maps",
+        "placeAlt": "Mapa con la ubicación de {name}, en {coordinates}.",
+        "pointAlt": "Mapa con el aviso de {name} en {municipality}, en {coordinates}.",
+        "stretchAlt": "Mapa con el tramo de vía reportado como {name} en {municipality}: {length, plural, one {# metro} other {# metros}} de calle.",
+        "routeAlt": "Mapa con el trazado de la ruta {name}: {points, plural, one {# punto registrado} other {# puntos registrados}}, de inicio a fin, {distance}.",
+        "queueAlt": {
+          "places": "Mapa con {count, plural, one {# lugar pendiente} other {# lugares pendientes}}.",
+          "traffic": "Mapa con {count, plural, one {# aviso de tránsito} other {# avisos de tránsito}}.",
+          "routes": "Mapa con {count, plural, one {# ruta pendiente} other {# rutas pendientes}}."
+        },
+        "cleared": "Despejada",
+        "stretch": "Tramo de vía",
+        "stretchLength": "Tramo de {length} m",
+        "trail": "Trazado de la ruta",
+        "contextHint": "Los puntos tenues son lugares ya publicados.",
+        "view": "Vista",
+        "viewList": "Lista",
+        "viewMap": "Mapa",
+        "showOnMap": "Ver en el mapa",
+        "listLabel": "Elementos pendientes junto al mapa",
+        "retry": "Reintentar"
       }
+    },
+    "boundary": {
+      "errorTitle": "Esta pantalla no pudo cargarse",
+      "errorBody": "Es un fallo nuestro, no de tu cuenta. Tus decisiones anteriores están guardadas.",
+      "notFoundTitle": "No encontramos esta página",
+      "notFoundBody": "Pudo haberse movido o el enlace está incompleto.",
+      "backToDesk": "Volver al resumen",
+      "offlineBanner": "Sin conexión. Verás lo último cargado; las decisiones esperan a que vuelvas a conectarte.",
+      "backOnline": "Conexión recuperada"
     },
     "shell": {
       "nav": "Secciones de la mesa",
@@ -679,7 +756,8 @@
       "countsUnavailable": "Los pendientes no están disponibles.",
       "sessionExpired": "Tu sesión terminó. Vuelve a iniciar sesión para continuar.",
       "offline": "Sin conexión. Revisa tu red e inténtalo de nuevo.",
-      "conflict": "Este elemento ya cambió, probablemente por otra persona del equipo. Actualiza la lista para ver su estado.",
+      "conflict": "Este elemento ya cambió, probablemente por otra persona del equipo. La lista muestra su estado actual.",
+      "gone": "Este elemento ya no está disponible. La lista muestra lo que sigue pendiente.",
       "resend": "Reenviar código",
       "resendIn": "Reenviar en {seconds} s",
       "phoneHint": "Número dominicano de 10 dígitos, por ejemplo 809 555 0100.",
@@ -690,7 +768,6 @@
       "codeInvalid": "Escribe los seis dígitos del código.",
       "sentTo": "Enviamos un código a {destination}.",
       "filters": "Filtros",
-      "updating": "Actualizando…",
       "pendingCount": "{count, plural, one {# pendiente} other {# pendientes}}",
       "signedInAs": "Sesión de {name}",
       "roleModerator": "Moderación municipal",
@@ -741,7 +818,7 @@
     "emptyHint": "El primero se genera el lunes a las 6 de la mañana.",
     "week": "Semana del {start} al {end}",
     "generatedAt": "Generado el {date}",
-    "open": "Ver el informe",
+    "open": "Ver",
     "back": "Volver a los informes",
     "notFound": "Ese informe no existe.",
     "pending": "Este informe se está generando.",
@@ -794,6 +871,21 @@
     },
     "preparePdf": "Preparar PDF"
   },
+  "comments": {
+    "title": "Comentarios",
+    "experiences": "Experiencias",
+    "placeholder": "Escribe un comentario",
+    "experiencePlaceholder": "Cuenta cómo te fue",
+    "share": "Comparte tu experiencia",
+    "send": "Publicar",
+    "empty": "Todavía no hay comentarios.",
+    "emptyExperiences": "Nadie ha contado su experiencia todavía.",
+    "delete": "Eliminar",
+    "report": "Reportar",
+    "reported": "Gracias. Lo revisaremos.",
+    "more": "Ver más",
+    "options": "Opciones del comentario"
+  },
   "consultations": {
     "status": {
       "open": "recibido",
@@ -806,6 +898,7 @@
     "lede": "Casos que los vecinos han llevado al ayuntamiento, y lo que han respondido.",
     "new": "Nueva consulta",
     "anyStatus": "Todos los estados",
+    "allTab": "Todas",
     "newShort": "Nueva",
     "filterStatus": "Filtrar por estado",
     "filteredBy": "Mostrando: {status}",
@@ -817,6 +910,7 @@
       "rejected": "No procede"
     },
     "supports": "{count, plural, =0 {Sin apoyos} one {# apoyo} other {# apoyos}}",
+    "responses": "{count, plural, =0 {Sin respuestas} one {# respuesta} other {# respuestas}}",
     "empty": "No hay consultas con estos filtros",
     "emptyBody": "¿Hay algo que el ayuntamiento debería atender? Abre una consulta.",
     "missing": "No encontramos esta consulta",
@@ -828,6 +922,8 @@
     "supported": "Apoyada",
     "supportHint": "Cada cuenta apoya una vez. Más apoyos, más prioridad.",
     "yourCase": "Abriste esta consulta",
+    "you": "Tú",
+    "postTitle": "Consulta",
     "supportedToast": "Gracias por tu apoyo",
     "unsupportedToast": "Retiraste tu apoyo",
     "newTitle": "Nueva consulta",
@@ -878,7 +974,11 @@
     "durationMinutes": "{minutes} min",
     "durationHours": "{hours} h {minutes} min",
     "distanceKilometers": "{distance} km",
-    "distanceMeters": "{distance} m"
+    "distanceMeters": "{distance} m",
+    "start": "Iniciar",
+    "end": "Terminar",
+    "arrivedTitle": "Llegaste",
+    "arrival": "Llegada {time}"
   },
   "picker": {
     "title": "Ubicación",
@@ -903,6 +1003,7 @@
       "addShort": "Añadir",
       "camera": "Tomar foto",
       "library": "Elegir de la galería",
+      "libraryShort": "Galería",
       "photoLabel": "Foto {n}",
       "remove": "Quitar la foto {n}",
       "denied": "Ruta Cibao no tiene permiso para usar la cámara o tus fotos",
@@ -933,6 +1034,8 @@
       "duplicateBody": "Alguien reportó lo mismo aquí cerca. Puedes confirmarlo en el mapa."
     },
     "place": {
+      "pendingTitle": "Ya tienes un lugar en revisión",
+      "pendingBody": "Te avisamos cuando lo aprueben. Después puedes sugerir otro.",
       "title": "Sugerir un lugar",
       "body": "Un lugar, un negocio o un sitio que vale la pena conocer.",
       "lede": "Cuéntanos qué es y dónde está. Lo publicamos después de revisarlo.",
@@ -1044,7 +1147,25 @@
     "clasico": {
       "name": "Clásico",
       "description": "Blanco y negro; el mapa habla solo."
+    },
+    "mapTitle": "Estilo del mapa",
+    "mapFootnote": "Aplica a todos los mapas de la app. El satélite no cambia.",
+    "colores": {
+      "name": "Colores",
+      "description": "Un mapa de colores suaves: parques verdes, agua azul."
+    },
+    "gris": {
+      "name": "Gris",
+      "description": "Un mapa en grises; destacan las marcas y reportes."
     }
+  },
+  "layout": {
+    "mapPane": "Mapa",
+    "detailPane": "Detalle",
+    "listPane": "Lista",
+    "emptyDetailTitle": "Elige algo para ver el detalle",
+    "emptyDetailBody": "El detalle aparece aquí, junto al mapa.",
+    "consultationDetailBody": "Selecciona una consulta para leer el caso y las respuestas sin salir de la lista."
   },
   "profile": {
     "title": "Perfil",
@@ -1102,7 +1223,8 @@
     },
     "providers": {
       "title": "Servicios que usamos",
-      "body": "Mapbox dibuja el mapa, Twilio envía los mensajes de texto y Resend los correos. No vendemos ni compartimos tus datos con fines publicitarios."
+      "body": "Mapbox dibuja el mapa, Twilio envía los mensajes de texto y Resend los correos. No vendemos ni compartimos tus datos con fines publicitarios.",
+      "bodyNative": "Mapas de Apple dibuja el mapa, Twilio envía los mensajes de texto y Resend los correos. No vendemos ni compartimos tus datos con fines publicitarios."
     }
   },
   "about": {
@@ -1113,6 +1235,7 @@
     "license": "Licencia del código",
     "maps": "Mapas",
     "mapsCredit": "© Mapbox © OpenStreetMap",
+    "mapsCreditNative": "Mapas de Apple · lugares © OpenStreetMap",
     "source": "Código fuente",
     "contest": "Proyecto para TechEmprende SR Conecta 2026."
   },
@@ -1144,7 +1267,7 @@
   },
   "permissions": {
     "location": "Ruta Cibao usa tu ubicación para mostrarte lo que tienes cerca y ubicar tus reportes. Puedes elegir el lugar en el mapa sin compartirla.",
-    "camera": "Ruta Cibao usa la cámara para que puedas añadir fotos a un lugar o a un reporte.",
+    "camera": "Ruta Cibao usa la cámara para que puedas añadir fotos a un lugar o a un reporte, y para mostrarte en ella los lugares que tienes cerca.",
     "photos": "Ruta Cibao abre tus fotos solo para que elijas las que quieres añadir."
   },
   "common": {
@@ -1178,6 +1301,13 @@
   },
   "map": {
     "searchPlaceholder": "Buscar lugares y rutas",
+    "routes": "Rutas",
+    "view3d": "Vista 3D",
+    "camera": "Ver con la cámara",
+    "arHint": "Mueve el teléfono para encontrar lugares cerca",
+    "arUnsupported": "Este teléfono no puede mostrar lugares en la cámara",
+    "arNoLocation": "Activa tu ubicación para ver los lugares cerca",
+    "arNothingNear": "No hay lugares cerca de ti todavía",
     "searchLabel": "Buscar en el mapa",
     "locate": "Mostrar mi ubicación",
     "layers": "Capas del mapa",
@@ -1186,6 +1316,7 @@
     "nearby": "Cerca de ti",
     "allCategories": "Todos los lugares",
     "filterPlaces": "Filtrar lugares",
+    "clearFilters": "Quitar filtros",
     "placesCount": "{count, plural, =0 {Sin lugares} one {# lugar} other {# lugares}}",
     "sheetLabel": "Lugares de la provincia",
     "emptyFilter": "No hay lugares con estos filtros",
@@ -1254,6 +1385,10 @@
     "directions": "Cómo llegar",
     "save": "Guardar",
     "savedLabel": "Guardado",
+    "photoOpen": "Ver foto del lugar",
+    "openIn": "Abrir en otra app de mapas",
+    "openAppleMaps": "Mapas de Apple",
+    "openGoogleMaps": "Google Maps",
     "saved": "Guardado en tu lista",
     "unsaved": "Quitado de tu lista",
     "onMap": "En el mapa",
@@ -1298,6 +1433,10 @@
     "basemap": "Mapa base",
     "standard": "Mapa",
     "satellite": "Satélite",
+    "look": "Estilo del mapa",
+    "colores": "Colores",
+    "gris": "Gris",
+    "lookHint": "Aplica a todos los mapas de la app.",
     "show": "Mostrar en el mapa",
     "places": "Lugares y negocios",
     "placesHint": "Los lugares publicados de la provincia",
@@ -1312,6 +1451,8 @@
     "title": "Buscar",
     "placeholder": "Lugares, categorías o municipios",
     "everything": "Todos los lugares",
+    "all": "Todo",
+    "places": "Lugares",
     "results": "{count, plural, =0 {Sin resultados} one {# resultado} other {# resultados}}",
     "emptyTitle": "No encontramos nada con ese nombre",
     "emptyBody": "Prueba con otra palabra, o busca por categoría o municipio."
@@ -1575,5 +1716,14 @@
       "unauthenticated": "Inicia sesión de nuevo para enviar este aporte.",
       "generic": "El servidor rechazó este envío. Revísalo o descártalo."
     }
+  },
+  "onboarding": {
+    "locationTitle": "Lo que tienes cerca",
+    "locationBody": "Con tu ubicación te mostramos los lugares, rutas y avisos de la provincia que están cerca de ti, y cómo llegar.",
+    "allowLocation": "Permitir ubicación",
+    "notificationsTitle": "Entérate cuando te respondan",
+    "notificationsBody": "Te avisamos cuando el ayuntamiento responda tus consultas y cuando haya algo en la vía cerca de ti.",
+    "enableNotifications": "Activar notificaciones",
+    "notNow": "Ahora no"
   }
 }

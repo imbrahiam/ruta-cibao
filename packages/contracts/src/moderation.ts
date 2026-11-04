@@ -4,6 +4,7 @@ import { z } from "zod";
 import { decideClaimInput, pendingClaimShape } from "./businesses";
 import { consultationStatusSchema } from "./consultations";
 import { okOutput } from "./me";
+import { contentTarget } from "./safety";
 import { removeTrafficInput } from "./traffic";
 
 /**
@@ -147,6 +148,12 @@ export const liveTrafficShape = z.object({
   descriptionModerationStatus: publicationShape,
   lng: z.number(),
   lat: z.number(),
+  /** The stretch of road, when the report is one; null for a point report. */
+  path: z.array(z.object({ lng: z.number(), lat: z.number() })).nullable(),
+  /** Metres of road affected; null for a point report. */
+  lengthMeters: z.number().int().nonnegative().nullable(),
+  /** How much it costs a driver, as the municipality set it on the category. */
+  severity: z.enum(["blocking", "partial", "minor"]).nullable(),
   createdAt: z.iso.datetime(),
   expiresAt: z.iso.datetime(),
   categoryName: z.string(),
@@ -161,7 +168,7 @@ export const liveTrafficShape = z.object({
 export const contentReportShape = z.object({
   id: z.uuid(),
   subject: z.object({
-    kind: z.enum(["place", "photo", "route", "traffic", "consultation"]),
+    kind: contentTarget.shape.kind,
     ref: z.string(),
   }),
   /** A short label for the reviewer: a place name, a case title, a category. */
@@ -251,6 +258,43 @@ export const setResidencyVerifiedInput = z.object({
 });
 
 export const setResidencyVerifiedOutput = z.object({ verified: z.boolean() });
+
+/** A stretch is at most 2 km of road; its vertices are a few metres apart at most. */
+export const SNAP_ROAD_MAX_POINTS = 400;
+
+export const snapRoadInput = z.object({
+  path: z
+    .array(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+      }),
+    )
+    .min(2)
+    .max(SNAP_ROAD_MAX_POINTS),
+  /**
+   * `stretch`: a reported road, laid on Google's centreline. `trail`: a route
+   * traced by a person, laid on the streets it runs along.
+   */
+  mode: z.enum(["stretch", "trail"]).default("stretch"),
+});
+
+/**
+ * The same stretch laid on the map provider's own road centreline, with a
+ * vertex every few metres. `path` is null when the provider answered but the
+ * stretch does not follow a road it knows (a trail, a path off the network), so
+ * the caller keeps the geometry it already has.
+ */
+export const snapRoadOutput = z.object({
+  path: z
+    .array(
+      z.object({
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+      }),
+    )
+    .nullable(),
+});
 
 /**
  * The moderation surface. Every procedure is moderator-only, scoped to the
@@ -369,4 +413,23 @@ export const moderationContract = {
     )
     .input(setResidencyVerifiedInput)
     .output(setResidencyVerifiedOutput),
+
+  snapRoad: oc
+    .meta(
+      openapi({
+        method: "POST",
+        path: "/moderation/snap-road",
+        summary: "Lay a reported stretch on the map provider's road",
+      }),
+    )
+    .input(snapRoadInput)
+    .output(snapRoadOutput)
+    .errors({
+      SERVICE_UNAVAILABLE: {
+        data: z.object({ reason: z.literal("unavailable") }),
+      },
+      TOO_MANY_REQUESTS: {
+        data: z.object({ reason: z.literal("rate_limited") }),
+      },
+    }),
 };

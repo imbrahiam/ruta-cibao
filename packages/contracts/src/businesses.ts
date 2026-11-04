@@ -99,6 +99,10 @@ export const pendingClaimShape = z.object({
   whatsapp: z.string().nullable(),
   openingHours: z.string().nullable(),
   claimedBy: z.string().nullable(),
+  /** The claimant's profile photo, when they have one. */
+  claimedByImage: z.string().nullable(),
+  /** A photograph of the place itself (seeded or published), when it has one. */
+  placeImage: z.string().nullable(),
   claimantResidentVerified: z.boolean(),
   createdAt: z.iso.datetime(),
 });

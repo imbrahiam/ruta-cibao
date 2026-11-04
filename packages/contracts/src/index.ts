@@ -7,6 +7,7 @@ import { openapi } from "@orpc/openapi";
 import { z } from "zod";
 import { businessesContract } from "./businesses";
 import { catalogContract } from "./catalog";
+import { commentsContract } from "./comments";
 import { consultationsContract } from "./consultations";
 import { directionsContract } from "./directions";
 import { meContract } from "./me";
@@ -46,6 +47,7 @@ export const contract = {
   passport: passportContract,
   traffic: trafficContract,
   consultations: consultationsContract,
+  comments: commentsContract,
   directions: directionsContract,
   businesses: businessesContract,
   reports: reportsContract,
@@ -61,6 +63,7 @@ export type ApiOutputs = InferContractRouterOutputs<Contract>;
 
 export * from "./businesses";
 export * from "./catalog";
+export * from "./comments";
 export * from "./consultations";
 export * from "./directions";
 export * from "./me";
