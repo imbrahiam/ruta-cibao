@@ -62,7 +62,7 @@ val EcoRoute.symbol: ImageVector get() = if (categoryId == "ciclismo") Icons.Fil
 
 @Composable
 fun EcoRoute.distanceText(): String {
-    val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
+    val locale = LocalConfiguration.current.locales[0] ?: Locale.forLanguageTag("es-DO")
     return remember(distanceMeters, locale) {
         val numbers = NumberFormat.getInstance(locale).apply { maximumFractionDigits = 1; minimumFractionDigits = 1 }
         MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.SHORT, numbers)

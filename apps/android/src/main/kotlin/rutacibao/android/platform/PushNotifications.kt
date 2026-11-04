@@ -83,7 +83,8 @@ object PushNotifications {
 
     fun refreshInbox() { received.update { it + 1 } }
 
-    /** Also used by the debug-only synthetic-notification hook; no provider needed. */
+    /** Also used by the debug-only synthetic-notification hook; no provider needed. [permissionGranted] guards the post. */
+    @android.annotation.SuppressLint("MissingPermission")
     fun show(context: Context, notificationId: String, href: String?) {
         refreshInbox()
         if (!permissionGranted(context)) return
