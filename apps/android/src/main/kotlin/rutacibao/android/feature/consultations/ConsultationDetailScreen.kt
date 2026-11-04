@@ -69,6 +69,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import rutacibao.android.R
 import rutacibao.android.feature.auth.SignInDialog
+import rutacibao.android.feature.gestion.StepUpSheet
 import rutacibao.android.feature.map.StaticPinMap
 import rutacibao.android.ui.CategoryAvatar
 import rutacibao.android.ui.ErrorState
@@ -110,6 +111,9 @@ fun ConsultationDetailScreen(slug: String, onBack: () -> Unit) {
                 }
             }
         },
+        bottomBar = {
+            if (state.canRespond && detail != null) StaffReplyComposer(state, vm)
+        },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (state.phase) {
@@ -130,6 +134,7 @@ fun ConsultationDetailScreen(slug: String, onBack: () -> Unit) {
         }
     }
     if (state.signInRequested) SignInDialog(onDismiss = vm::signInHandled)
+    StepUpSheet(state.stepUp, onVerify = vm::verifyStepUp, onUseRecovery = vm::useRecoveryCode, onDismiss = vm::dismissStepUp)
 }
 
 /** Threads' thread layout: avatar row, then text, media, bare actions and counts at full width. */
