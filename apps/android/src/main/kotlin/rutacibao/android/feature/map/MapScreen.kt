@@ -88,6 +88,7 @@ import com.google.maps.android.compose.rememberUpdatedMarkerState
 import kotlin.math.ln
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
+import rutacibao.android.BuildConfig
 import rutacibao.android.R
 import rutacibao.android.feature.auth.SignInDialog
 import rutacibao.android.ui.ErrorState
@@ -104,6 +105,8 @@ import rutacibao.presentation.map.Clustering
 import rutacibao.presentation.map.MapCategory
 import rutacibao.presentation.map.MapUiState
 import rutacibao.presentation.map.MapViewModel
+import rutacibao.presentation.map.TrafficNotice
+import androidx.compose.runtime.DisposableEffect
 
 private val SheetPeek = 320.dp
 
@@ -171,13 +174,17 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
         fly(CameraUpdateFactory.newLatLngBounds(bounds, with(density) { 48.dp.roundToPx() }))
     }
 
-    fun focus(place: MapPlace) {
+    fun focus(latitude: Double, longitude: Double) {
         // Zoom in, never out: a third of the current span, no closer than a block or two. Aim a little south so the pin clears the sheet.
         val current = span.first
         val target = if (current <= ClosestSpan) current else maxOf(ClosestSpan, current / 3)
         val zoom = camera.position.zoom + (ln(current / target) / ln(2.0)).toFloat()
-        fly(CameraUpdateFactory.newLatLngZoom(LatLng(place.latitude - target * 0.18, place.longitude), zoom))
+        fly(CameraUpdateFactory.newLatLngZoom(LatLng(latitude - target * 0.18, longitude), zoom))
     }
+
+    fun focus(place: MapPlace) = focus(place.latitude, place.longitude)
+
+    fun focus(notice: TrafficNotice) = focus(notice.latitude, notice.longitude)
 
     // Once, when places first arrive: the densest town at street level, where pins show their glyphs.
     LaunchedEffect(state.all.isNotEmpty()) {
@@ -190,14 +197,38 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
         if (!camera.isMoving) {
             camera.projection?.visibleRegion?.latLngBounds?.let { b ->
                 span = (b.northeast.latitude - b.southwest.latitude) to (b.northeast.longitude - b.southwest.longitude)
+                vm.onViewportChanged(b.southwest.longitude, b.southwest.latitude, b.northeast.longitude, b.northeast.latitude)
             }
         }
     }
     val selectedId = state.sheet?.place?.id
     val selectedRouteId = state.route?.id
-    LaunchedEffect(selectedId, selectedRouteId) {
+    val selectedTraffic = state.selectedTraffic
+    DisposableEffect(vm) {
+        vm.setMapVisible(true)
+        onDispose { vm.setMapVisible(false) }
+    }
+    if (BuildConfig.DEBUG) {
+        // `am start --es ruta_debug_traffic select|still`: opens the first report that isn't yours, `still` also answers it.
+        val hook = remember { (context as? android.app.Activity)?.intent?.getStringExtra("ruta_debug_traffic") }
+        var done by remember { mutableStateOf(false) }
+        LaunchedEffect(state.traffic.size) {
+            val notice = state.traffic.firstOrNull { !it.isMine && it.myVerdict == null }
+            if (hook == null || done || notice == null) return@LaunchedEffect
+            done = true
+            vm.selectTraffic(notice.id)
+            if (hook == "still") {
+                kotlinx.coroutines.delay(5000)
+                vm.confirmTraffic(rutacibao.presentation.map.TrafficVerdict.Still)
+            }
+        }
+    }
+    LaunchedEffect(selectedId, selectedRouteId, selectedTraffic?.id) {
         if (selectedId != null) {
             state.all.firstOrNull { it.id == selectedId }?.let(::focus)
+            sheetState.partialExpand()
+        } else if (selectedTraffic != null) {
+            focus(selectedTraffic)
             sheetState.partialExpand()
         } else if (selectedRouteId != null) {
             sheetState.partialExpand()
@@ -210,6 +241,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
             if (it == SheetValue.Hidden) {
                 if (vm.state.value.sheet != null) vm.dismissSheet()
                 if (vm.state.value.route != null) vm.dismissRoute()
+                vm.dismissTraffic()
             }
         }
     }
@@ -240,7 +272,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
         Clustering.declutter(state.places, span.first / 10, span.second / 6, selectedPlace)
     }
 
-    val hasSheet = state.sheet != null || state.route != null
+    val hasSheet = state.sheet != null || state.route != null || selectedTraffic != null
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -257,6 +289,8 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
                 PlaceSheet(sheet, onSave = vm::toggleSaved, onRequestClaim = vm::requestClaim, onBusinessChanged = vm::refreshBusiness, modifier = Modifier.fillMaxHeight())
             } else if (route != null) {
                 RouteSheet(route, modifier = Modifier.fillMaxHeight())
+            } else if (selectedTraffic != null) {
+                TrafficSheet(selectedTraffic, state.trafficError, onConfirm = vm::confirmTraffic, modifier = Modifier.fillMaxHeight())
             } else {
                 Spacer(Modifier.height(1.dp))
             }
@@ -272,8 +306,35 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
                     tiltGesturesEnabled = false, compassEnabled = true,
                 ),
                 contentPadding = PaddingValues(top = 124.dp),
-                onMapClick = { vm.dismissSheet(); vm.dismissRoute() },
+                onMapClick = { vm.dismissSheet(); vm.dismissRoute(); vm.dismissTraffic() },
             ) {
+                state.traffic.forEach { notice ->
+                    if (notice.path.size > 1) {
+                        androidx.compose.runtime.key("traffic-line:${notice.id}") {
+                            Polyline(
+                                points = notice.path.map { LatLng(it.latitude, it.longitude) },
+                                color = notice.tint.copy(alpha = 0.85f),
+                                width = with(density) { notice.lineWidthDp.dp.toPx() },
+                                startCap = RoundCap(),
+                                endCap = RoundCap(),
+                                jointType = JointType.ROUND,
+                                zIndex = 1f,
+                            )
+                        }
+                    }
+                }
+                state.traffic.forEach { notice ->
+                    androidx.compose.runtime.key("traffic:${notice.id}") {
+                        val selected = notice.id == selectedTraffic?.id
+                        MarkerComposable(
+                            notice.id, notice.color, selected,
+                            state = rememberUpdatedMarkerState(LatLng(notice.latitude, notice.longitude)),
+                            anchor = Offset(0.5f, 0.5f),
+                            zIndex = if (selected) 3.5f else 2f,
+                            onClick = { vm.selectTraffic(notice.id); true },
+                        ) { TrafficPin(notice, selected) }
+                    }
+                }
                 visible.forEach { place ->
                     androidx.compose.runtime.key(place.id) {
                         PlaceMarker(place, named, selected = place.id == selectedId) { vm.select(place.id) }
