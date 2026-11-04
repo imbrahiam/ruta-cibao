@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
@@ -117,11 +118,16 @@ fun CommentsHeader(title: String, total: Int) {
 
 @Composable
 fun ThreadAvatar(name: String?, image: String?, modifier: Modifier = Modifier, size: Dp = 36.dp) {
-    Box(modifier.size(size).clip(CircleShape).background(LocalPalette.current.inset), contentAlignment = Alignment.Center) {
+    Box(modifier.size(size).clip(CircleShape).background(LocalPalette.current.fill), contentAlignment = Alignment.Center) {
         if (name.isNullOrBlank()) {
             Icon(Icons.Filled.PersonOutline, contentDescription = null, modifier = Modifier.size(size * 0.55f), tint = LocalPalette.current.textSecondary)
         } else {
-            Text(name.take(1).uppercase(), style = MaterialTheme.typography.labelLarge, color = LocalPalette.current.textSecondary)
+            val initials = name.trim().split(Regex("\\s+")).take(2).joinToString("") { it.take(1) }.uppercase()
+            Text(
+                initials,
+                style = MaterialTheme.typography.labelLarge.copy(fontSize = (size.value * 0.36f).sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                color = LocalPalette.current.text,
+            )
         }
         if (!image.isNullOrBlank()) AsyncImage(model = absoluteUrl(image), contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.matchParentSize())
     }

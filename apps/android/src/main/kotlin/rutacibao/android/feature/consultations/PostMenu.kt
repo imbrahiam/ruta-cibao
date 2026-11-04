@@ -56,6 +56,7 @@ import rutacibao.android.R
 import rutacibao.android.feature.auth.SignInDialog
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.LocalPalette
+import rutacibao.android.ui.rutaButtonColors
 import rutacibao.presentation.safety.ReportReason
 import rutacibao.presentation.safety.SafetyViewModel
 
@@ -225,7 +226,7 @@ private fun Details(working: Boolean, errorCode: String?, onSubmit: (String) -> 
             modifier = Modifier.fillMaxWidth(),
         )
         ErrorLine(errorCode)
-        Button(onClick = { onSubmit(details) }, enabled = !working, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+        Button(onClick = { onSubmit(details) }, enabled = !working, colors = rutaButtonColors(), modifier = Modifier.fillMaxWidth().height(52.dp)) {
             Text(stringResource(R.string.safety_report_submit))
         }
     }

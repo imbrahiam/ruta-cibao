@@ -22,12 +22,16 @@ import rutacibao.presentation.contributions.InboxViewModel
 import rutacibao.presentation.contributions.Notice
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import rutacibao.android.ui.RutaHighlight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -92,9 +96,10 @@ import rutacibao.presentation.contributions.ContributionsViewModel
 
 enum class ContributeAction { Consultation, Traffic, Place }
 
-private val Indigo = Color(0xFF5E5CE6)
+// iOS system colours, so the same kind reads the same on both phones.
+private val Indigo = Color(0xFF007AFF)
 private val Orange = Color(0xFFFF9500)
-private val Green = Color(0xFF30A45A)
+private val Green = Color(0xFF34C759)
 
 private enum class Section { Mine, Inbox }
 
@@ -120,12 +125,7 @@ fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation:
         modifier = Modifier.semantics { paneTitle = screenName },
     ) {
         LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-            item {
-                Text(
-                    screenName, style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 20.dp).semantics { heading() },
-                )
-            }
+            item { Spacer(Modifier.height(12.dp)) }
             item { ActionTiles { action -> if (state.signedIn) onStart(action) else signingIn = true } }
 
             if (state.signedIn) {
@@ -164,15 +164,31 @@ private fun SectionTabs(selected: Section, unread: Int, onSelect: (Section) -> U
         Section.Mine to stringResource(R.string.contributions_mine),
         Section.Inbox to if (unread > 0) stringResource(R.string.contributions_inbox_count, unread.toString()) else stringResource(R.string.contributions_inbox),
     )
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(horizontal = 16.dp, vertical = 8.dp)) {
-        labels.forEachIndexed { index, (section, label) ->
-            SegmentedButton(
-                selected = section == selected,
-                onClick = { onSelect(section) },
-                shape = SegmentedButtonDefaults.itemShape(index, labels.size),
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    val palette = LocalPalette.current
+    Column(Modifier.background(MaterialTheme.colorScheme.background)) {
+    Row(Modifier.fillMaxWidth().selectableGroup()) {
+        labels.forEach { (section, label) ->
+            val isSelected = section == selected
+            Box(
+                Modifier
+                    .weight(1f)
+                    .heightIn(min = 48.dp)
+                    .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(section) }),
+                Alignment.Center,
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else palette.textTertiary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (isSelected) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(2.dp).background(RutaHighlight.selection()))
+            }
         }
+    }
+    Hairline()
     }
 }
 
@@ -389,6 +405,6 @@ private fun contrastInk(color: Color): Color =
 @Composable
 private fun KindBadge(icon: ImageVector, color: Color, size: androidx.compose.ui.unit.Dp) {
     Box(Modifier.size(size).background(kindGradient(color), CircleShape), Alignment.Center) {
-        Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = contrastInk(color))
+        Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = Color.White)
     }
 }

@@ -100,6 +100,8 @@ import rutacibao.android.ui.BrandMark
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.LocalPalette
 import rutacibao.android.ui.LocalReducedMotion
+import rutacibao.android.ui.RutaHighlight
+import rutacibao.android.ui.rutaButtonColors
 import rutacibao.presentation.auth.SignInError
 import rutacibao.presentation.auth.SignInUiState
 import rutacibao.presentation.auth.SignInUiState.Method
@@ -238,9 +240,10 @@ private fun EnterStep(state: SignInUiState, vm: SignInViewModel) {
                 enabled = state.canSubmit || state.busy,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = CircleShape,
+                colors = rutaButtonColors(),
             ) {
                 if (state.busy) {
-                    CircularProgressIndicator(Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.5.dp)
+                    CircularProgressIndicator(Modifier.size(24.dp), color = RutaHighlight.onSolid, strokeWidth = 2.5.dp)
                 } else {
                     Text(stringResource(R.string.sign_in_send_code), style = MaterialTheme.typography.titleMedium)
                 }

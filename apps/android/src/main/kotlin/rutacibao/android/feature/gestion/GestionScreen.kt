@@ -44,6 +44,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
@@ -99,6 +100,9 @@ import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.LocalPalette
 import rutacibao.android.ui.PrimaryButton
 import rutacibao.android.ui.relativeTimeText
+import rutacibao.android.ui.raised
+import androidx.compose.foundation.isSystemInDarkTheme
+import rutacibao.android.ui.rutaButtonColors
 import rutacibao.api.generated.ReportsListItem
 import rutacibao.presentation.UiError
 import rutacibao.presentation.gestion.GestionUiState
@@ -260,6 +264,12 @@ private fun KindChip(label: String, icon: ImageVector, selected: Boolean, onClic
         onClick = onClick,
         label = { Text(label, style = MaterialTheme.typography.labelLarge) },
         leadingIcon = { Icon(if (selected) Icons.Filled.Check else icon, contentDescription = null, Modifier.size(18.dp)) },
+        shape = CircleShape,
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.onSurface,
+            selectedLabelColor = MaterialTheme.colorScheme.background,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.background,
+        ),
         modifier = Modifier.heightIn(min = 48.dp),
     )
 }
@@ -273,7 +283,7 @@ private fun ReportRow(report: ReportsListItem, loading: Boolean, unavailable: Bo
                 .fillMaxWidth()
                 .heightIn(min = 56.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .background(palette.raised(isSystemInDarkTheme()))
                 .clickable(enabled = !loading, role = Role.Button, onClick = onOpen)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -392,7 +402,7 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, act: (ReviewAction) -> U
             .padding(horizontal = Inset)
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .background(palette.raised(isSystemInDarkTheme()))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -464,7 +474,7 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, act: (ReviewAction) -> U
 private fun ActionButton(action: ReviewAction, busy: Boolean, act: (ReviewAction) -> Unit, primary: Boolean, modifier: Modifier) {
     val label = @Composable { Text(stringResource(actionLabel(action.labelKey)), fontWeight = FontWeight.SemiBold) }
     val size = modifier.heightIn(min = 48.dp)
-    if (primary) Button(onClick = { act(action) }, enabled = !busy, modifier = size) { label() }
+    if (primary) Button(onClick = { act(action) }, enabled = !busy, colors = rutaButtonColors(), modifier = size) { label() }
     else OutlinedButton(onClick = { act(action) }, enabled = !busy, modifier = size) { label() }
 }
 

@@ -70,6 +70,7 @@ import rutacibao.android.ui.LocalPalette
 import rutacibao.android.ui.MessageState
 import rutacibao.android.ui.PushedScreen
 import rutacibao.android.ui.rootViewModel
+import rutacibao.android.ui.rutaSwitchColors
 import rutacibao.presentation.account.AccountUiState
 import rutacibao.presentation.account.AccountViewModel
 
@@ -266,7 +267,7 @@ private fun SwitchRow(title: String, hint: String, checked: Boolean, onChange: (
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(hint, style = MaterialTheme.typography.bodySmall, color = LocalPalette.current.textSecondary)
         }
-        Switch(checked = checked, onCheckedChange = null)
+        Switch(checked = checked, onCheckedChange = null, colors = rutaSwitchColors())
     }
 }
 

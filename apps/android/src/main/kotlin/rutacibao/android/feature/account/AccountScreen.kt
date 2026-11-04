@@ -10,6 +10,10 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Spacer
+import rutacibao.android.ui.RutaHighlight
+import rutacibao.android.ui.raised
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -111,10 +115,7 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
         val palette = LocalPalette.current
         PullToRefreshBox(isRefreshing = false, onRefresh = vm::refresh, modifier = Modifier.semantics { paneTitle = screenName }) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
-                Text(
-                    stringResource(R.string.account_title), style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 20.dp).semantics { heading() },
-                )
+                Spacer(Modifier.height(12.dp))
                 Header(state.me?.displayName, state.me?.image, state.me?.residencyVerified == true, state.municipalityName, state.me?.phoneNumber ?: state.me?.email) {
                     onOpen(AccountPage.Profile)
                 }
@@ -125,7 +126,7 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
                         NavRow(
                             stringResource(R.string.gestion_title),
                             Icons.Filled.Checklist,
-                            Color(0xFF30A45A),
+                            null,
                             count = pending,
                             value = if (pending == 0) stringResource(R.string.gestion_pending_zero) else pluralStringResource(R.plurals.gestion_pending, pending, pending),
                             onClick = onOpenGestion,
@@ -177,7 +178,7 @@ private fun Header(name: String?, image: String?, verified: Boolean, municipalit
     val palette = LocalPalette.current
     Row(
         Modifier.padding(horizontal = 24.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer).clickable(role = Role.Button, onClick = onClick).padding(16.dp),
+            .background(palette.raised(isSystemInDarkTheme())).clickable(role = Role.Button, onClick = onClick).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -219,8 +220,7 @@ private fun Group(content: @Composable () -> Unit) {
         Modifier
             .padding(horizontal = 16.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer),
+            .clip(RoundedCornerShape(16.dp)),
     ) { content() }
 }
 
@@ -240,12 +240,12 @@ private fun AccountShortcuts(saved: Int, passport: Int, onOpen: (AccountPage) ->
 @Composable
 private fun AccountShortcut(title: String, icon: ImageVector, count: Int, modifier: Modifier, onClick: () -> Unit) {
     Column(
-        modifier.clip(RoundedCornerShape(20.dp)).background(MaterialTheme.colorScheme.surfaceContainer)
+        modifier.clip(RoundedCornerShape(20.dp)).background(LocalPalette.current.raised(isSystemInDarkTheme()))
             .clickable(role = Role.Button, onClick = onClick).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Icon(icon, contentDescription = null, tint = LocalPalette.current.accent)
+            Icon(icon, contentDescription = null, tint = RutaHighlight.selection())
             Text(count.toString(), style = MaterialTheme.typography.titleMedium, color = LocalPalette.current.textSecondary)
         }
         Text(title, style = MaterialTheme.typography.titleSmall)
@@ -257,7 +257,7 @@ private fun AccountShortcut(title: String, icon: ImageVector, count: Int, modifi
 private fun NavRow(
     title: String,
     icon: ImageVector,
-    color: Color,
+    color: Color?,
     count: Int? = null,
     last: Boolean = false,
     value: String? = null,
@@ -272,11 +272,23 @@ private fun NavRow(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Box(Modifier.size(30.dp).background(color, RoundedCornerShape(8.dp)), Alignment.Center) {
-                Icon(icon, contentDescription = null, Modifier.size(17.dp), tint = Color.White)
+            if (color != null) {
+                Box(Modifier.size(30.dp).background(color, RoundedCornerShape(8.dp)), Alignment.Center) {
+                    Icon(icon, contentDescription = null, Modifier.size(17.dp), tint = Color.White)
+                }
+            } else {
+                Icon(icon, contentDescription = null, Modifier.size(30.dp).padding(3.dp), tint = MaterialTheme.colorScheme.onSurface)
             }
             Text(title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            if (count != null && count > 0) Text(count.toString(), style = MaterialTheme.typography.bodyLarge, color = palette.textTertiary)
+            if (count != null && count > 0) {
+                Text(
+                    count.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.background,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.defaultMinSize(minWidth = 28.dp, minHeight = 28.dp).background(MaterialTheme.colorScheme.onSurface, CircleShape).padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = palette.textTertiary)
         }
         if (!last) HorizontalDivider(Modifier.padding(start = 58.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)

@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import rutacibao.android.R
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.PushedScreen
+import rutacibao.android.ui.rutaButtonColors
 import rutacibao.data.PendingContribution
 
 @Composable
@@ -46,7 +47,7 @@ fun OfflinePage(onBack: () -> Unit) {
                     Text(stringResource(if (state.version != null) R.string.offline_ready_badge else R.string.offline_not_downloaded_badge), style = MaterialTheme.typography.titleMedium)
                     state.generatedAt?.let { Text(stringResource(R.string.offline_saved_copy_notice, it)) }
                     if (state.downloading) CircularProgressIndicator()
-                    Button(onClick = offline::download, enabled = !state.downloading) { Text(stringResource(if (state.version == null) R.string.offline_download_action else R.string.offline_update_action)) }
+                    Button(onClick = offline::download, enabled = !state.downloading, colors = rutaButtonColors()) { Text(stringResource(if (state.version == null) R.string.offline_download_action else R.string.offline_update_action)) }
                     state.error?.let { Text(stringResource(offlineError(it)), color = MaterialTheme.colorScheme.error) }
                     if (state.version != null) TextButton(onClick = offline::removeSnapshot) { Text(stringResource(R.string.offline_remove_action)) }
                 }
