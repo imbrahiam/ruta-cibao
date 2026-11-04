@@ -3,15 +3,16 @@ import RutaKit
 import SwiftUI
 
 /// Staff triage away from a desk: the latest weekly report, then one mixed
-/// queue of cards, each with two equal buttons. Full admin stays on the web.
+/// queue of cards whose buttons come from each item's state. Full admin stays on the web.
 struct GestionScreen: View {
     var linkedReportId: String? = nil
+    var openConsultation: (String) -> Void = { _ in }
     @Environment(\.graph) private var graph
     @State private var model: GestionModel?
 
     var body: some View {
         Group {
-            if let model { Content(model: model) } else { Color.clear }
+            if let model { Content(model: model, openConsultation: openConsultation) } else { Color.clear }
         }
         .task {
             guard let graph else { return }
@@ -25,6 +26,7 @@ struct GestionScreen: View {
 
 private struct Content: View {
     let model: GestionModel
+    let openConsultation: (String) -> Void
     @Environment(\.palette) private var palette
     @State private var note = ""
     @State private var preview: URL?
@@ -126,16 +128,20 @@ private struct Content: View {
     private var cards: some View {
         LazyVStack(spacing: 12) {
             ForEach(state.visibleItems, id: \.id) { item in
-                ReviewCard(item: item, busy: state.inFlight.contains(item.id)) { verdict in
-                    vm.decide(item: item, verdict: verdict)
+                ReviewCard(item: item, busy: state.inFlight.contains(item.id)) { action in
+                    switch onEnum(of: action) {
+                    case .decide(let decide): vm.decide(item: item, action: decide)
+                    case .openThread(let thread): openConsultation(thread.slug)
+                    }
                 }
             }
         }
         .padding(.horizontal, GestionMetrics.inset)
     }
 
-    /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_GESTION=approve|reject` decides the first card of
-    /// `RUTA_DEBUG_GESTION_KIND` (a `ReviewKind` name); `report` opens the weekly PDF. Decides the first card of that kind once the list loads; a reject adds a fixed note.
+    /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_GESTION=approve|reject|remove|respond` acts on the first card of
+    /// `RUTA_DEBUG_GESTION_KIND` (a `ReviewKind` name) once the list loads; a decision that needs a note adds a
+    /// fixed one. `respond` triggers the open-thread action; `report` opens the weekly PDF.
     private func debugDrive() {
         #if DEBUG
         Task {
@@ -148,8 +154,14 @@ private struct Content: View {
             guard let action = env["RUTA_DEBUG_GESTION"], let kindName = env["RUTA_DEBUG_GESTION_KIND"] else { return }
             for _ in 0..<50 where model.state.items.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
             guard let item = model.state.items.first(where: { "\($0.kind)".lowercased() == kindName.lowercased() }) else { return }
-            if action == "approve" { vm.decide(item: item, verdict: .approve) } else {
-                vm.decide(item: item, verdict: .reject)
+            let wanted: Verdict? = switch action { case "approve": .approve; case "reject": .reject; case "remove": .remove; default: nil }
+            if action == "respond" {
+                if let thread = item.actions.compactMap({ $0 as? ReviewActionOpenThread }).first { openConsultation(thread.slug) }
+                return
+            }
+            guard let wanted, let decide = item.actions.compactMap({ $0 as? ReviewActionDecide }).first(where: { $0.verdict == wanted }) else { return }
+            vm.decide(item: item, action: decide)
+            if decide.needsNote {
                 try? await Task.sleep(for: .milliseconds(600))
                 if let text = env["RUTA_DEBUG_GESTION_NOTE"] { note = text }
                 try? await Task.sleep(for: .milliseconds(1500))
@@ -230,15 +242,29 @@ private enum ReportFile {
 private struct ReviewCard: View {
     let item: ReviewItem
     let busy: Bool
-    let decide: (Verdict) -> Void
+    let act: (ReviewAction) -> Void
     @Environment(\.palette) private var palette
     @Environment(\.colorScheme) private var scheme
 
+    private var primary: ReviewAction? { item.actions.first { $0.emphasis == .primary } }
+    private var secondary: [ReviewAction] { item.actions.filter { $0.emphasis == .secondary } }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(item.kind.title, systemImage: item.kind.symbol)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(palette.textSecondary)
+            HStack(spacing: 8) {
+                Label(item.kind.title, systemImage: item.kind.symbol)
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(palette.textSecondary)
+                Spacer(minLength: 8)
+                if let key = item.stateKey {
+                    Text(catalogue(key))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(palette.textSecondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(palette.inset, in: Capsule())
+                }
+            }
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.title).font(.headline)
                 Text("\(item.municipality) · \(CompactTime.since(item.createdAt.date))")
@@ -273,22 +299,38 @@ private struct ReviewCard: View {
             if let snippet = item.snippet, !snippet.isEmpty {
                 Text(snippet).font(.subheadline).lineLimit(3)
             }
-            HStack(spacing: 12) {
-                Button { decide(.reject) } label: {
-                    Text(item.kind.reject.title).font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 48)
-                }
-                .buttonStyle(.glass)
-                Button { decide(.approve) } label: {
-                    Text(item.kind.approve.title).font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 48)
-                }
-                .buttonStyle(RutaProminentStyle())
-            }
-            .disabled(busy)
+            actions.disabled(busy)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .accessibilityElement(children: .contain)
+    }
+
+    /// One secondary sits beside the primary. More than one drops under it, so the primary stays dominant.
+    @ViewBuilder private var actions: some View {
+        if secondary.count <= 1 {
+            HStack(spacing: 12) {
+                ForEach(secondary, id: \.labelKey) { button($0, prominent: false) }
+                if let primary { button(primary, prominent: true) }
+            }
+        } else {
+            VStack(spacing: 8) {
+                if let primary { button(primary, prominent: true) }
+                HStack(spacing: 8) {
+                    ForEach(secondary, id: \.labelKey) { button($0, prominent: false) }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private func button(_ action: ReviewAction, prominent: Bool) -> some View {
+        let label = Text(catalogue(action.labelKey)).font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 48)
+        if prominent {
+            Button { act(action) } label: { label }.buttonStyle(RutaProminentStyle())
+        } else {
+            Button { act(action) } label: { label }.buttonStyle(.glass)
+        }
     }
 }
 
@@ -321,7 +363,7 @@ private struct NoteSheet: View {
                     .foregroundStyle(palette.dangerInk)
             }
             Button(action: send) {
-                Text(request.item.kind.spec(verdict: request.verdict).title).font(.headline).frame(maxWidth: .infinity, minHeight: 52)
+                Text(catalogue(request.action.labelKey)).font(.headline).frame(maxWidth: .infinity, minHeight: 52)
             }
             .buttonStyle(RutaProminentStyle())
             Spacer(minLength: 0)

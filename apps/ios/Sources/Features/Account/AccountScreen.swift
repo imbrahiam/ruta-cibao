@@ -21,7 +21,7 @@ final class AccountModel {
     isolated deinit { scope.close() }
 }
 
-private enum AccountRoute: Hashable { case profile, saved, passport, notifications, privacy, about, deletion, gestion, offline }
+private enum AccountRoute: Hashable { case profile, saved, passport, notifications, privacy, about, deletion, gestion, offline, consultation(String) }
 
 struct AccountScreen: View {
     @Environment(\.graph) private var graph
@@ -52,7 +52,10 @@ struct AccountScreen: View {
                 }
             }
             .tabBarClearance()
+            .navigationTitle(L10n.Account.title)
             .toolbarVisibility(.hidden, for: .navigationBar)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(L10n.Account.title)
             .navigationDestination(for: AccountRoute.self) { route in
                 if let model { destination(route, model).tabBarClearance() }
             }
@@ -75,7 +78,8 @@ struct AccountScreen: View {
             case .privacy: PrivacyView()
             case .about: AboutView()
             case .deletion: DeletionView(model: model)
-            case .gestion: GestionScreen()
+            case .gestion: GestionScreen(openConsultation: { path.append(.consultation($0)) })
+            case .consultation(let slug): ConsultationDetailScreen(slug: slug)
             case .offline: OfflineScreen()
             }
         }
@@ -129,14 +133,8 @@ private struct SignedInAccount: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Text(L10n.Account.title)
-                    .font(.largeTitle.bold())
-                    .accessibilityAddTraits(.isHeader)
-                    .padding(.horizontal, AccountMetrics.inset)
-                    .padding(.top, 12)
-                    .padding(.bottom, 20)
-
                 NavigationLink(value: AccountRoute.profile) { header }
+                    .padding(.top, 12)
                     .buttonStyle(.plain)
                     .padding(.horizontal, AccountMetrics.inset)
 

@@ -39,8 +39,4 @@ extension ReviewKind {
     var symbol: String { CategoryGlyph.symbol(icon) }
 }
 
-extension VerdictSpec {
-    var title: String { catalogue(labelKey) }
-}
-
 func catalogue(_ key: String) -> String { NSLocalizedString(key, comment: "") }

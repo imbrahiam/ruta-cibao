@@ -98,7 +98,10 @@ struct ContributionsScreen: View {
                 }
             }
             .tabBarClearance()
+            .navigationTitle(L10n.Contributions.title)
             .toolbarVisibility(.hidden, for: .navigationBar)
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(L10n.Contributions.title)
             .navigationDestination(for: ConsultationRoute.self) { ConsultationDetailScreen(slug: $0.slug).tabBarClearance() }
         }
         .task {
@@ -143,16 +146,11 @@ struct ContributionsScreen: View {
         let state = model.state
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                Text(L10n.Contributions.title)
-                    .font(.largeTitle.bold())
-                    .accessibilityAddTraits(.isHeader)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 12)
-                    .padding(.bottom, 20)
                 ActionTiles { action in
                     if state.signedIn { composing = action } else { signingIn = true }
                 }
                 .padding(.horizontal, 16)
+                .padding(.top, 12)
                 .padding(.bottom, 12)
 
                 if state.signedIn {
