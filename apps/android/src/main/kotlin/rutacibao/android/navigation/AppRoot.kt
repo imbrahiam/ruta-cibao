@@ -1,6 +1,5 @@
 package rutacibao.android.navigation
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.asPaddingValues
@@ -22,6 +21,7 @@ import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -188,7 +188,8 @@ fun AppRoot(
     // The map runs edge to edge under the status bar and the floating bar; every other screen sits clear of both.
     val padding = if (selected == Tab.Map) PaddingValues(0.dp) else PaddingValues(top = statusInset, bottom = if (barVisible) clearance else navInset)
     CompositionLocalProvider(LocalTabChrome provides chrome, LocalTabBarClearance provides clearance) {
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background, contentColor = MaterialTheme.colorScheme.onBackground) {
+    Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             fun push(route: Route) { stack.add(route) }
             fun pop() { stack.removeLastOrNull() }
@@ -248,6 +249,7 @@ fun AppRoot(
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navInset + TabBarMetrics.BottomGap),
             )
         }
+    }
     }
     }
 }
