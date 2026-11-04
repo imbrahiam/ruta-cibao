@@ -37,6 +37,15 @@ import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.RoundCap
 import com.google.maps.android.compose.Polyline
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Public
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.runtime.SideEffect
+import com.google.maps.android.compose.MapType
+import rutacibao.android.navigation.LocalTabBarClearance
+import rutacibao.android.navigation.LocalTabChrome
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -168,6 +177,9 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
     var framed by rememberSaveable { mutableStateOf(false) }
     var searching by rememberSaveable { mutableStateOf(false) }
     var me by remember { mutableStateOf<LatLng?>(null) }
+    var satellite by rememberSaveable { mutableStateOf(false) }
+    val clearance = LocalTabBarClearance.current
+    val statusInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     val sheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Hidden, skipHiddenState = false)
     val scaffoldState = rememberBottomSheetScaffoldState(sheetState)
@@ -292,6 +304,9 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
     }
 
     val hasSheet = state.sheet != null || state.route != null || selectedTraffic != null
+    val chrome = LocalTabChrome.current
+    SideEffect { chrome.hidden = hasSheet }
+    DisposableEffect(chrome) { onDispose { chrome.hidden = false } }
 
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
@@ -309,7 +324,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
             } else if (route != null) {
                 RouteSheet(route, modifier = Modifier.fillMaxHeight())
             } else if (selectedTraffic != null) {
-                TrafficSheet(selectedTraffic, state.trafficError, onConfirm = vm::confirmTraffic, modifier = Modifier.fillMaxHeight())
+                TrafficSheet(selectedTraffic, state.trafficError, onConfirm = vm::confirmTraffic, onClose = vm::dismissTraffic, modifier = Modifier.fillMaxHeight())
             } else {
                 Spacer(Modifier.height(1.dp))
             }
@@ -319,12 +334,15 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = camera,
-                properties = MapProperties(mapStyleOptions = calmMapStyle(dark)),
+                properties = MapProperties(
+                    mapType = if (satellite) MapType.HYBRID else MapType.NORMAL,
+                    mapStyleOptions = if (satellite) null else calmMapStyle(dark),
+                ),
                 uiSettings = MapUiSettings(
                     zoomControlsEnabled = false, myLocationButtonEnabled = false, mapToolbarEnabled = false,
                     tiltGesturesEnabled = false, compassEnabled = true,
                 ),
-                contentPadding = PaddingValues(top = 124.dp),
+                contentPadding = PaddingValues(top = statusInset + 124.dp, bottom = if (hasSheet) 0.dp else clearance),
                 onMapClick = { vm.dismissSheet(); vm.dismissRoute(); vm.dismissTraffic() },
             ) {
                 state.traffic.forEach { notice ->
@@ -391,14 +409,16 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
                 me?.let { UserDot(it) }
             }
 
-            Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            Column(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 8.dp)) {
                 SearchPill { searching = true }
                 CategoryChips(state.categories, state.selectedCategories, state.routes.isNotEmpty(), state.routesSelected, vm::toggleCategory, vm::toggleRoutes)
             }
 
-            LocateButton(
-                onClick = ::locate,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = if (hasSheet) SheetPeek + 16.dp else 16.dp),
+            MapControls(
+                satellite = satellite,
+                onToggleSatellite = { satellite = !satellite },
+                onLocate = ::locate,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = if (hasSheet) SheetPeek + 16.dp else clearance + 16.dp),
             )
 
             when (state.phase) {
@@ -440,15 +460,16 @@ private fun SearchPill(onClick: () -> Unit) {
     val palette = LocalPalette.current
     val label = stringResource(R.string.map_search_label)
     Surface(
-        modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(48.dp).semantics { contentDescription = label },
+        modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(52.dp).semantics { contentDescription = label },
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = palette.glass,
         shadowElevation = 4.dp,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         onClick = onClick,
     ) {
-        Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Icon(Icons.Filled.Search, contentDescription = null, tint = palette.textSecondary)
-            Text(stringResource(R.string.map_search_placeholder), style = MaterialTheme.typography.bodyLarge, color = palette.textTertiary, maxLines = 1)
+        Row(Modifier.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            Text(stringResource(R.string.map_search_placeholder), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Normal), color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
         }
     }
 }
@@ -485,7 +506,7 @@ private fun CategoryChips(
     }
 }
 
-/** 36dp chip in a 48dp target. Selected = filled + a check, so never colour alone. */
+/** 40dp chip in a 48dp target. Selected = filled + a check, so never colour alone. */
 @Composable
 private fun MapChip(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, isSelected: Boolean, onClick: () -> Unit) {
     val onColor = if (color.luminance() > 0.5f) Color.Black else Color.White
@@ -495,20 +516,20 @@ private fun MapChip(label: String, icon: androidx.compose.ui.graphics.vector.Ima
     ) {
         Surface(
             shape = CircleShape,
-            color = if (isSelected) color else MaterialTheme.colorScheme.surfaceContainer,
+            color = if (isSelected) color else LocalPalette.current.glass,
             shadowElevation = 3.dp,
             border = if (isSelected) null else BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Row(
-                Modifier.height(36.dp).padding(horizontal = 12.dp),
+                Modifier.height(40.dp).padding(horizontal = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
             ) {
-                if (isSelected) Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(16.dp), tint = onColor)
-                Icon(icon, contentDescription = null, Modifier.size(16.dp), tint = if (isSelected) onColor else color)
+                if (isSelected) Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(18.dp), tint = onColor)
+                Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = if (isSelected) onColor else color)
                 Text(
                     label,
-                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
+                    style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
                     color = if (isSelected) onColor else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                 )
@@ -517,18 +538,35 @@ private fun MapChip(label: String, icon: androidx.compose.ui.graphics.vector.Ima
     }
 }
 
+/**
+ * One glass capsule with the icons stacked, as on iOS: the base-map toggle and "find me".
+ * The toggle is a selected-state control, so it shows the state in its glyph and label, not colour.
+ */
 @Composable
-private fun LocateButton(onClick: () -> Unit, modifier: Modifier) {
-    val label = stringResource(R.string.map_locate)
+private fun MapControls(satellite: Boolean, onToggleSatellite: () -> Unit, onLocate: () -> Unit, modifier: Modifier) {
+    val palette = LocalPalette.current
+    val layerLabel = stringResource(if (satellite) R.string.map_layers_standard else R.string.map_layers_satellite)
+    val locateLabel = stringResource(R.string.map_locate)
     Surface(
-        onClick = onClick,
-        modifier = modifier.size(52.dp).semantics { contentDescription = label },
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        modifier = modifier,
+        shape = RoundedCornerShape(30.dp),
+        color = palette.glass,
         shadowElevation = 4.dp,
+        border = BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.MyLocation, contentDescription = null, tint = LocalPalette.current.locate)
+        Column(Modifier.padding(vertical = 4.dp)) {
+            Box(
+                Modifier.size(width = 52.dp, height = 52.dp).clickable(role = Role.Button, onClick = onToggleSatellite).semantics { contentDescription = layerLabel },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(if (satellite) Icons.Filled.Map else Icons.Filled.Public, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            }
+            Box(
+                Modifier.size(width = 52.dp, height = 52.dp).clickable(role = Role.Button, onClick = onLocate).semantics { contentDescription = locateLabel },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(Icons.Filled.MyLocation, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+            }
         }
     }
 }

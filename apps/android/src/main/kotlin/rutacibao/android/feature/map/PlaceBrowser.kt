@@ -73,7 +73,7 @@ internal fun PlaceBrowser(vm: MapViewModel, state: MapUiState, modifier: Modifie
     }
     state.selectedTraffic?.let { notice ->
         ModalBottomSheet(onDismissRequest = vm::dismissTraffic) {
-            TrafficSheet(notice, state.trafficError, vm::confirmTraffic)
+            TrafficSheet(notice, state.trafficError, vm::confirmTraffic, onClose = vm::dismissTraffic)
         }
     }
 }
@@ -96,6 +96,6 @@ internal fun PlaceDetail(sheet: PlaceSheet, vm: MapViewModel, modifier: Modifier
         sheet, onSave = vm::toggleSaved, onRequestClaim = vm::requestClaim, onBusinessChanged = vm::refreshBusiness,
         onConfirm = vm::confirmPlace, onReport = vm::openPlaceReport,
         onReportReason = vm::updatePlaceReportReason, onReportDetails = vm::updatePlaceReportDetails,
-        onSubmitReport = vm::submitPlaceReport, onCloseReport = vm::closePlaceReport, modifier = modifier,
+        onSubmitReport = vm::submitPlaceReport, onCloseReport = vm::closePlaceReport, onClose = vm::dismissSheet, modifier = modifier,
     )
 }

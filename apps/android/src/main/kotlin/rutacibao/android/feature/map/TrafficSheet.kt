@@ -42,7 +42,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import rutacibao.android.R
+import rutacibao.android.ui.CloseButton
 import rutacibao.android.ui.LocalPalette
+import androidx.compose.foundation.layout.offset
 import rutacibao.android.ui.categoryIcon
 import rutacibao.android.ui.parseCategoryColor
 import rutacibao.presentation.RelativeTime
@@ -93,7 +95,7 @@ fun TrafficPin(notice: TrafficNotice, selected: Boolean) {
 
 /** What and where, then the one question that matters: two equal answers with the neighbours' counts. */
 @Composable
-fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVerdict) -> Unit, modifier: Modifier = Modifier) {
+fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVerdict) -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val palette = LocalPalette.current
     Column(
         modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 32.dp),
@@ -103,7 +105,7 @@ fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVe
             Box(Modifier.size(48.dp).background(notice.tint, RoundedCornerShape(14.dp)), Alignment.Center) {
                 Icon(categoryIcon(notice.icon), contentDescription = null, Modifier.size(24.dp), tint = Color.White)
             }
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     notice.categoryName,
                     style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold),
@@ -116,6 +118,7 @@ fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVe
                     color = palette.textSecondary,
                 )
             }
+            CloseButton(onClose, Modifier.offset(x = 8.dp))
         }
         notice.severity?.let { severity ->
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -1,11 +1,17 @@
 package rutacibao.android.navigation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.filled.ChatBubble
@@ -15,23 +21,20 @@ import androidx.compose.material.icons.outlined.AddBox
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -177,34 +180,16 @@ fun AppRoot(
     val inbox: InboxViewModel = rootViewModel("inbox") { graph.viewModels.inbox() }
     LaunchedEffect(inbox) { PushNotifications.revision.collect { inbox.refresh() } }
 
-    Scaffold(
-        bottomBar = {
-            if (showBar) {
-                NavigationBar {
-                    Tab.entries.forEach { tab ->
-                        val label = stringResource(tab.label)
-                        NavigationBarItem(
-                            selected = tab == selected,
-                            onClick = {
-                                if (tab == selected) stacks.getValue(tab).popToRoot() else selected = tab
-                            },
-                            icon = { Icon(if (tab == selected) tab.iconSelected else tab.icon, contentDescription = null) },
-                            label = { Text(label, fontWeight = if (tab == selected) FontWeight.SemiBold else FontWeight.Normal) },
-                            alwaysShowLabel = true,
-                            colors = NavigationBarItemDefaults.colors(
-                                indicatorColor = Color.Transparent,
-                                selectedIconColor = MaterialTheme.colorScheme.onSurface,
-                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
-                    }
-                }
-            }
-        },
-    ) { padding ->
-        Box(Modifier.padding(padding).consumeWindowInsets(padding)) {
+    val chrome = remember { TabChrome() }
+    val barVisible = showBar && !chrome.hidden
+    val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val statusInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val clearance = navInset + TabBarMetrics.Reserved
+    // The map runs edge to edge under the status bar and the floating bar; every other screen sits clear of both.
+    val padding = if (selected == Tab.Map) PaddingValues(0.dp) else PaddingValues(top = statusInset, bottom = if (barVisible) clearance else navInset)
+    CompositionLocalProvider(LocalTabChrome provides chrome, LocalTabBarClearance provides clearance) {
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
             fun push(route: Route) { stack.add(route) }
             fun pop() { stack.removeLastOrNull() }
             NavDisplay(
@@ -256,6 +241,14 @@ fun AppRoot(
                 },
             )
         }
+        if (barVisible) {
+            RutaTabBar(
+                selected = selected,
+                onSelect = { tab -> if (tab == selected) stacks.getValue(tab).popToRoot() else selected = tab },
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navInset + TabBarMetrics.BottomGap),
+            )
+        }
+    }
     }
 }
 

@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.QuestionAnswer
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -27,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -44,6 +46,21 @@ fun CategoryAvatar(icon: String, hex: String, size: Dp, modifier: Modifier = Mod
     }
 }
 
+/** The place badge: a squircle in the category colour's own gradient with a white glyph, as on iOS. */
+@Composable
+fun CategoryBadge(icon: String, hex: String, size: Dp, modifier: Modifier = Modifier) {
+    val color = parseCategoryColor(hex, MaterialTheme.colorScheme.onSurfaceVariant)
+    val shape = RoundedCornerShape(size * 0.3f)
+    Box(
+        modifier.size(size).clip(shape).background(Brush.verticalGradient(listOf(color.lighten(0.14f), color))),
+        Alignment.Center,
+    ) {
+        Icon(categoryIcon(icon), contentDescription = null, Modifier.size(size * 0.5f), tint = Color.White)
+    }
+}
+
+private fun Color.lighten(by: Float) = Color(red + (1 - red) * by, green + (1 - green) * by, blue + (1 - blue) * by, alpha)
+
 @Composable
 fun Hairline(modifier: Modifier = Modifier) {
     HorizontalDivider(modifier, thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
@@ -59,15 +76,19 @@ fun PrimaryButton(
     busy: Boolean = false,
     height: Dp = 52.dp,
     icon: ImageVector? = null,
+    /** A colour of its own (a place's category) in place of the app's; the label turns black or white, whichever reads better. */
+    tint: Color? = null,
 ) {
+    val ink = tint?.let(::inkOn) ?: RutaHighlight.onSolid
     Button(
         onClick = { if (!busy) onClick() },
         enabled = enabled,
         shape = CircleShape,
+        colors = if (tint == null) rutaButtonColors() else ButtonDefaults.buttonColors(containerColor = tint, contentColor = ink),
         modifier = modifier.defaultMinSize(minHeight = height),
     ) {
         if (busy) {
-            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+            CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = ink)
         } else {
             if (icon != null) {
                 Icon(icon, contentDescription = null, Modifier.size(18.dp))

@@ -57,7 +57,10 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import rutacibao.android.BuildConfig
 import rutacibao.android.R
-import rutacibao.android.ui.CategoryAvatar
+import rutacibao.android.ui.CategoryBadge
+import rutacibao.android.ui.CloseButton
+import rutacibao.android.ui.parseCategoryColor
+import androidx.compose.foundation.layout.offset
 import rutacibao.android.ui.LocalPalette
 import rutacibao.android.ui.PrimaryButton
 import rutacibao.api.generated.PlacesDetailOutput
@@ -87,6 +90,7 @@ fun PlaceSheet(
     onReportDetails: (String) -> Unit,
     onSubmitReport: () -> Unit,
     onCloseReport: () -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val place = sheet.place
@@ -106,8 +110,8 @@ fun PlaceSheet(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            CategoryAvatar(place.icon, place.color, 44.dp)
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            CategoryBadge(place.icon, place.color, 48.dp)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(place.name, style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp))
                 Text(
                     listOfNotNull(place.categoryName, detail?.municipality?.name).joinToString(" · "),
@@ -116,6 +120,7 @@ fun PlaceSheet(
                 )
                 if (!sheet.cached) detail?.trust?.let { TrustLine(it.state) }
             }
+            CloseButton(onClose, Modifier.offset(x = 8.dp, y = (-6).dp))
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -127,6 +132,7 @@ fun PlaceSheet(
                 },
                 icon = Icons.Filled.Directions,
                 height = 48.dp,
+                tint = parseCategoryColor(place.color, MaterialTheme.colorScheme.primary),
                 modifier = Modifier.weight(1f),
             )
             val saveLabel = stringResource(if (sheet.saved) R.string.place_saved_label else R.string.place_save)
