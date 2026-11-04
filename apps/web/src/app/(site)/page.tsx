@@ -257,7 +257,7 @@ export default function LandingPage() {
             <span>{t("scanHint")}</span>
           </div>
         </div>
-        <p className={styles.closingNote}>{t("province")}</p>
+        <p className={styles.closingNote}>{t("closingNote")}</p>
       </section>
     </div>
   );

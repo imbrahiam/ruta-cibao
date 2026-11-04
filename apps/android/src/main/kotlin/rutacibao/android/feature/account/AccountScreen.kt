@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -112,7 +111,10 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
         val palette = LocalPalette.current
         PullToRefreshBox(isRefreshing = false, onRefresh = vm::refresh, modifier = Modifier.semantics { paneTitle = screenName }) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 32.dp)) {
-                Spacer(Modifier.height(12.dp))
+                Text(
+                    stringResource(R.string.account_title), style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 20.dp).semantics { heading() },
+                )
                 Header(state.me?.displayName, state.me?.image, state.me?.residencyVerified == true, state.municipalityName, state.me?.phoneNumber ?: state.me?.email) {
                     onOpen(AccountPage.Profile)
                 }

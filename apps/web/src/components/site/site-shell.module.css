@@ -52,6 +52,8 @@
 }
 
 .pageLinks a {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -64,9 +66,25 @@
   white-space: nowrap;
 }
 
-.pageLinks a:hover,
-.pageLinks a:focus-visible {
-  color: var(--ink-3);
+/* Same brush as the footer links, drawn under the text. */
+.pageLinks a::after,
+.footerLink::after {
+  position: absolute;
+  z-index: -1;
+  right: 12px;
+  bottom: 5px;
+  left: 12px;
+  height: 8px;
+  background: #b8a6cf;
+  mask: url("/brand/brush.svg") center / 100% 100% no-repeat;
+  content: "";
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 440ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pageLinks a:hover::after,
+.pageLinks a:focus-visible::after {
+  clip-path: inset(0 0 0 0);
 }
 
 .nav {
@@ -199,6 +217,7 @@
 
 .footerLink {
   position: relative;
+  isolation: isolate;
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -210,19 +229,6 @@
   font-size: 14px;
   line-height: 1.5;
   text-decoration: none;
-}
-
-.footerLink::after {
-  position: absolute;
-  right: 12px;
-  bottom: 5px;
-  left: 12px;
-  height: 8px;
-  background: #b8a6cf;
-  mask: url("/brand/brush.svg") center / 100% 100% no-repeat;
-  content: "";
-  clip-path: inset(0 100% 0 0);
-  transition: clip-path 440ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .footerLink:hover::after,
@@ -278,7 +284,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .footerLink,
-  .footerLink::after {
+  .footerLink::after,
+  .pageLinks a::after {
     transition: none;
   }
 }
