@@ -54,7 +54,6 @@ private struct Content: View {
                 case .empty:
                     EmptyState(symbol: "checkmark.circle", title: L10n.Gestion.empty).padding(.top, 48)
                 case .ready:
-                    chips
                     cards
                 }
             }
@@ -95,6 +94,9 @@ private struct Content: View {
         }
         .navigationTitle(L10n.Gestion.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if state.phase == .ready { ToolbarItem(placement: .topBarTrailing) { filterMenu } }
+        }
         .alert(L10n.Common.errorTitle, isPresented: Binding(get: { state.error != nil && state.phase != .failed }, set: { if !$0 { vm.errorHandled() } })) {
             Button(L10n.Common.close, role: .cancel) {}
         } message: {
@@ -104,21 +106,20 @@ private struct Content: View {
         .task { debugDrive() }
     }
 
-    private var chips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                FilterChip(symbol: "square.stack.3d.up", tint: .primary, title: "\(L10n.Gestion.all) \(state.total)", selected: state.filter == nil) {
-                    vm.select(kind: nil)
-                }
+    /// The queue filter as a system menu in the bar: no row of chips under the title.
+    private var filterMenu: some View {
+        Menu {
+            Picker(L10n.Gestion.all, selection: Binding(get: { state.filter }, set: { vm.select(kind: $0) })) {
+                Label("\(L10n.Gestion.all) · \(state.total)", systemImage: "square.stack.3d.up").tag(ReviewKind?.none)
                 ForEach(state.filters, id: \.kind) { entry in
-                    FilterChip(symbol: entry.kind.symbol, tint: .primary, title: "\(entry.kind.title) \(entry.count)", selected: state.filter == entry.kind) {
-                        vm.select(kind: entry.kind)
-                    }
+                    Label("\(entry.kind.title) · \(entry.count)", systemImage: entry.kind.symbol).tag(ReviewKind?.some(entry.kind))
                 }
             }
-            .padding(.horizontal, GestionMetrics.inset)
+        } label: {
+            let count = state.filter.flatMap { kind in state.filters.first { $0.kind == kind }?.count } ?? state.total
+            Label("\(state.filter?.title ?? L10n.Gestion.all) · \(count)", systemImage: "line.3.horizontal.decrease")
+                .labelStyle(.titleAndIcon)
         }
-        .padding(.bottom, 8)
     }
 
     private var cards: some View {
@@ -245,6 +246,16 @@ private struct ReviewCard: View {
     private var primary: ReviewAction? { item.actions.first { $0.emphasis == .primary } }
     private var secondary: [ReviewAction] { item.actions.filter { $0.emphasis == .secondary } }
 
+    private func photo(_ url: String, index: Int) -> some View {
+        AsyncImage(url: URL(string: url)) { phase in
+            switch phase {
+            case .success(let picture): picture.resizable().aspectRatio(contentMode: .fill)
+            default: Rectangle().fill(palette.inset)
+            }
+        }
+        .accessibilityLabel(L10n.Contribute.Photos.photoLabel(n: index + 1))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
@@ -279,17 +290,21 @@ private struct ReviewCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .accessibilityHidden(true)
             }
-            if let consultation = item as? ReviewItemConsultation {
-                ForEach(Array(consultation.photoUrls.enumerated()), id: \.offset) { index, value in
-                    AsyncImage(url: URL(string: value)) { phase in
-                        switch phase {
-                        case .success(let picture): picture.resizable().aspectRatio(contentMode: .fit)
-                        default: Rectangle().fill(palette.inset)
+            if let consultation = item as? ReviewItemConsultation, !consultation.photoUrls.isEmpty {
+                // One photo fills the card; several become a swipeable row of equal tiles.
+                if consultation.photoUrls.count == 1 {
+                    photo(consultation.photoUrls[0], index: 0).frame(height: 190).frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                } else {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(consultation.photoUrls.enumerated()), id: \.offset) { index, value in
+                                photo(value, index: index).frame(width: 220, height: 160)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            }
                         }
                     }
-                    .frame(height: 240)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityLabel(L10n.Contribute.Photos.photoLabel(n: index + 1))
+                    .scrollClipDisabled()
                 }
             }
             if let snippet = item.snippet, !snippet.isEmpty {

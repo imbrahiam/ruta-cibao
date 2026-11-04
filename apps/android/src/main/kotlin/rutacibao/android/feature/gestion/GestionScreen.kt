@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Spacer
@@ -113,6 +114,11 @@ import rutacibao.presentation.gestion.ReviewAction
 import rutacibao.presentation.gestion.ReviewItem
 import rutacibao.presentation.gestion.ReviewKind
 import rutacibao.presentation.gestion.StepUpState
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenu
 
 private val Inset = 16.dp
 
@@ -158,6 +164,7 @@ fun GestionScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
                 },
+                actions = { if (state.total > 0) FilterMenu(state, vm::select) },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                 ),
@@ -225,7 +232,6 @@ private fun Content(
                     }
                 }
             } else {
-                item(key = "chips") { Chips(state, vm::select) }
                 items(state.visibleItems, key = { it.id }) { item ->
                     ReviewCard(item, busy = item.id in state.inFlight) { action ->
                         when (action) {
@@ -239,34 +245,34 @@ private fun Content(
     }
 }
 
+/** The queue filter lives in the app bar as a system menu: one tap, no row of chips. */
 @Composable
-private fun Chips(state: GestionUiState, select: (ReviewKind?) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = Inset),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        KindChip(stringResource(R.string.gestion_all) + " " + state.total, Icons.Outlined.CheckCircle, state.filter == null) { select(null) }
-        state.filters.forEach { entry ->
-            KindChip("${stringResource(entry.kind.title)} ${entry.count}", entry.kind.glyph, state.filter == entry.kind) { select(entry.kind) }
+private fun FilterMenu(state: GestionUiState, select: (ReviewKind?) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val current = state.filter
+    val label = current?.let { stringResource(it.title) } ?: stringResource(R.string.gestion_all)
+    val count = current?.let { kind -> state.filters.firstOrNull { it.kind == kind }?.count } ?: state.total
+    Box {
+        TextButton(onClick = { open = true }, modifier = Modifier.heightIn(min = 48.dp)) {
+            Icon(Icons.Filled.FilterList, contentDescription = null, Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("$label · $count", style = MaterialTheme.typography.labelLarge, maxLines = 1)
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            @Composable
+            fun Option(title: String, icon: ImageVector, n: Int, selected: Boolean, kind: ReviewKind?) = DropdownMenuItem(
+                text = { Text(title, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal) },
+                leadingIcon = { Icon(icon, contentDescription = null, Modifier.size(20.dp)) },
+                trailingIcon = { Text("$n", style = MaterialTheme.typography.labelLarge) },
+                onClick = { open = false; select(kind) },
+                modifier = Modifier
+                    .background(if (selected) MaterialTheme.colorScheme.surfaceContainerHighest else Color.Transparent)
+                    .semantics { this.selected = selected },
+            )
+            Option(stringResource(R.string.gestion_all), Icons.Outlined.CheckCircle, state.total, current == null, null)
+            state.filters.forEach { entry -> Option(stringResource(entry.kind.title), entry.kind.glyph, entry.count, current == entry.kind, entry.kind) }
         }
     }
-}
-
-@Composable
-private fun KindChip(label: String, icon: ImageVector, selected: Boolean, onClick: () -> Unit) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label, style = MaterialTheme.typography.labelLarge) },
-        leadingIcon = { Icon(if (selected) Icons.Filled.Check else icon, contentDescription = null, Modifier.size(18.dp)) },
-        shape = CircleShape,
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.onSurface,
-            selectedLabelColor = MaterialTheme.colorScheme.background,
-            selectedLeadingIconColor = MaterialTheme.colorScheme.background,
-        ),
-        modifier = Modifier.heightIn(min = 48.dp),
-    )
 }
 
 @Composable
@@ -434,14 +440,24 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, act: (ReviewAction) -> U
                 modifier = Modifier.fillMaxWidth().height(140.dp).clip(RoundedCornerShape(12.dp)).background(palette.inset),
             )
         }
-        if (item is ReviewItem.Consultation) {
-            item.photoUrls.forEachIndexed { index, url ->
-                AsyncImage(
-                    model = url,
-                    contentDescription = stringResource(R.string.contribute_photos_photo_label, index + 1),
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxWidth().height(240.dp).clip(RoundedCornerShape(12.dp)).background(palette.inset),
-                )
+        if (item is ReviewItem.Consultation && item.photoUrls.isNotEmpty()) {
+            // One photo fills the card; several become a swipeable row of equal tiles.
+            @Composable
+            fun Photo(index: Int, url: String, modifier: Modifier) = AsyncImage(
+                model = url,
+                contentDescription = stringResource(R.string.contribute_photos_photo_label, index + 1),
+                contentScale = ContentScale.Crop,
+                modifier = modifier.clip(RoundedCornerShape(12.dp)).background(palette.inset),
+            )
+            if (item.photoUrls.size == 1) {
+                Photo(0, item.photoUrls.first(), Modifier.fillMaxWidth().height(190.dp))
+            } else {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item.photoUrls.forEachIndexed { index, url -> Photo(index, url, Modifier.width(220.dp).height(160.dp)) }
+                }
             }
         }
         item.snippet?.takeIf { it.isNotBlank() }?.let {
