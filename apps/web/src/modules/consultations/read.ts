@@ -3,13 +3,16 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import {
   categories,
+  consultationPhotos,
   consultationResponses,
   consultations,
   consultationVotes,
   memberProfiles,
   municipalities,
+  user,
   userBlocks,
 } from "@/db/schema";
+import { imageUrl } from "@/lib/storage";
 import type { Viewer } from "@/modules/access/viewer";
 import { notBlockedAuthor } from "@/modules/safety/blocks";
 import { ConsultationError } from "./open-consultation";
@@ -49,6 +52,38 @@ function supportedBy(userId: string | null) {
     where ${consultationVotes.consultationId} = ${consultations.id}
       and ${consultationVotes.userId} = ${userId}
   )`;
+}
+
+type Photo = { url: string; width: number; height: number; alt: string | null };
+
+/** Photos for a page of cases, keyed by case id, in the author's order. */
+async function photosFor(db: Db, ids: string[]) {
+  const byCase = new Map<string, Photo[]>();
+  if (ids.length === 0) return byCase;
+  const rows = await db
+    .select({
+      consultationId: consultationPhotos.consultationId,
+      storageKey: consultationPhotos.storageKey,
+      width: consultationPhotos.width,
+      height: consultationPhotos.height,
+      alt: consultationPhotos.alt,
+    })
+    .from(consultationPhotos)
+    .where(inArray(consultationPhotos.consultationId, ids))
+    .orderBy(asc(consultationPhotos.position))
+    .limit(ids.length * 4);
+  for (const row of rows) {
+    const list = byCase.get(row.consultationId) ?? [];
+    if (list.length >= 4) continue;
+    list.push({
+      url: await imageUrl(row.storageKey, { width: 1080 }),
+      width: row.width,
+      height: row.height,
+      alt: row.alt,
+    });
+    byCase.set(row.consultationId, list);
+  }
+  return byCase;
 }
 
 export async function browseConsultations(
@@ -102,6 +137,7 @@ export async function browseConsultations(
         municipalityId: municipalities.id,
         municipalityName: municipalities.name,
         openedBy: memberProfiles.displayName,
+        openedByImage: user.image,
         supportCount: supportCount(),
         responseCount: responseCount(),
         supported: supportedBy(viewerId),
@@ -116,6 +152,7 @@ export async function browseConsultations(
         memberProfiles,
         eq(memberProfiles.userId, consultations.openedByUserId),
       )
+      .leftJoin(user, eq(user.id, consultations.openedByUserId))
       .where(filters)
       // Newest first rather than most-supported: a queue sorted by popularity
       // is a queue where a case affecting one household is never reached, and
@@ -130,9 +167,15 @@ export async function browseConsultations(
       .where(filters),
   ]);
 
+  const photos = await photosFor(
+    db,
+    rows.map((row) => row.id),
+  );
+
   return {
     items: rows.map((row) => ({
       ...row,
+      photos: photos.get(row.id) ?? [],
       createdAt: row.createdAt.toISOString(),
       answeredAt: row.answeredAt?.toISOString() ?? null,
     })),
@@ -162,6 +205,7 @@ export async function consultationDetail(db: Db, viewer: Viewer, slug: string) {
       municipalityId: municipalities.id,
       municipalityName: municipalities.name,
       openedBy: memberProfiles.displayName,
+      openedByImage: user.image,
       supportCount: supportCount(),
       responseCount: responseCount(),
       supported: supportedBy(viewerId),
@@ -176,6 +220,7 @@ export async function consultationDetail(db: Db, viewer: Viewer, slug: string) {
       memberProfiles,
       eq(memberProfiles.userId, consultations.openedByUserId),
     )
+    .leftJoin(user, eq(user.id, consultations.openedByUserId))
     .where(eq(consultations.slug, slug))
     .limit(1);
 
@@ -219,8 +264,11 @@ export async function consultationDetail(db: Db, viewer: Viewer, slug: string) {
     // Oldest first: this is a conversation, and a conversation is read forwards.
     .orderBy(asc(consultationResponses.createdAt));
 
+  const photos = await photosFor(db, [row.id]);
+
   return {
     ...row,
+    photos: photos.get(row.id) ?? [],
     location: row.location
       ? { lng: row.location.x, lat: row.location.y }
       : null,

@@ -4,15 +4,14 @@ import type { ApiOutputs, DecidePublicationInput } from "@ruta/contracts";
 import Link from "next/link";
 import { useId } from "react";
 import { useTranslations } from "use-intl";
-import { ButtonLink } from "@/components/ui/button";
-import { Tag } from "@/components/ui/tag";
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/web/api";
+import { StatusIndicator } from "../status-indicator";
 import { DecisionBar } from "./decision-bar";
 import {
   Fact,
   Facts,
   ItemRow,
-  ItemTitle,
   MunicipalityTag,
   usePerson,
   useWhen,
@@ -29,63 +28,71 @@ export function CaseRow({ item }: { item: PendingCase }) {
   const id = useId();
   const when = useWhen();
   const person = usePerson();
-  const { decide, pending, error, decided } = useDecision<
-    Body<DecidePublicationInput>
-  >((input) => api.moderation.decidePublication(input));
+  const { decide, pending, error } = useDecision<Body<DecidePublicationInput>>(
+    (input) => api.moderation.decidePublication(input),
+    {
+      queue: "consultations",
+      id: item.id,
+      // Publishing keeps a case that still awaits an answer in the list.
+      patch: (input) =>
+        input.status === "published" &&
+        (item.status === "open" || item.status === "in_review")
+          ? { publicationStatus: "published" }
+          : undefined,
+    },
+  );
 
   return (
     <ItemRow
       titleId={`${id}-title`}
-      item={
+      title={
+        <Link
+          href={`/admin/consultations/${item.slug}`}
+          className="hover:underline"
+        >
+          {item.title}
+        </Link>
+      }
+      meta={
         <>
-          <ItemTitle id={`${id}-title`}>
-            <Link
-              href={`/admin/consultations/${item.slug}`}
-              className="underline-offset-2 hover:underline"
-            >
-              {item.title}
-            </Link>
-          </ItemTitle>
-          <div className="flex flex-wrap gap-1.5">
-            <MunicipalityTag name={item.municipalityName} />
-            <Tag tone="accent">{item.categoryName}</Tag>
-            <Tag tone="warning">
-              {q(`publicationLabel.${item.publicationStatus}`)}
-            </Tag>
-          </div>
-          <p className="t-small text-ink-2">
-            {person("openedBy", item.openedBy)}
-          </p>
-          <p className="t-small text-ink-2">
-            {q("supportCount", { count: item.supportCount })}
-          </p>
-          <p className="t-small text-ink-2">
-            {when("receivedAt", item.createdAt)}
-          </p>
+          <MunicipalityTag name={item.municipalityName} />
+          {item.categoryName}
+          <StatusIndicator
+            tone={item.publicationStatus === "pending" ? "warning" : "success"}
+            className="text-sm text-muted-foreground"
+          >
+            {q(`publicationLabel.${item.publicationStatus}`)}
+          </StatusIndicator>
+        </>
+      }
+      byline={
+        <>
+          {person("openedBy", item.openedBy)}
+          {q("supportCount", { count: item.supportCount })}
+          {when("receivedAt", item.createdAt)}
         </>
       }
       detail={
         <Facts>
-          <Fact label={q("caseBody")}>{item.body}</Fact>
+          <Fact label={q("caseBody")} wide>
+            {item.body}
+          </Fact>
         </Facts>
       }
       decision={
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2">
           {item.publicationStatus === "published" ? (
-            <ButtonLink
-              href={`/admin/consultations/${item.slug}`}
-              variant="accent"
-              className="min-h-11 w-full sm:w-auto sm:self-start md:min-h-0"
-            >
-              {t("respond")}
-            </ButtonLink>
+            <Button asChild className="pointer-coarse:h-11">
+              <Link href={`/admin/consultations/${item.slug}`}>
+                {t("respond")}
+              </Link>
+            </Button>
           ) : null}
           <DecisionBar
             id={id}
             subject={item.title}
             pending={pending}
             error={error}
-            decided={decided}
             primary={
               item.publicationStatus === "published"
                 ? undefined
@@ -100,7 +107,7 @@ export function CaseRow({ item }: { item: PendingCase }) {
             }
             secondary={{
               label: q("hideCase"),
-              variant: "danger",
+              destructive: true,
               note: { min: 10, max: 500 },
               onConfirm: (reason) =>
                 decide({

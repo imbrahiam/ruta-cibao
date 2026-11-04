@@ -3,10 +3,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "use-intl";
-import { Select } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { orpc } from "@/lib/web/api";
 import { resolveMunicipalityFilter } from "./list-queries";
 import { useStaff } from "./staff-context";
+
+/** Radix items cannot carry an empty value, so "all" travels as this. */
+const ALL = "__all__";
 
 /**
  * The municipality a list is narrowed to, kept in the URL so a reload, a
@@ -29,7 +38,7 @@ export function MunicipalityFilter() {
   const params = useSearchParams();
   const { staffScope } = useStaff();
   const municipalities = useQuery(orpc.municipalities.list.queryOptions());
-  const selected = useMunicipalityFilter() ?? "";
+  const selected = useMunicipalityFilter() ?? ALL;
 
   const allowed = Array.isArray(staffScope)
     ? (municipalities.data ?? []).filter((item) => staffScope.includes(item.id))
@@ -38,7 +47,7 @@ export function MunicipalityFilter() {
 
   const change = (next: string) => {
     const query = new URLSearchParams(params);
-    if (next) query.set("municipality", next);
+    if (next !== ALL) query.set("municipality", next);
     else query.delete("municipality");
     const search = query.toString();
     // `scroll: false` keeps the reviewer where they were in the list.
@@ -48,23 +57,23 @@ export function MunicipalityFilter() {
   };
 
   return (
-    <div className="flex max-w-xs flex-col gap-1.5">
-      <label htmlFor="municipality-filter" className="text-[14px] font-medium">
-        {t("municipality")}
-      </label>
-      <Select
-        id="municipality-filter"
-        value={selected}
-        disabled={locked || municipalities.isPending}
-        onChange={(event) => change(event.target.value)}
-      >
-        {locked ? null : <option value="">{t("all")}</option>}
+    <Select
+      value={selected}
+      disabled={locked || municipalities.isPending}
+      onValueChange={change}
+    >
+      <SelectTrigger aria-label={t("municipality")} className="min-w-48">
+        <span className="text-muted-foreground">{t("municipality")}</span>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {locked ? null : <SelectItem value={ALL}>{t("all")}</SelectItem>}
         {allowed.map((item) => (
-          <option key={item.id} value={item.id}>
+          <SelectItem key={item.id} value={item.id}>
             {item.name}
-          </option>
+          </SelectItem>
         ))}
-      </Select>
-    </div>
+      </SelectContent>
+    </Select>
   );
 }

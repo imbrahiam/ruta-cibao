@@ -79,8 +79,15 @@ const serverSchema = z
       )
       .transform((value) => (value === undefined ? undefined : value === "1")),
 
-    // Enhanced Expo Push security; local development keeps in-app delivery.
-    EXPO_PUSH_ACCESS_TOKEN: optionalString(),
+    // Apple Push Notification service, token-based (.p8). Unset locally:
+    // external delivery is skipped and the in-app inbox still works.
+    APNS_KEY_ID: optionalString(),
+    APNS_TEAM_ID: optionalString(),
+    /** The .p8 key's PEM text; `\n` escapes are accepted for one-line env files. */
+    APNS_PRIVATE_KEY: optionalString(),
+    /** The iOS bundle id that receives pushes (do.rutacibao.app in production). */
+    APNS_TOPIC: optionalString(),
+    APNS_ENVIRONMENT: z.enum(["sandbox", "production"]).optional(),
 
     // Object storage. MinIO locally and on the VPS; any S3-compatible service
     // works, which is what lets the same image run on Railway with R2.
@@ -163,11 +170,19 @@ const serverSchema = z
       });
     }
     if (value.NODE_ENV !== "production") return;
-    if (!value.EXPO_PUSH_ACCESS_TOKEN && !value.DEMO_DEPLOYMENT) {
+    if (
+      !(
+        value.APNS_KEY_ID &&
+        value.APNS_TEAM_ID &&
+        value.APNS_PRIVATE_KEY &&
+        value.APNS_TOPIC
+      ) &&
+      !value.DEMO_DEPLOYMENT
+    ) {
       context.addIssue({
         code: "custom",
-        path: ["EXPO_PUSH_ACCESS_TOKEN"],
-        message: "required in production",
+        path: ["APNS_KEY_ID"],
+        message: "APNs credentials are required in production",
       });
     }
     if (

@@ -5,14 +5,15 @@ import { LogOut, ShieldAlert } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useTranslations } from "use-intl";
 import { Logo } from "@/components/brand/logo";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Placeholder } from "@/components/ui/loading";
 import { orpc } from "@/lib/web/api";
 import { authClient } from "@/lib/web/auth-client";
 import { ErrorPanel, InlineError } from "./error-panel";
 import { AdminPageTitleProvider } from "./page-frame";
 import { useResetAdminSession } from "./providers";
 import { AdminSignIn } from "./sign-in";
+import { ShellSkeleton } from "./skeletons";
 import { isStaffViewer, StaffProvider } from "./staff-context";
 import { AdminWorkspace } from "./workspace";
 
@@ -41,19 +42,19 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   if (me.isPending) {
     return (
-      <main id="contenido" className="container-page flex flex-col gap-4 py-10">
-        <span className="sr-only" role="status">
-          {t("loading")}
-        </span>
-        <Placeholder className="h-12 w-64" />
-        <Placeholder className="h-48" />
-      </main>
+      <div role="status" aria-busy="true">
+        <span className="sr-only">{t("loading")}</span>
+        <ShellSkeleton />
+      </div>
     );
   }
 
   if (me.isError) {
     return (
-      <main id="contenido" className="container-page py-10">
+      <main
+        id="contenido"
+        className="mx-auto w-full max-w-[1520px] px-4 py-10 sm:px-6 lg:px-10"
+      >
         <ErrorPanel error={me.error} onRetry={() => me.refetch()} />
       </main>
     );
@@ -69,16 +70,18 @@ export function AdminShell({ children }: { children: ReactNode }) {
         className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-5 py-10"
       >
         <Logo label={t("title")} />
-        <div className="flex items-start gap-3 rounded-card bg-card p-5 shadow-ring">
-          <ShieldAlert
-            aria-hidden
-            className="mt-0.5 size-5 shrink-0 text-ink-2"
-          />
-          <p className="t-body">{t("notStaff")}</p>
-        </div>
-        <Button onClick={signOut} block disabled={signingOut}>
-          <LogOut aria-hidden />
-          {t(signingOut ? "loading" : "signOut")}
+        <Alert>
+          <ShieldAlert aria-hidden="true" />
+          <AlertDescription>{t("notStaff")}</AlertDescription>
+        </Alert>
+        <Button
+          variant="outline"
+          onClick={signOut}
+          disabled={signingOut}
+          className="w-full"
+        >
+          <LogOut aria-hidden="true" />
+          {t("signOut")}
         </Button>
         <InlineError error={signOutError} />
       </main>

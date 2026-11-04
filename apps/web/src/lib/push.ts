@@ -1,16 +1,9 @@
-/** Expo acceptance and provider receipts are not a human read acknowledgement. */
+/** Native push over APNs. Provider acceptance is not a human read acknowledgement. */
+import { sign } from "node:crypto";
+import { type ClientHttp2Session, connect } from "node:http2";
 import { appTargetHref, parseAppTarget } from "@ruta/shared/app-target";
 import { catalogues } from "@ruta/shared/messages";
-import {
-  and,
-  asc,
-  eq,
-  inArray,
-  isNotNull,
-  lte,
-  notExists,
-  or,
-} from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, notExists, or } from "drizzle-orm";
 import { createTranslator } from "next-intl";
 import { z } from "zod";
 import { type DbTransaction, db } from "@/db";
@@ -26,57 +19,45 @@ import { env } from "@/lib/env";
 import { logInfo } from "@/lib/log";
 
 const SEND_BATCH_SIZE = 100;
-const RECEIPT_BATCH_SIZE = 1_000;
 const REQUEST_TIMEOUT_MS = 10_000;
-const RECEIPT_DELAY_MS = 15 * 60_000;
-const RECEIPT_RETRY_MS = 5 * 60_000;
-const RECEIPT_LIFETIME_MS = 24 * 60 * 60_000;
-const PERMANENT_ERRORS = ["DeviceNotRegistered", "MessageTooBig"];
+/** APNs accepts a provider token for an hour; renew well before. */
+const JWT_LIFETIME_MS = 40 * 60_000;
+/** Reasons that mean this token will never work again: disable the device. */
+const PERMANENT_ERRORS = [
+  "Unregistered",
+  "BadDeviceToken",
+  "DeviceTokenNotForTopic",
+  "PayloadTooLarge",
+];
 const providerErrorCodes = new Set([
   ...PERMANENT_ERRORS,
-  "MessageRateExceeded",
-  "MismatchSenderId",
-  "InvalidCredentials",
+  "TooManyRequests",
+  "InvalidProviderToken",
+  "ExpiredProviderToken",
+  "MissingProviderToken",
+  "TopicDisallowed",
+  "InternalServerError",
+  "ServiceUnavailable",
+  "Shutdown",
 ]);
 
-const providerFailure = z.object({
-  status: z.literal("error"),
-  message: z.string().optional(),
-  details: z.object({ error: z.string().optional() }).optional(),
-});
-const ticketSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("ok"), id: z.string().min(1).max(256) }),
-  providerFailure,
-]);
-const receiptSchema = z.discriminatedUnion("status", [
-  z.object({ status: z.literal("ok") }),
-  providerFailure,
-]);
-const requestErrors = z
-  .array(z.object({ code: z.string(), message: z.string().optional() }))
-  .optional();
-const sendResponseSchema = z.object({
-  data: z.array(ticketSchema).max(SEND_BATCH_SIZE).optional(),
-  errors: requestErrors,
-});
-const receiptResponseSchema = z.object({
-  data: z
-    .record(z.string(), receiptSchema)
-    .refine((receipts) => Object.keys(receipts).length <= RECEIPT_BATCH_SIZE)
-    .optional(),
-  errors: requestErrors,
-});
-
-type ExpoTicket = z.infer<typeof ticketSchema>;
+type ProviderTicket =
+  | { status: "ok"; id: string }
+  | { status: "error"; code: string };
 type Device = Pick<
   typeof nativePushDevices.$inferSelect,
-  "installationId" | "tokenHash" | "tokenCiphertext"
+  "installationId" | "tokenHash" | "tokenCiphertext" | "platform"
 >;
 
 export type PushPayload = { notificationId: string; href?: string };
 
 export function isPushEnabled(): boolean {
-  return Boolean(env.EXPO_PUSH_ACCESS_TOKEN);
+  return Boolean(
+    env.APNS_KEY_ID &&
+      env.APNS_TEAM_ID &&
+      env.APNS_PRIVATE_KEY &&
+      env.APNS_TOPIC,
+  );
 }
 
 /** Provider text can contain tokens; only known error codes leave this boundary. */
@@ -108,39 +89,95 @@ function canonicalTarget(href: string | undefined): string | undefined {
   }
 }
 
-async function requestExpo<T>(
-  operation: "send" | "getReceipts",
-  body: unknown,
-  schema: z.ZodType<T>,
-): Promise<T> {
-  const accessToken = env.EXPO_PUSH_ACCESS_TOKEN;
-  if (!accessToken) throw new Error("Native push is not configured");
+// ── APNs ──────────────────────────────────────────────────────────────────
 
-  let response: Response;
-  let reply: unknown;
-  try {
-    response = await fetch(`https://exp.host/--/api/v2/push/${operation}`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-      redirect: "error",
+let providerToken: { value: string; issuedAt: number } | undefined;
+
+/** The ES256 provider JWT APNs expects, cached for most of its hour. */
+function apnsJwt(): string {
+  const now = Date.now();
+  if (providerToken && now - providerToken.issuedAt < JWT_LIFETIME_MS)
+    return providerToken.value;
+  const header = Buffer.from(
+    JSON.stringify({ alg: "ES256", kid: env.APNS_KEY_ID }),
+  ).toString("base64url");
+  const claims = Buffer.from(
+    JSON.stringify({ iss: env.APNS_TEAM_ID, iat: Math.floor(now / 1000) }),
+  ).toString("base64url");
+  const key = (env.APNS_PRIVATE_KEY ?? "").replaceAll("\\n", "\n");
+  const signature = sign("sha256", Buffer.from(`${header}.${claims}`), {
+    key,
+    dsaEncoding: "ieee-p1363",
+  }).toString("base64url");
+  const value = `${header}.${claims}.${signature}`;
+  providerToken = { value, issuedAt: now };
+  return value;
+}
+
+function apnsOrigin(): string {
+  const environment =
+    env.APNS_ENVIRONMENT ??
+    (env.NODE_ENV === "production" ? "production" : "sandbox");
+  return environment === "production"
+    ? "https://api.push.apple.com"
+    : "https://api.sandbox.push.apple.com";
+}
+
+/** One HTTP/2 request to APNs; every outcome becomes a ticket, never a throw. */
+function sendToApns(
+  session: ClientHttp2Session,
+  token: string,
+  body: string,
+): Promise<ProviderTicket> {
+  return new Promise((resolve) => {
+    const request = session.request({
+      ":method": "POST",
+      ":path": `/3/device/${token}`,
+      authorization: `bearer ${apnsJwt()}`,
+      "apns-topic": env.APNS_TOPIC ?? "",
+      "apns-push-type": "alert",
+      "apns-priority": "10",
+      "apns-expiration": String(Math.floor(Date.now() / 1000) + 86_400),
+      "content-type": "application/json",
     });
-    reply = await response.json();
-  } catch {
-    throw new Error(`Expo ${operation} request failed`);
-  }
-  const parsed = schema.safeParse(reply);
-  if (!parsed.success) throw new Error(`Invalid Expo ${operation} response`);
-  if (!response.ok)
-    throw new Error(
-      `Expo ${operation} request failed (HTTP ${response.status})`,
-    );
-  return parsed.data;
+    let status = 0;
+    let apnsId = "";
+    let reply = "";
+    const timer = setTimeout(() => {
+      request.close();
+      resolve({ status: "error", code: "ServiceUnavailable" });
+    }, REQUEST_TIMEOUT_MS);
+    request.on("response", (headers) => {
+      status = Number(headers[":status"] ?? 0);
+      apnsId = String(headers["apns-id"] ?? "");
+    });
+    request.setEncoding("utf8");
+    request.on("data", (chunk: string) => {
+      reply += chunk;
+    });
+    request.on("end", () => {
+      clearTimeout(timer);
+      if (status === 200 && apnsId)
+        return resolve({ status: "ok", id: apnsId });
+      const parsed = z
+        .object({ reason: z.string().optional() })
+        .safeParse(reply ? JSON.parse(reply) : {});
+      // A 410 is always "this device is gone", whatever the reason says.
+      const reason =
+        status === 410
+          ? "Unregistered"
+          : parsed.success
+            ? parsed.data.reason
+            : undefined;
+      if (reason === "ExpiredProviderToken") providerToken = undefined;
+      resolve({ status: "error", code: errorCode(reason) });
+    });
+    request.on("error", () => {
+      clearTimeout(timer);
+      resolve({ status: "error", code: "ServiceUnavailable" });
+    });
+    request.end(body);
+  });
 }
 
 async function disableDevice(
@@ -148,6 +185,7 @@ async function disableDevice(
   installationId: string,
   tokenHash: string,
   ticketId: string,
+  reason: string,
 ): Promise<number> {
   const disabled = await tx
     .update(nativePushDevices)
@@ -166,7 +204,7 @@ async function disableDevice(
         action: "native_push.device.disabled",
         subjectType: "native_push_device",
         subjectId: installationId,
-        metadata: { reason: "DeviceNotRegistered", ticketId },
+        metadata: { reason, ticketId },
       },
       tx,
     );
@@ -177,15 +215,15 @@ async function storeTicket(
   tx: DbTransaction,
   notificationId: string,
   device: Device,
-  ticket: ExpoTicket,
+  ticket: ProviderTicket,
 ): Promise<{ accepted: number; retry: boolean }> {
-  const code =
-    ticket.status === "error" ? errorCode(ticket.details?.error) : null;
+  const code = ticket.status === "error" ? ticket.code : null;
   const outcome = {
-    expoTicketId: ticket.status === "ok" ? ticket.id : null,
-    status: ticket.status === "ok" ? ("pending" as const) : ("error" as const),
+    providerMessageId: ticket.status === "ok" ? ticket.id : null,
+    // APNs answers synchronously: accepted is final, there is no receipt.
+    status: ticket.status,
     errorCode: code,
-    checkAfter: new Date(Date.now() + RECEIPT_DELAY_MS),
+    checkAfter: new Date(),
     updatedAt: new Date(),
   };
   const [stored] = await tx
@@ -218,15 +256,21 @@ async function storeTicket(
     },
     tx,
   );
-  if (code === "DeviceNotRegistered")
-    await disableDevice(tx, device.installationId, device.tokenHash, stored.id);
+  if (code && PERMANENT_ERRORS.includes(code))
+    await disableDevice(
+      tx,
+      device.installationId,
+      device.tokenHash,
+      stored.id,
+      code,
+    );
   return {
     accepted: ticket.status === "ok" ? 1 : 0,
     retry: code !== null && !PERMANENT_ERRORS.includes(code),
   };
 }
 
-/** Retry only devices whose notification has not already been accepted by Expo. */
+/** Retry only devices whose notification APNs has not already accepted. */
 export async function sendPushToUser(
   userId: string,
   payload: PushPayload,
@@ -277,6 +321,7 @@ export async function sendPushToUser(
           installationId: nativePushDevices.installationId,
           tokenHash: nativePushDevices.tokenHash,
           tokenCiphertext: nativePushDevices.tokenCiphertext,
+          platform: nativePushDevices.platform,
         })
         .from(nativePushDevices)
         .where(
@@ -300,7 +345,7 @@ export async function sendPushToUser(
                       nativePushDevices.tokenHash,
                     ),
                     or(
-                      isNotNull(nativePushTickets.expoTicketId),
+                      isNotNull(nativePushTickets.providerMessageId),
                       and(
                         eq(nativePushTickets.status, "error"),
                         inArray(nativePushTickets.errorCode, PERMANENT_ERRORS),
@@ -314,31 +359,42 @@ export async function sendPushToUser(
         .orderBy(asc(nativePushDevices.installationId))
         .for("update");
       if (!pending.length) return { accepted: 0, retry: false };
-      const response = await requestExpo(
-        "send",
-        pending.map((device) => ({
-          to: decryptSensitive(device.tokenCiphertext),
-          title: catalogue("notifications.title"),
-          body: catalogue("notifications.pushGeneric"),
+      // iOS goes to APNs. Android (FCM) isn't wired yet: its devices wait,
+      // registered, and the in-app inbox still carries the notice.
+      const ios = pending.filter((device) => device.platform === "ios");
+      if (ios.length < pending.length)
+        logInfo("native_push.android.unconfigured", {
+          devices: pending.length - ios.length,
+        });
+      if (!ios.length) return { accepted: 0, retry: false };
+      const body = JSON.stringify({
+        aps: {
+          alert: {
+            title: catalogue("notifications.title"),
+            body: catalogue("notifications.pushGeneric"),
+          },
           sound: "default",
-          data,
-        })),
-        sendResponseSchema,
-      );
-      if (
-        response.errors?.length ||
-        !response.data ||
-        response.data.length !== pending.length
-      )
-        throw new Error("Expo rejected native push batch");
+          "thread-id": "notifications",
+        },
+        ...data,
+      });
+      const session = connect(apnsOrigin());
+      session.on("error", () => {});
       let batchAccepted = 0;
       let batchRetry = false;
-      for (const [index, ticket] of response.data.entries()) {
-        const device = pending[index];
-        if (!device) throw new Error("Invalid Expo native push ticket count");
-        const stored = await storeTicket(tx, notificationId, device, ticket);
-        batchAccepted += stored.accepted;
-        batchRetry ||= stored.retry;
+      try {
+        for (const device of ios) {
+          const ticket = await sendToApns(
+            session,
+            decryptSensitive(device.tokenCiphertext),
+            body,
+          );
+          const stored = await storeTicket(tx, notificationId, device, ticket);
+          batchAccepted += stored.accepted;
+          batchRetry ||= stored.retry;
+        }
+      } finally {
+        session.close();
       }
       return { accepted: batchAccepted, retry: batchRetry };
     });
@@ -349,103 +405,13 @@ export async function sendPushToUser(
   return accepted;
 }
 
-/** Poll accepted tickets after fifteen minutes, in provider-sized batches. */
+/**
+ * APNs reports each delivery in its response, so there are no receipts to
+ * poll; the job stays scheduled and returns nothing to do.
+ */
 export async function checkNativePushReceipts(): Promise<{
   checked: number;
   disabled: number;
 }> {
-  if (!isPushEnabled()) return { checked: 0, disabled: 0 };
-  let checked = 0;
-  let disabled = 0;
-  let retry = false;
-  for (;;) {
-    const result = await db.transaction(async (tx) => {
-      const tickets = await tx
-        .select()
-        .from(nativePushTickets)
-        .where(
-          and(
-            eq(nativePushTickets.status, "pending"),
-            isNotNull(nativePushTickets.expoTicketId),
-            lte(nativePushTickets.checkAfter, new Date()),
-          ),
-        )
-        .orderBy(asc(nativePushTickets.checkAfter), asc(nativePushTickets.id))
-        .limit(RECEIPT_BATCH_SIZE)
-        .for("update", { skipLocked: true });
-      if (!tickets.length) return { checked: 0, disabled: 0, retry: false };
-      const response = await requestExpo(
-        "getReceipts",
-        {
-          ids: tickets.flatMap((ticket) =>
-            ticket.expoTicketId ? [ticket.expoTicketId] : [],
-          ),
-        },
-        receiptResponseSchema,
-      );
-      if (response.errors?.length || !response.data)
-        throw new Error("Expo rejected native push receipt batch");
-      let batchDisabled = 0;
-      let batchRetry = false;
-      for (const ticket of tickets) {
-        const receipt = ticket.expoTicketId
-          ? response.data[ticket.expoTicketId]
-          : undefined;
-        const expired =
-          Date.now() - ticket.createdAt.getTime() >= RECEIPT_LIFETIME_MS;
-        const code =
-          receipt?.status === "error"
-            ? errorCode(receipt.details?.error)
-            : !receipt && expired
-              ? "ReceiptNotFound"
-              : null;
-        const status = receipt?.status ?? (expired ? "error" : "pending");
-        await tx
-          .update(nativePushTickets)
-          .set({
-            status,
-            errorCode: code,
-            checkAfter: new Date(Date.now() + RECEIPT_RETRY_MS),
-            updatedAt: new Date(),
-          })
-          .where(eq(nativePushTickets.id, ticket.id));
-        await recordAudit(
-          {
-            action: receipt
-              ? "native_push.receipt.checked"
-              : "native_push.receipt.missing",
-            subjectType: "native_push_ticket",
-            subjectId: ticket.id,
-            metadata: { status, errorCode: code },
-          },
-          tx,
-        );
-        if (code === "DeviceNotRegistered")
-          batchDisabled += await disableDevice(
-            tx,
-            ticket.installationId,
-            ticket.tokenHash,
-            ticket.id,
-          );
-        if (
-          (!receipt && !expired) ||
-          (receipt?.status === "error" &&
-            code !== null &&
-            !PERMANENT_ERRORS.includes(code))
-        )
-          batchRetry = true;
-      }
-      return {
-        checked: tickets.length,
-        disabled: batchDisabled,
-        retry: batchRetry,
-      };
-    });
-    checked += result.checked;
-    disabled += result.disabled;
-    retry ||= result.retry;
-    if (result.checked < RECEIPT_BATCH_SIZE) break;
-  }
-  if (retry) throw new Error("Native push receipt checks incomplete");
-  return { checked, disabled };
+  return { checked: 0, disabled: 0 };
 }

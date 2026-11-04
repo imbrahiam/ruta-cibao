@@ -18,9 +18,8 @@ import { logInfo } from "@/lib/log";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 /**
- * The native app's schemes. Better Auth's Expo plugin turns the client's
- * `expo-origin` header into `Origin`, so these arrive on auth requests. A
- * scheme is not authentication — the session cookie still is — it only stops
+ * The native app's schemes: the app sends `Origin: <scheme>://` on auth
+ * requests. A scheme is not authentication — the session cookie still is — it only stops
  * this check from rejecting the app as a foreign web page.
  */
 const NATIVE_ORIGINS = new Set([
@@ -30,9 +29,7 @@ const NATIVE_ORIGINS = new Set([
 ]);
 
 function isNativeOrigin(origin: string): boolean {
-  if (NATIVE_ORIGINS.has(origin)) return true;
-  // Expo Go reports `exp://<host>:<port>`; development only.
-  return process.env.NODE_ENV !== "production" && origin.startsWith("exp://");
+  return NATIVE_ORIGINS.has(origin);
 }
 
 /**

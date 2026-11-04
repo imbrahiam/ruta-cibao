@@ -1,5 +1,6 @@
 import {
   index,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -172,3 +173,38 @@ export const consultationResponses = pgTable(
 );
 
 export type ConsultationResponse = typeof consultationResponses.$inferSelect;
+
+/**
+ * Photos a case carries, in the author's order (at most four, enforced where
+ * they are attached). Dimensions are stored so a feed can reserve the space
+ * before the image arrives. `storageKey` is a bucket key, or a `/…` path for
+ * seeded imagery shipped in `public/` (see `imageUrl`).
+ */
+export const consultationPhotos = pgTable(
+  "consultation_photos",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    consultationId: uuid()
+      .notNull()
+      .references(() => consultations.id, { onDelete: "cascade" }),
+    storageKey: text().notNull(),
+    width: integer().notNull(),
+    height: integer().notNull(),
+    /** What a screen reader says instead. */
+    alt: text(),
+    position: integer().notNull().default(0),
+    uploadedByUserId: text().references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("consultation_photos_key_idx").on(table.storageKey),
+    index("consultation_photos_case_idx").on(
+      table.consultationId,
+      table.position,
+    ),
+  ],
+);
+
+export type ConsultationPhoto = typeof consultationPhotos.$inferSelect;

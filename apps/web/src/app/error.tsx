@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/site/button";
 import { getT } from "@/lib/web/i18n";
 
 /** The last resort: a calm message and a retry, never a stack trace. */

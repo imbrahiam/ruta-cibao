@@ -1,52 +1,71 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, CircleAlert } from "lucide-react";
 import {
   createContext,
   type ReactNode,
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from "react";
+import { cn } from "@/lib/utils";
 
-type Announce = (message: string) => void;
+type Tone = "success" | "error";
+type Announce = (message: string, tone?: Tone) => void;
 
 const OutcomeContext = createContext<Announce | null>(null);
 
+/** How long each kind stays: a failure is read, a confirmation only glanced at. */
+const VISIBLE_MS: Record<Tone, number> = { success: 3000, error: 7000 };
+
 /**
- * A visible, announced confirmation. A decision that quietly disappears from a
- * list leaves a reviewer unsure it went through, so every successful action
- * says so in text, in a polite live region, for a few seconds.
+ * A short, announced confirmation. Decisions leave their list at once, so a
+ * reviewer needs a word that the server took them: it says so in text, in a
+ * live region, for a few seconds. A failure the card cannot show itself (a
+ * conflict) uses the same place, as an alert.
  */
 export function OutcomeProvider({ children }: { children: ReactNode }) {
-  const [message, setMessage] = useState<string | null>(null);
+  const [outcome, setOutcome] = useState<{
+    message: string;
+    tone: Tone;
+    id: number;
+  } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const count = useRef(0);
 
-  const announce = useCallback<Announce>((next) => {
+  const announce = useCallback<Announce>((message, tone = "success") => {
     clearTimeout(timer.current);
-    setMessage(next);
-    timer.current = setTimeout(() => setMessage(null), 6000);
+    count.current += 1;
+    setOutcome({ message, tone, id: count.current });
+    timer.current = setTimeout(() => setOutcome(null), VISIBLE_MS[tone]);
   }, []);
 
   useEffect(() => () => clearTimeout(timer.current), []);
 
-  const value = useMemo(() => announce, [announce]);
+  const Icon = outcome?.tone === "error" ? CircleAlert : CheckCircle2;
 
   return (
-    <OutcomeContext.Provider value={value}>
+    <OutcomeContext.Provider value={announce}>
       {children}
       <div
-        role="status"
-        aria-live="polite"
+        role={outcome?.tone === "error" ? "alert" : "status"}
+        aria-live={outcome?.tone === "error" ? "assertive" : "polite"}
         className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[max(16px,env(safe-area-inset-bottom))]"
       >
-        {message ? (
-          <p className="animate-rise pointer-events-auto flex max-w-md items-center gap-2.5 rounded-full bg-ink px-4 py-3 text-[15px] font-medium text-paper shadow-lg">
-            <CheckCircle2 aria-hidden className="size-5 shrink-0" />
-            {message}
+        {outcome ? (
+          <p
+            key={outcome.id}
+            className={cn(
+              "animate-rise pointer-events-auto flex max-w-md items-center gap-2.5 rounded-full px-4 py-2.5 text-sm font-medium shadow-(--shadow-elevated)",
+              outcome.tone === "error"
+                ? "bg-destructive text-destructive-foreground"
+                : "bg-foreground text-background",
+            )}
+          >
+            <Icon aria-hidden className="size-4 shrink-0" />
+            {outcome.message}
           </p>
         ) : null}
       </div>

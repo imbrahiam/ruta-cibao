@@ -2,7 +2,7 @@
  * Sending someone a notification.
  *
  * One call, three destinations, and only the in-app one is guaranteed. Native
- * push needs an Expo access token and a registered device; email needs a Resend
+ * push needs APNs credentials and a registered device; email needs a Resend
  * key. External channels respect the recipient's current preferences without
  * removing their durable in-app history.
  *

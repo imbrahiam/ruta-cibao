@@ -4,10 +4,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, RefreshCw, ShieldAlert } from "lucide-react";
 import { type FormEvent, useId, useState } from "react";
 import { useTranslations } from "use-intl";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import { api } from "@/lib/web/api";
 import { failureKind, failureReason } from "@/lib/web/errors";
+import { FormField } from "./form-field";
 import { useOutcome } from "./outcome";
 
 /**
@@ -32,6 +34,8 @@ export function errorMessageKey(error: unknown) {
       return "shell.offline" as const;
     case "conflict":
       return "shell.conflict" as const;
+    case "not_found":
+      return "shell.gone" as const;
     default:
       return "error" as const;
   }
@@ -52,28 +56,37 @@ export function ErrorPanel({
   const needsStepUp = failureReason(error) === "staff_step_up_required";
   const Icon = refused ? ShieldAlert : AlertTriangle;
 
+  if (compact) {
+    return (
+      <p role="alert" className="text-sm text-destructive">
+        {t(errorMessageKey(error))}
+      </p>
+    );
+  }
+
   return (
-    <div
-      role="alert"
-      className={
-        compact
-          ? "flex flex-col items-start gap-3 text-[14px] text-danger-ink"
-          : "flex flex-col items-start gap-4 rounded-card bg-card p-5 shadow-ring"
-      }
+    <Alert
+      variant={refused ? "default" : "destructive"}
+      className="rounded-(--radius-card) p-4"
     >
-      <div className="flex items-start gap-3">
-        <Icon aria-hidden className="mt-0.5 size-5 shrink-0 text-danger-ink" />
-        <p className="t-body text-ink">{t(errorMessageKey(error))}</p>
-      </div>
-      {needsStepUp ? (
-        <StaffStepUpForm onVerified={onRetry} />
-      ) : onRetry && !compact && failureKind(error) !== "forbidden" ? (
-        <Button size="sm" onClick={onRetry}>
-          <RefreshCw aria-hidden />
-          {common("retry")}
-        </Button>
-      ) : null}
-    </div>
+      <Icon aria-hidden="true" />
+      <AlertDescription className="text-foreground">
+        <p>{t(errorMessageKey(error))}</p>
+        {needsStepUp ? (
+          <StaffStepUpForm onVerified={onRetry} />
+        ) : onRetry && !refused ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRetry}
+            className="mt-2"
+          >
+            <RefreshCw aria-hidden="true" />
+            {common("retry")}
+          </Button>
+        ) : null}
+      </AlertDescription>
+    </Alert>
   );
 }
 
@@ -119,7 +132,7 @@ function StaffStepUpForm({
   return (
     <form
       onSubmit={submit}
-      className="flex w-full max-w-sm flex-col gap-3"
+      className="mt-2 flex w-full max-w-sm flex-col gap-3"
       noValidate
     >
       <div className="flex flex-wrap gap-2">
@@ -127,7 +140,7 @@ function StaffStepUpForm({
           <Button
             key={item}
             size="sm"
-            variant={mode === item ? "accent" : "secondary"}
+            variant={mode === item ? "secondary" : "ghost"}
             aria-pressed={mode === item}
             onClick={() => {
               setMode(item);
@@ -139,24 +152,21 @@ function StaffStepUpForm({
           </Button>
         ))}
       </div>
-      <Field htmlFor={`${uid}-stepup`} label={t(mode)} error={stepUpError}>
+      <FormField htmlFor={`${uid}-stepup`} label={t(mode)} error={stepUpError}>
         <Input
           id={`${uid}-stepup`}
           inputMode={mode === "totp" ? "numeric" : "text"}
           autoComplete="one-time-code"
           maxLength={mode === "totp" ? 6 : 64}
           value={code}
+          aria-invalid={stepUpError ? true : undefined}
+          aria-describedby={stepUpError ? `${uid}-stepup-error` : undefined}
           onChange={(event) => setCode(event.target.value)}
         />
-      </Field>
+      </FormField>
       <div>
-        <Button
-          type="submit"
-          variant="accent"
-          size="sm"
-          disabled={busy || !code.trim()}
-        >
-          {busy ? t("loading") : t("verifySecurity")}
+        <Button type="submit" size="sm" disabled={busy || !code.trim()}>
+          {t("verifySecurity")}
         </Button>
       </div>
     </form>

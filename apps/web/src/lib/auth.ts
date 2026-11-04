@@ -1,5 +1,4 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { expo } from "@better-auth/expo";
 import { passkey } from "@better-auth/passkey";
 import { catalogues } from "@ruta/shared/messages";
 import { normalizePhone } from "@ruta/shared/phone";
@@ -47,9 +46,9 @@ import {
 /** The domain phone-only accounts park their placeholder address on. */
 const PHONE_EMAIL_DOMAIN = "telefono.rutacibao.local";
 
-/** Native app schemes; the development client and Expo Go only outside production. */
+/** Native app schemes; the development build's only outside production. */
 const NATIVE_ORIGINS = ["rutacibao://", "rutacibao-preview://"];
-const DEVELOPMENT_NATIVE_ORIGINS = ["rutacibao-dev://", "exp://"];
+const DEVELOPMENT_NATIVE_ORIGINS = ["rutacibao-dev://"];
 
 const OTP_COOLDOWN_MS = 60_000;
 const HOUR_MS = 3_600_000;
@@ -303,7 +302,6 @@ function createAuth() {
     },
 
     plugins: [
-      expo(),
       otpGuards(),
       phoneNumber({
         otpLength: 6,

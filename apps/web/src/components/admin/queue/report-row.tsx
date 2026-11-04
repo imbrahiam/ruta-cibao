@@ -3,14 +3,12 @@
 import type { ApiOutputs, DecideReportInput } from "@ruta/contracts";
 import { useId } from "react";
 import { useTranslations } from "use-intl";
-import { Tag } from "@/components/ui/tag";
 import { api } from "@/lib/web/api";
 import { DecisionBar } from "./decision-bar";
 import {
   Fact,
   Facts,
   ItemRow,
-  ItemTitle,
   MunicipalityTag,
   usePerson,
   useWhen,
@@ -27,33 +25,35 @@ export function ReportRow({ report }: { report: PlaceCorrection }) {
   const id = useId();
   const when = useWhen();
   const person = usePerson();
-  const { decide, pending, error, decided } = useDecision<
-    Body<DecideReportInput>
-  >((input) => api.moderation.decideReport(input));
+  const { decide, pending, error } = useDecision<Body<DecideReportInput>>(
+    (input) => api.moderation.decideReport(input),
+    { queue: "reports", id: report.id },
+  );
 
   return (
     <ItemRow
       titleId={`${id}-title`}
-      item={
+      title={report.placeName}
+      meta={
         <>
-          <ItemTitle id={`${id}-title`}>{report.placeName}</ItemTitle>
-          <div className="flex flex-wrap gap-1.5">
-            <MunicipalityTag name={report.municipalityName} />
-            <Tag tone="warning">{q(`reportReason.${report.reason}`)}</Tag>
-          </div>
-          <p className="t-small text-ink-2">
-            {person("reportedBy", report.reportedBy)}
-          </p>
-          <p className="t-small text-ink-2">
-            {when("receivedAt", report.createdAt)}
-          </p>
+          <MunicipalityTag name={report.municipalityName} />
+          {q(`reportReason.${report.reason}`)}
+        </>
+      }
+      byline={
+        <>
+          {person("reportedBy", report.reportedBy)}
+          {when("receivedAt", report.createdAt)}
         </>
       }
       detail={
-        <Facts>
-          <Fact label={q("place")}>{report.placeName}</Fact>
-          <Fact label={q("details")}>{report.details ?? q("noDetails")}</Fact>
-        </Facts>
+        report.details ? (
+          <Facts>
+            <Fact label={q("details")} wide>
+              {report.details}
+            </Fact>
+          </Facts>
+        ) : undefined
       }
       decision={
         <DecisionBar
@@ -61,7 +61,6 @@ export function ReportRow({ report }: { report: PlaceCorrection }) {
           subject={report.placeName}
           pending={pending}
           error={error}
-          decided={decided}
           primary={{
             label: t("resolve"),
             onConfirm: () =>

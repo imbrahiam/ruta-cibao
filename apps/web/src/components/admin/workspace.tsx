@@ -1,33 +1,56 @@
 "use client";
 
 import type { ApiOutputs } from "@ruta/contracts";
-import { useIsFetching, useQuery } from "@tanstack/react-query";
-import {
-  ChevronRight,
-  ChevronsUpDown,
-  Globe,
-  LoaderCircle,
-  LogOut,
-  Menu,
-  PanelLeftClose,
-  PanelLeftOpen,
-  UserRound,
-  X,
-} from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronsUpDown, Globe, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslations } from "use-intl";
-import { Logo, LogoMark } from "@/components/brand/logo";
-import { Button, IconButton } from "@/components/ui/button";
+import { LogoMark } from "@/components/brand/logo";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import { orpc } from "@/lib/web/api";
-import { cx } from "@/lib/web/cx";
 import { InlineError } from "./error-panel";
+import { prefetchAdminRoute } from "./list-queries";
 import { ADMIN_GROUPS, ADMIN_SECTIONS, findAdminSection } from "./nav";
+import { OfflineBanner } from "./offline-banner";
 import { useAdminPageTitle } from "./page-frame";
 import type { Staff } from "./staff-context";
 import { useAdminPrefetch } from "./use-admin-prefetch";
-import styles from "./workspace.module.css";
 
 type WorkspaceProps = {
   staff: Staff;
@@ -36,6 +59,11 @@ type WorkspaceProps = {
   signOutError: unknown;
   children: ReactNode;
 };
+
+/** The sidebar's own state cookie (shadcn's), read once on the client. */
+function sidebarStartsOpen() {
+  return !document.cookie.split("; ").includes("sidebar_state=false");
+}
 
 export function AdminWorkspace({
   staff,
@@ -50,19 +78,50 @@ export function AdminWorkspace({
   const [savedSearches, setSavedSearches] = useState<Record<string, string>>(
     {},
   );
+  const [open, setOpen] = useState(sidebarStartsOpen);
   const prefetch = useAdminPrefetch(staff);
   const pageTitle = useAdminPageTitle();
   const counts = useQuery(orpc.moderation.counts.queryOptions());
   const municipalities = useQuery(orpc.municipalities.list.queryOptions());
-  const fetching = useIsFetching() > 0;
-  const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const drawer = useRef<HTMLDialogElement>(null);
-  const desktopToggle = useRef<HTMLButtonElement>(null);
-  const previousPath = useRef(pathname);
   const active = findAdminSection(pathname);
   const nested = active && pathname !== active.href;
 
+  // Once the counts are known, read the sections that have something waiting
+  // in the background, so a click lands on rows already in the cache.
+  const client = useQueryClient();
+  const warmed = useRef(false);
+  useEffect(() => {
+    const data = counts.data;
+    if (!data || warmed.current) return;
+    const timer = setTimeout(() => {
+      warmed.current = true;
+      for (const section of ADMIN_SECTIONS) {
+        if (section.countKey && data[section.countKey] > 0) {
+          void prefetchAdminRoute(client, section.href, staff);
+        }
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [counts.data, client, staff]);
+
+  // The tab says where you are and how much waits there, so it is readable
+  // from another tab: "Fotografías (1) · Mesa municipal".
+  const waiting =
+    active?.countKey && (!nested || pathname === active.relatedPath)
+      ? counts.data?.[active.countKey]
+      : undefined;
+  const page = nested
+    ? pageTitle || t("shell.detail")
+    : active
+      ? t(active.label)
+      : "";
+  useEffect(() => {
+    if (!page) return;
+    document.title = `${page}${waiting ? ` (${waiting})` : ""} · ${t("title")}`;
+  }, [page, waiting, t]);
+
+  // A list remembers its filters: coming back to it from a detail page, or
+  // from another section, lands on the same view.
   useEffect(() => {
     if (ADMIN_SECTIONS.some((section) => section.href === pathname)) {
       setSavedSearches((current) =>
@@ -85,226 +144,92 @@ export function AdminWorkspace({
           .filter(Boolean)
           .join(", ");
 
-  useEffect(() => {
-    setCollapsed(
-      document.cookie.split("; ").includes("ruta-admin-sidebar=collapsed"),
-    );
-  }, []);
-
-  useEffect(() => {
-    if (previousPath.current !== pathname) {
-      previousPath.current = pathname;
-      setMobileOpen(false);
-    }
-  }, [pathname]);
-
-  useEffect(() => {
-    if (!mobileOpen) return;
-    const dialog = drawer.current;
-    if (!dialog) return;
-    dialog.showModal();
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const desktop = window.matchMedia("(width > 1000px)");
-    const closeOnDesktop = () => {
-      if (desktop.matches) {
-        dialog.close();
-        setMobileOpen(false);
-        desktopToggle.current?.focus();
-      }
-    };
-    desktop.addEventListener("change", closeOnDesktop);
-    return () => {
-      dialog.close();
-      document.body.style.overflow = overflow;
-      desktop.removeEventListener("change", closeOnDesktop);
-    };
-  }, [mobileOpen]);
-
-  const toggleCollapsed = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    // biome-ignore lint/suspicious/noDocumentCookie: persist the UI preference in browsers without Cookie Store.
-    document.cookie = `ruta-admin-sidebar=${next ? "collapsed" : "expanded"}; Path=/admin; Max-Age=604800; SameSite=Lax`;
-  };
-
-  const sidebar = (compact: boolean, mobile = false) => (
-    <Sidebar
-      staff={staff}
-      compact={compact}
-      mobile={mobile}
-      scope={scope || t("loading")}
-      activeHref={active?.href}
-      counts={counts.isError ? undefined : counts.data}
-      countsUnavailable={counts.isError}
-      prefetch={prefetch}
-      destination={destination}
-      onNavigate={() => setMobileOpen(false)}
-      onToggle={mobile ? () => setMobileOpen(false) : toggleCollapsed}
-      onSignOut={onSignOut}
-      signingOut={signingOut}
-      signOutError={signOutError}
-    />
-  );
-
   return (
-    <div className={styles.shell} data-collapsed={collapsed}>
-      <aside className={styles.desktopSidebar}>{sidebar(collapsed)}</aside>
-      <dialog
-        ref={drawer}
-        className={styles.mobileDrawer}
-        aria-label={t("shell.nav")}
-        onClose={() => setMobileOpen(false)}
-        onCancel={() => setMobileOpen(false)}
-        onPointerDown={(event) => {
-          const box = event.currentTarget.getBoundingClientRect();
-          if (
-            event.clientX < box.left ||
-            event.clientX > box.right ||
-            event.clientY < box.top ||
-            event.clientY > box.bottom
-          )
-            setMobileOpen(false);
-        }}
-      >
-        {sidebar(false, true)}
-      </dialog>
-      <div className={styles.workspace}>
-        <header className={styles.topbar}>
-          <div className={styles.topbarStart}>
-            <span className={styles.mobileTrigger}>
-              <IconButton
-                label={t("shell.openNavigation")}
-                variant="ghost"
-                onClick={() => setMobileOpen(true)}
-                aria-expanded={mobileOpen}
-              >
-                <Menu />
-              </IconButton>
-            </span>
-            <span className={styles.desktopTrigger}>
-              <IconButton
-                ref={desktopToggle}
-                label={t(
-                  collapsed
-                    ? "shell.expandNavigation"
-                    : "shell.collapseNavigation",
-                )}
-                variant="ghost"
-                aria-expanded={!collapsed}
-                onClick={toggleCollapsed}
-              >
-                {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-              </IconButton>
-            </span>
-            <nav
-              aria-label={t("shell.breadcrumb")}
-              className={styles.breadcrumb}
-            >
-              <ol>
-                <li>
-                  {pathname === "/admin" ? (
-                    <span aria-current="page">{t("shell.overview")}</span>
-                  ) : (
-                    <Link href="/admin">{t("shell.overview")}</Link>
-                  )}
-                </li>
-                {active && active.href !== "/admin" ? (
-                  <>
-                    <li aria-hidden="true">
-                      <ChevronRight size={14} />
-                    </li>
-                    <li>
-                      {nested ? (
-                        <Link
-                          href={destination(active.href)}
-                          onMouseEnter={() =>
-                            prefetch(destination(active.href))
-                          }
-                        >
-                          {t(active.label)}
-                        </Link>
-                      ) : (
-                        <span aria-current="page">{t(active.label)}</span>
-                      )}
-                    </li>
-                  </>
-                ) : null}
-                {nested ? (
-                  <>
-                    <li aria-hidden="true">
-                      <ChevronRight size={14} />
-                    </li>
-                    <li className={styles.detailCrumb}>
-                      <span aria-current="page">
-                        {pathname === active.relatedPath
-                          ? t("pending")
-                          : pageTitle || t("shell.detail")}
-                      </span>
-                    </li>
-                  </>
-                ) : null}
-              </ol>
-            </nav>
-          </div>
-          <div className={styles.topbarEnd}>
-            <span className={styles.scope}>{scope || t("loading")}</span>
-            <span className={styles.fetchState} role="status">
-              {fetching ? (
-                <>
-                  <LoaderCircle
-                    size={14}
-                    aria-hidden="true"
-                    className={styles.spinner}
-                  />
-                  <span>{t("shell.updating")}</span>
-                </>
-              ) : (
-                <span>{t("shell.upToDate")}</span>
+    <SidebarProvider open={open} onOpenChange={setOpen}>
+      <AdminSidebar
+        staff={staff}
+        scope={scope}
+        activeHref={active?.href}
+        counts={counts.data}
+        countsUnavailable={counts.isError && !counts.data}
+        prefetch={prefetch}
+        destination={destination}
+        onSignOut={onSignOut}
+        signingOut={signingOut}
+        signOutError={signOutError}
+      />
+      <SidebarInset className="min-w-0">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
+          <div className="flex min-w-0 items-center gap-2">
+            <SidebarTrigger
+              className={open ? "md:hidden" : undefined}
+              aria-label={t(
+                open ? "shell.collapseNavigation" : "shell.expandNavigation",
               )}
-            </span>
+            />
+            {nested ? (
+              <Breadcrumb aria-label={t("shell.breadcrumb")}>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link
+                        href={destination(active.href)}
+                        onMouseEnter={() => prefetch(destination(active.href))}
+                      >
+                        {t(active.label)}
+                      </Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem className="min-w-0">
+                    <BreadcrumbPage className="truncate">
+                      {pathname === active.relatedPath
+                        ? t("pending")
+                        : pageTitle || t("shell.detail")}
+                    </BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            ) : null}
           </div>
         </header>
-        <main id="contenido" className={styles.content}>
+        <OfflineBanner />
+        <main
+          id="contenido"
+          className="mx-auto flex w-full max-w-[1520px] min-w-0 flex-1 flex-col gap-6 px-4 pt-2 pb-10 sm:px-6 lg:px-10"
+        >
           {children}
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 
-function Sidebar({
+function AdminSidebar({
   staff,
-  compact,
-  mobile,
   scope,
   activeHref,
   counts,
   countsUnavailable,
   prefetch,
   destination,
-  onNavigate,
-  onToggle,
   onSignOut,
   signingOut,
   signOutError,
 }: {
   staff: Staff;
-  compact: boolean;
-  mobile: boolean;
   scope: string;
   activeHref?: string;
   counts?: ApiOutputs["moderation"]["counts"];
   countsUnavailable: boolean;
   prefetch: (href: string) => void;
   destination: (href: string) => string;
-  onNavigate: () => void;
-  onToggle: () => void;
   onSignOut: () => Promise<void>;
   signingOut: boolean;
   signOutError: unknown;
 }) {
   const t = useTranslations("admin");
+  const { setOpenMobile } = useSidebar();
   const role = t(
     staff.staffRole === "admin" ? "shell.roleAdmin" : "shell.roleModerator",
   );
@@ -313,143 +238,170 @@ function Sidebar({
     .split(/\s+/)
     .slice(0, 2)
     .map((word) => word[0])
-    .join("");
+    .join("")
+    .toUpperCase();
+  const name = staff.displayName || t("shell.accountMenu");
 
   return (
-    <div className={styles.sidebarInner} data-compact={compact}>
-      <div className={styles.sidebarHeader}>
-        <Link
-          href="/admin"
-          aria-label={t("title")}
-          className={styles.brand}
-          onNavigate={onNavigate}
-        >
-          {compact ? <LogoMark /> : <Logo label={t("title")} />}
-        </Link>
-        {mobile ? (
-          <IconButton
-            label={t("shell.closeNavigation")}
-            variant="ghost"
-            size="sm"
-            onClick={onToggle}
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <div className="flex min-h-10 items-center justify-between gap-1 group-data-[collapsible=icon]:justify-center">
+          <Link
+            href="/admin"
+            aria-label={t("title")}
+            onClick={() => setOpenMobile(false)}
+            className="flex min-w-0 items-center gap-2.5 rounded-[10px] p-1.5 outline-hidden ring-sidebar-ring focus-visible:ring-2 group-data-[collapsible=icon]:p-0"
           >
-            <X />
-          </IconButton>
-        ) : null}
-      </div>
-      <nav aria-label={t("shell.nav")} className={styles.navigation}>
-        {ADMIN_GROUPS.map((group) => (
-          <section className={styles.navGroup} key={group.id}>
-            <h2 className={styles.groupTitle}>{t(group.label)}</h2>
-            <ul>
-              {ADMIN_SECTIONS.filter(
-                (section) =>
-                  section.group === group.id &&
-                  (!section.adminOnly || staff.staffRole === "admin"),
-              ).map((section) => {
-                const Icon = section.icon;
-                const count = section.countKey
-                  ? counts?.[section.countKey]
-                  : undefined;
-                return (
-                  <li key={section.href}>
-                    <Link
-                      href={destination(section.href)}
-                      aria-label={
-                        count
-                          ? `${t(section.label)}, ${t("shell.pendingCount", { count })}`
-                          : t(section.label)
-                      }
-                      aria-current={
-                        activeHref === section.href ? "page" : undefined
-                      }
-                      className={cx(
-                        styles.navLink,
-                        activeHref === section.href && styles.activeLink,
-                      )}
-                      title={compact ? t(section.label) : undefined}
-                      onPointerEnter={() => prefetch(destination(section.href))}
-                      onFocus={() => prefetch(destination(section.href))}
-                      onTouchStart={() => prefetch(destination(section.href))}
-                      onNavigate={onNavigate}
-                    >
-                      <Icon size={18} aria-hidden="true" />
-                      <span className={styles.navLabel}>
-                        {t(section.label)}
-                      </span>
-                      {count ? (
-                        <span className={styles.badge} aria-hidden="true">
-                          {count}
-                        </span>
-                      ) : null}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ))}
+            <LogoMark className="size-7! rounded-lg! group-data-[collapsible=icon]:size-8!" />
+            <span className="truncate text-[15px] font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
+              {t("title")}
+            </span>
+          </Link>
+          <SidebarTrigger
+            aria-label={t("shell.collapseNavigation")}
+            className="hidden shrink-0 group-data-[collapsible=icon]:hidden md:inline-flex"
+          />
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <nav aria-label={t("shell.nav")} className="flex flex-col gap-2">
+          {ADMIN_GROUPS.map((group) => {
+            const sections = ADMIN_SECTIONS.filter(
+              (section) =>
+                section.group === group.id &&
+                (!section.adminOnly || staff.staffRole === "admin"),
+            );
+            return (
+              <SidebarGroup key={group.id}>
+                {group.label ? (
+                  <SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
+                ) : null}
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {sections.map((section) => {
+                      const Icon = section.icon;
+                      const count = section.countKey
+                        ? counts?.[section.countKey]
+                        : undefined;
+                      const href = destination(section.href);
+                      return (
+                        <SidebarMenuItem key={section.href}>
+                          <SidebarMenuButton
+                            asChild
+                            isActive={activeHref === section.href}
+                            tooltip={t(section.label)}
+                          >
+                            <Link
+                              href={href}
+                              aria-label={
+                                count
+                                  ? `${t(section.label)}, ${t("shell.pendingCount", { count })}`
+                                  : t(section.label)
+                              }
+                              aria-current={
+                                activeHref === section.href ? "page" : undefined
+                              }
+                              onPointerEnter={() => prefetch(href)}
+                              onFocus={() => prefetch(href)}
+                              onTouchStart={() => prefetch(href)}
+                              onClick={() => setOpenMobile(false)}
+                            >
+                              <Icon aria-hidden="true" />
+                              <span className="truncate">
+                                {t(section.label)}
+                              </span>
+                            </Link>
+                          </SidebarMenuButton>
+                          {count ? (
+                            <SidebarMenuBadge aria-hidden="true">
+                              {count}
+                            </SidebarMenuBadge>
+                          ) : null}
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            );
+          })}
+        </nav>
         {countsUnavailable ? (
           <p
-            className={compact ? "sr-only" : styles.countsNotice}
             role="status"
+            className="px-4 text-xs text-muted-foreground group-data-[collapsible=icon]:sr-only"
           >
             {t("shell.countsUnavailable")}
           </p>
         ) : null}
-      </nav>
-      <div className={styles.sidebarFooter}>
-        <details
-          className={styles.userMenu}
-          onBlur={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget))
-              event.currentTarget.open = false;
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "Escape" && event.currentTarget.open) {
-              event.preventDefault();
-              event.stopPropagation();
-              event.currentTarget.open = false;
-              event.currentTarget.querySelector("summary")?.focus();
-            }
-          }}
-        >
-          <summary
-            className={styles.userTrigger}
-            aria-label={t("shell.accountMenu")}
-          >
-            <span className={styles.avatar} aria-hidden="true">
-              {initials || <UserRound size={18} />}
-            </span>
-            <span className={styles.userText}>
-              <strong>{staff.displayName || t("shell.accountMenu")}</strong>
-              <small>{role}</small>
-            </span>
-            <ChevronsUpDown
-              size={15}
-              aria-hidden="true"
-              className={styles.userChevron}
-            />
-          </summary>
-          <div className={styles.userPopup}>
-            <p className={styles.popupScope}>{t("scope", { scope })}</p>
-            <Link href="/" onNavigate={onNavigate}>
-              <Globe size={16} aria-hidden="true" />
-              {t("shell.backToSite")}
-            </Link>
-            <Button
-              variant="ghost"
-              block
-              onClick={onSignOut}
-              disabled={signingOut}
-            >
-              <LogOut aria-hidden="true" />
-              {t(signingOut ? "loading" : "signOut")}
-            </Button>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton
+                  size="lg"
+                  aria-label={t("shell.accountMenu")}
+                  className="data-[state=open]:bg-sidebar-accent group-data-[collapsible=icon]:p-0!"
+                >
+                  <Avatar className="size-8">
+                    {staff.image ? (
+                      <AvatarImage src={staff.image} alt="" />
+                    ) : null}
+                    <AvatarFallback className="bg-sidebar-accent">
+                      {initials || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="grid min-w-0 flex-1 text-left leading-tight">
+                    <span className="truncate text-sm font-medium">{name}</span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      {role}
+                    </span>
+                  </span>
+                  <ChevronsUpDown
+                    aria-hidden="true"
+                    className="ml-auto size-4 shrink-0 text-muted-foreground"
+                  />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                side="top"
+                align="start"
+                className="w-72 max-w-[calc(100vw-1.5rem)]"
+              >
+                <DropdownMenuLabel className="flex flex-col gap-0.5">
+                  <span className="truncate text-sm font-medium text-foreground">
+                    {name}
+                  </span>
+                  {scope ? (
+                    <span className="text-pretty">{t("scope", { scope })}</span>
+                  ) : null}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/">
+                    <Globe aria-hidden="true" />
+                    {t("shell.backToSite")}
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={signingOut}
+                  onSelect={(event) => {
+                    event.preventDefault();
+                    void onSignOut();
+                  }}
+                >
+                  <LogOut aria-hidden="true" />
+                  {t("signOut")}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <InlineError error={signOutError} />
-          </div>
-        </details>
-      </div>
-    </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   );
 }

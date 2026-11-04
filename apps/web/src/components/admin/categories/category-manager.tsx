@@ -1,20 +1,32 @@
 "use client";
 
 import { ORPCError } from "@orpc/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderCog, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "use-intl";
 import { ErrorPanel } from "@/components/admin/error-panel";
 import { catalogKind, catalogOptions } from "@/components/admin/list-queries";
-import { AdminPageHeader, AdminTableCard } from "@/components/admin/page-frame";
+import {
+  AdminEmpty,
+  AdminPageHeader,
+  AdminTableCard,
+} from "@/components/admin/page-frame";
+import { QueryState } from "@/components/admin/query-state";
+import { TableRowsSkeleton } from "@/components/admin/skeletons";
 import { useStaff } from "@/components/admin/staff-context";
+import { StatusIndicator } from "@/components/admin/status-indicator";
 import { useUrlParam } from "@/components/admin/use-url-param";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Placeholder } from "@/components/ui/loading";
-import { Chip, Tag } from "@/components/ui/tag";
-import { cx } from "@/lib/web/cx";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CategoryForm,
   CategoryIcon,
@@ -30,13 +42,61 @@ const KINDS: readonly CategoryKind[] = [
   "consultation",
 ];
 
+/** The column heads, shared by the table and its placeholder so they never differ. */
+function CategoryHead({ traffic }: { traffic: boolean }) {
+  const t = useTranslations("admin");
+  return (
+    <TableHeader>
+      <TableRow className="hover:bg-transparent">
+        <TableHead className="h-10 text-xs text-muted-foreground">
+          {t("name")}
+        </TableHead>
+        <TableHead className="hidden h-10 text-xs text-muted-foreground sm:table-cell">
+          {t("icon")}
+        </TableHead>
+        {traffic ? (
+          <TableHead className="hidden h-10 text-xs text-muted-foreground md:table-cell">
+            {t("severity")}
+          </TableHead>
+        ) : null}
+        <TableHead className="hidden h-10 text-right text-xs text-muted-foreground sm:table-cell">
+          {t("sortOrder")}
+        </TableHead>
+        <TableHead className="h-10 text-xs text-muted-foreground">
+          {t("status")}
+        </TableHead>
+        <TableHead className="h-10 w-px">
+          <span className="sr-only">{t("editCategory")}</span>
+        </TableHead>
+      </TableRow>
+    </TableHeader>
+  );
+}
+
+/** Placeholder rows: name with its colour dot, icon, severity, order, status, edit. */
+function categorySkeleton(traffic: boolean) {
+  const cells = [
+    { bars: ["h-5 w-40"] },
+    { cell: "hidden sm:table-cell", bars: ["h-4 w-24"] },
+    ...(traffic ? [{ cell: "hidden md:table-cell", bars: ["h-4 w-16"] }] : []),
+    { cell: "hidden sm:table-cell", bars: ["ml-auto h-4 w-6"] },
+    { bars: ["h-5 w-16"] },
+    { bars: ["ml-auto h-9 w-16"] },
+  ];
+  return (
+    <AdminTableCard>
+      <Table>
+        <CategoryHead traffic={traffic} />
+        <TableBody>
+          <TableRowsSkeleton rows={5} rowClassName="h-12" cells={cells} />
+        </TableBody>
+      </Table>
+    </AdminTableCard>
+  );
+}
+
 /** What a moderator sees: the same refusal the server would give. */
 const REFUSED = new ORPCError("FORBIDDEN");
-
-const COLUMNS =
-  "md:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_7rem_4.5rem_7rem_6rem]";
-const COLUMNS_TRAFFIC =
-  "md:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_7rem_8rem_4.5rem_7rem_6rem]";
 
 /**
  * The taxonomy behind the forms and the map, for province administrators.
@@ -51,205 +111,148 @@ export function CategoryManager() {
   const isAdmin = staffRole === "admin";
   const [rawKind, setKind] = useUrlParam("kind", "place");
   const kind = catalogKind(rawKind);
-  const [editing, setEditing] = useState<string | null>(null);
+  const [editing, setEditing] = useState<CategoryRecord | "new" | null>(null);
 
   const list = useQuery({
     ...catalogOptions(kind),
     enabled: isAdmin,
   });
 
-  const header = (
-    <AdminPageHeader title={t("categories")} description={c("intro")} />
-  );
+  // The other kinds are one small request each: have them ready, so a tab
+  // opens with its rows rather than a placeholder.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!isAdmin) return;
+    for (const other of KINDS) {
+      void queryClient.prefetchQuery(catalogOptions(other));
+    }
+  }, [isAdmin, queryClient]);
 
   if (!isAdmin) {
     return (
       <div className="flex flex-col gap-6">
-        {header}
+        <AdminPageHeader title={t("categories")} />
         <ErrorPanel error={REFUSED} />
       </div>
     );
   }
 
-  // Put the keyboard back where the form was opened once it closes.
-  const close = (triggerId: string) => {
-    setEditing(null);
-    requestAnimationFrame(() => document.getElementById(triggerId)?.focus());
-  };
-
   const traffic = kind === "traffic";
-  const columns = traffic ? COLUMNS_TRAFFIC : COLUMNS;
 
   return (
     <div className="flex flex-col gap-6">
-      {header}
-
-      <fieldset className="scrollbar-none -mx-4 flex min-w-0 gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
-        <legend className="sr-only">{c("kindGroup")}</legend>
-        {KINDS.map((value) => (
-          <Chip
-            key={value}
-            selected={kind === value}
-            onClick={() => {
-              setEditing(null);
-              setKind(value);
-            }}
-          >
-            {t(value)}
-          </Chip>
-        ))}
-      </fieldset>
-
-      <div>
-        <Button
-          id="cat-new"
-          variant="accent"
-          size="lg"
-          className="max-sm:w-full"
-          aria-expanded={editing === "new"}
-          aria-controls="cat-form-new"
-          disabled={editing === "new"}
-          onClick={() => setEditing("new")}
-        >
-          <Plus aria-hidden />
-          {t("newCategory")}
-        </Button>
-      </div>
-
-      {editing === "new" ? (
-        <div id="cat-form-new">
-          <CategoryForm kind={kind} onClose={() => close("cat-new")} />
-        </div>
-      ) : null}
-
-      {list.isPending ? (
-        <div role="status" aria-busy="true" className="flex flex-col gap-3">
-          <span className="sr-only">{t("loading")}</span>
-          {[0, 1, 2].map((key) => (
-            <Placeholder key={key} className="h-28 md:h-14" />
-          ))}
-        </div>
-      ) : list.isError ? (
-        <ErrorPanel error={list.error} onRetry={() => list.refetch()} />
-      ) : list.data.length === 0 ? (
-        <EmptyState icon={FolderCog} title={c("empty")} />
-      ) : (
-        <div aria-busy={list.isFetching}>
-          <AdminTableCard>
-            <div
-              aria-hidden
-              className={cx(
-                "t-label hidden gap-4 border-b border-line bg-paper-2 px-4 py-2.5 text-ink-3 md:grid",
-                columns,
-              )}
-            >
-              <span>{t("name")}</span>
-              <span>{t("icon")}</span>
-              <span>{t("color")}</span>
-              {traffic ? <span>{t("severity")}</span> : null}
-              <span>{t("sortOrder")}</span>
-              <span>{t("status")}</span>
-              <span />
-            </div>
-            <ul className="flex flex-col gap-3 md:gap-0 md:divide-y md:divide-line">
-              {list.data.map((record) => (
-                <CategoryRow
-                  key={record.id}
-                  record={record}
-                  columns={columns}
-                  open={editing === record.id}
-                  onOpen={() => setEditing(record.id)}
-                  onClose={() => close(`cat-edit-${record.id}`)}
-                />
-              ))}
-            </ul>
-          </AdminTableCard>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CategoryRow({
-  record,
-  columns,
-  open,
-  onOpen,
-  onClose,
-}: {
-  record: CategoryRecord;
-  columns: string;
-  open: boolean;
-  onOpen: () => void;
-  onClose: () => void;
-}) {
-  const t = useTranslations("admin");
-  const c = useTranslations("admin.cat");
-  // Labels are for the phone's cards and for screen readers; the wide layout
-  // has a header row that says the same.
-  const label = "t-small text-ink-3 md:sr-only";
-
-  return (
-    <li className="rounded-card bg-card shadow-ring md:rounded-none md:shadow-none">
-      <div
-        className={cx(
-          "grid grid-cols-2 items-center gap-x-4 gap-y-2 p-4 md:py-3",
-          columns,
-        )}
-      >
-        <div className="col-span-2 flex min-w-0 items-center gap-3 md:col-span-1">
-          <span
-            aria-hidden
-            className="size-6 shrink-0 rounded-full shadow-ring"
-            style={{ backgroundColor: record.color }}
-          />
-          <span className="text-[16px] leading-snug font-medium text-ink">
-            {record.name}
-          </span>
-        </div>
-        <p className="t-small flex items-center gap-1.5 text-ink">
-          <span className={label}>{t("icon")}:</span>
-          <CategoryIcon name={record.icon} />
-        </p>
-        <p className="t-small flex gap-1.5 text-ink">
-          <span className={label}>{t("color")}:</span>
-          <span className="font-mono uppercase">{record.color}</span>
-        </p>
-        {record.kind === "traffic" ? (
-          <p className="t-small flex gap-1.5 text-ink">
-            <span className={label}>{t("severity")}:</span>
-            {record.severity ? t(record.severity) : t("none")}
-          </p>
-        ) : null}
-        <p className="t-small flex gap-1.5 text-ink">
-          <span className={label}>{t("sortOrder")}:</span>
-          <span className="tabular">{record.sortOrder}</span>
-        </p>
-        <div>
-          <Tag tone={record.isActive ? "success" : "neutral"}>
-            {record.isActive ? t("active") : c("inactive")}
-          </Tag>
-        </div>
-        <div className="col-span-2 md:col-span-1 md:justify-self-end">
-          <Button
-            id={`cat-edit-${record.id}`}
-            size="sm"
-            className="max-md:w-full max-md:min-h-11"
-            aria-expanded={open}
-            aria-controls={`cat-form-${record.id}`}
-            aria-label={c("editFor", { name: record.name })}
-            disabled={open}
-            onClick={onOpen}
-          >
-            {t("editCategory")}
+      <AdminPageHeader
+        title={t("categories")}
+        actions={
+          <Button id="cat-new" onClick={() => setEditing("new")}>
+            <Plus aria-hidden />
+            {t("newCategory")}
           </Button>
-        </div>
-      </div>
-      {open ? (
-        <div id={`cat-form-${record.id}`} className="p-2 pt-0 md:p-3 md:pt-0">
-          <CategoryForm kind={record.kind} record={record} onClose={onClose} />
-        </div>
+        }
+      />
+
+      <Tabs
+        value={kind}
+        onValueChange={(value) => {
+          setEditing(null);
+          setKind(value);
+        }}
+        className="min-w-0"
+      >
+        <TabsList
+          variant="pill"
+          aria-label={c("kindGroup")}
+          className="scrollbar-none max-w-full justify-start overflow-x-auto"
+        >
+          {KINDS.map((value) => (
+            <TabsTrigger key={value} value={value} className="flex-none">
+              {t(value)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      <QueryState query={list} skeleton={categorySkeleton(traffic)}>
+        {(categories) =>
+          categories.length === 0 ? (
+            <AdminEmpty icon={FolderCog} title={c("empty")} />
+          ) : (
+            <AdminTableCard>
+              <Table>
+                <CategoryHead traffic={traffic} />
+                <TableBody>
+                  {categories.map((record) => (
+                    <TableRow key={record.id} className="h-12">
+                      <TableCell className="py-0">
+                        <span className="flex items-center gap-3 font-medium">
+                          <span
+                            aria-hidden
+                            className="size-3 shrink-0 rounded-full"
+                            style={{ backgroundColor: record.color }}
+                          />
+                          <span className="truncate" title={record.name}>
+                            {record.name}
+                          </span>
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden py-0 text-muted-foreground sm:table-cell">
+                        <CategoryIcon name={record.icon} />
+                      </TableCell>
+                      {traffic ? (
+                        <TableCell className="hidden py-0 md:table-cell">
+                          {record.severity ? (
+                            t(record.severity)
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      ) : null}
+                      <TableCell className="hidden py-0 text-right tabular-nums sm:table-cell">
+                        {record.sortOrder}
+                      </TableCell>
+                      <TableCell className="py-0">
+                        <StatusIndicator
+                          tone={record.isActive ? "success" : "neutral"}
+                        >
+                          {record.isActive ? t("active") : c("inactive")}
+                        </StatusIndicator>
+                      </TableCell>
+                      <TableCell className="py-0 text-right">
+                        <Button
+                          variant="ghost"
+                          aria-label={c("editFor", { name: record.name })}
+                          id={`cat-edit-${record.id}`}
+                          onClick={() => setEditing(record)}
+                        >
+                          {t("editCategory")}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </AdminTableCard>
+          )
+        }
+      </QueryState>
+
+      {editing ? (
+        <CategoryForm
+          key={editing === "new" ? "new" : editing.id}
+          kind={kind}
+          record={editing === "new" ? undefined : editing}
+          onClose={() => {
+            // The dialog has no trigger element, so put the keyboard back on
+            // the control that opened it.
+            const openerId =
+              editing === "new" ? "cat-new" : `cat-edit-${editing.id}`;
+            setEditing(null);
+            requestAnimationFrame(() =>
+              document.getElementById(openerId)?.focus(),
+            );
+          }}
+        />
       ) : null}
-    </li>
+    </div>
   );
 }

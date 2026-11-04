@@ -1,17 +1,16 @@
 "use client";
 
 import type { ApiOutputs, DecideContentReportInput } from "@ruta/contracts";
-import { Flag } from "lucide-react";
 import { useId } from "react";
 import { useTranslations } from "use-intl";
-import { Tag } from "@/components/ui/tag";
 import { api } from "@/lib/web/api";
+import { StatusIndicator } from "../status-indicator";
 import { DecisionBar } from "./decision-bar";
 import {
+  ClampedText,
   Fact,
   Facts,
   ItemRow,
-  ItemTitle,
   MunicipalityTag,
   usePerson,
   useWhen,
@@ -29,37 +28,34 @@ export function ContentReportRow({ report }: { report: ContentReport }) {
   const id = useId();
   const when = useWhen();
   const person = usePerson();
-  const { decide, pending, error, decided } = useDecision<
+  const { decide, pending, error } = useDecision<
     Body<DecideContentReportInput>
-  >((input) => api.moderation.decideContentReport(input));
+  >((input) => api.moderation.decideContentReport(input), {
+    queue: "content-reports",
+    id: report.id,
+  });
 
   const title = report.subjectTitle ?? q("untitled");
 
   return (
     <ItemRow
       titleId={`${id}-title`}
-      item={
+      title={title}
+      meta={
         <>
-          <ItemTitle id={`${id}-title`}>{title}</ItemTitle>
-          <div className="flex flex-wrap gap-1.5">
-            <MunicipalityTag name={report.municipalityName} />
-            <Tag tone="accent">{q(`subjectKind.${report.subject.kind}`)}</Tag>
-            {report.priority ? (
-              <Tag tone="danger">
-                <Flag aria-hidden className="size-3" />
-                {q("priority")}
-              </Tag>
-            ) : null}
-          </div>
+          <MunicipalityTag name={report.municipalityName} />
+          {q(`subjectKind.${report.subject.kind}`)}
           {report.priority ? (
-            <p className="t-small text-ink-2">{q("priorityHint")}</p>
+            <StatusIndicator tone="danger" className="text-sm">
+              {q("priority")}
+            </StatusIndicator>
           ) : null}
-          <p className="t-small text-ink-2">
-            {person("reportedBy", report.reportedBy)}
-          </p>
-          <p className="t-small text-ink-2">
-            {when("receivedAt", report.createdAt)}
-          </p>
+        </>
+      }
+      byline={
+        <>
+          {person("reportedBy", report.reportedBy)}
+          {when("receivedAt", report.createdAt)}
         </>
       }
       detail={
@@ -68,21 +64,21 @@ export function ContentReportRow({ report }: { report: ContentReport }) {
             <Fact label={q("reportReasonLabel")}>
               {q(`contentReason.${report.reason}`)}
             </Fact>
-            <Fact label={q("details")}>{report.details ?? q("noDetails")}</Fact>
             <Fact label={q("reportedContent")}>
-              {title}
-              <br />
-              <span className="text-ink-2">
-                {report.subjectVisible
-                  ? q("subjectVisible")
-                  : q("subjectHidden")}
-              </span>
+              {report.subjectVisible ? q("subjectVisible") : q("subjectHidden")}
             </Fact>
+            {report.details ? (
+              <Fact label={q("details")} wide>
+                <ClampedText>{report.details}</ClampedText>
+              </Fact>
+            ) : null}
           </Facts>
-          <p className="t-small text-ink-2">
-            {q("openReports", { count: report.openReportCount })}{" "}
-            {q("decisionClosesAll")}
-          </p>
+          {report.openReportCount > 1 ? (
+            <p className="text-xs text-muted-foreground">
+              {q("openReports", { count: report.openReportCount })}{" "}
+              {q("decisionClosesAll")}
+            </p>
+          ) : null}
         </>
       }
       decision={
@@ -91,10 +87,9 @@ export function ContentReportRow({ report }: { report: ContentReport }) {
           subject={title}
           pending={pending}
           error={error}
-          decided={decided}
           primary={{
             label: q("actionContent"),
-            variant: "danger",
+            destructive: true,
             note: REASON,
             onConfirm: (reason) =>
               decide({ reportId: report.id, decision: "actioned", reason }),

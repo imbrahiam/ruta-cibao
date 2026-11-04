@@ -3,6 +3,7 @@ import { eq, or } from "drizzle-orm";
 import type { Db, DbTransaction } from "@/db";
 import {
   categories,
+  comments,
   consultations,
   ecoRoutes,
   placePhotos,
@@ -168,6 +169,30 @@ export async function resolveContentTarget(
         authorUserId: row.authorUserId,
         title: row.title,
         publiclyVisible: row.publicationStatus === "published",
+      };
+    }
+    case "comment": {
+      if (!isId) return null;
+      const [row] = await executor
+        .select({
+          id: comments.id,
+          body: comments.body,
+          status: comments.status,
+          municipalityId: comments.municipalityId,
+          authorUserId: comments.authorUserId,
+        })
+        .from(comments)
+        .where(eq(comments.id, target.ref))
+        .limit(1);
+      if (!row) return null;
+      return {
+        kind: "comment",
+        ref: row.id,
+        municipalityId: row.municipalityId,
+        authorUserId: row.authorUserId,
+        // The start of what was said: enough for a reviewer to place it.
+        title: row.body.length > 80 ? `${row.body.slice(0, 79)}…` : row.body,
+        publiclyVisible: row.status === "published",
       };
     }
   }

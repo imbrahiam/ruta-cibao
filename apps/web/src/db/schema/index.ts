@@ -7,6 +7,7 @@
 export * from "./auth";
 export * from "./businesses";
 export * from "./catalog";
+export * from "./comments";
 export * from "./consultations";
 export * from "./deletion";
 export * from "./geography";

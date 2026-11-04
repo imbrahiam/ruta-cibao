@@ -16,7 +16,7 @@ import { readMunicipalBoundaries } from "@/modules/offline/snapshot";
  * asked for.
  *
  * Boundaries: OpenStreetMap administrative relations (ODbL 1.0), matching the
- * Protomaps basemap. Imported by `scripts/import-boundaries.ts`.
+ * Protomaps basemap. Imported by `scripts/data/import-boundaries.ts`.
  */
 export const MUNICIPAL_BOUNDARIES_TAG = "municipal-boundaries";
 

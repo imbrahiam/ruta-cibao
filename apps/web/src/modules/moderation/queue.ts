@@ -1,5 +1,6 @@
 import type { QueueInput } from "@ruta/contracts";
 import { formatPhone } from "@ruta/shared/phone";
+import { pathLength } from "@ruta/shared/road-geometry";
 import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
@@ -14,10 +15,12 @@ import {
   placeReports,
   places,
   trafficReports,
+  user,
 } from "@/db/schema";
 import { imageUrl } from "@/lib/storage";
 import type { ModeratorViewer } from "@/modules/access/permissions";
 import { residentVerified } from "@/modules/access/resident";
+import { appThumbnailKey } from "@/modules/places/thumbnail";
 import { resolveContentTarget } from "@/modules/safety/targets";
 
 /**
@@ -319,6 +322,13 @@ export async function pendingPhotos(
   );
 }
 
+/** A stored image as something a browser can load: full URLs pass through. */
+function mediaUrl(value: string, size: number): Promise<string> {
+  return /^https?:\/\//.test(value)
+    ? Promise.resolve(value)
+    : imageUrl(value, { width: size, height: size });
+}
+
 /**
  * Claims waiting for somebody to weigh the evidence.
  *
@@ -347,6 +357,8 @@ export async function pendingClaims(
       municipalityId: municipalities.id,
       municipalityName: municipalities.name,
       claimedBy: memberProfiles.displayName,
+      claimedByImage: user.image,
+      placeImageKey: appThumbnailKey,
       claimantResidentVerified: residentVerified,
     })
     .from(businessClaims)
@@ -357,6 +369,7 @@ export async function pendingClaims(
       memberProfiles,
       eq(memberProfiles.userId, businessClaims.claimantUserId),
     )
+    .leftJoin(user, eq(user.id, businessClaims.claimantUserId))
     .where(
       and(
         eq(businessClaims.status, "pending"),
@@ -366,12 +379,18 @@ export async function pendingClaims(
     .orderBy(asc(businessClaims.createdAt))
     .limit(input.limit);
 
-  return rows.map((row) => ({
-    ...row,
-    contactPhone: row.contactPhone ? formatPhone(row.contactPhone) : null,
-    whatsapp: row.whatsapp ? formatPhone(row.whatsapp) : null,
-    createdAt: row.createdAt.toISOString(),
-  }));
+  return Promise.all(
+    rows.map(async ({ placeImageKey, ...row }) => ({
+      ...row,
+      claimedByImage: row.claimedByImage
+        ? await mediaUrl(row.claimedByImage, 96)
+        : null,
+      placeImage: placeImageKey ? await mediaUrl(placeImageKey, 320) : null,
+      contactPhone: row.contactPhone ? formatPhone(row.contactPhone) : null,
+      whatsapp: row.whatsapp ? formatPhone(row.whatsapp) : null,
+      createdAt: row.createdAt.toISOString(),
+    })),
+  );
 }
 
 /**
@@ -467,11 +486,13 @@ export async function liveTrafficReports(
       description: trafficReports.description,
       descriptionModerationStatus: trafficReports.descriptionModerationStatus,
       location: trafficReports.location,
+      path: trafficReports.path,
       createdAt: trafficReports.createdAt,
       expiresAt: trafficReports.expiresAt,
       categoryName: categories.name,
       categoryIcon: categories.icon,
       categoryColor: categories.color,
+      severity: categories.severity,
       municipalityId: municipalities.id,
       municipalityName: municipalities.name,
       reportedBy: memberProfiles.displayName,
@@ -503,22 +524,33 @@ export async function liveTrafficReports(
     )
     .limit(input.limit);
 
-  return rows.map((row) => ({
-    id: row.id,
-    description: row.description,
-    descriptionModerationStatus: row.descriptionModerationStatus,
-    lng: row.location.x,
-    lat: row.location.y,
-    createdAt: row.createdAt.toISOString(),
-    expiresAt: row.expiresAt.toISOString(),
-    categoryName: row.categoryName,
-    categoryIcon: row.categoryIcon,
-    categoryColor: row.categoryColor,
-    municipalityId: row.municipalityId,
-    municipalityName: row.municipalityName,
-    reportedBy: row.reportedBy,
-    reporterResidentVerified: row.reporterResidentVerified,
-  }));
+  return rows.map((row) => {
+    // Stored as PostGIS orders it (x is longitude); handed out as the client
+    // speaks it. Same shape as the public traffic read.
+    const path =
+      row.path && row.path.length > 1
+        ? row.path.map((point) => ({ lng: point.x, lat: point.y }))
+        : null;
+    return {
+      id: row.id,
+      description: row.description,
+      descriptionModerationStatus: row.descriptionModerationStatus,
+      lng: row.location.x,
+      lat: row.location.y,
+      path,
+      lengthMeters: path ? Math.round(pathLength(path)) : null,
+      severity: row.severity,
+      createdAt: row.createdAt.toISOString(),
+      expiresAt: row.expiresAt.toISOString(),
+      categoryName: row.categoryName,
+      categoryIcon: row.categoryIcon,
+      categoryColor: row.categoryColor,
+      municipalityId: row.municipalityId,
+      municipalityName: row.municipalityName,
+      reportedBy: row.reportedBy,
+      reporterResidentVerified: row.reporterResidentVerified,
+    };
+  });
 }
 
 /**

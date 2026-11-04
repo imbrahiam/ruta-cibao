@@ -1,5 +1,11 @@
 import { ORPCError } from "@orpc/server";
+import { consumeRateLimit, getRequestClientKey } from "@/lib/rate-limit";
 import { setResidencyVerified } from "@/modules/access/profile";
+import {
+  routeOnStreets,
+  SnapUnavailableError,
+  snapToRoad,
+} from "@/modules/maps/snap-road";
 import {
   decideBusinessClaim,
   decideContentReport,
@@ -144,4 +150,30 @@ export const moderationRouter = {
     .handler(({ context, input }) =>
       setResidencyVerified(context.viewer, input),
     ),
+
+  /** A stretch laid on the provider's road, for the desk's maps. */
+  snapRoad: impl.moderation.snapRoad
+    .use(moderator)
+    .handler(async ({ context, input, errors }) => {
+      const allowance = await consumeRateLimit(
+        getRequestClientKey(context.headers),
+        { scope: "moderation-snap-road", limit: 600, windowMs: 60_000 },
+      );
+      if (!allowance.allowed) {
+        throw errors.TOO_MANY_REQUESTS({ data: { reason: "rate_limited" } });
+      }
+      try {
+        return {
+          path:
+            input.mode === "trail"
+              ? await routeOnStreets(input.path)
+              : await snapToRoad(input.path),
+        };
+      } catch (error) {
+        if (error instanceof SnapUnavailableError) {
+          throw errors.SERVICE_UNAVAILABLE({ data: { reason: "unavailable" } });
+        }
+        throw error;
+      }
+    }),
 };

@@ -21,6 +21,7 @@ export class PlaceSubmissionError extends Error {
       | "invalid_category"
       | "outside_province"
       | "duplicate"
+      | "pending_limit"
       | "not_found",
   ) {
     super(reason);
@@ -61,6 +62,25 @@ export async function submitPlace(
           sql`ST_Contains(${municipalities.boundary}, ST_SetSRID(ST_MakePoint(${input.location.lng}, ${input.location.lat}), 4326))`,
         )
         .limit(1);
+
+      // One place in review per person at a time: a second waits until the
+      // first is decided. Keeps the queue to what moderators can actually
+      // check, and stops one account flooding it. Locked per person so two
+      // simultaneous submissions can't both see "none pending".
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtext(${`place-submission-user:${viewer.userId}`}))`,
+      );
+      const pending = await tx
+        .select({ id: places.id })
+        .from(places)
+        .where(
+          and(
+            eq(places.createdByUserId, viewer.userId),
+            eq(places.status, "pending"),
+          ),
+        )
+        .limit(1);
+      if (pending[0]) throw new PlaceSubmissionError("pending_limit");
 
       if (!category[0]) throw new PlaceSubmissionError("invalid_category");
       if (input.business && category[0].kind !== "business")

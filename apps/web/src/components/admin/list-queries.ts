@@ -113,6 +113,23 @@ export function prefetchAdminRoute(
         : client.prefetchQuery(moderationQueueOptions(queue, municipalityId));
     }
   }
+  const detail = url.pathname.match(
+    /^\/admin\/(consultations|reports)\/([^/]+)$/,
+  );
+  if (detail?.[1] === "consultations") {
+    return client.prefetchQuery(
+      orpc.consultations.detail.queryOptions({
+        input: { slug: decodeURIComponent(detail[2] ?? "") },
+      }),
+    );
+  }
+  if (detail?.[1] === "reports") {
+    return client.prefetchQuery(
+      orpc.reports.detail.queryOptions({
+        input: { reportId: decodeURIComponent(detail[2] ?? "") },
+      }),
+    );
+  }
   if (url.pathname === "/admin/reports") {
     return client.prefetchQuery(weeklyReportOptions(municipalityId));
   }

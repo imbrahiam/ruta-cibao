@@ -13,9 +13,9 @@ import {
 import { type FormEvent, useCallback, useEffect, useState } from "react";
 import { useTranslations } from "use-intl";
 import { IntlProvider } from "use-intl/react";
-import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
-import { Tag } from "@/components/ui/tag";
+import { Button } from "@/components/site/button";
+import { Field, Input } from "@/components/site/field";
+import { Tag } from "@/components/site/tag";
 import { formats, TIME_ZONE } from "@/i18n/config";
 import { api } from "@/lib/web/api";
 import { authClient } from "@/lib/web/auth-client";

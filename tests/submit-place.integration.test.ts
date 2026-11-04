@@ -3,10 +3,7 @@ import type { SubmitPlaceInput } from "@ruta/contracts";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { categories, municipalities, places, user } from "@/db/schema";
-import {
-  PlaceSubmissionError,
-  submitPlace,
-} from "@/modules/places/submit-place";
+import { submitPlace } from "@/modules/places/submit-place";
 import {
   assertDedicatedLocalDatabase,
   auditsFor,
@@ -122,19 +119,44 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("place submission", () => {
 
   test("a near-identical place in the same spot is refused as a duplicate", async () => {
     const member = await createMember(prefix);
-    accountIds.push(member.id);
+    const neighbour = await createMember(prefix);
+    accountIds.push(member.id, neighbour.id);
     const name = `Colmado Central ${crypto.randomUUID().slice(0, 6)}`;
 
     await submitPlace(member.viewer, input({ name }));
     await expect(
       submitPlace(
-        member.viewer,
+        neighbour.viewer,
         input({
           name: name.replace("Central", "Sentral"),
           location: { lng: 10.0051, lat: 10.0051 },
         }),
       ),
-    ).rejects.toBeInstanceOf(PlaceSubmissionError);
+    ).rejects.toMatchObject({ reason: "duplicate" });
+  });
+
+  test("a member with a place still in review cannot submit another", async () => {
+    const member = await createMember(prefix);
+    accountIds.push(member.id);
+
+    await submitPlace(member.viewer, input());
+    await expect(
+      submitPlace(
+        member.viewer,
+        input({ location: { lng: 10.008, lat: 10.002 } }),
+      ),
+    ).rejects.toMatchObject({ reason: "pending_limit" });
+
+    // Once the first is reviewed, the member may suggest the next one.
+    await db
+      .update(places)
+      .set({ status: "published" })
+      .where(eq(places.createdByUserId, member.id));
+    const next = await submitPlace(
+      member.viewer,
+      input({ location: { lng: 10.008, lat: 10.002 } }),
+    );
+    expect(next.id).toBeString();
   });
 
   test("a category of the wrong kind, or a point outside the province, is refused", async () => {
@@ -155,7 +177,8 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("place submission", () => {
 
   test("a business category captures the contact details; a place category refuses them", async () => {
     const member = await createMember(prefix);
-    accountIds.push(member.id);
+    const other = await createMember(prefix);
+    accountIds.push(member.id, other.id);
 
     const business = await submitPlace(
       member.viewer,
@@ -177,7 +200,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("place submission", () => {
 
     await expect(
       submitPlace(
-        member.viewer,
+        other.viewer,
         input({
           business: {
             contactPhone: "809-555-1212",

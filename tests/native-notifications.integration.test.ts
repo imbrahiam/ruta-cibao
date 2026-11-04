@@ -161,7 +161,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         requestId: crypto.randomUUID(),
         installationId: crypto.randomUUID(),
         platform: "ios",
-        token: `ExpoPushToken[${crypto.randomUUID().replaceAll("-", "")}]`,
+        token: `${crypto.randomUUID().replaceAll("-", "")}${crypto.randomUUID().replaceAll("-", "")}`,
         ...overrides,
       };
     }

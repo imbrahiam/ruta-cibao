@@ -1,6 +1,7 @@
 import { impl } from "./base";
 import { businessesRouter } from "./routers/businesses";
 import { catalogRouter } from "./routers/catalog";
+import { commentsRouter } from "./routers/comments";
 import { consultationsRouter } from "./routers/consultations";
 import { directionsRouter } from "./routers/directions";
 import { meRouter } from "./routers/me";
@@ -37,6 +38,7 @@ export const router = impl.router({
   passport: passportRouter,
   traffic: trafficRouter,
   consultations: consultationsRouter,
+  comments: commentsRouter,
   directions: directionsRouter,
   businesses: businessesRouter,
   reports: reportsRouter,

@@ -15,6 +15,7 @@ import { PLACES_TILES_TAG } from "@/app/api/tiles/places/[z]/[x]/[y]/route";
 import {
   businessClaims,
   categories,
+  comments,
   consultations,
   contentReports,
   ecoRoutes,
@@ -664,6 +665,12 @@ export async function decideContentReport(
             }
             break;
           }
+          case "comment":
+            await tx
+              .update(comments)
+              .set({ status: "hidden", updatedAt: decidedAt })
+              .where(eq(comments.id, subject.ref));
+            break;
           case "consultation":
             await tx
               .update(consultations)

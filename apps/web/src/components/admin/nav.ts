@@ -14,11 +14,15 @@ import {
   Wrench,
 } from "lucide-react";
 
-export const ADMIN_GROUPS = [
-  { id: "workspace", label: "shell.groupWorkspace" },
+/** The overview stands alone: a label over a single link is noise. */
+export const ADMIN_GROUPS: readonly {
+  id: "workspace" | "moderation" | "management";
+  label: string | null;
+}[] = [
+  { id: "workspace", label: null },
   { id: "moderation", label: "shell.groupModeration" },
   { id: "management", label: "shell.groupManagement" },
-] as const;
+];
 
 export type AdminSection = {
   href: string;

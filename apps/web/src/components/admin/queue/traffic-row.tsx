@@ -5,22 +5,23 @@ import type {
   DecidePublicationInput,
   RemoveTrafficInput,
 } from "@ruta/contracts";
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import { useTranslations } from "use-intl";
-import { Tag } from "@/components/ui/tag";
 import { api } from "@/lib/web/api";
+import { MapPreview } from "../map/map-preview";
+import { trafficMapItem } from "../map/queue-items";
+import { useMapCopy } from "../map/use-map-copy";
+import { StatusIndicator } from "../status-indicator";
 import { DecisionBar } from "./decision-bar";
 import {
   Fact,
   Facts,
   ItemRow,
-  ItemTitle,
   MunicipalityTag,
   ResidentBadge,
   usePerson,
   useWhen,
 } from "./item-parts";
-import { MapLink } from "./place-row";
 import { type Body, useDecision } from "./use-decision";
 
 export type LiveTraffic = ApiOutputs["moderation"]["queue"]["traffic"][number];
@@ -34,12 +35,22 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
   const id = useId();
   const when = useWhen();
   const person = usePerson();
+  const map = useMapCopy();
+  const mapItem = useMemo(() => trafficMapItem(report), [report]);
 
-  const text = useDecision<Body<DecidePublicationInput>>((input) =>
-    api.moderation.decidePublication(input),
+  // Reviewing the text keeps the report on the map; removing it takes it off.
+  const text = useDecision<Body<DecidePublicationInput>>(
+    (input) => api.moderation.decidePublication(input),
+    {
+      queue: "traffic",
+      id: report.id,
+      slot: "text",
+      patch: (input) => ({ descriptionModerationStatus: input.status }),
+    },
   );
-  const removal = useDecision<Body<RemoveTrafficInput>>((input) =>
-    api.moderation.removeTraffic(input),
+  const removal = useDecision<Body<RemoveTrafficInput>>(
+    (input) => api.moderation.removeTraffic(input),
+    { queue: "traffic", id: report.id, slot: "remove" },
   );
 
   const reviewText =
@@ -49,71 +60,64 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
   return (
     <ItemRow
       titleId={`${id}-title`}
-      item={
+      itemId={report.id}
+      title={report.categoryName}
+      meta={
         <>
-          <ItemTitle id={`${id}-title`}>{report.categoryName}</ItemTitle>
-          <div className="flex flex-wrap gap-1.5">
-            <MunicipalityTag name={report.municipalityName} />
-          </div>
-          <p className="t-small text-ink-2">
-            {person("reportedBy", report.reportedBy)}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            <ResidentBadge verified={report.reporterResidentVerified} />
-          </div>
-          <p className="t-small text-ink-2">
-            {when("receivedAt", report.createdAt)}
-          </p>
-          <p className="t-small text-ink-2">
-            {when("expiresAt", report.expiresAt)}
-          </p>
+          <MunicipalityTag name={report.municipalityName} />
+          {report.reporterResidentVerified ? <ResidentBadge /> : null}
+        </>
+      }
+      byline={
+        <>
+          {person("reportedBy", report.reportedBy)}
+          {when("receivedAt", report.createdAt)}
+          {when("expiresAt", report.expiresAt)}
         </>
       }
       detail={
-        <Facts>
-          <Fact label={q("trafficText")}>
-            {report.description === null ? (
-              q("noText")
-            ) : (
-              <>
-                <Tag
-                  tone={
-                    report.descriptionModerationStatus === "pending"
-                      ? "warning"
-                      : report.descriptionModerationStatus === "published"
-                        ? "success"
-                        : "neutral"
-                  }
-                >
-                  {q(`trafficTextStatus.${report.descriptionModerationStatus}`)}
-                </Tag>
-                <br />
-                {report.description}
-              </>
-            )}
-          </Fact>
-          <Fact label={q("coordinates")}>
-            <span className="tabular-nums">
-              {report.lat.toFixed(5)}, {report.lng.toFixed(5)}
-            </span>
-            <br />
-            <MapLink lat={report.lat} lng={report.lng} />
-          </Fact>
-        </Facts>
+        <>
+          <MapPreview
+            item={mapItem}
+            label={map.trafficAlt(report)}
+            title={report.categoryName}
+            legend={map.trafficLegend([report])}
+            anchor={report}
+          />
+          <Facts>
+            <Fact label={q("trafficText")} wide>
+              {report.description === null ? null : (
+                <div className="flex flex-col gap-1">
+                  <StatusIndicator
+                    tone={
+                      report.descriptionModerationStatus === "pending"
+                        ? "warning"
+                        : report.descriptionModerationStatus === "published"
+                          ? "success"
+                          : "neutral"
+                    }
+                    className="text-xs text-muted-foreground"
+                  >
+                    {q(
+                      `trafficTextStatus.${report.descriptionModerationStatus}`,
+                    )}
+                  </StatusIndicator>
+                  {report.description}
+                </div>
+              )}
+            </Fact>
+          </Facts>
+        </>
       }
       decision={
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-4">
           {reviewText ? (
-            <div className="flex flex-col gap-2.5">
-              <p className="text-[13px] font-medium text-ink-2">
-                {q("trafficText")}
-              </p>
+            <div className="flex flex-col gap-2">
               <DecisionBar
                 id={`${id}-text`}
                 subject={`${report.categoryName}: ${q("trafficText")}`}
                 pending={text.pending}
                 error={text.error}
-                decided={text.decided}
                 primary={{
                   label: q("publishText"),
                   onConfirm: () =>
@@ -135,19 +139,15 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
               />
             </div>
           ) : null}
-          <div className="flex flex-col gap-2.5">
-            <p className="text-[13px] font-medium text-ink-2">
-              {q("removeNotice")}
-            </p>
+          <div className="flex flex-col gap-2">
             <DecisionBar
               id={`${id}-remove`}
               subject={report.categoryName}
               pending={removal.pending}
               error={removal.error}
-              decided={removal.decided}
               secondary={{
                 label: t("remove"),
-                variant: "danger",
+                destructive: true,
                 note: REASON,
                 onConfirm: (note) =>
                   removal.decide({ reportId: report.id, note }),

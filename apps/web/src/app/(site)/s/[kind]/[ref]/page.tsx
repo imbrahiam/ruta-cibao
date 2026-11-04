@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ShareView } from "@/components/share/share-view";
 import { Unavailable } from "@/components/share/unavailable";
-import { Placeholder } from "@/components/ui/loading";
+import { Placeholder } from "@/components/site/loading";
 import { getT } from "@/lib/web/i18n";
 import { loadShare, type ShareContent } from "@/lib/web/share";
 

@@ -39,10 +39,29 @@ import {
 import { useId, useState } from "react";
 import { useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
+import { FormField } from "@/components/admin/form-field";
 import { useOutcome } from "@/components/admin/outcome";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select } from "@/components/ui/field";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { cn } from "@/lib/utils";
 import { api, orpc } from "@/lib/web/api";
 import { failureKind, failureReason } from "@/lib/web/errors";
 
@@ -53,7 +72,7 @@ type Icon = SaveInput["icon"];
 type Severity = NonNullable<SaveInput["severity"]>;
 
 /** The icons `catalog.save` accepts; icon names are data, never catalogue keys. */
-export const ICONS: readonly Icon[] = [
+const ICONS: readonly Icon[] = [
   "map-pin",
   "mountain",
   "route",
@@ -99,17 +118,13 @@ const ICON_MAP: Record<string, LucideIcon> = {
   lightbulb: Lightbulb,
 };
 
-/** Renders the Lucide icon for a stored icon name, using the raw name as accessible label. */
+/** The Lucide icon for a stored icon name, with the raw name beside it. */
 export function CategoryIcon({ name }: { name: string }) {
   const IconComponent = ICON_MAP[name] ?? MapPin;
   return (
-    <span
-      role="img"
-      aria-label={name}
-      className="inline-flex items-center gap-1.5 whitespace-nowrap"
-    >
-      <IconComponent aria-hidden className="size-4 shrink-0 text-ink-2" />
-      <span className="font-mono text-ink">{name}</span>
+    <span className="inline-flex items-center gap-2 whitespace-nowrap">
+      <IconComponent aria-hidden className="size-4 shrink-0" />
+      {name}
     </span>
   );
 }
@@ -118,7 +133,7 @@ const SEVERITIES: readonly Severity[] = ["blocking", "partial", "minor"];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
 /**
- * Create or edit one category, inline under its row.
+ * Create or edit one category in a dialog.
  *
  * Severity only exists for traffic; every other kind saves `null`. Colour is
  * chosen with the platform picker and written out as hex beside it, so the
@@ -131,7 +146,7 @@ export function CategoryForm({
 }: {
   kind: CategoryKind;
   record?: CategoryRecord;
-  /** Called after a save and on cancel, so the caller can return focus. */
+  /** Called after a save and on cancel; the dialog returns focus to its opener. */
   onClose: () => void;
 }) {
   const t = useTranslations("admin");
@@ -167,16 +182,62 @@ export function CategoryForm({
   };
   const invalid = Object.values(errors).some(Boolean);
 
-  const save = useStaffMutation<SaveInput, { id: string }>(
-    (input) => api.catalog.save(input),
-    {
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({ queryKey: orpc.catalog.key() });
-        announce(t("saved"));
-        onClose();
-      },
+  const listKey = orpc.catalog.list.queryOptions({ input: { kind } }).queryKey;
+  const byOrder = (a: CategoryRecord, b: CategoryRecord) =>
+    a.sortOrder - b.sortOrder;
+
+  // An edit shows in the table behind the dialog while the request is out, and
+  // is taken back if it fails; the dialog itself closes on the server's word,
+  // since a duplicate name can only be told to the person still typing it.
+  const save = useStaffMutation<
+    SaveInput,
+    { id: string },
+    { previous: CategoryRecord[] | undefined }
+  >((input) => api.catalog.save(input), {
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: listKey });
+      const previous = queryClient.getQueryData(listKey);
+      if (input.id && previous) {
+        queryClient.setQueryData(
+          listKey,
+          previous
+            .map((item) =>
+              item.id === input.id
+                ? { ...item, ...input, severity: input.severity ?? null }
+                : item,
+            )
+            .sort(byOrder),
+        );
+      }
+      return { previous };
     },
-  );
+    onSuccess: (result, input) => {
+      if (!input.id) {
+        queryClient.setQueryData(listKey, (list) =>
+          list
+            ? [
+                ...list,
+                {
+                  ...input,
+                  id: result.id,
+                  severity: input.severity ?? null,
+                  createdAt: new Date(),
+                },
+              ].sort(byOrder)
+            : list,
+        );
+      }
+      announce(t("saved"));
+      onClose();
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previous)
+        queryClient.setQueryData(listKey, context.previous);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: orpc.catalog.key() });
+    },
+  });
 
   const duplicate =
     failureKind(save.error) === "conflict" &&
@@ -198,203 +259,203 @@ export function CategoryForm({
   };
 
   const show = (message: string | null) => (attempted ? message : null);
+  const nameError = show(errors.name) ?? (duplicate ? c("duplicate") : null);
 
   return (
-    <form
-      noValidate
-      aria-label={
-        record
-          ? c("editTitle", { name: record.name })
-          : c("newTitle", { kind: t(kind) })
-      }
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (!save.isPending) submit();
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        // A save in flight keeps its dialog so its failure can still be shown.
+        if (!open && !save.isPending) onClose();
       }}
-      className="flex flex-col gap-5 rounded-card bg-paper-2 p-4 md:p-5"
     >
-      <h3 className="t-h3">
-        {record
-          ? c("editTitle", { name: record.name })
-          : c("newTitle", { kind: t(kind) })}
-      </h3>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{record ? record.name : t("newCategory")}</DialogTitle>
+          <DialogDescription>{t(kind)}</DialogDescription>
+        </DialogHeader>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Field
-          htmlFor={`${uid}-name`}
-          label={t("name")}
-          error={show(errors.name) ?? (duplicate ? c("duplicate") : null)}
+        <form
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!save.isPending) submit();
+          }}
+          className="flex flex-col gap-4"
         >
-          <Input
-            id={`${uid}-name`}
-            value={name}
-            maxLength={80}
-            required
-            autoFocus
-            autoComplete="off"
-            aria-invalid={Boolean(show(errors.name)) || duplicate}
-            aria-describedby={
-              show(errors.name) || duplicate ? `${uid}-name-error` : undefined
-            }
-            disabled={save.isPending}
-            onChange={(event) => setName(event.target.value)}
-          />
-        </Field>
-
-        <Field htmlFor={`${uid}-icon`} label={t("icon")}>
-          <div className="flex items-center gap-3">
-            <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-input bg-card shadow-ring">
-              {(() => {
-                const SelectedIcon = ICON_MAP[icon] ?? MapPin;
-                return (
-                  <SelectedIcon
-                    role="img"
-                    aria-label={icon}
-                    className="size-5 text-ink"
-                  />
-                );
-              })()}
-            </span>
-            <Select
-              id={`${uid}-icon`}
-              value={icon}
-              disabled={save.isPending}
-              onChange={(event) =>
-                setIcon(
-                  ICONS.find((item) => item === event.target.value) ?? icon,
-                )
-              }
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              htmlFor={`${uid}-name`}
+              label={t("name")}
+              error={nameError}
+              className="sm:col-span-2"
             >
-              {ICONS.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </Field>
+              <Input
+                id={`${uid}-name`}
+                value={name}
+                maxLength={80}
+                required
+                autoFocus
+                autoComplete="off"
+                aria-invalid={Boolean(nameError)}
+                aria-describedby={nameError ? `${uid}-name-error` : undefined}
+                disabled={save.isPending}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </FormField>
 
-        <Field
-          htmlFor={`${uid}-hex`}
-          label={t("color")}
-          hint={c("hexHint")}
-          error={show(errors.color)}
-        >
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              aria-label={c("pickColor")}
-              value={HEX.test(color) ? color.toLowerCase() : "#000000"}
-              disabled={save.isPending}
-              onChange={(event) => setColor(event.target.value.toUpperCase())}
-              className="size-11 shrink-0 cursor-pointer rounded-input bg-card p-1 shadow-ring disabled:opacity-45"
-            />
-            <Input
-              id={`${uid}-hex`}
-              value={color}
-              maxLength={7}
-              spellCheck={false}
-              autoComplete="off"
-              aria-label={c("hex")}
-              aria-invalid={Boolean(show(errors.color))}
-              aria-describedby={`${uid}-hex-${show(errors.color) ? "error" : "hint"}`}
-              disabled={save.isPending}
-              onChange={(event) => setColor(event.target.value.trim())}
-              className="font-mono uppercase"
-            />
-          </div>
-        </Field>
+            <FormField htmlFor={`${uid}-icon`} label={t("icon")}>
+              <Select
+                value={icon}
+                disabled={save.isPending}
+                onValueChange={(value) =>
+                  setIcon(ICONS.find((item) => item === value) ?? icon)
+                }
+              >
+                <SelectTrigger id={`${uid}-icon`} className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ICONS.map((item) => {
+                    const ItemIcon = ICON_MAP[item] ?? MapPin;
+                    return (
+                      <SelectItem key={item} value={item}>
+                        <ItemIcon aria-hidden />
+                        {item}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </FormField>
 
-        {needsSeverity ? (
-          <Field
-            htmlFor={`${uid}-severity`}
-            label={t("severity")}
-            error={show(errors.severity)}
-          >
-            <Select
-              id={`${uid}-severity`}
-              value={severity}
-              required
-              aria-invalid={Boolean(show(errors.severity))}
-              aria-describedby={
-                show(errors.severity) ? `${uid}-severity-error` : undefined
-              }
-              disabled={save.isPending}
-              onChange={(event) =>
-                setSeverity(
-                  SEVERITIES.find((item) => item === event.target.value) ?? "",
-                )
-              }
+            <FormField
+              htmlFor={`${uid}-hex`}
+              label={t("color")}
+              error={show(errors.color)}
             >
-              <option value="">{c("choose")}</option>
-              {SEVERITIES.map((item) => (
-                <option key={item} value={item}>
-                  {t(item)}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        ) : null}
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  aria-label={c("pickColor")}
+                  value={HEX.test(color) ? color.toLowerCase() : "#000000"}
+                  disabled={save.isPending}
+                  onChange={(event) =>
+                    setColor(event.target.value.toUpperCase())
+                  }
+                  className="size-9 shrink-0 cursor-pointer rounded-(--radius-field) border border-input bg-(--field-background) p-1 shadow-(--shadow-control) focus-visible:border-ring focus-visible:ring-[1.5px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                />
+                <Input
+                  id={`${uid}-hex`}
+                  value={color}
+                  maxLength={7}
+                  spellCheck={false}
+                  autoComplete="off"
+                  aria-label={c("hex")}
+                  aria-invalid={Boolean(show(errors.color))}
+                  aria-describedby={
+                    show(errors.color) ? `${uid}-hex-error` : undefined
+                  }
+                  disabled={save.isPending}
+                  onChange={(event) => setColor(event.target.value.trim())}
+                  className="tabular-nums"
+                />
+              </div>
+            </FormField>
 
-        <Field
-          htmlFor={`${uid}-order`}
-          label={t("sortOrder")}
-          hint={c("sortHint")}
-          error={show(errors.sortOrder)}
-        >
-          <Input
-            id={`${uid}-order`}
-            type="number"
-            inputMode="numeric"
-            min={0}
-            max={1000}
-            step={1}
-            value={sortOrder}
-            aria-invalid={Boolean(show(errors.sortOrder))}
-            aria-describedby={`${uid}-order-${show(errors.sortOrder) ? "error" : "hint"}`}
-            disabled={save.isPending}
-            onChange={(event) => setSortOrder(event.target.value)}
-          />
-        </Field>
-      </div>
+            <FormField
+              htmlFor={`${uid}-order`}
+              label={t("sortOrder")}
+              error={show(errors.sortOrder)}
+            >
+              <Input
+                id={`${uid}-order`}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={1000}
+                step={1}
+                value={sortOrder}
+                aria-invalid={Boolean(show(errors.sortOrder))}
+                aria-describedby={
+                  show(errors.sortOrder) ? `${uid}-order-error` : undefined
+                }
+                disabled={save.isPending}
+                onChange={(event) => setSortOrder(event.target.value)}
+                className="tabular-nums"
+              />
+            </FormField>
 
-      <label className="flex min-h-11 cursor-pointer items-start gap-3">
-        <input
-          type="checkbox"
-          checked={isActive}
-          disabled={save.isPending}
-          onChange={(event) => setIsActive(event.target.checked)}
-          className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]"
-        />
-        <span className="flex flex-col">
-          <span className="text-[15px] font-medium text-ink">
-            {t("active")}
-          </span>
-          <span className="t-small text-ink-2">{c("activeHint")}</span>
-        </span>
-      </label>
+            {needsSeverity ? (
+              <FormField
+                htmlFor={`${uid}-severity`}
+                label={t("severity")}
+                error={show(errors.severity)}
+              >
+                <Select
+                  value={severity}
+                  required
+                  disabled={save.isPending}
+                  onValueChange={(value) =>
+                    setSeverity(SEVERITIES.find((item) => item === value) ?? "")
+                  }
+                >
+                  <SelectTrigger
+                    id={`${uid}-severity`}
+                    className="w-full"
+                    aria-invalid={Boolean(show(errors.severity))}
+                    aria-describedby={
+                      show(errors.severity)
+                        ? `${uid}-severity-error`
+                        : undefined
+                    }
+                  >
+                    <SelectValue placeholder={c("choose")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SEVERITIES.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {t(item)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormField>
+            ) : null}
 
-      {duplicate ? null : <InlineError error={save.error} />}
+            <div
+              className={cn(
+                "flex h-9 items-center justify-between gap-4",
+                needsSeverity ? "sm:col-span-2" : "sm:mt-6.5",
+              )}
+            >
+              <Label htmlFor={`${uid}-active`}>{t("active")}</Label>
+              <Switch
+                id={`${uid}-active`}
+                checked={isActive}
+                disabled={save.isPending}
+                onCheckedChange={setIsActive}
+              />
+            </div>
+          </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <Button
-          type="submit"
-          variant="accent"
-          size="lg"
-          className="max-sm:w-full"
-          disabled={save.isPending}
-        >
-          {save.isPending ? c("saving") : t("save")}
-        </Button>
-        <Button
-          size="lg"
-          className="max-sm:w-full"
-          disabled={save.isPending}
-          onClick={onClose}
-        >
-          {common("cancel")}
-        </Button>
-      </div>
-    </form>
+          {duplicate ? null : <InlineError error={save.error} />}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={save.isPending}
+              onClick={onClose}
+            >
+              {common("cancel")}
+            </Button>
+            <Button type="submit" disabled={save.isPending}>
+              {save.isPending ? c("saving") : common("save")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

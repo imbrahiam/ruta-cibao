@@ -7,8 +7,10 @@ import { type FormEvent, useEffect, useState, useTransition } from "react";
 import { useTranslations } from "use-intl";
 import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/web/auth-client";
+import { FormField } from "./form-field";
 
 type Method = "phone" | "email";
 type Step = { kind: "contact" } | { kind: "code"; method: Method; to: string };
@@ -108,12 +110,12 @@ export function AdminSignIn() {
   return (
     <main
       id="contenido"
-      className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-8 px-5 py-10"
+      className="mx-auto flex min-h-dvh w-full max-w-sm flex-col justify-center gap-8 px-5 py-10"
     >
       <Logo label={t("title")} />
       <div className="flex flex-col gap-2">
-        <h1 className="t-h2">{t("signIn")}</h1>
-        <p className="t-body text-ink-2">{t("signInBody")}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("signIn")}</h1>
+        <p className="text-sm text-muted-foreground">{t("signInBody")}</p>
       </div>
 
       {step.kind === "contact" ? (
@@ -122,37 +124,30 @@ export function AdminSignIn() {
           className="flex flex-col gap-5"
           noValidate
         >
-          <fieldset className="flex flex-col gap-2">
-            <legend className="sr-only">{t("contact")}</legend>
-            <div className="grid grid-cols-2 gap-1 rounded-full bg-paper-3 p-1">
-              {(["phone", "email"] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  aria-pressed={method === option}
-                  onClick={() => {
-                    setMethod(option);
-                    setError(null);
-                  }}
-                  className={`press inline-flex h-11 items-center justify-center gap-2 rounded-full text-[15px] ${
-                    method === option
-                      ? "bg-card font-medium text-ink shadow-ring"
-                      : "text-ink-2"
-                  }`}
-                >
-                  {option === "phone" ? (
-                    <MessageSquareText aria-hidden className="size-4" />
-                  ) : (
-                    <Mail aria-hidden className="size-4" />
-                  )}
-                  {t(option)}
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          <Tabs
+            value={method}
+            onValueChange={(value) => {
+              setMethod(value as Method);
+              setError(null);
+            }}
+          >
+            <TabsList
+              aria-label={t("contact")}
+              className="grid h-9 w-full grid-cols-2"
+            >
+              <TabsTrigger value="phone">
+                <MessageSquareText aria-hidden="true" />
+                {t("phone")}
+              </TabsTrigger>
+              <TabsTrigger value="email">
+                <Mail aria-hidden="true" />
+                {t("email")}
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {method === "phone" ? (
-            <Field
+            <FormField
               htmlFor="staff-phone"
               label={t("phone")}
               hint={t("shell.phoneHint")}
@@ -172,14 +167,9 @@ export function AdminSignIn() {
                   setPhone(formatPhoneInput(event.target.value))
                 }
               />
-            </Field>
+            </FormField>
           ) : (
-            <Field
-              htmlFor="staff-email"
-              label={t("email")}
-              hint={t("shell.emailHint")}
-              error={error}
-            >
+            <FormField htmlFor="staff-email" label={t("email")} error={error}>
               <Input
                 id="staff-email"
                 type="email"
@@ -187,27 +177,24 @@ export function AdminSignIn() {
                 autoComplete="email"
                 value={email}
                 aria-invalid={Boolean(error)}
-                aria-describedby={
-                  error ? "staff-email-error" : "staff-email-hint"
-                }
+                aria-describedby={error ? "staff-email-error" : undefined}
                 onChange={(event) => setEmail(event.target.value)}
               />
-            </Field>
+            </FormField>
           )}
 
           <Button
             type="submit"
-            variant="accent"
-            size="lg"
-            block
             disabled={pending}
+            aria-busy={pending}
+            className="h-10 w-full"
           >
-            {pending ? t("loading") : t("send")}
+            {t("send")}
           </Button>
         </form>
       ) : (
         <form onSubmit={submitCode} className="flex flex-col gap-5" noValidate>
-          <p className="t-body text-ink-2" role="status">
+          <p className="text-sm text-muted-foreground" role="status">
             {t("shell.sentTo", {
               destination:
                 step.method === "phone"
@@ -215,12 +202,7 @@ export function AdminSignIn() {
                   : step.to,
             })}
           </p>
-          <Field
-            htmlFor="staff-code"
-            label={t("code")}
-            hint={t("shell.codeHint")}
-            error={error}
-          >
+          <FormField htmlFor="staff-code" label={t("code")} error={error}>
             <Input
               id="staff-code"
               inputMode="numeric"
@@ -228,21 +210,20 @@ export function AdminSignIn() {
               maxLength={6}
               value={code}
               aria-invalid={Boolean(error)}
-              aria-describedby={error ? "staff-code-error" : "staff-code-hint"}
-              className="tabular text-center text-[22px] tracking-[0.4em]"
+              aria-describedby={error ? "staff-code-error" : undefined}
+              className="h-11 text-center text-xl tracking-[0.4em] tabular-nums"
               onChange={(event) =>
                 setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
               }
             />
-          </Field>
+          </FormField>
           <Button
             type="submit"
-            variant="accent"
-            size="lg"
-            block
             disabled={pending}
+            aria-busy={pending}
+            className="h-10 w-full"
           >
-            {pending ? t("loading") : t("verify")}
+            {t("verify")}
           </Button>
           <div className="flex items-center justify-between gap-3">
             <Button

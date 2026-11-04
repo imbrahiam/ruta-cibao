@@ -30,7 +30,9 @@ export const contentReports = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     reporterUserId: text().references(() => user.id, { onDelete: "set null" }),
     subjectKind: text()
-      .$type<"place" | "photo" | "route" | "traffic" | "consultation">()
+      .$type<
+        "place" | "photo" | "route" | "traffic" | "consultation" | "comment"
+      >()
       .notNull(),
     subjectRef: text().notNull(),
     /** Resolved from the content on the server; null for an institutional record. */

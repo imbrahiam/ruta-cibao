@@ -1,16 +1,18 @@
 "use client";
 
 import type { ApiOutputs, DecideClaimInput } from "@ruta/contracts";
+import { normalizePhone } from "@ruta/shared/phone";
 import { useId } from "react";
 import { useTranslations } from "use-intl";
-import { Tag } from "@/components/ui/tag";
 import { api } from "@/lib/web/api";
+import { ContactValue } from "../contact/contact-value";
 import { DecisionBar } from "./decision-bar";
 import {
+  ClampedText,
   Fact,
   Facts,
   ItemRow,
-  ItemTitle,
+  LeadImage,
   MunicipalityTag,
   ResidentBadge,
   usePerson,
@@ -26,42 +28,68 @@ export function ClaimRow({ claim }: { claim: PendingClaim }) {
   const id = useId();
   const when = useWhen();
   const person = usePerson();
-  const { decide, pending, error, decided } = useDecision<
-    Body<DecideClaimInput>
-  >((input) => api.moderation.decideClaim(input));
+  const { decide, pending, error } = useDecision<Body<DecideClaimInput>>(
+    (input) => api.moderation.decideClaim(input),
+    { queue: "claims", id: claim.id },
+  );
+
+  // The same number twice is one contact, not two rows to compare by eye.
+  const phone = claim.contactPhone ? normalizePhone(claim.contactPhone) : null;
+  const sameNumber =
+    phone !== null &&
+    claim.whatsapp !== null &&
+    normalizePhone(claim.whatsapp) === phone;
 
   return (
     <ItemRow
       titleId={`${id}-title`}
-      item={
+      title={claim.placeName}
+      lead={
+        <LeadImage
+          placeImage={claim.placeImage}
+          personImage={claim.claimedByImage}
+        />
+      }
+      meta={
         <>
-          <ItemTitle id={`${id}-title`}>{claim.placeName}</ItemTitle>
-          <div className="flex flex-wrap gap-1.5">
-            <MunicipalityTag name={claim.municipalityName} />
-            <Tag tone="accent">{claim.categoryName}</Tag>
-          </div>
-          <p className="t-small text-ink-2">
+          <MunicipalityTag name={claim.municipalityName} />
+          {claim.categoryName}
+        </>
+      }
+      byline={
+        <>
+          <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-foreground">
             {person("claimedBy", claim.claimedBy)}
-          </p>
-          <div className="flex flex-wrap gap-1.5">
-            <ResidentBadge verified={claim.claimantResidentVerified} />
-          </div>
-          <p className="t-small text-ink-2">
-            {when("receivedAt", claim.createdAt)}
-          </p>
+            {claim.claimantResidentVerified ? <ResidentBadge /> : null}
+          </span>
+          {when("receivedAt", claim.createdAt)}
         </>
       }
       detail={
         <Facts>
-          <Fact label={q("evidence")}>{claim.evidence}</Fact>
-          <Fact label={q("contactPhone")}>
-            {claim.contactPhone ?? q("notProvided")}
+          <Fact label={q("evidence")} wide>
+            <ClampedText>{claim.evidence}</ClampedText>
           </Fact>
-          <Fact label={q("whatsapp")}>
-            {claim.whatsapp ?? q("notProvided")}
-          </Fact>
-          <Fact label={q("openingHours")}>
-            {claim.openingHours ?? q("notProvided")}
+          {sameNumber ? (
+            <Fact label={q("phoneAndWhatsapp")}>
+              <ContactValue kind="phone" value={claim.contactPhone ?? ""} />
+            </Fact>
+          ) : (
+            <>
+              <Fact label={q("contactPhone")}>
+                {claim.contactPhone ? (
+                  <ContactValue kind="phone" value={claim.contactPhone} />
+                ) : null}
+              </Fact>
+              <Fact label={q("whatsapp")}>
+                {claim.whatsapp ? (
+                  <ContactValue kind="whatsapp" value={claim.whatsapp} />
+                ) : null}
+              </Fact>
+            </>
+          )}
+          <Fact label={q("openingHours")} wide>
+            {claim.openingHours}
           </Fact>
         </Facts>
       }
@@ -71,14 +99,13 @@ export function ClaimRow({ claim }: { claim: PendingClaim }) {
           subject={claim.placeName}
           pending={pending}
           error={error}
-          decided={decided}
           primary={{
             label: t("approve"),
             onConfirm: () => decide({ claimId: claim.id, decision: "approve" }),
           }}
           secondary={{
             label: t("reject"),
-            variant: "danger",
+            destructive: true,
             note: { min: 10, max: 500 },
             onConfirm: (note) =>
               decide({ claimId: claim.id, decision: "reject", note }),

@@ -151,7 +151,8 @@ export const nativePushTickets = pgTable(
         onDelete: "cascade",
       }),
     tokenHash: text().notNull(),
-    expoTicketId: text().unique(),
+    /** The provider's id for the delivery (APNs `apns-id`). */
+    providerMessageId: text().unique(),
     status: text().$type<"pending" | "ok" | "error">().notNull(),
     errorCode: text(),
     checkAfter: timestamp({ withTimezone: true }).notNull().defaultNow(),

@@ -1,6 +1,6 @@
 import { SearchX } from "lucide-react";
 import Link from "next/link";
-import { buttonStyles } from "@/components/ui/button";
+import { buttonStyles } from "@/components/site/button";
 import { getT } from "@/lib/web/i18n";
 
 /**

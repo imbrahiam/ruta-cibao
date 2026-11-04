@@ -1,8 +1,8 @@
 import { SearchX } from "lucide-react";
 import Link from "next/link";
+import { buttonStyles } from "@/components/site/button";
 import { SiteFooter } from "@/components/site/footer";
 import { SiteHeader } from "@/components/site/header";
-import { buttonStyles } from "@/components/ui/button";
 import { getT } from "@/lib/web/i18n";
 
 export default function NotFound() {

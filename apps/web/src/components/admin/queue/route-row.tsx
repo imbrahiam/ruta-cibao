@@ -1,20 +1,14 @@
 "use client";
 
 import type { DecideRouteInput, EcoRoute } from "@ruta/contracts";
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import { useFormatter, useTranslations } from "use-intl";
-import { Tag } from "@/components/ui/tag";
 import { api } from "@/lib/web/api";
+import { MapPreview } from "../map/map-preview";
+import { routeMapItem } from "../map/queue-items";
+import { useMapCopy } from "../map/use-map-copy";
 import { DecisionBar } from "./decision-bar";
-import {
-  Fact,
-  Facts,
-  ItemRow,
-  ItemTitle,
-  MunicipalityTag,
-  useWhen,
-} from "./item-parts";
-import { RoutePreview } from "./route-preview";
+import { Fact, Facts, ItemRow, MunicipalityTag, useWhen } from "./item-parts";
 import { type Body, useDecision } from "./use-decision";
 
 const NOTE = { min: 5, max: 1000 } as const;
@@ -25,9 +19,14 @@ export function RouteRow({ route }: { route: EcoRoute }) {
   const format = useFormatter();
   const id = useId();
   const when = useWhen();
-  const { decide, pending, error, decided } = useDecision<
-    Body<DecideRouteInput>
-  >((input) => api.routes.decide(input));
+  const map = useMapCopy();
+  const mapItem = useMemo(() => routeMapItem(route), [route]);
+  const start = route.path[0];
+  const distance = format.number(route.distanceMeters / 1000, "distance");
+  const { decide, pending, error } = useDecision<Body<DecideRouteInput>>(
+    (input) => api.routes.decide(input),
+    { queue: "routes", id: route.id },
+  );
 
   const hours = Math.floor(route.durationMinutes / 60);
   const minutes = route.durationMinutes % 60;
@@ -39,40 +38,46 @@ export function RouteRow({ route }: { route: EcoRoute }) {
   return (
     <ItemRow
       titleId={`${id}-title`}
-      item={
+      itemId={route.id}
+      title={route.name}
+      meta={
         <>
-          <ItemTitle id={`${id}-title`}>{route.name}</ItemTitle>
-          <div className="flex flex-wrap gap-1.5">
-            <MunicipalityTag name={route.municipalityName} />
-            <Tag tone="accent">{route.categoryName}</Tag>
-          </div>
-          <p className="t-small text-ink-2">
-            {when("receivedAt", route.createdAt)}
-          </p>
-          <RoutePreview
-            path={route.path}
-            distanceMeters={route.distanceMeters}
-          />
+          <MunicipalityTag name={route.municipalityName} />
+          {route.categoryName}
         </>
       }
+      byline={when("receivedAt", route.createdAt)}
       detail={
-        <Facts>
-          <Fact label={q("description")}>{route.description}</Fact>
-          <Fact label={q("distance")}>
-            {format.number(route.distanceMeters / 1000, "distance")}
-          </Fact>
-          <Fact label={q("duration")}>{duration}</Fact>
-          <Fact label={q("difficulty")}>
-            {q(`difficultyLevel.${route.difficulty}`)}
-          </Fact>
-          <Fact label={q("services")}>
-            {route.services.length > 0
-              ? route.services
-                  .map((service) => q(`service.${service}`))
-                  .join(", ")
-              : q("noServices")}
-          </Fact>
-        </Facts>
+        <>
+          {start ? (
+            <MapPreview
+              item={mapItem}
+              label={map.routeAlt(route)}
+              title={route.name}
+              legend={map.routeLegend()}
+              summary={`${q("distance")}: ${distance}`}
+              anchor={start}
+              anchorLabel={q("pathStart")}
+            />
+          ) : null}
+          <Facts>
+            <Fact label={q("description")} wide>
+              {route.description}
+            </Fact>
+            <Fact label={q("distance")}>{distance}</Fact>
+            <Fact label={q("duration")}>{duration}</Fact>
+            <Fact label={q("difficulty")}>
+              {q(`difficultyLevel.${route.difficulty}`)}
+            </Fact>
+            <Fact label={q("services")}>
+              {route.services.length > 0
+                ? route.services
+                    .map((service) => q(`service.${service}`))
+                    .join(", ")
+                : null}
+            </Fact>
+          </Facts>
+        </>
       }
       decision={
         <DecisionBar
@@ -80,7 +85,6 @@ export function RouteRow({ route }: { route: EcoRoute }) {
           subject={route.name}
           pending={pending}
           error={error}
-          decided={decided}
           primary={{
             label: t("publish"),
             note: NOTE,
@@ -89,7 +93,7 @@ export function RouteRow({ route }: { route: EcoRoute }) {
           }}
           secondary={{
             label: t("reject"),
-            variant: "danger",
+            destructive: true,
             note: NOTE,
             onConfirm: (note) =>
               decide({ id: route.id, status: "rejected", note }),

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { buttonStyles } from "@/components/ui/button";
+import { buttonStyles } from "@/components/site/button";
 import { cx } from "@/lib/web/cx";
 import { StoreLogo } from "./store-logo";
 

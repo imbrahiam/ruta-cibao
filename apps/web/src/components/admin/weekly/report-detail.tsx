@@ -2,64 +2,78 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { ChartColumn } from "lucide-react";
-import type { ReactNode } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { ErrorPanel } from "@/components/admin/error-panel";
-import { AdminPageHeader } from "@/components/admin/page-frame";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Placeholder } from "@/components/ui/loading";
+import { MetaList } from "@/components/admin/facts";
+import {
+  AdminEmpty,
+  AdminPageHeader,
+  AdminSection,
+} from "@/components/admin/page-frame";
+import { ReportDetailSkeleton } from "@/components/admin/skeletons";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+} from "@/components/ui/table";
 import { orpc } from "@/lib/web/api";
-import { cx } from "@/lib/web/cx";
 import { failureKind } from "@/lib/web/errors";
-import { PdfActions, ReportStatusTag, useWeekLabel } from "./report-parts";
+import {
+  PdfActions,
+  ReportStatusIndicator,
+  useWeekLabel,
+} from "./report-parts";
 
-type Value = string | number;
+type Figure = { label: string; value: string | number };
 
-function Stat({
-  label,
-  value,
-  emphasis = false,
-}: {
-  label: string;
-  value: Value;
-  emphasis?: boolean;
-}) {
+/** The headline figures: a flat row, the number over its label. */
+function StatRow({ figures }: { figures: Figure[] }) {
   return (
-    <div className="flex flex-col-reverse justify-end gap-1">
-      <dt className="t-small text-ink-2">{label}</dt>
-      <dd
-        className={cx(
-          "font-mono leading-none text-ink tabular",
-          emphasis ? "text-[32px]" : "text-[22px]",
-        )}
-      >
-        {value}
-      </dd>
-    </div>
+    <dl className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-5 sm:gap-x-0">
+      {figures.map((figure) => (
+        <div
+          key={figure.label}
+          className="flex min-w-0 flex-col-reverse justify-end gap-1 sm:border-l sm:px-6 sm:first:border-l-0 sm:first:pl-0"
+        >
+          <dt className="text-sm text-muted-foreground">{figure.label}</dt>
+          <dd className="text-2xl font-semibold tabular-nums">
+            {figure.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
-function Section({
+/** One block of the report: its figures as label and value rows. */
+function FigureSection({
   title,
   id,
-  children,
+  figures,
 }: {
   title: string;
   id: string;
-  children: ReactNode;
+  figures: Figure[];
 }) {
   return (
-    <section
-      aria-labelledby={id}
-      className="rounded-card bg-card p-5 shadow-ring"
-    >
-      <h2 id={id} className="t-h3">
-        {title}
-      </h2>
-      <dl className="mt-5 grid grid-cols-2 items-end gap-x-6 gap-y-5">
-        {children}
-      </dl>
-    </section>
+    <AdminSection id={id} title={title}>
+      <Table>
+        <TableBody>
+          {figures.map((figure) => (
+            <TableRow key={figure.label} className="h-11 hover:bg-transparent">
+              <TableHead scope="row" className="h-11 px-0 font-normal">
+                {figure.label}
+              </TableHead>
+              <TableCell className="px-0 py-0 text-right font-medium tabular-nums">
+                {figure.value}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </AdminSection>
   );
 }
 
@@ -67,6 +81,7 @@ function Section({
 export function WeeklyReportDetail({ reportId }: { reportId: string }) {
   const t = useTranslations("admin");
   const r = useTranslations("reports");
+  const w = useTranslations("admin.weeklyReport");
   const s = useTranslations("reports.sections");
   const m = useTranslations("reports.metrics");
   const format = useFormatter();
@@ -75,27 +90,19 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
     orpc.reports.detail.queryOptions({ input: { reportId } }),
   );
 
-  if (query.isPending) {
-    return (
-      <div className="flex flex-col gap-4">
-        <div role="status" aria-busy="true" className="flex flex-col gap-3">
+  if (!query.data) {
+    if (query.isPending) {
+      return (
+        <div role="status" aria-busy="true">
           <span className="sr-only">{t("loading")}</span>
-          <Placeholder className="h-28" />
-          <Placeholder className="h-64" />
+          <ReportDetailSkeleton />
         </div>
-      </div>
-    );
-  }
-
-  if (query.isError) {
-    return (
-      <div className="flex flex-col gap-4">
-        {failureKind(query.error) === "not_found" ? (
-          <EmptyState icon={ChartColumn} title={r("notFound")} />
-        ) : (
-          <ErrorPanel error={query.error} onRetry={() => query.refetch()} />
-        )}
-      </div>
+      );
+    }
+    return failureKind(query.error) === "not_found" ? (
+      <AdminEmpty icon={ChartColumn} title={r("notFound")} />
+    ) : (
+      <ErrorPanel error={query.error} onRetry={() => query.refetch()} />
     );
   }
 
@@ -108,164 +115,188 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
   );
 
   return (
-    <article className="flex flex-col gap-6" aria-busy={query.isFetching}>
+    <article className="flex flex-col gap-8" aria-busy={query.isFetching}>
       <AdminPageHeader
         title={week}
-        description={report.municipalityName}
-        actions={
-          <div className="md:w-72">
-            <PdfActions
-              reportId={report.id}
-              status={report.status}
-              label={{ municipality: report.municipalityName, week }}
-            />
-          </div>
+        badge={<ReportStatusIndicator status={report.status} />}
+        description={
+          <MetaList>
+            {report.municipalityName}
+            {report.generatedAt
+              ? r("generatedAt", {
+                  date: format.dateTime(new Date(report.generatedAt), "long"),
+                })
+              : ""}
+          </MetaList>
         }
-      >
-        <div className="flex flex-wrap items-center gap-3">
-          <ReportStatusTag status={report.status} />
-          {report.generatedAt ? (
-            <p className="t-small text-ink-3">
-              {r("generatedAt", {
-                date: format.dateTime(new Date(report.generatedAt), "long"),
-              })}
-            </p>
-          ) : null}
-        </div>
-      </AdminPageHeader>
+        actions={
+          <PdfActions
+            reportId={report.id}
+            status={report.status}
+            placement="page"
+            label={{ municipality: report.municipalityName, week }}
+          />
+        }
+      />
 
       {report.status !== "ready" ? (
-        <p className="t-body rounded-card bg-paper-2 p-5 text-ink-2">
-          {r(report.status)}
-        </p>
+        <p className="text-sm text-muted-foreground">{r(report.status)}</p>
       ) : !metrics ? (
-        <p
-          role="alert"
-          className="t-body rounded-card bg-paper-2 p-5 text-ink-2"
-        >
+        <p role="alert" className="text-sm text-muted-foreground">
           {r("unreadable")}
         </p>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Section id="sec-places" title={s("places")}>
-            <Stat
-              label={m("placesSubmitted")}
-              value={metrics.places.submitted}
-            />
-            <Stat
-              label={m("placesPublished")}
-              value={metrics.places.published}
-            />
-            <Stat label={m("placesRejected")} value={metrics.places.rejected} />
-            <Stat
-              label={m("placesTotal")}
-              value={metrics.places.total}
-              emphasis
-            />
-          </Section>
-          <Section id="sec-routes" title={s("routes")}>
-            <Stat
-              label={m("routesSubmitted")}
-              value={metrics.routes.submitted}
-            />
-            <Stat
-              label={m("routesPublished")}
-              value={metrics.routes.published}
-            />
-          </Section>
-          <Section id="sec-traffic" title={s("traffic")}>
-            <Stat
-              label={m("trafficReported")}
-              value={metrics.traffic.reported}
-              emphasis
-            />
-            <Stat label={m("trafficCleared")} value={metrics.traffic.cleared} />
-            <Stat label={m("trafficExpired")} value={metrics.traffic.expired} />
-            <Stat label={m("trafficRemoved")} value={metrics.traffic.removed} />
-          </Section>
-          <Section id="sec-consultations" title={s("consultations")}>
-            <Stat
-              label={m("consultationsStillOpen")}
-              value={metrics.consultations.stillOpen}
-              emphasis
-            />
-            <Stat
-              label={m("consultationsOpened")}
-              value={metrics.consultations.opened}
-            />
-            <Stat
-              label={m("consultationsAnswered")}
-              value={metrics.consultations.answered}
-            />
-            <Stat
-              label={m("consultationsResolved")}
-              value={metrics.consultations.resolved}
-            />
-            <Stat
-              label={m("medianResponse")}
-              value={
-                metrics.consultations.medianResponseHours === null
-                  ? m("medianResponseNone")
-                  : m("medianResponseHours", {
-                      hours: Math.round(
-                        metrics.consultations.medianResponseHours,
-                      ),
-                    })
-              }
-            />
-          </Section>
-          <Section id="sec-businesses" title={s("businesses")}>
-            <Stat
-              label={m("businessesClaimed")}
-              value={metrics.businesses.claimed}
-            />
-            <Stat
-              label={m("businessesApproved")}
-              value={metrics.businesses.approved}
-            />
-          </Section>
-          <Section id="sec-people" title={s("people")}>
-            <Stat
-              label={m("peopleContributors")}
-              value={metrics.people.contributors}
-              emphasis
-            />
-            <Stat label={m("peopleVerified")} value={metrics.people.verified} />
-          </Section>
+        <>
+          <StatRow
+            figures={[
+              { label: w("statPlaces"), value: metrics.places.published },
+              { label: w("statOpened"), value: metrics.consultations.opened },
+              {
+                label: w("statAnswered"),
+                value: metrics.consultations.answered,
+              },
+              {
+                label: w("statStillOpen"),
+                value: metrics.consultations.stillOpen,
+              },
+              { label: w("statTraffic"), value: metrics.traffic.reported },
+            ]}
+          />
 
-          <section
-            aria-labelledby="sec-top"
-            className="rounded-card bg-card p-5 shadow-ring lg:col-span-2"
-          >
-            <h2 id="sec-top" className="t-h3">
-              {s("topCategories")}
-            </h2>
+          <div className="grid gap-x-12 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
+            <FigureSection
+              id="sec-places"
+              title={s("places")}
+              figures={[
+                {
+                  label: m("placesSubmitted"),
+                  value: metrics.places.submitted,
+                },
+                {
+                  label: m("placesPublished"),
+                  value: metrics.places.published,
+                },
+                { label: m("placesRejected"), value: metrics.places.rejected },
+                { label: m("placesTotal"), value: metrics.places.total },
+              ]}
+            />
+            <FigureSection
+              id="sec-traffic"
+              title={s("traffic")}
+              figures={[
+                {
+                  label: m("trafficReported"),
+                  value: metrics.traffic.reported,
+                },
+                { label: m("trafficCleared"), value: metrics.traffic.cleared },
+                { label: m("trafficExpired"), value: metrics.traffic.expired },
+                { label: m("trafficRemoved"), value: metrics.traffic.removed },
+              ]}
+            />
+            <FigureSection
+              id="sec-consultations"
+              title={s("consultations")}
+              figures={[
+                {
+                  label: m("consultationsOpened"),
+                  value: metrics.consultations.opened,
+                },
+                {
+                  label: m("consultationsAnswered"),
+                  value: metrics.consultations.answered,
+                },
+                {
+                  label: m("consultationsResolved"),
+                  value: metrics.consultations.resolved,
+                },
+                {
+                  label: m("consultationsStillOpen"),
+                  value: metrics.consultations.stillOpen,
+                },
+                {
+                  label: m("medianResponse"),
+                  value:
+                    metrics.consultations.medianResponseHours === null
+                      ? m("medianResponseNone")
+                      : m("medianResponseHours", {
+                          hours: Math.round(
+                            metrics.consultations.medianResponseHours,
+                          ),
+                        }),
+                },
+              ]}
+            />
+            <FigureSection
+              id="sec-routes"
+              title={s("routes")}
+              figures={[
+                {
+                  label: m("routesSubmitted"),
+                  value: metrics.routes.submitted,
+                },
+                {
+                  label: m("routesPublished"),
+                  value: metrics.routes.published,
+                },
+              ]}
+            />
+            <FigureSection
+              id="sec-businesses"
+              title={s("businesses")}
+              figures={[
+                {
+                  label: m("businessesClaimed"),
+                  value: metrics.businesses.claimed,
+                },
+                {
+                  label: m("businessesApproved"),
+                  value: metrics.businesses.approved,
+                },
+              ]}
+            />
+            <FigureSection
+              id="sec-people"
+              title={s("people")}
+              figures={[
+                {
+                  label: m("peopleContributors"),
+                  value: metrics.people.contributors,
+                },
+                { label: m("peopleVerified"), value: metrics.people.verified },
+              ]}
+            />
+          </div>
+
+          <AdminSection id="sec-top" title={s("topCategories")}>
             {metrics.topCategories.length === 0 ? (
-              <p className="t-small mt-3 text-ink-2">{r("noActivity")}</p>
+              <p className="text-sm text-muted-foreground">{r("noActivity")}</p>
             ) : (
-              <ol className="mt-5 flex flex-col gap-3">
+              <ol className="flex flex-col">
                 {metrics.topCategories.map((category) => (
                   <li
                     key={category.name}
-                    className="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3 sm:grid-cols-[minmax(0,14rem)_1fr_auto]"
+                    className="grid h-11 grid-cols-[minmax(0,9rem)_1fr_2rem] items-center gap-4 sm:grid-cols-[minmax(0,14rem)_1fr_2rem]"
                   >
-                    <span className="t-small text-ink-2">{category.name}</span>
-                    <span
-                      aria-hidden
-                      className="h-2.5 rounded-r-[4px] bg-accent"
-                      style={{
-                        width: `${Math.max(2, (category.count / topMax) * 100)}%`,
-                      }}
-                    />
-                    <span className="font-mono text-[14px] text-ink tabular">
+                    <span className="truncate text-sm" title={category.name}>
+                      {category.name}
+                    </span>
+                    <span aria-hidden className="h-1.5 rounded-full bg-muted">
+                      <span
+                        className="block h-full rounded-full bg-primary"
+                        style={{
+                          width: `${Math.max(2, (category.count / topMax) * 100)}%`,
+                        }}
+                      />
+                    </span>
+                    <span className="text-right text-sm font-medium tabular-nums">
                       {category.count}
                     </span>
                   </li>
                 ))}
               </ol>
             )}
-          </section>
-        </div>
+          </AdminSection>
+        </>
       )}
     </article>
   );

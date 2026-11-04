@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AdminProviders } from "@/components/admin/providers";
 import { AdminShell } from "@/components/admin/shell";
+import { AdminThemeScope } from "@/components/admin/theme-scope";
 import { getT, pickMessages } from "@/lib/web/i18n";
 
 const t = getT("admin");
@@ -34,9 +35,11 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
         "consultations",
       ])}
     >
-      <Suspense>
-        <AdminShell>{children}</AdminShell>
-      </Suspense>
+      <AdminThemeScope>
+        <Suspense>
+          <AdminShell>{children}</AdminShell>
+        </Suspense>
+      </AdminThemeScope>
     </AdminProviders>
   );
 }

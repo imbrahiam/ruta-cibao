@@ -6,11 +6,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
 import { useOutcome } from "@/components/admin/outcome";
+import { StatusIndicator } from "@/components/admin/status-indicator";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
-import { Button, buttonStyles } from "@/components/ui/button";
-import { Tag } from "@/components/ui/tag";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { api, orpc } from "@/lib/web/api";
-import { cx } from "@/lib/web/cx";
 
 export type ReportStatus = "pending" | "ready" | "failed";
 
@@ -46,10 +46,14 @@ const STATUS_TONE = {
   failed: "danger",
 } as const;
 
-/** Generation state of a report, always as text. */
-export function ReportStatusTag({ status }: { status: ReportStatus }) {
+/** Generation state of a report: a dot and always the word. */
+export function ReportStatusIndicator({ status }: { status: ReportStatus }) {
   const reports = useTranslations("reports.statuses");
-  return <Tag tone={STATUS_TONE[status]}>{reports(status)}</Tag>;
+  return (
+    <StatusIndicator tone={STATUS_TONE[status]}>
+      {reports(status)}
+    </StatusIndicator>
+  );
 }
 
 type PdfState =
@@ -76,14 +80,14 @@ export function PdfActions({
   reportId,
   status,
   label,
-  inline = false,
+  placement,
 }: {
   reportId: string;
   status: ReportStatus;
   /** Municipality and week, so repeated buttons are told apart by a screen reader. */
   label: { municipality: string; week: string };
-  /** Buttons sit side by side from `sm` up instead of filling the width. */
-  inline?: boolean;
+  /** `row` is one compact button in a table row; `page` the header action. */
+  placement: "row" | "page";
 }) {
   const t = useTranslations("admin");
   const w = useTranslations("admin.weeklyReport");
@@ -175,57 +179,71 @@ export function PdfActions({
   };
 
   const working = state.phase === "working";
+  const row = placement === "row";
+  // In a row the button is an icon until there is room for its word.
+  const buttonClass = row ? "xl:w-auto xl:px-4" : undefined;
+  const text = (word: string) =>
+    row ? <span className="hidden xl:inline">{word}</span> : word;
+  const size = row ? "icon" : "default";
+  const variant = row ? "outline" : "default";
 
   return (
-    <div className="flex flex-col gap-2">
-      <div
-        className={cx(
-          "flex flex-col gap-2",
-          inline && "sm:flex-row sm:flex-wrap sm:items-center",
-        )}
-      >
-        {state.phase === "ready" ? (
+    <div
+      className={cn(
+        "flex flex-col gap-0",
+        row ? "items-end" : "items-start sm:items-end",
+      )}
+    >
+      {state.phase === "ready" ? (
+        <Button asChild variant={variant} size={size} className={buttonClass}>
           <a
             href={state.url}
             target="_blank"
             rel="noopener noreferrer"
-            className={cx(
-              buttonStyles({ variant: "accent", size: "md", block: !inline }),
-              "max-md:min-h-11",
-              inline && "max-sm:w-full",
-            )}
-          >
-            <Download aria-hidden />
-            {t("download")}
-          </a>
-        ) : status === "ready" ? (
-          <Button
-            variant="primary"
-            block={!inline}
-            className={cx("max-md:min-h-11", inline && "max-sm:w-full")}
-            disabled={working}
             aria-label={w("downloadFor", label)}
-            onClick={download}
           >
             <Download aria-hidden />
-            {working ? reports("preparingPdf") : t("download")}
-          </Button>
-        ) : (
-          <Button
-            variant="secondary"
-            block={!inline}
-            className={cx("max-md:min-h-11", inline && "max-sm:w-full")}
-            disabled={working}
-            aria-label={w("renderFor", label)}
-            onClick={retry}
-          >
-            <FileText aria-hidden />
-            {working ? reports("preparingPdf") : t("render")}
-          </Button>
-        )}
-      </div>
+            {text(t("download"))}
+          </a>
+        </Button>
+      ) : status === "ready" ? (
+        <Button
+          variant={variant}
+          size={size}
+          className={buttonClass}
+          disabled={working}
+          aria-busy={working}
+          aria-label={w("downloadFor", label)}
+          title={w("downloadFor", label)}
+          onClick={download}
+        >
+          <Download aria-hidden />
+          {text(working ? reports("preparingPdf") : t("download"))}
+        </Button>
+      ) : (
+        <Button
+          variant="outline"
+          size={size}
+          className={buttonClass}
+          disabled={working}
+          aria-busy={working}
+          aria-label={w("renderFor", label)}
+          title={w("renderFor", label)}
+          onClick={retry}
+        >
+          <FileText aria-hidden />
+          {text(working ? reports("preparingPdf") : t("render"))}
+        </Button>
+      )}
 
-      <div role="status" aria-live="polite" className="t-small text-ink-2">
+      <div
+        role="status"
+        aria-live="polite"
+        className={cn(
+          "max-w-60 text-xs text-muted-foreground not-empty:mt-1.5 whitespace-normal",
+          row ? "text-right" : "text-left sm:text-right",
+        )}
+      >
         {state.phase === "working" && state.queued ? t("queued") : null}
         {state.phase === "ready" ? w("pdfReady") : null}
         {state.phase === "pending" ? w("pdfStillPending") : null}
@@ -234,7 +252,10 @@ export function PdfActions({
         state.error ? (
           <InlineError error={state.error} />
         ) : (
-          <p role="alert" className="t-small text-danger-ink">
+          <p
+            role="alert"
+            className="mt-1.5 max-w-60 text-xs whitespace-normal text-destructive"
+          >
             {reports("pdfFailed")}
           </p>
         )

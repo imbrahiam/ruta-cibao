@@ -2,19 +2,26 @@
 
 import type { ApiInputs, ApiOutputs } from "@ruta/contracts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MapPin, MessagesSquare } from "lucide-react";
+import { MessagesSquare } from "lucide-react";
 import { useState } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { ErrorPanel, InlineError } from "@/components/admin/error-panel";
+import { MetaList, PropertyList, PropertyRow } from "@/components/admin/facts";
+import { FormField } from "@/components/admin/form-field";
 import { useOutcome } from "@/components/admin/outcome";
-import { AdminPageHeader } from "@/components/admin/page-frame";
+import {
+  AdminEmpty,
+  AdminPageHeader,
+  AdminSection,
+} from "@/components/admin/page-frame";
+import { adjustCount } from "@/components/admin/queue/optimistic";
+import { CaseDetailSkeleton } from "@/components/admin/skeletons";
+import { useStaff } from "@/components/admin/staff-context";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Field, Textarea } from "@/components/ui/field";
-import { Placeholder } from "@/components/ui/loading";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { api, orpc } from "@/lib/web/api";
-import { cx } from "@/lib/web/cx";
 import { failureKind } from "@/lib/web/errors";
 import { CaseStatusTag, PublicationTag } from "./case-tags";
 
@@ -35,6 +42,21 @@ const BODY_MIN = 10;
 const BODY_MAX = 2000;
 const REASON_MIN = 10;
 
+/**
+ * Whether the moderation desk lists the case (and the sidebar counts it): it
+ * waits for a decision, or it is published and still waits for an answer.
+ */
+function waiting(
+  publication: Detail["publicationStatus"],
+  status: Detail["status"],
+): 0 | 1 {
+  return publication === "pending" ||
+    (publication === "published" &&
+      (status === "open" || status === "in_review"))
+    ? 1
+    : 0;
+}
+
 /** One case, its official replies and the two things staff can do to it. */
 export function CaseDetail({ slug }: { slug: string }) {
   const t = useTranslations("admin");
@@ -49,15 +71,14 @@ export function CaseDetail({ slug }: { slug: string }) {
   // connection) must not blank a case the reviewer is reading: data wins.
   if (!query.data) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-6">
         {query.isPending ? (
-          <div role="status" aria-busy="true" className="flex flex-col gap-3">
+          <div role="status" aria-busy="true">
             <span className="sr-only">{t("loading")}</span>
-            <Placeholder className="h-40" />
-            <Placeholder className="h-56" />
+            <CaseDetailSkeleton />
           </div>
         ) : failureKind(query.error) === "not_found" ? (
-          <EmptyState icon={MessagesSquare} title={consultations("missing")} />
+          <AdminEmpty icon={MessagesSquare} title={consultations("missing")} />
         ) : (
           <ErrorPanel error={query.error} onRetry={() => query.refetch()} />
         )}
@@ -66,87 +87,62 @@ export function CaseDetail({ slug }: { slug: string }) {
   }
 
   const item = query.data;
-  const when = (iso: string) =>
-    `${format.dateTime(new Date(iso), "long")} · ${format.dateTime(new Date(iso), "time")}`;
 
   return (
-    <article className="flex flex-col gap-6" aria-busy={query.isFetching}>
-      <AdminPageHeader title={item.title} description={item.municipalityName}>
-        <div className="flex flex-wrap items-center gap-2">
-          <CaseStatusTag status={item.status} />
-          <PublicationTag status={item.publicationStatus} />
-        </div>
-        <dl className="t-small grid gap-x-6 gap-y-1 text-ink-2 sm:grid-cols-2 lg:flex lg:flex-wrap">
-          <Meta label={t("municipality")} value={item.municipalityName} />
-          <Meta label={c("category")} value={item.categoryName} />
-          <Meta
-            label={c("colDate")}
-            value={c("openedOn", {
-              date: format.dateTime(new Date(item.createdAt), "long"),
-            })}
-          />
-          {item.openedBy ? (
-            <Meta
-              label=""
-              value={consultations("openedBy", { name: item.openedBy })}
-            />
-          ) : null}
-          <Meta
-            label={c("colSupport")}
-            value={consultations("supports", { count: item.supportCount })}
-          />
-        </dl>
-      </AdminPageHeader>
+    <article className="flex flex-col gap-8" aria-busy={query.isFetching}>
+      <AdminPageHeader
+        title={item.title}
+        badge={<CaseStatusTag status={item.status} />}
+        description={
+          <MetaList>
+            {item.municipalityName}
+            {item.categoryName}
+            {consultations("supports", { count: item.supportCount })}
+          </MetaList>
+        }
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_21rem] lg:items-start">
-        <div className="flex min-w-0 flex-col gap-6">
-          <section className="flex flex-col gap-3 rounded-card bg-card p-5 shadow-ring">
-            <p className="t-body whitespace-pre-line text-ink">{item.body}</p>
-            {item.location ? (
-              <p className="t-small flex flex-wrap items-center gap-x-3 gap-y-1 text-ink-2">
-                <span className="inline-flex items-center gap-1.5">
-                  <MapPin aria-hidden className="size-4" />
-                  {c("location")}: {item.location.lat.toFixed(5)},{" "}
-                  {item.location.lng.toFixed(5)}
-                </span>
-                <a
-                  href={`https://www.openstreetmap.org/?mlat=${item.location.lat}&mlon=${item.location.lng}#map=17/${item.location.lat}/${item.location.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex min-h-11 items-center text-accent underline underline-offset-2 md:min-h-0"
-                >
-                  {c("viewOnMap")}
-                </a>
-              </p>
-            ) : null}
-          </section>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+        <div className="flex min-w-0 flex-col gap-8">
+          <AdminSection id="case-body" title={c("caseText")}>
+            <p className="text-sm leading-relaxed whitespace-pre-line">
+              {item.body}
+            </p>
+          </AdminSection>
 
-          <section
-            aria-labelledby="timeline-title"
-            className="flex flex-col gap-3"
+          <AdminSection
+            id="timeline"
+            title={consultations("timeline")}
+            count={item.responses.length || undefined}
           >
-            <h2 id="timeline-title" className="t-h3">
-              {consultations("timeline")}
-            </h2>
             {item.responses.length === 0 ? (
-              <p className="t-body rounded-card bg-paper-2 p-4 text-ink-2">
+              <p className="text-sm text-muted-foreground">
                 {c("noResponses")}
               </p>
             ) : (
-              <ol className="flex flex-col gap-3">
+              <ol className="flex flex-col divide-y">
                 {item.responses.map((response) => (
                   <li
                     key={response.id}
-                    className="flex flex-col gap-2 rounded-card bg-card p-4 shadow-ring"
+                    className="flex flex-col gap-1.5 py-4 first:pt-1 last:pb-0"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="t-small text-ink-2">
-                        {c("repliedBy", {
-                          name: response.author ?? c("officialAnonymous"),
-                          date: when(response.createdAt),
-                        })}
+                    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                      <p className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                        <span className="font-medium">
+                          {response.author ?? c("officialAnonymous")}
+                        </span>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {format.dateTime(
+                            new Date(response.createdAt),
+                            "short",
+                          )}{" "}
+                          {format.dateTime(
+                            new Date(response.createdAt),
+                            "time",
+                          )}
+                        </span>
                       </p>
-                      <span className="flex items-center gap-2">
+                      <span>
                         <span className="sr-only">
                           {c("statusAfterReply", {
                             status: consultations(
@@ -159,30 +155,49 @@ export function CaseDetail({ slug }: { slug: string }) {
                         </span>
                       </span>
                     </div>
-                    <p className="t-body whitespace-pre-line text-ink">
+                    <p className="text-sm leading-relaxed whitespace-pre-line">
                       {response.body}
                     </p>
                   </li>
                 ))}
               </ol>
             )}
-          </section>
+          </AdminSection>
 
           <ReplyForm consultation={item} />
         </div>
 
-        <PublicationControl consultation={item} />
+        <aside
+          aria-label={c("facts")}
+          className="order-first min-w-0 lg:order-none lg:self-stretch lg:border-l lg:pl-8"
+        >
+          <div className="flex flex-col gap-5 lg:sticky lg:top-6">
+            <PublicationControl consultation={item} />
+            <Separator />
+            <PropertyList>
+              <PropertyRow label={c("colDate")}>
+                {format.dateTime(new Date(item.createdAt), "long")}
+              </PropertyRow>
+              <PropertyRow label={c("openedByLabel")}>
+                {item.openedBy}
+              </PropertyRow>
+              <PropertyRow label={c("location")}>
+                {item.location ? (
+                  <a
+                    href={`https://www.openstreetmap.org/?mlat=${item.location.lat}&mlon=${item.location.lng}#map=17/${item.location.lat}/${item.location.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex min-h-9 items-center text-primary underline-offset-4 hover:underline pointer-coarse:min-h-11"
+                  >
+                    {c("viewOnMap")}
+                  </a>
+                ) : null}
+              </PropertyRow>
+            </PropertyList>
+          </div>
+        </aside>
       </div>
     </article>
-  );
-}
-
-function Meta({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex gap-1.5">
-      {label ? <dt className="sr-only">{label}</dt> : null}
-      <dd>{value}</dd>
-    </div>
   );
 }
 
@@ -212,128 +227,164 @@ function ReplyForm({ consultation }: { consultation: Detail }) {
         : null;
   const valid = bodyError === null && statusAfter !== "";
 
-  const reply = useStaffMutation<ReplyInput, { status: "ok" }>(
-    (input) => api.consultations.respond(input),
-    {
-      onSuccess: async () => {
-        setBody("");
-        setStatusAfter("");
-        setBodyTouched(false);
-        announce(c("replied"));
-        await queryClient.invalidateQueries({
+  const detailKey = orpc.consultations.detail.queryOptions({
+    input: { slug: consultation.slug },
+  }).queryKey;
+  const author = useStaff().displayName ?? null;
+
+  // The reply joins the timeline and the case takes its new status before the
+  // server answers; a refusal takes both back and gives the text back.
+  const reply = useStaffMutation<
+    ReplyInput,
+    { status: "ok" },
+    { tempId: string; previousStatus: Detail["status"] }
+  >((input) => api.consultations.respond(input), {
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: detailKey });
+      const tempId = `pending-${crypto.randomUUID()}`;
+      queryClient.setQueryData(detailKey, (old: Detail | undefined) =>
+        old
+          ? {
+              ...old,
+              status: input.statusAfter,
+              responseCount: old.responseCount + 1,
+              responses: [
+                ...old.responses,
+                {
+                  id: tempId,
+                  body: input.body,
+                  author,
+                  statusAfter: input.statusAfter,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
+          : old,
+      );
+      setBody("");
+      setStatusAfter("");
+      setBodyTouched(false);
+      return { tempId, previousStatus: consultation.status };
+    },
+    onSuccess: () => announce(c("replied")),
+    onError: (error, input, context) => {
+      if (context) {
+        queryClient.setQueryData(detailKey, (old: Detail | undefined) =>
+          old
+            ? {
+                ...old,
+                status: context.previousStatus,
+                responseCount: old.responseCount - 1,
+                responses: old.responses.filter(
+                  (response) => response.id !== context.tempId,
+                ),
+              }
+            : old,
+        );
+      }
+      setBody(input.body);
+      setStatusAfter(input.statusAfter);
+      if (failureKind(error) === "conflict") {
+        void queryClient.invalidateQueries({
           queryKey: orpc.consultations.key(),
         });
-      },
+      }
     },
-  );
-
-  const refetchOnConflict = (error: unknown) => {
-    if (failureKind(error) === "conflict") {
+    onSettled: () => {
       void queryClient.invalidateQueries({
         queryKey: orpc.consultations.key(),
       });
-    }
-  };
+      void queryClient.invalidateQueries({ queryKey: orpc.moderation.key() });
+    },
+  });
 
   const submit = () => {
     setBodyTouched(true);
     if (!valid) return;
-    reply.mutate(
-      { consultationId: consultation.id, body: body.trim(), statusAfter },
-      { onError: refetchOnConflict },
-    );
+    reply.mutate({
+      consultationId: consultation.id,
+      body: body.trim(),
+      statusAfter,
+    });
   };
 
   return (
-    <form
-      noValidate
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (!reply.isPending) submit();
-      }}
-      className="flex flex-col gap-5 rounded-card bg-card p-5 shadow-ring"
-    >
-      <h2 className="t-h3">{c("replyTitle")}</h2>
-
-      <Field
-        htmlFor="reply-body"
-        label={c("replyBody")}
-        hint={c("replyHint", { count: length })}
-        error={bodyTouched ? bodyError : null}
+    <AdminSection id="reply" title={c("replyTitle")}>
+      <form
+        noValidate
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (!reply.isPending) submit();
+        }}
+        className="flex flex-col gap-5"
       >
-        <Textarea
-          id="reply-body"
-          value={body}
-          rows={6}
-          required
-          aria-invalid={bodyTouched && bodyError !== null}
-          aria-describedby={
-            bodyTouched && bodyError ? "reply-body-error" : "reply-body-hint"
-          }
-          disabled={reply.isPending}
-          onChange={(event) => setBody(event.target.value)}
-          onBlur={() => setBodyTouched(true)}
-        />
-      </Field>
+        <FormField
+          htmlFor="reply-body"
+          label={c("replyBody")}
+          hint={c("replyHint", { count: length })}
+          error={bodyTouched ? bodyError : null}
+        >
+          <Textarea
+            id="reply-body"
+            value={body}
+            rows={6}
+            className="min-h-32"
+            required
+            aria-invalid={bodyTouched && bodyError !== null}
+            aria-describedby={
+              bodyTouched && bodyError ? "reply-body-error" : "reply-body-hint"
+            }
+            disabled={reply.isPending}
+            onChange={(event) => setBody(event.target.value)}
+            onBlur={() => setBodyTouched(true)}
+          />
+        </FormField>
 
-      <fieldset className="flex flex-col gap-2" disabled={reply.isPending}>
-        <legend className="text-[14px] font-medium text-ink">
-          {c("statusAfter")}
-        </legend>
-        <p className="t-small text-ink-3">{c("statusAfterHint")}</p>
-        <div className="mt-1 grid gap-2 sm:grid-cols-2">
-          {REPLY_STATUSES.map((value) => {
-            const selected = statusAfter === value;
-            return (
+        <fieldset className="flex flex-col gap-1" disabled={reply.isPending}>
+          <legend className="mb-1 text-sm font-medium">
+            {c("statusAfter")}
+          </legend>
+          <div className="grid gap-x-4 sm:grid-cols-2">
+            {REPLY_STATUSES.map((value) => (
               <label
                 key={value}
-                className={cx(
-                  "flex min-h-11 cursor-pointer items-start gap-3 rounded-input p-3 shadow-ring has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-accent",
-                  selected ? "bg-accent-soft" : "bg-card hover:bg-paper-2",
-                )}
+                className="flex min-h-9 cursor-pointer items-start gap-3 rounded-(--radius-field) px-3 py-2 hover:bg-accent has-[:focus-visible]:ring-[1.5px] has-[:focus-visible]:ring-ring/40 pointer-coarse:min-h-11"
               >
                 <input
                   type="radio"
                   name="status-after"
                   value={value}
-                  checked={selected}
+                  checked={statusAfter === value}
                   onChange={() => setStatusAfter(value)}
-                  className="mt-0.5 size-5 shrink-0 accent-[var(--accent)]"
+                  className="mt-0.5 size-4 shrink-0 accent-primary"
                 />
                 <span className="flex flex-col">
-                  <span className="text-[15px] font-medium text-ink">
+                  <span className="text-sm font-medium">
                     {consultations(`statusLabel.${value}`)}
                   </span>
-                  <span className="t-small text-ink-2">
+                  <span className="text-xs text-muted-foreground">
                     {c(`statusHelp.${value}`)}
                   </span>
                 </span>
               </label>
-            );
-          })}
+            ))}
+          </div>
+          {bodyTouched && statusAfter === "" ? (
+            <p role="alert" className="text-sm text-destructive">
+              {c("errStatus")}
+            </p>
+          ) : null}
+        </fieldset>
+
+        <InlineError error={reply.error} />
+
+        <div className="flex">
+          <Button type="submit" disabled={!valid || reply.isPending}>
+            {reply.isPending ? c("sending") : t("respond")}
+          </Button>
         </div>
-        {bodyTouched && statusAfter === "" ? (
-          <p role="alert" className="text-[14px] text-danger-ink">
-            {c("errStatus")}
-          </p>
-        ) : null}
-      </fieldset>
-
-      <InlineError error={reply.error} />
-
-      <div>
-        <Button
-          type="submit"
-          variant="accent"
-          size="lg"
-          block
-          className="md:w-auto"
-          disabled={!valid || reply.isPending}
-        >
-          {reply.isPending ? c("sending") : t("respond")}
-        </Button>
-      </div>
-    </form>
+      </form>
+    </AdminSection>
   );
 }
 
@@ -354,75 +405,91 @@ function PublicationControl({ consultation }: { consultation: Detail }) {
   const current = consultation.publicationStatus;
   const reasonError = reason.trim().length < REASON_MIN ? c("errReason") : null;
 
+  const detailKey = orpc.consultations.detail.queryOptions({
+    input: { slug: consultation.slug },
+  }).queryKey;
+
   const decide = useStaffMutation<
     PublicationInput,
-    { status: "published" | "hidden" }
+    { status: "published" | "hidden" },
+    { undoCount: () => void }
   >((input) => api.moderation.decidePublication(input), {
-    onSuccess: async (result) => {
-      announce(c("publicationDone"));
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey: detailKey });
+      // Show the new state at once: once a case is hidden the detail read
+      // may no longer be open to staff, and a refetch must not blank it.
+      queryClient.setQueryData(detailKey, (old: Detail | undefined) =>
+        old ? { ...old, publicationStatus: input.status } : old,
+      );
       setHiding(false);
       setReason("");
       setTouched(false);
-      // Show the new state at once: once a case is hidden the detail read
-      // may no longer be open to staff, and a refetch must not blank it.
-      queryClient.setQueryData(
-        orpc.consultations.detail.queryOptions({
-          input: { slug: consultation.slug },
-        }).queryKey,
-        (old: Detail | undefined) =>
-          old ? { ...old, publicationStatus: result.status } : old,
+      return {
+        undoCount: adjustCount(
+          queryClient,
+          "consultations",
+          waiting(input.status, consultation.status) -
+            waiting(current, consultation.status),
+        ),
+      };
+    },
+    onSuccess: () => announce(c("publicationDone")),
+    onError: (error, input, context) => {
+      context?.undoCount();
+      queryClient.setQueryData(detailKey, (old: Detail | undefined) =>
+        old ? { ...old, publicationStatus: current } : old,
       );
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: orpc.consultations.browse.key(),
-        }),
-        queryClient.invalidateQueries({ queryKey: orpc.moderation.key() }),
-      ]);
+      if (input.status === "hidden") {
+        setHiding(true);
+        setReason(input.reason ?? "");
+        setTouched(true);
+      }
+      if (failureKind(error) === "conflict") {
+        void queryClient.invalidateQueries({
+          queryKey: orpc.consultations.key(),
+        });
+      }
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({
+        queryKey: orpc.consultations.browse.key(),
+      });
+      void queryClient.invalidateQueries({ queryKey: orpc.moderation.key() });
     },
   });
 
-  const onError = (error: unknown) => {
-    if (failureKind(error) === "conflict") {
-      void queryClient.invalidateQueries({
-        queryKey: orpc.consultations.key(),
-      });
-    }
-  };
-
   const publish = () =>
-    decide.mutate(
-      {
-        target: { kind: "consultation", ref: consultation.id },
-        status: "published",
-      },
-      { onError },
-    );
+    decide.mutate({
+      target: { kind: "consultation", ref: consultation.id },
+      status: "published",
+    });
 
   const hide = () => {
     setTouched(true);
     if (reasonError) return;
-    decide.mutate(
-      {
-        target: { kind: "consultation", ref: consultation.id },
-        status: "hidden",
-        reason: reason.trim(),
-      },
-      { onError },
-    );
+    decide.mutate({
+      target: { kind: "consultation", ref: consultation.id },
+      status: "hidden",
+      reason: reason.trim(),
+    });
   };
 
   return (
-    <aside
+    <section
       aria-labelledby="publication-title"
-      className="flex flex-col gap-3 rounded-card bg-card p-5 shadow-ring"
+      className="flex flex-col gap-3"
     >
-      <h2 id="publication-title" className="t-h3">
+      <h2 id="publication-title" className="text-sm font-medium">
         {c("publicationTitle")}
       </h2>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-1">
         <PublicationTag status={current} />
+        {current === "published" ? null : (
+          <p className="text-xs text-muted-foreground">
+            {c(`publicationHelp.${current}`)}
+          </p>
+        )}
       </div>
-      <p className="t-small text-ink-2">{c(`publicationHelp.${current}`)}</p>
 
       {hiding ? (
         <form
@@ -433,7 +500,7 @@ function PublicationControl({ consultation }: { consultation: Detail }) {
             if (!decide.isPending) hide();
           }}
         >
-          <Field
+          <FormField
             htmlFor="hide-reason"
             label={t("note")}
             hint={c("hideReasonHint")}
@@ -443,6 +510,7 @@ function PublicationControl({ consultation }: { consultation: Detail }) {
               id="hide-reason"
               value={reason}
               rows={4}
+              className="min-h-24"
               required
               autoFocus
               aria-invalid={touched && reasonError !== null}
@@ -455,21 +523,18 @@ function PublicationControl({ consultation }: { consultation: Detail }) {
               onChange={(event) => setReason(event.target.value)}
               onBlur={() => setTouched(true)}
             />
-          </Field>
+          </FormField>
           <InlineError error={decide.error} />
-          <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+          <div className="flex flex-col gap-2">
             <Button
               type="submit"
-              variant="danger"
-              size="lg"
-              block
+              variant="destructive"
               disabled={reasonError !== null || decide.isPending}
             >
               {c("hideConfirm")}
             </Button>
             <Button
-              size="lg"
-              block
+              variant="ghost"
               disabled={decide.isPending}
               onClick={() => {
                 setHiding(false);
@@ -485,21 +550,13 @@ function PublicationControl({ consultation }: { consultation: Detail }) {
         <div className="flex flex-col gap-2">
           <InlineError error={decide.error} />
           {current === "published" ? null : (
-            <Button
-              variant="accent"
-              size="lg"
-              block
-              disabled={decide.isPending}
-              onClick={publish}
-            >
+            <Button disabled={decide.isPending} onClick={publish}>
               {c("publish")}
             </Button>
           )}
           {current === "hidden" ? null : (
             <Button
-              variant="danger"
-              size="lg"
-              block
+              variant="outline"
               disabled={decide.isPending}
               onClick={() => setHiding(true)}
             >
@@ -508,6 +565,6 @@ function PublicationControl({ consultation }: { consultation: Detail }) {
           )}
         </div>
       )}
-    </aside>
+    </section>
   );
 }

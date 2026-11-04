@@ -38,7 +38,7 @@ export async function subscribeNativePush(
         .where(eq(nativePushDevices.installationId, input.installationId))
         .for("update");
 
-      // Expo can issue the same token to a restored/reinstalled app. Remove its
+      // A restored or reinstalled app can get the same token. Remove its
       // old binding before the upsert so the unique HMAC index cannot conflict.
       // Cascading ticket deletion also retires delivery attempts for that binding.
       const transferred = await tx

@@ -43,7 +43,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("degradation", () => {
   }, 20_000);
 
   test("push without a provider token is skipped, not failed", async () => {
-    const result = await run("push", { EXPO_PUSH_ACCESS_TOKEN: "" });
+    const result = await run("push", { APNS_KEY_ID: "" });
     expect(result).toEqual({
       enabled: false,
       sent: 0,

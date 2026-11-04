@@ -1,11 +1,16 @@
 "use client";
 
 import type { ApiOutputs } from "@ruta/contracts";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { ChartColumn, FileText } from "lucide-react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
+import { MetaList } from "@/components/admin/facts";
 import { weeklyReportOptions } from "@/components/admin/list-queries";
 import {
   MunicipalityFilter,
@@ -13,47 +18,122 @@ import {
 } from "@/components/admin/municipality-filter";
 import { useOutcome } from "@/components/admin/outcome";
 import {
+  AdminEmpty,
   AdminPageHeader,
   AdminTableCard,
   AdminToolbar,
 } from "@/components/admin/page-frame";
 import { QueryState } from "@/components/admin/query-state";
+import { TableRowsSkeleton } from "@/components/admin/skeletons";
 import { useStaff } from "@/components/admin/staff-context";
+import { useAdminPrefetch } from "@/components/admin/use-admin-prefetch";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
-import { Button, ButtonLink } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { api, orpc } from "@/lib/web/api";
-import { PdfActions, ReportStatusTag, useWeekLabel } from "./report-parts";
+import {
+  PdfActions,
+  ReportStatusIndicator,
+  useWeekLabel,
+} from "./report-parts";
 
 type Report = ApiOutputs["reports"]["list"][number];
 
-/** Week and municipality, status, the figures that matter, and the actions. */
-const COLUMNS = "md:grid-cols-[minmax(0,1.3fr)_7.5rem_minmax(0,2.6fr)_13rem]";
+/**
+ * The five figures a reader wants before opening a report. A zero week is a
+ * zero, never a blank.
+ */
+function useFigures() {
+  const w = useTranslations("admin.weeklyReport");
+  return (report: Report) => {
+    const metrics = report.metrics;
+    if (!metrics) return null;
+    return [
+      { key: "places", label: w("colPlaces"), value: metrics.places.published },
+      {
+        key: "opened",
+        label: w("colOpened"),
+        value: metrics.consultations.opened,
+      },
+      {
+        key: "answered",
+        label: w("colAnswered"),
+        value: metrics.consultations.answered,
+      },
+      {
+        key: "stillOpen",
+        label: w("colStillOpen"),
+        value: metrics.consultations.stillOpen,
+      },
+      {
+        key: "traffic",
+        label: w("colTraffic"),
+        value: metrics.traffic.reported,
+      },
+    ];
+  };
+}
 
-/** The five figures a reader wants before opening a report. */
-export function KpiLine({ report }: { report: Report }) {
-  const m = useTranslations("reports.metrics");
-  const metrics = report.metrics;
-  // A zero week is a zero, never a blank.
-  const kpis = [
-    ["placesPublished", metrics?.places.published ?? 0],
-    ["consultationsOpened", metrics?.consultations.opened ?? 0],
-    ["consultationsAnswered", metrics?.consultations.answered ?? 0],
-    ["consultationsStillOpen", metrics?.consultations.stillOpen ?? 0],
-    ["trafficReported", metrics?.traffic.reported ?? 0],
-  ] as const;
+const FIGURE_HEADS = [
+  "colPlaces",
+  "colOpened",
+  "colAnswered",
+  "colStillOpen",
+  "colTraffic",
+] as const;
 
+/** The column heads, shared by the list and its placeholder so they never differ. */
+function WeeklyHead() {
+  const w = useTranslations("admin.weeklyReport");
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 md:grid-cols-5 md:gap-x-3">
-      {kpis.map(([key, value]) => (
-        <div key={key} className="flex flex-col-reverse gap-0.5">
-          <dt className="t-small text-ink-3">{m(key)}</dt>
-          <dd className="font-mono text-[20px] leading-none text-ink tabular">
-            {value}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <TableHeader className="max-sm:sr-only">
+      <TableRow className="hover:bg-transparent">
+        <TableHead className="pl-4">{w("colWeek")}</TableHead>
+        <TableHead className="max-sm:hidden">{w("colStatus")}</TableHead>
+        {FIGURE_HEADS.map((key) => (
+          <TableHead key={key} className="hidden px-3 text-right xl:table-cell">
+            {w(key)}
+          </TableHead>
+        ))}
+        <TableHead>
+          <span className="sr-only">{w("colActions")}</span>
+        </TableHead>
+      </TableRow>
+    </TableHeader>
+  );
+}
+
+/** Placeholder rows: week and municipality, status, five figures, actions. */
+const SKELETON_CELLS = [
+  {
+    cell: "pl-4",
+    bars: ["h-5 w-40", "h-4 w-56", "h-4 w-72 max-w-full xl:hidden"],
+  },
+  { cell: "max-sm:hidden", bars: ["h-5 w-20"] },
+  ...FIGURE_HEADS.map(() => ({
+    cell: "hidden px-3 xl:table-cell",
+    bars: ["ml-auto h-4 w-6"],
+  })),
+  { bars: ["ml-auto h-9 w-9 sm:w-24"] },
+];
+
+function WeeklySkeleton() {
+  return (
+    <AdminTableCard>
+      <Table>
+        <WeeklyHead />
+        <TableBody>
+          <TableRowsSkeleton rows={4} cells={SKELETON_CELLS} />
+        </TableBody>
+      </Table>
+    </AdminTableCard>
   );
 }
 
@@ -69,7 +149,11 @@ export function WeeklyReportList() {
   const municipalityId = useMunicipalityFilter();
   const municipalities = useQuery(orpc.municipalities.list.queryOptions());
 
-  const list = useQuery(weeklyReportOptions(municipalityId));
+  const list = useQuery({
+    ...weeklyReportOptions(municipalityId),
+    placeholderData: keepPreviousData,
+  });
+  const prefetch = useAdminPrefetch(useStaff());
 
   const targetMunicipalities = municipalityId
     ? [municipalityId]
@@ -87,25 +171,24 @@ export function WeeklyReportList() {
       }
     },
     {
-      onSuccess: async () => {
+      onSuccess: () => {
         announce(t("queued"));
-        await queryClient.invalidateQueries({ queryKey: orpc.reports.key() });
+      },
+      // The new week appears when the list refreshes behind the confirmation.
+      onSettled: () => {
+        void queryClient.invalidateQueries({ queryKey: orpc.reports.key() });
       },
     },
   );
+  const figuresOf = useFigures();
+
   return (
     <div className="flex flex-col gap-6">
-      <AdminPageHeader title={w("title")} description={w("intro")}>
-        <p className="t-body flex w-fit items-center gap-2 rounded-card bg-paper-2 px-4 py-3 font-medium text-ink">
-          {t("cadence")}
-        </p>
-      </AdminPageHeader>
-
-      <AdminToolbar
+      <AdminPageHeader
+        title={w("title")}
+        description={w("intro")}
         actions={
           <Button
-            variant="accent"
-            className="min-h-11 md:min-h-0"
             disabled={generate.isPending || targetMunicipalities.length === 0}
             onClick={() =>
               generate.mutate({ municipalityIds: targetMunicipalities })
@@ -115,104 +198,142 @@ export function WeeklyReportList() {
             {generate.isPending ? reports("preparingPdf") : t("generate")}
           </Button>
         }
-      >
+      />
+
+      <AdminToolbar>
         <MunicipalityFilter />
       </AdminToolbar>
       <InlineError error={generate.error} />
 
-      <QueryState query={list}>
+      <QueryState query={list} skeleton={<WeeklySkeleton />}>
         {(items) =>
           items.length === 0 ? (
-            <EmptyState
+            <AdminEmpty
               icon={ChartColumn}
               title={reports("empty")}
-              body={reports("emptyHint")}
+              description={reports("emptyHint")}
             />
           ) : (
             <AdminTableCard>
-              <div
-                aria-hidden
-                className={`t-label hidden gap-4 border-b border-line bg-paper-2 px-4 py-2.5 text-ink-3 md:grid ${COLUMNS}`}
-              >
-                <span>{w("colWeek")}</span>
-                <span>{w("colStatus")}</span>
-                <span>{w("colSummary")}</span>
-                <span>{w("colActions")}</span>
-              </div>
-              <ul className="flex flex-col gap-3 md:gap-0 md:divide-y md:divide-line">
-                {items.map((report) => {
-                  const week = weekLabel(report);
-                  return (
-                    <li
-                      key={report.id}
-                      className={`grid gap-4 rounded-card bg-card p-4 shadow-ring md:items-start md:rounded-none md:shadow-none ${COLUMNS}`}
-                    >
-                      <div className="flex min-w-0 flex-col gap-1">
-                        <p className="t-label text-ink-3">
-                          {report.municipalityName}
-                        </p>
-                        <Link
-                          href={`/admin/reports/${report.id}`}
-                          className="text-[16px] font-medium text-ink underline-offset-2 hover:underline"
-                        >
-                          {week}
-                        </Link>
-                        {report.generatedAt ? (
-                          <p className="t-small text-ink-3">
-                            {reports("generatedAt", {
-                              date: format.dateTime(
-                                new Date(report.generatedAt),
-                                "long",
-                              ),
-                            })}
-                          </p>
-                        ) : null}
-                      </div>
+              <Table>
+                <WeeklyHead />
+                <TableBody>
+                  {items.map((report) => {
+                    const week = weekLabel(report);
+                    const figures =
+                      report.status === "ready" ? figuresOf(report) : null;
+                    const generatedAt = report.generatedAt
+                      ? reports("generatedAt", {
+                          date: format.dateTime(
+                            new Date(report.generatedAt),
+                            "short",
+                          ),
+                        })
+                      : "";
+                    const note =
+                      report.status === "ready" && !figures
+                        ? reports("unreadable")
+                        : report.status === "failed"
+                          ? reports("failed")
+                          : "";
+                    return (
+                      <TableRow key={report.id}>
+                        <TableCell className="py-1.5 pl-4 whitespace-normal">
+                          <Link
+                            href={`/admin/reports/${report.id}`}
+                            onPointerEnter={() =>
+                              prefetch(`/admin/reports/${report.id}`)
+                            }
+                            onFocus={() =>
+                              prefetch(`/admin/reports/${report.id}`)
+                            }
+                            className="block w-fit font-medium hover:underline"
+                          >
+                            {week}
+                          </Link>
+                          <MetaList className="text-xs max-sm:hidden">
+                            {report.municipalityName}
+                            {generatedAt}
+                          </MetaList>
+                          <MetaList className="text-xs sm:hidden">
+                            {report.municipalityName}
+                          </MetaList>
+                          <div className="mt-1 sm:hidden">
+                            <ReportStatusIndicator status={report.status} />
+                          </div>
+                          {figures ? (
+                            <MetaList className="mt-1 text-xs xl:hidden">
+                              {figures.map((figure) => (
+                                <span key={figure.key}>
+                                  {figure.label}{" "}
+                                  <span className="text-foreground tabular-nums">
+                                    {figure.value}
+                                  </span>
+                                </span>
+                              ))}
+                            </MetaList>
+                          ) : note ? (
+                            <p className="mt-1 text-xs text-muted-foreground xl:hidden">
+                              {note}
+                            </p>
+                          ) : null}
+                        </TableCell>
 
-                      <div>
-                        <ReportStatusTag status={report.status} />
-                      </div>
+                        <TableCell className="py-1.5 max-sm:hidden">
+                          <ReportStatusIndicator status={report.status} />
+                        </TableCell>
 
-                      <div className="min-w-0">
-                        {report.status !== "ready" ? (
-                          <p className="t-small text-ink-2">
-                            {reports(report.status)}
-                          </p>
-                        ) : report.metrics ? (
-                          <KpiLine report={report} />
+                        {figures ? (
+                          figures.map((figure) => (
+                            <TableCell
+                              key={figure.key}
+                              className="hidden px-3 py-1.5 text-right tabular-nums xl:table-cell"
+                            >
+                              {figure.value}
+                            </TableCell>
+                          ))
                         ) : (
-                          <p className="t-small text-ink-2">
-                            {reports("unreadable")}
-                          </p>
+                          <TableCell
+                            colSpan={FIGURE_HEADS.length}
+                            className="hidden px-3 py-1.5 text-right text-xs whitespace-normal text-muted-foreground xl:table-cell"
+                          >
+                            {note}
+                          </TableCell>
                         )}
-                      </div>
 
-                      <div className="flex flex-col gap-2">
-                        <ButtonLink
-                          href={`/admin/reports/${report.id}`}
-                          variant="secondary"
-                          block
-                          className="max-md:min-h-11"
-                          aria-label={w("openFor", {
-                            municipality: report.municipalityName,
-                            week,
-                          })}
-                        >
-                          {reports("open")}
-                        </ButtonLink>
-                        <PdfActions
-                          reportId={report.id}
-                          status={report.status}
-                          label={{
-                            municipality: report.municipalityName,
-                            week,
-                          }}
-                        />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                        <TableCell className="py-1.5 align-top">
+                          <div className="flex items-start justify-end gap-1">
+                            <Button
+                              asChild
+                              variant="ghost"
+                              className="max-sm:hidden"
+                            >
+                              <Link
+                                href={`/admin/reports/${report.id}`}
+                                aria-label={w("openFor", {
+                                  municipality: report.municipalityName,
+                                  week,
+                                })}
+                              >
+                                {reports("open")}
+                              </Link>
+                            </Button>
+                            <PdfActions
+                              reportId={report.id}
+                              status={report.status}
+                              placement="row"
+                              label={{
+                                municipality: report.municipalityName,
+                                week,
+                              }}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </AdminTableCard>
           )
         }
