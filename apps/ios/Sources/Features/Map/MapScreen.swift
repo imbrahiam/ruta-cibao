@@ -69,6 +69,7 @@ private struct MapContent: View {
     /// the province), the photo is the colourful map.
     @State private var satellite = false
     @State private var cameraMode = Self.debugCamera
+    @State private var debugTrafficDone = false
     @State private var navigator = RouteNavigator()
     @Environment(DeepLinks.self) private var links
     @Environment(AppChrome.self) private var chrome
@@ -133,6 +134,17 @@ private struct MapContent: View {
                 MapPolyline(route.polyline)
                     .stroke(palette.locate, style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
             }
+            // Road reports over the routes, under the pins; never clustered with places.
+            ForEach(state.traffic, id: \.id) { notice in
+                if !notice.path.isEmpty {
+                    MapPolyline(coordinates: notice.pathCoordinates)
+                        .stroke(notice.style.color.opacity(0.85), style: StrokeStyle(lineWidth: notice.lineWidth, lineCap: .round, lineJoin: .round))
+                }
+                Annotation("", coordinate: notice.coordinate, anchor: .center) {
+                    TrafficMarker(notice: notice, selected: state.selectedTraffic?.id == notice.id)
+                }
+                .tag(Self.trafficTag(notice.id))
+            }
             ForEach(visible, id: \.id) { place in
                 Marker(place.name, systemImage: CategoryGlyph.symbol(place.icon), coordinate: place.coordinate)
                     .tint(CategoryGlyph.style(place.icon, hex: place.color).color)
@@ -174,7 +186,30 @@ private struct MapContent: View {
         }
         .onMapCameraChange(frequency: .onEnd) { context in
             region = context.region
+            let box = context.region
+            vm.onViewportChanged(
+                west: box.center.longitude - box.span.longitudeDelta / 2,
+                south: box.center.latitude - box.span.latitudeDelta / 2,
+                east: box.center.longitude + box.span.longitudeDelta / 2,
+                north: box.center.latitude + box.span.latitudeDelta / 2
+            )
         }
+        #if DEBUG
+        // `SIMCTL_CHILD_RUTA_DEBUG_TRAFFIC=select|still` opens the first road report that isn't yours,
+        // and `still` also answers "Sigue ahí" (screenshot runs).
+        .onChange(of: state.traffic.count, initial: true) { _, _ in
+            guard !debugTrafficDone, let hook = ProcessInfo.processInfo.environment["RUTA_DEBUG_TRAFFIC"],
+                  let notice = state.traffic.first(where: { !$0.isMine && $0.myVerdict == nil }) else { return }
+            debugTrafficDone = true
+            vm.selectTraffic(id: notice.id)
+            focus(latitude: notice.latitude, longitude: notice.longitude)
+            if hook == "still" {
+                Task { try? await Task.sleep(for: .seconds(5)); vm.confirmTraffic(verdict: .still) }
+            }
+        }
+        #endif
+        .onAppear { vm.setMapVisible(visible: true) }
+        .onDisappear { vm.setMapVisible(visible: false) }
         .safeAreaInset(edge: .top) { if !routing { topBar } }
         .overlay(alignment: .bottom) {
             if navigator.phase == .loading || navigator.phase == .preview || { if case .failed = navigator.phase { return true }; return false }() {
@@ -231,6 +266,14 @@ private struct MapContent: View {
                 )
                     .presentationDetents([compact, .large])
                     .presentationBackgroundInteraction(.enabled(upThrough: compact))
+                    .presentationDragIndicator(.visible)
+            }
+        }
+        .sheet(isPresented: trafficSheetBinding, onDismiss: openPendingSearch) {
+            if let notice = state.selectedTraffic {
+                TrafficSheetView(notice: notice, failure: state.trafficError) { vm.confirmTraffic(verdict: $0) }
+                    .presentationDetents([.height(TrafficSheetView.height), .large])
+                    .presentationBackgroundInteraction(.enabled(upThrough: .height(TrafficSheetView.height)))
                     .presentationDragIndicator(.visible)
             }
         }
@@ -293,6 +336,7 @@ private struct MapContent: View {
     }
 
     private static func routeTag(_ id: String) -> String { "route:\(id)" }
+    private static func trafficTag(_ id: String) -> String { "traffic:\(id)" }
 
     private func openLinkedItem() {
         switch links.pending {
@@ -329,8 +373,11 @@ private struct MapContent: View {
 
 
     private var selectionBinding: Binding<String?> {
-        Binding(get: { state.sheet?.place.id ?? state.route.map { Self.routeTag($0.id) } }, set: { id in
-            if let id, id.hasPrefix("route:"), let route = state.routes.first(where: { Self.routeTag($0.id) == id }) {
+        Binding(get: { state.sheet?.place.id ?? state.route.map { Self.routeTag($0.id) } ?? state.selectedTraffic.map { Self.trafficTag($0.id) } }, set: { id in
+            if let id, id.hasPrefix("traffic:"), let notice = state.traffic.first(where: { Self.trafficTag($0.id) == id }) {
+                vm.selectTraffic(id: notice.id)
+                focus(latitude: notice.latitude, longitude: notice.longitude)
+            } else if let id, id.hasPrefix("route:"), let route = state.routes.first(where: { Self.routeTag($0.id) == id }) {
                 show(route)
             } else if let id, let place = state.all.first(where: { $0.id == id }) {
                 vm.select(placeId: id)
@@ -338,8 +385,13 @@ private struct MapContent: View {
             } else {
                 vm.dismissSheet()
                 vm.dismissRoute()
+                vm.dismissTraffic()
             }
         })
+    }
+
+    private var trafficSheetBinding: Binding<Bool> {
+        Binding(get: { state.selectedTraffic != nil }, set: { if !$0 { vm.dismissTraffic() } })
     }
 
     private var routeSheetBinding: Binding<Bool> {
@@ -370,10 +422,12 @@ private struct MapContent: View {
 
     /// Zoom toward a place: each tap gets closer (a third of the current span),
     /// down to `closest`, and it never zooms out. The place sits above the sheet.
-    private func focus(on place: MapPlace) {
+    private func focus(on place: MapPlace) { focus(latitude: place.latitude, longitude: place.longitude) }
+
+    private func focus(latitude: Double, longitude: Double) {
         let current = region.span.latitudeDelta
         let span = current <= Self.closest ? current : max(Self.closest, current / 3)
-        let target = CLLocationCoordinate2D(latitude: place.latitude - span * 0.18, longitude: place.longitude)
+        let target = CLLocationCoordinate2D(latitude: latitude - span * 0.18, longitude: longitude)
         let ratio = region.span.longitudeDelta / max(region.span.latitudeDelta, 0.0001)
         withAnimation(reduceMotion ? nil : .smooth(duration: 0.55)) {
             camera = .region(MKCoordinateRegion(center: target, span: MKCoordinateSpan(latitudeDelta: span, longitudeDelta: span * ratio)))
@@ -381,10 +435,11 @@ private struct MapContent: View {
     }
 
     private func startSearch() {
-        if state.sheet != nil || state.route != nil {
+        if state.sheet != nil || state.route != nil || state.selectedTraffic != nil {
             searchAfterSheet = true
             vm.dismissSheet()
             vm.dismissRoute()
+            vm.dismissTraffic()
         } else {
             searching = true
         }

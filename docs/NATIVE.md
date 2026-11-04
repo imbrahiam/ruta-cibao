@@ -167,6 +167,8 @@ screenshot runs, compiled out of Release:
   `SIMCTL_CHILD_RUTA_DEBUG_SCROLL=bottom` opens scroll views at their end (tab-bar clearance check).
 - `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=consultation|traffic|place` opens a form; `claim|edit` opens the business form on a place sheet
   (open the sheet with `xcrun simctl openurl booted rutacibao-dev://s/place/<slug>`).
+- `SIMCTL_CHILD_RUTA_DEBUG_TRAFFIC=select|still` opens the first road report that isn't yours (needs the session hook for `still`),
+  and `still` also answers "Sigue ahí" after 5 s. Android: `adb shell am start ... --es ruta_debug_traffic select|still`.
 
 Simulator builds sign ad hoc (`CODE_SIGN_IDENTITY[sdk=iphonesimulator*] = -`), because the Keychain
 refuses unsigned apps.
