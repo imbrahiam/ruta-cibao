@@ -9,6 +9,9 @@ struct PlaceSheetView: View {
     let save: () -> Void
     /// In-app turn-by-turn (RouteNavigator), not a hand-off to Apple Maps.
     let directions: () -> Void
+    /// Asks to claim; false when sign-in is needed first.
+    let requestClaim: () -> Bool
+    let refreshBusiness: () -> Void
 
     private var place: MapPlace { sheet.place }
     private var detail: PlacesDetailOutput? { sheet.detail }
@@ -19,6 +22,7 @@ struct PlaceSheetView: View {
     @Namespace private var zoom
     @State private var viewing = false
     @State private var showingExperiences = false
+    @State private var businessForm: BusinessFormMode?
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -26,6 +30,7 @@ struct PlaceSheetView: View {
             VStack(alignment: .leading, spacing: 16) {
                 header
                 actions
+                contactRow
                 if let raw = heroRaw {
                     // A fixed frame first, the image inside it: a fill-scaled
                     // image must never widen the column it sits in.
@@ -44,6 +49,7 @@ struct PlaceSheetView: View {
                     }
                 }
                 experiencesLink
+                businessRow
                 if sheet.loading {
                     ProgressView().frame(maxWidth: .infinity)
                 }
@@ -55,6 +61,87 @@ struct PlaceSheetView: View {
         .sheet(isPresented: $showingExperiences) {
             PlaceExperiencesView(place: place)
         }
+        #if DEBUG
+        // `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=claim|edit` opens the business form (screenshot runs).
+        .onChange(of: sheet.business is BusinessStateListed || sheet.business is BusinessStateOwned, initial: true) { _, ready in
+            let hook = ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"]
+            guard ready, businessForm == nil else { return }
+            if hook == "claim" { businessForm = .claim } else if hook == "edit" { businessForm = .edit }
+        }
+        #endif
+        .sheet(item: $businessForm) { mode in
+            BusinessFormScreen(placeId: place.id, mode: mode, contact: contact) { refreshBusiness() }
+        }
+    }
+
+    private var contact: Contact? {
+        switch onEnum(of: sheet.business) {
+        case .listed(let listed): listed.contact
+        case .owned(let owned): owned.contact
+        case .notABusiness, .claimPending: nil
+        }
+    }
+
+    /// Call and WhatsApp as pills with the other actions, hours as one info row.
+    /// Only what the business published.
+    @ViewBuilder private var contactRow: some View {
+        if let contact {
+            let pills = [
+                contact.phoneLink.map { (L10n.Place.call, "phone.fill", $0) },
+                contact.whatsappLink.map { (L10n.Place.whatsapp, "message.fill", $0) },
+            ].compactMap { $0 }
+            if !pills.isEmpty {
+                HStack(spacing: 10) {
+                    ForEach(pills, id: \.0) { label, symbol, link in
+                        Button { open(URL(string: link)) } label: {
+                            Label(label, systemImage: symbol)
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive(), in: Capsule())
+                    }
+                }
+            }
+            if let hours = contact.hours {
+                Label(hours, systemImage: "clock")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .accessibilityElement(children: .combine)
+            }
+        }
+    }
+
+    /// One quiet row: claim it, wait for the review, or edit what you own.
+    @ViewBuilder private var businessRow: some View {
+        switch onEnum(of: sheet.business) {
+        case .listed(let listed) where listed.canClaim:
+            businessButton(L10n.Place.claimTitle, symbol: "storefront") {
+                if requestClaim() { businessForm = .claim }
+            }
+        case .claimPending:
+            Label(L10n.Place.claimReview, systemImage: "hourglass")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .accessibilityElement(children: .combine)
+        case .owned:
+            businessButton(L10n.Place.editBusiness, symbol: "pencil") { businessForm = .edit }
+        default:
+            EmptyView()
+        }
+    }
+
+    private func businessButton(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .trailing)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private var header: some View {
@@ -182,6 +269,10 @@ struct PlaceSheetView: View {
     private var heroRaw: String? {
         detail?.imageUrl ?? place.thumbnailUrl
     }
+}
+
+extension BusinessFormMode: @retroactive Identifiable {
+    public var id: Int { Int(ordinal) }
 }
 
 private struct PlaceExperiencesView: View {

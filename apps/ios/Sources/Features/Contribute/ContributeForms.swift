@@ -294,17 +294,19 @@ struct SuggestPlaceScreen: View {
 
 // MARK: - Shared pieces
 
-private struct Field: View {
+struct Field: View {
     @Binding var text: String
     let placeholder: String
     let font: Font
     var lines: ClosedRange<Int> = 1...3
+    var keyboard: UIKeyboardType = .default
     @Environment(\.palette) private var palette
 
     var body: some View {
         TextField(text: $text, prompt: Text(placeholder).foregroundStyle(palette.textTertiary), axis: .vertical) { Text(placeholder) }
             .font(font)
             .lineLimit(lines)
+            .keyboardType(keyboard)
             .padding(14)
             .background(palette.inset, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }

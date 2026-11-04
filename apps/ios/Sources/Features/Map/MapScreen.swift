@@ -222,9 +222,13 @@ private struct MapContent: View {
         .sheet(isPresented: sheetBinding, onDismiss: openPendingSearch) {
             if let sheet = state.sheet {
                 let compact = PresentationDetent.height(PlaceSheetView.compactHeight(hasPhoto: sheet.place.thumbnailUrl != nil || sheet.detail?.imageUrl != nil))
-                PlaceSheetView(sheet: sheet, save: { vm.toggleSaved() }) {
-                    navigate(to: Destination(name: sheet.place.name, coordinate: sheet.place.coordinate))
-                }
+                PlaceSheetView(
+                    sheet: sheet,
+                    save: { vm.toggleSaved() },
+                    directions: { navigate(to: Destination(name: sheet.place.name, coordinate: sheet.place.coordinate)) },
+                    requestClaim: { vm.requestClaim() },
+                    refreshBusiness: { vm.refreshBusiness() }
+                )
                     .presentationDetents([compact, .large])
                     .presentationBackgroundInteraction(.enabled(upThrough: compact))
                     .presentationDragIndicator(.visible)

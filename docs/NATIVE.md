@@ -165,7 +165,8 @@ screenshot runs, compiled out of Release:
 - `SIMCTL_CHILD_RUTA_DEBUG_TAB=map|consultations|contributions|account` opens a tab.
 - `SIMCTL_CHILD_RUTA_DEBUG_SLUG=<slug>` opens a consultation; `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=search` opens map search;
   `SIMCTL_CHILD_RUTA_DEBUG_SCROLL=bottom` opens scroll views at their end (tab-bar clearance check).
-- `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=consultation|traffic|place` opens a form.
+- `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=consultation|traffic|place` opens a form; `claim|edit` opens the business form on a place sheet
+  (open the sheet with `xcrun simctl openurl booted rutacibao-dev://s/place/<slug>`).
 
 Simulator builds sign ad hoc (`CODE_SIGN_IDENTITY[sdk=iphonesimulator*] = -`), because the Keychain
 refuses unsigned apps.
