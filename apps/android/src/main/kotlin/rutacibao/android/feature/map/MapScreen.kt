@@ -118,6 +118,7 @@ import rutacibao.presentation.map.TrafficNotice
 import androidx.compose.runtime.DisposableEffect
 
 private val SheetPeek = 320.dp
+private val SheetPeekWithPhoto = 500.dp
 
 /** The closest a tap takes you: a block or two, still readable. */
 private const val ClosestSpan = 0.0045
@@ -308,10 +309,12 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
     SideEffect { chrome.hidden = hasSheet }
     DisposableEffect(chrome) { onDispose { chrome.hidden = false } }
 
+    // A place with a photo opens tall enough to show it, like the iOS medium detent.
+    val peek = if (state.sheet?.let { it.detail?.imageUrl ?: it.place.thumbnailUrl } != null) SheetPeekWithPhoto else SheetPeek
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         modifier = modifier,
-        sheetPeekHeight = SheetPeek,
+        sheetPeekHeight = peek,
         sheetSwipeEnabled = hasSheet,
         containerColor = MaterialTheme.colorScheme.background,
         sheetContainerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -409,7 +412,10 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
                 me?.let { UserDot(it) }
             }
 
-            Column(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 8.dp)) {
+            Column(
+                Modifier.fillMaxWidth().statusBarsPadding().padding(top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 SearchPill { searching = true }
                 CategoryChips(state.categories, state.selectedCategories, state.routes.isNotEmpty(), state.routesSelected, vm::toggleCategory, vm::toggleRoutes)
             }
@@ -418,7 +424,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
                 satellite = satellite,
                 onToggleSatellite = { satellite = !satellite },
                 onLocate = ::locate,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = if (hasSheet) SheetPeek + 16.dp else clearance + 16.dp),
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = if (hasSheet) peek + 16.dp else clearance + 16.dp),
             )
 
             when (state.phase) {
@@ -525,7 +531,6 @@ private fun MapChip(label: String, icon: androidx.compose.ui.graphics.vector.Ima
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(7.dp),
             ) {
-                if (isSelected) Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(18.dp), tint = onColor)
                 Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = if (isSelected) onColor else color)
                 Text(
                     label,

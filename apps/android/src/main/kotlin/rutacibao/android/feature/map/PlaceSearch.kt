@@ -240,7 +240,6 @@ private fun ScopeChip(
                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (selected) Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(16.dp), tint = onColor)
                 Icon(icon, contentDescription = null, Modifier.size(16.dp), tint = if (selected) onColor else color)
                 Text(
                     label,

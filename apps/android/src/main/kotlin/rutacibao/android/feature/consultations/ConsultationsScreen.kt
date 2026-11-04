@@ -59,7 +59,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import rutacibao.android.generated.RutaBrand
@@ -122,19 +121,6 @@ fun ConsultationsScreen(onOpen: (String) -> Unit = {}) {
                 isRefreshing = state.refreshing,
                 onRefresh = vm::refresh,
                 state = pull,
-                indicator = {
-                    // The brand mark draws in as you pull, stays and runs while refreshing, then goes.
-                    val f = pull.distanceFraction.coerceIn(0f, 1f)
-                    LoadingMark(
-                        PullMark,
-                        Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = (PullSlot - PullMark) / 2)
-                            .graphicsLayer { alpha = f; scaleX = 0.6f + 0.4f * f; scaleY = 0.6f + 0.4f * f },
-                        progress = if (state.refreshing) 1f else f,
-                        spinning = state.refreshing,
-                    )
-                },
             ) {
                 val list = rememberLazyListState()
                 val nearEnd by remember {
@@ -143,7 +129,7 @@ fun ConsultationsScreen(onOpen: (String) -> Unit = {}) {
                 LaunchedEffect(nearEnd, state.items.size) { if (nearEnd) vm.loadMore() }
                 LazyColumn(
                     state = list,
-                    modifier = Modifier.fillMaxSize().graphicsLayer { translationY = pull.distanceFraction.coerceIn(0f, 1f) * PullSlot.toPx() },
+                    modifier = Modifier.fillMaxSize(),
                 ) {
                     item(key = "header") { FeedHeader(state.filters, state.status, vm::selectStatus) }
                     items(state.items, key = { it.id }) { item ->
@@ -428,7 +414,6 @@ val PostGap = 12.dp
 val PostColumn = PostInset + PostAvatar + PostGap
 
 private val PullMark = 56.dp
-private val PullSlot = 88.dp
 
 /**
  * A [visible]-sized slot whose hit area is the 48dp minimum: the node measures
