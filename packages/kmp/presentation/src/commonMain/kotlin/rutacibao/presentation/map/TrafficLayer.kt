@@ -45,6 +45,13 @@ internal class TrafficLayer(
         }
     }
 
+    /** Cancel the old viewport before a linked notice moves the camera. */
+    fun includeLinked(notice: TrafficNotice) {
+        debounce?.cancel()
+        fetched = null
+        _notices.update { list -> list.filterNot { it.id == notice.id } + notice }
+    }
+
     /** Refreshes every minute while the map is on screen. */
     fun setVisible(visible: Boolean) {
         refresh?.cancel()

@@ -16,6 +16,45 @@ import kotlinx.serialization.json.JsonObject
 import rutacibao.api.InstantIsoSerializer
 
 @Serializable
+public data class ConsultationsPhotoUploadInput(
+    val consultationId: String,
+    val requestId: String,
+    val contentType: ConsultationsPhotoUploadInput.ContentType,
+    val sizeBytes: Long,
+) {
+    @Serializable
+    public enum class ContentType {
+        @SerialName("image/jpeg") ImageJpeg,
+        @SerialName("image/png") ImagePng,
+        @SerialName("image/webp") ImageWebp;
+    }
+}
+
+@Serializable
+public data class ConsultationsPhotoUploadOutput(
+    val status: ConsultationsPhotoUploadOutput.Status,
+    val storageKey: String,
+    val uploadUrl: String? = null,
+) {
+    @Serializable
+    public enum class Status {
+        @SerialName("upload") Upload,
+        @SerialName("pending") Pending;
+    }
+}
+
+@Serializable
+public data class ConsultationsAttachPhotoInput(
+    val consultationId: String,
+    val storageKey: String,
+)
+
+@Serializable
+public data class ConsultationsAttachPhotoOutput(
+    val status: String,
+)
+
+@Serializable
 public data class ConsultationsCategoriesItem(
     val id: String,
     val name: String,

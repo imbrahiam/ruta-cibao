@@ -16,8 +16,11 @@ import rutacibao.api.generated.RutaApi
 /** The signed-in person's own data. Every write sends a fresh idempotency id. */
 @OptIn(ExperimentalUuidApi::class)
 @Inject
-public class AccountRepository(private val api: RutaApi) {
-    public suspend fun me(): MeGetOutput = api.me.get()
+public class AccountRepository(private val api: RutaApi, private val session: Session) {
+    public suspend fun me(): MeGetOutput {
+        val token = session.identityToken()
+        return api.me.get().also { me -> me.userId?.let { session.bindAccount(it, token) } }
+    }
     public suspend fun saved(): List<PlacesSavedItem> = api.places.saved()
     public suspend fun passport(): PassportListOutput = api.passport.list()
     public suspend fun municipalities(): List<MunicipalitiesListItem> = api.municipalities.list()

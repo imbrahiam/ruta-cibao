@@ -784,6 +784,7 @@
     "routeReviewed": "Tu ruta ya fue revisada. Consulta el resultado y las notas del equipo municipal.",
     "title": "Notificaciones",
     "pushGeneric": "Tienes una actualización en Ruta Cibao. Abre la aplicación para verla.",
+    "pushUnavailable": "Las notificaciones del teléfono no están disponibles en esta instalación. Tus avisos siguen disponibles en Aportes.",
     "errors": {
       "invalidPreferences": "Revisa tus preferencias de notificaciones.",
       "invalidMunicipalities": "Selecciona hasta tres municipios válidos.",
@@ -884,7 +885,18 @@
     "report": "Reportar",
     "reported": "Gracias. Lo revisaremos.",
     "more": "Ver más",
-    "options": "Opciones del comentario"
+    "options": "Opciones del comentario",
+    "participantMode": "Comentar",
+    "officialMode": "Respuesta oficial",
+    "composerMode": "Publicar como",
+    "signInToComment": "Entra para comentar",
+    "signInToExperience": "Entra para compartir tu experiencia",
+    "sendFailed": "No se pudo publicar. Tu texto sigue aquí.",
+    "actionFailed": "No se pudo completar la acción.",
+    "officialReplyFailed": "No se pudo enviar la respuesta. Tu texto sigue aquí.",
+    "officialReplies": "Respuestas oficiales",
+    "statusAfter": "Estado después de responder",
+    "officialReply": "Respuesta oficial"
   },
   "consultations": {
     "status": {
@@ -1008,6 +1020,7 @@
       "remove": "Quitar la foto {n}",
       "denied": "Ruta Cibao no tiene permiso para usar la cámara o tus fotos",
       "deniedBody": "Puedes darlo en Ajustes. El lugar se puede enviar sin fotos.",
+      "readError": "No pudimos preparar esta foto. Elige otra e inténtalo de nuevo.",
       "uploading": "Subiendo fotos ({done} de {total})",
       "failed": "{count, plural, one {Una foto no se pudo subir} other {# fotos no se pudieron subir}}",
       "failedBody": "El lugar ya se envió. Puedes reintentar las fotos ahora o terminar sin ellas.",
@@ -1330,7 +1343,9 @@
     "locationDenied": "Ubicación desactivada",
     "locationDeniedBody": "Puedes activarla en Ajustes, o seguir usando el mapa sin ella.",
     "locationFailed": "No pudimos obtener tu ubicación",
-    "trafficGone": "Ese reporte ya no está en el mapa"
+    "trafficGone": "Ese reporte ya no está en el mapa",
+    "basemapUnavailable": "Fondo del mapa no disponible",
+    "basemapUnavailableBody": "Esta versión no tiene configurado el mapa de Android. Puedes consultar los lugares y las rutas en la lista."
   },
   "routes": {
     "missing": "No encontramos esta ruta",
@@ -1432,6 +1447,7 @@
     "reportDetails": "Detalles",
     "reportSent": "Reporte enviado",
     "reportSentBody": "El equipo municipal lo revisará.",
+    "reportDetailsRequired": "Escribe al menos 10 caracteres para explicar el problema.",
     "reasons": {
       "incorrect_information": "La información es incorrecta",
       "closed": "Cerró o ya no existe",

@@ -564,6 +564,18 @@ public class TrafficApi internal constructor(private val transport: ApiTransport
             output = serializer<TrafficReportOutput>(),
         )
 
+    /** A current traffic report by id */
+    public suspend fun detail(input: TrafficDetailInput): TrafficDetailOutput =
+        transport.call(
+            method = "GET",
+            path = "/traffic/{id}",
+            input = transport.encode(TrafficDetailInput.serializer(), input),
+            pathKeys = setOf("id"),
+            queryKeys = emptySet(),
+            hasBody = false,
+            output = serializer<TrafficDetailOutput>(),
+        )
+
     /** The street under a point */
     public suspend fun streetAt(input: TrafficStreetAtInput): TrafficStreetAtOutput =
         transport.call(
@@ -602,6 +614,30 @@ public class TrafficApi internal constructor(private val transport: ApiTransport
 }
 
 public class ConsultationsApi internal constructor(private val transport: ApiTransport) {
+    /** Reserve an author-owned consultation photo upload */
+    public suspend fun photoUpload(input: ConsultationsPhotoUploadInput): ConsultationsPhotoUploadOutput =
+        transport.call(
+            method = "POST",
+            path = "/consultations/{consultationId}/photos/upload",
+            input = transport.encode(ConsultationsPhotoUploadInput.serializer(), input),
+            pathKeys = setOf("consultationId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ConsultationsPhotoUploadOutput>(),
+        )
+
+    /** Attach an uploaded photo and submit the case for review */
+    public suspend fun attachPhoto(input: ConsultationsAttachPhotoInput): ConsultationsAttachPhotoOutput =
+        transport.call(
+            method = "POST",
+            path = "/consultations/{consultationId}/photos",
+            input = transport.encode(ConsultationsAttachPhotoInput.serializer(), input),
+            pathKeys = setOf("consultationId"),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ConsultationsAttachPhotoOutput>(),
+        )
+
     /** Consultation categories */
     public suspend fun categories(): List<ConsultationsCategoriesItem> =
         transport.call(

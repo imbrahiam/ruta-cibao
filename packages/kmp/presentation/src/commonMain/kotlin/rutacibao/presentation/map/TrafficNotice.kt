@@ -72,6 +72,19 @@ public data class TrafficNotice(
             },
         )
 
+        fun from(item: rutacibao.api.generated.TrafficDetailOutput): TrafficNotice = TrafficNotice(
+            id = item.id, latitude = item.lat, longitude = item.lng,
+            path = item.path.orEmpty().map { TrafficPoint(it.lat, it.lng) },
+            icon = item.categoryIcon, color = item.categoryColor, categoryName = item.categoryName,
+            severity = item.severity?.let { TrafficSeverity.valueOf(it.name) },
+            municipality = item.municipalityName, createdAt = item.createdAt,
+            stillCount = item.stillCount.toInt(), clearedCount = item.clearedCount.toInt(),
+            myVerdict = item.myVerdict?.let { TrafficVerdict.valueOf(it.name) }, isMine = item.isMine,
+            details = item.description?.takeIf {
+                item.descriptionModerationStatus == rutacibao.api.generated.TrafficDetailOutput.DescriptionModerationStatus.Published && it.isNotBlank()
+            },
+        )
+
         fun api(verdict: TrafficVerdict): TrafficConfirmInput.Verdict = when (verdict) {
             TrafficVerdict.Still -> TrafficConfirmInput.Verdict.Still
             TrafficVerdict.Cleared -> TrafficConfirmInput.Verdict.Cleared

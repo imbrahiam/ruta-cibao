@@ -133,6 +133,80 @@ public data class TrafficReportOutput(
 )
 
 @Serializable
+public data class TrafficDetailInput(
+    val id: String,
+)
+
+@Serializable
+public data class TrafficDetailOutput(
+    val id: String,
+    val categoryId: String,
+    val categoryName: String,
+    val categoryIcon: String,
+    val categoryColor: String,
+    val description: String? = null,
+    val descriptionModerationStatus: TrafficDetailOutput.DescriptionModerationStatus,
+    val lng: Double,
+    val lat: Double,
+    val path: List<TrafficDetailOutput.PathItem>? = null,
+    val lengthMeters: Long? = null,
+    val state: TrafficDetailOutput.State,
+    val severity: TrafficDetailOutput.Severity? = null,
+    val municipalityId: String,
+    val municipalityName: String,
+    val reportedBy: String? = null,
+    val reporterResidentVerified: Boolean,
+    val voices: List<TrafficDetailOutput.Voice>,
+    val voiceCount: Long,
+    val createdAt: Instant,
+    val expiresAt: Instant,
+    val stillCount: Long,
+    val clearedCount: Long,
+    val myVerdict: TrafficDetailOutput.MyVerdict? = null,
+    val isMine: Boolean,
+) {
+    @Serializable
+    public enum class DescriptionModerationStatus {
+        @SerialName("pending") Pending,
+        @SerialName("published") Published,
+        @SerialName("hidden") Hidden;
+    }
+
+    @Serializable
+    public data class PathItem(
+        val lng: Double,
+        val lat: Double,
+    )
+
+    @Serializable
+    public enum class State {
+        @SerialName("active") Active,
+        @SerialName("cleared") Cleared;
+    }
+
+    @Serializable
+    public enum class Severity {
+        @SerialName("blocking") Blocking,
+        @SerialName("partial") Partial,
+        @SerialName("minor") Minor;
+    }
+
+    @Serializable
+    public data class Voice(
+        val key: String,
+        val name: String? = null,
+        val image: String? = null,
+        val residentVerified: Boolean,
+    )
+
+    @Serializable
+    public enum class MyVerdict {
+        @SerialName("still") Still,
+        @SerialName("cleared") Cleared;
+    }
+}
+
+@Serializable
 public data class TrafficStreetAtInput(
     val roadId: String? = null,
     val extentMeters: Int? = null,

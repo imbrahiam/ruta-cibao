@@ -39,6 +39,9 @@ public class TrafficRepository(private val api: RutaApi) : TrafficSource {
     override suspend fun active(box: Bbox, limit: Int): List<TrafficActiveItem> =
         api.traffic.active(TrafficActiveInput(box.west, box.south, box.east, box.north, limit))
 
+    public suspend fun detail(id: String): rutacibao.api.generated.TrafficDetailOutput =
+        api.traffic.detail(rutacibao.api.generated.TrafficDetailInput(id))
+
     override suspend fun confirm(reportId: String, verdict: TrafficConfirmInput.Verdict): TrafficConfirmOutput =
         api.traffic.confirm(TrafficConfirmInput(reportId, verdict))
 }

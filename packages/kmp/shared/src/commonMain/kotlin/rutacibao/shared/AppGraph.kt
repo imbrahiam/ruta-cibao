@@ -23,6 +23,7 @@ public interface AppGraph {
     public val session: Session
     public val viewModels: ViewModels
     public val push: PushRepository
+    public val offline: rutacibao.data.OfflineRepository
 
     @Provides
     @SingleIn(AppScope::class)

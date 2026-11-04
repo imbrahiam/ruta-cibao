@@ -19,6 +19,7 @@ import rutacibao.api.generated.PlacesSubmitInput
 import rutacibao.api.generated.TrafficCategoriesItem
 import rutacibao.api.generated.TrafficReportInput
 import rutacibao.data.ContributeRepository
+import rutacibao.data.DraftPhoto
 import rutacibao.presentation.UiError
 
 // ---------------------------------------------------------------- road report
@@ -31,6 +32,7 @@ public data class TrafficReportUiState(
     val description: String = "",
     val sending: Boolean = false,
     val sent: Boolean = false,
+    val queued: Boolean = false,
     /** Someone reported the same thing nearby (`DUPLICATE`): confirm it on the map instead. */
     val duplicate: Boolean = false,
     val error: UiError? = null,
@@ -72,7 +74,7 @@ public class TrafficReportViewModel(private val repository: ContributeRepository
                 description = s.description.trim().ifEmpty { null },
             )
             runCatching { repository.reportTraffic(input) }
-                .onSuccess { _state.update { it.copy(sending = false, sent = true) } }
+                .onSuccess { delivery -> _state.update { it.copy(sending = false, sent = true, queued = delivery.queued) } }
                 .onFailure { e ->
                     _state.update {
                         it.copy(
@@ -98,14 +100,14 @@ public data class SuggestPlaceUiState(
     val longitude: Double? = null,
     val sending: Boolean = false,
     val sent: Boolean = false,
+    val queued: Boolean = false,
     val problems: Set<Problem> = emptySet(),
     val error: UiError? = null,
     /** A suggestion of theirs is still in review: one at a time (server-enforced). */
     val pendingLimit: Boolean = false,
-    /** Photos attached so far (the bytes stay in the view model). */
+    /** Photos committed with the contribution before it is sent. */
     val photoCount: Int = 0,
-    /** Photos that didn't make it after the place was sent. */
-    val photosFailed: Int = 0,
+    val photos: List<DraftPhoto> = emptyList(),
 ) {
     val canAddPhoto: Boolean get() = photoCount < MAX_PHOTOS
 
@@ -136,7 +138,7 @@ public class SuggestPlaceViewModel(
     private val _state = MutableStateFlow(SuggestPlaceUiState())
     public val state: StateFlow<SuggestPlaceUiState> = _state.asStateFlow()
     private val requestId = Uuid.random().toString()
-    private val photos = mutableListOf<ByteArray>()
+    private val photos = mutableListOf<DraftPhoto>()
 
     init {
         viewModelScope.launch {
@@ -162,14 +164,14 @@ public class SuggestPlaceViewModel(
     /** A JPEG from the camera or the library, already downscaled by the app. */
     public fun addPhoto(jpeg: ByteArray) {
         if (photos.size >= SuggestPlaceUiState.MAX_PHOTOS || _state.value.sending) return
-        photos += jpeg
-        _state.update { it.copy(photoCount = photos.size) }
+        photos += DraftPhoto(Uuid.random().toString(), jpeg)
+        _state.update { it.copy(photoCount = photos.size, photos = photos.toList()) }
     }
 
     public fun removePhoto(index: Int) {
         if (index !in photos.indices || _state.value.sending) return
         photos.removeAt(index)
-        _state.update { it.copy(photoCount = photos.size) }
+        _state.update { it.copy(photoCount = photos.size, photos = photos.toList()) }
     }
 
     public fun send() {
@@ -191,14 +193,9 @@ public class SuggestPlaceViewModel(
                 location = PlacesSubmitInput.Location(lng = s.longitude!!, lat = s.latitude!!),
                 locationSource = PlacesSubmitInput.LocationSource.Map,
             )
-            runCatching { repository.submitPlace(input) }
-                .onSuccess { placeId ->
-                    // The place is in either way; a photo that fails is counted, not fatal.
-                    var failed = 0
-                    for (jpeg in photos.toList()) {
-                        runCatching { repository.uploadPlacePhoto(placeId, jpeg) }.onFailure { failed++ }
-                    }
-                    _state.update { it.copy(sending = false, sent = true, photosFailed = failed) }
+            runCatching { repository.submitPlace(input, photos.toList()) }
+                .onSuccess { delivery ->
+                    _state.update { it.copy(sending = false, sent = true, queued = delivery.queued) }
                 }
                 .onFailure { e ->
                     val limited = e is ApiError && e.data?.toString()?.contains("pending_limit") == true

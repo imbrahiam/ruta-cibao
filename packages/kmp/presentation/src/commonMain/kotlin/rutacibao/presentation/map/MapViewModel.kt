@@ -10,6 +10,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import rutacibao.api.generated.PlacesDetailOutput
+import rutacibao.api.generated.PlacesConfirmInput
+import rutacibao.api.generated.PlacesReportInput
+import kotlin.uuid.Uuid
+import kotlin.uuid.ExperimentalUuidApi
 import rutacibao.api.generated.RoutesBrowseOutput
 import rutacibao.data.AccountRepository
 import rutacibao.data.BusinessRepository
@@ -38,6 +42,21 @@ public data class PlaceSheet(
     val error: UiError? = null,
     val saved: Boolean = false,
     val business: BusinessState = BusinessState.NotABusiness,
+    val confirming: Boolean = false,
+    val feedbackError: UiError? = null,
+    val report: PlaceReportState? = null,
+    val cached: Boolean = false,
+)
+
+public data class PlaceReportState(
+    val requestId: String,
+    val reason: PlacesReportInput.Reason = PlacesReportInput.Reason.IncorrectInformation,
+    val details: String = "",
+    val submitting: Boolean = false,
+    val sent: Boolean = false,
+    val queued: Boolean = false,
+    val invalidDetails: Boolean = false,
+    val error: UiError? = null,
 )
 
 /** What the map has open. One thing at a time: a place, a route or a traffic notice. */
@@ -66,6 +85,7 @@ public data class MapUiState(
     /** Why the last "still there / it's over" answer was rolled back. */
     val trafficError: UiError? = null,
     val error: UiError? = null,
+    val linkError: UiError? = null,
     val signInRequested: Boolean = false,
 ) {
     public enum class Phase { Loading, Ready, Failed }
@@ -114,7 +134,7 @@ public class MapViewModel(
     private val repository: PlacesRepository,
     private val account: AccountRepository,
     private val businesses: BusinessRepository,
-    traffic: TrafficRepository,
+    private val traffic: TrafficRepository,
     private val session: Session,
 ) : ViewModel() {
     private val _state = MutableStateFlow(MapUiState())
@@ -122,6 +142,7 @@ public class MapViewModel(
     private val trafficLayer = TrafficLayer(traffic, viewModelScope)
     private var detailJob: Job? = null
     private var businessJob: Job? = null
+    private var linkJob: Job? = null
 
     /** Ids the person has saved, so a sheet opens with the right bookmark. */
     private var savedIds: Set<String> = emptySet()
@@ -170,6 +191,62 @@ public class MapViewModel(
         return if (hidden) clearingSelection() else this
     }
 
+    /** Resolve links independently of browse-page and current-viewport limits. */
+    public fun openPlace(slug: String) {
+        linkJob?.cancel()
+        detailJob?.cancel()
+        _state.update { it.copy(linkError = null) }
+        linkJob = viewModelScope.launch {
+            runCatching { repository.detail(slug) }.onSuccess { detail ->
+                val place = MapPlace(
+                    detail.id, detail.slug, detail.name, detail.category.id, detail.category.name,
+                    detail.municipality.id, detail.category.color, detail.category.icon,
+                    detail.location.lat, detail.location.lng, detail.photos.firstOrNull() ?: detail.imageUrl,
+                )
+                _state.update { s ->
+                    s.copy(phase = MapUiState.Phase.Ready, all = s.all.filterNot { it.id == place.id } + place)
+                        .selecting(PlaceSheet(place, detail = detail, loading = false, saved = place.id in savedIds, cached = repository.isDetailCached(slug)))
+                }
+                refreshBusiness()
+            }.onFailure { error ->
+                if (error is kotlin.coroutines.cancellation.CancellationException) throw error
+                _state.update { it.copy(linkError = UiError.from(error)) }
+            }
+        }
+    }
+
+    public fun openRoute(id: String) {
+        linkJob?.cancel()
+        detailJob?.cancel()
+        _state.update { it.copy(linkError = null) }
+        linkJob = viewModelScope.launch {
+            runCatching { repository.route(id) }.onSuccess { route ->
+                _state.update { s -> s.copy(routes = s.routes.filterNot { it.id == id } + route).selecting(route) }
+            }.onFailure { error ->
+                if (error is kotlin.coroutines.cancellation.CancellationException) throw error
+                _state.update { it.copy(linkError = UiError.from(error)) }
+            }
+        }
+    }
+
+    public fun openTraffic(id: String) {
+        linkJob?.cancel()
+        detailJob?.cancel()
+        _state.update { it.copy(linkError = null) }
+        linkJob = viewModelScope.launch {
+            runCatching { traffic.detail(id) }.onSuccess { detail ->
+                val notice = TrafficNotice.from(detail)
+                trafficLayer.includeLinked(notice)
+                _state.update { s -> s.copy(traffic = s.traffic.filterNot { it.id == id } + notice).selectingTraffic(id) }
+            }.onFailure { error ->
+                if (error is kotlin.coroutines.cancellation.CancellationException) throw error
+                _state.update { it.copy(linkError = UiError.from(error)) }
+            }
+        }
+    }
+
+    public fun linkErrorHandled() { _state.update { it.copy(linkError = null) } }
+
     public fun selectRoute(id: String) {
         val route = _state.value.routes.firstOrNull { it.id == id } ?: return
         detailJob?.cancel()
@@ -190,7 +267,7 @@ public class MapViewModel(
         detailJob = viewModelScope.launch {
             runCatching { repository.detail(place.slug) }
                 .onSuccess { detail ->
-                    _state.update { s -> s.updatingSheet(placeId) { it.copy(detail = detail, loading = false) } }
+                    _state.update { s -> s.updatingSheet(placeId) { it.copy(detail = detail, loading = false, cached = repository.isDetailCached(place.slug)) } }
                 }
                 .onFailure { error ->
                     _state.update { s -> s.updatingSheet(placeId) { it.copy(loading = false, error = UiError.from(error)) } }
@@ -261,6 +338,101 @@ public class MapViewModel(
         }
     }
 
+    /** Confirmation is a per-person upsert; only publish the server's resulting trust. */
+    public fun confirmPlace(verdict: PlacesConfirmInput.Verdict) {
+        val open = _state.value.sheet ?: return
+        if (open.confirming || open.cached || open.detail?.isMine != false) return
+        if (!requestClaim()) return
+        _state.update { it.updatingSheet(open.place.id) { s -> s.copy(confirming = true, feedbackError = null) } }
+        viewModelScope.launch {
+            runCatching { repository.confirm(open.place.id, verdict) }
+                .onSuccess { result ->
+                    _state.update { state ->
+                        state.updatingSheet(open.place.id) { s ->
+                            val detail = s.detail ?: return@updatingSheet s.copy(confirming = false)
+                            s.copy(
+                                confirming = false,
+                                detail = detail.copy(
+                                    myVerdict = PlacesDetailOutput.MyVerdict.valueOf(verdict.name),
+                                    trust = PlacesDetailOutput.Trust(
+                                        PlacesDetailOutput.Trust.State.valueOf(result.state.name),
+                                        result.confirmations, result.doubts, result.ageDays,
+                                    ),
+                                ),
+                            )
+                        }
+                    }
+                }
+                .onFailure { error ->
+                    val failure = UiError.from(error)
+                    _state.update { state ->
+                        state.updatingSheet(open.place.id) { it.copy(confirming = false, feedbackError = failure) }
+                            .copy(signInRequested = failure == UiError.SignedOut)
+                    }
+                }
+        }
+    }
+
+    @OptIn(ExperimentalUuidApi::class)
+    public fun openPlaceReport() {
+        val open = _state.value.sheet ?: return
+        if (!requestClaim()) return
+        _state.update {
+            it.updatingSheet(open.place.id) { s ->
+                s.copy(report = s.report ?: PlaceReportState(requestId = Uuid.random().toString()))
+            }
+        }
+    }
+
+    public fun closePlaceReport() {
+        val open = _state.value.sheet ?: return
+        if (open.report?.submitting == true) return
+        _state.update { it.updatingSheet(open.place.id) { s -> s.copy(report = null) } }
+    }
+
+    public fun updatePlaceReportReason(reason: PlacesReportInput.Reason) {
+        val open = _state.value.sheet ?: return
+        _state.update { it.updatingSheet(open.place.id) { s ->
+            s.copy(report = s.report?.copy(reason = reason, invalidDetails = false, error = null))
+        } }
+    }
+
+    public fun updatePlaceReportDetails(value: String) {
+        val open = _state.value.sheet ?: return
+        _state.update { it.updatingSheet(open.place.id) { s ->
+            s.copy(report = s.report?.copy(details = value.take(500), invalidDetails = false, error = null))
+        } }
+    }
+
+    public fun submitPlaceReport() {
+        val open = _state.value.sheet ?: return
+        val report = open.report ?: return
+        if (report.submitting || report.sent) return
+        if (!requestClaim()) return
+        if (report.reason == PlacesReportInput.Reason.Other && report.details.trim().length < 10) {
+            _state.update { it.updatingSheet(open.place.id) { s -> s.copy(report = report.copy(invalidDetails = true)) } }
+            return
+        }
+        _state.update { it.updatingSheet(open.place.id) { s -> s.copy(report = report.copy(submitting = true, error = null)) } }
+        viewModelScope.launch {
+            runCatching {
+                repository.report(PlacesReportInput(
+                    placeId = open.place.id, requestId = report.requestId,
+                    reason = report.reason, details = report.details.trim().ifEmpty { null },
+                ))
+            }.onSuccess { delivery ->
+                _state.update { it.updatingSheet(open.place.id) { s ->
+                    s.copy(report = report.copy(submitting = false, sent = true, queued = delivery.queued))
+                } }
+            }.onFailure { error ->
+                val failure = UiError.from(error)
+                _state.update { it.updatingSheet(open.place.id) { s ->
+                    s.copy(report = report.copy(submitting = false, error = failure))
+                }.copy(signInRequested = failure == UiError.SignedOut) }
+            }
+        }
+    }
+
     /** Optimistic save; signed out it asks for sign-in instead. */
     public fun toggleSaved() {
         val sheet = _state.value.sheet ?: return
@@ -294,7 +466,10 @@ public class MapViewModel(
         // Routes and names are extras: the map still opens without them.
         viewModelScope.launch {
             val routes = runCatching { repository.routes() }.getOrDefault(emptyList())
-            _state.update { it.copy(routes = routes) }
+            _state.update { state ->
+                val linked = state.route?.takeIf { open -> routes.none { it.id == open.id } }
+                state.copy(routes = if (linked == null) routes else routes + linked)
+            }
         }
         viewModelScope.launch {
             val names = runCatching { repository.municipalityNames() }.getOrDefault(emptyMap())
@@ -307,7 +482,10 @@ public class MapViewModel(
                         val first = group.first()
                         MapCategory(id, first.categoryName, first.color, first.icon, group.size)
                     }.sortedByDescending { it.count }
-                    _state.update { it.copy(phase = MapUiState.Phase.Ready, all = places, categories = categories, error = null) }
+                    _state.update { state ->
+                        val linked = state.sheet?.place?.takeIf { open -> places.none { it.id == open.id } }
+                        state.copy(phase = MapUiState.Phase.Ready, all = if (linked == null) places else places + linked, categories = categories, error = null)
+                    }
                 }
                 .onFailure { error ->
                     _state.update { it.copy(phase = MapUiState.Phase.Failed, error = UiError.from(error)) }

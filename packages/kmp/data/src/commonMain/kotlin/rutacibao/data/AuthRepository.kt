@@ -26,6 +26,7 @@ public class AuthRepository(
     private val client: HttpClient,
     private val config: AppConfig,
     private val session: Session,
+    private val push: PushRepository,
 ) {
     public suspend fun sendPhoneCode(e164: String): Unit =
         post("phone-number/send-otp") { put("phoneNumber", e164) }
@@ -50,8 +51,10 @@ public class AuthRepository(
 
     /** Tells the server first, then forgets locally even if that failed. */
     public suspend fun signOut() {
-        runCatching { post("sign-out") {} }
-        session.clear()
+        push.unregisterBeforeSignOut {
+            runCatching { post("sign-out") {} }
+            session.clear()
+        }
     }
 
     private suspend fun post(path: String, body: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit) {

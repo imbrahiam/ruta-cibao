@@ -1,65 +1,27 @@
 package rutacibao.data
 
 import dev.zacsweers.metro.Inject
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.request.put
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.contentType
-import io.ktor.http.isSuccess
-import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
-import rutacibao.api.ApiError
-import rutacibao.api.generated.PlacesAttachPhotoInput
 import rutacibao.api.generated.PlacesCategoriesItem
-import rutacibao.api.generated.PlacesPhotoUploadInput
-import rutacibao.api.generated.PlacesPhotoUploadOutput
 import rutacibao.api.generated.PlacesSubmitInput
 import rutacibao.api.generated.RutaApi
 import rutacibao.api.generated.TrafficCategoriesItem
 import rutacibao.api.generated.TrafficReportInput
 
-/** Writes a resident makes to the map: road reports and place suggestions. */
+/** Every contribution is committed locally before its first network request. */
 @Inject
-public class ContributeRepository(private val api: RutaApi) {
-    /**
-     * Uploads go straight to object storage through a presigned URL, so they
-     * use a bare client: the app's client would send the session cookie along.
-     */
-    private val storage by lazy {
-        HttpClient(httpEngine()) {
-            expectSuccess = false
-            install(HttpTimeout) { requestTimeoutMillis = 60_000 }
+public class ContributeRepository(private val api: RutaApi, private val offline: OfflineRepository) {
+    public suspend fun trafficCategories(): List<TrafficCategoriesItem> = try { api.traffic.categories() } catch (error: Exception) {
+        if (!isTransient(error)) throw error
+        val snapshot = offline.snapshot ?: throw error
+        snapshot.categories.filter { it.kind == "traffic" }.map { TrafficCategoriesItem(it.id, it.name, it.icon, it.color) }
+    }
+    public suspend fun placeCategories(): List<PlacesCategoriesItem> = try { api.places.categories() } catch (error: Exception) {
+        if (!isTransient(error)) throw error
+        val snapshot = offline.snapshot ?: throw error
+        snapshot.categories.filter { it.kind == "place" || it.kind == "business" }.map {
+            PlacesCategoriesItem(it.id, it.name, it.icon, it.color, if (it.kind == "business") PlacesCategoriesItem.Kind.Business else PlacesCategoriesItem.Kind.Place)
         }
     }
-
-    public suspend fun trafficCategories(): List<TrafficCategoriesItem> = api.traffic.categories()
-    public suspend fun placeCategories(): List<PlacesCategoriesItem> = api.places.categories()
-    public suspend fun reportTraffic(input: TrafficReportInput): Unit { api.traffic.report(input) }
-
-    /** The new place's id, for attaching photos to it. */
-    public suspend fun submitPlace(input: PlacesSubmitInput): String = api.places.submit(input).id
-
-    /** One JPEG onto a place: reserve an upload, PUT the bytes, record it. */
-    @OptIn(ExperimentalUuidApi::class)
-    public suspend fun uploadPlacePhoto(placeId: String, jpeg: ByteArray) {
-        val ticket = api.places.photoUpload(
-            PlacesPhotoUploadInput(
-                placeId = placeId,
-                requestId = Uuid.random().toString(),
-                contentType = PlacesPhotoUploadInput.ContentType.ImageJpeg,
-                sizeBytes = jpeg.size.toLong(),
-            ),
-        )
-        val url = ticket.uploadUrl
-        if (ticket.status == PlacesPhotoUploadOutput.Status.Upload && url != null) {
-            val response = storage.put(url) {
-                contentType(ContentType.Image.JPEG)
-                setBody(jpeg)
-            }
-            if (!response.status.isSuccess()) throw ApiError(response.status.value, "UPLOAD_FAILED", "photo")
-        }
-        api.places.attachPhoto(PlacesAttachPhotoInput(placeId = placeId, storageKey = ticket.storageKey))
-    }
+    public suspend fun reportTraffic(input: TrafficReportInput): MutationDelivery = offline.reportTraffic(input)
+    public suspend fun submitPlace(input: PlacesSubmitInput, photos: List<DraftPhoto>): MutationDelivery = offline.submitPlace(input, photos)
 }

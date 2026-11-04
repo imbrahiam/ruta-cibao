@@ -72,7 +72,7 @@ class SignInViewModelTest {
         val client = io.ktor.client.HttpClient(engine) {
             install(rutacibao.data.sessionPluginForTests(session, config))
         }
-        val vm = SignInViewModel(AuthRepository(client, config, session))
+        val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
 
         vm.updatePhone("(829) 555 0123")
         assertEquals("829-555-0123", vm.state.value.phone)
@@ -99,7 +99,8 @@ class SignInViewModelTest {
     fun anInvalidNumberNeverLeavesTheDevice() = runTest(dispatcher) {
         val engine = MockEngine { error("no request expected") }
         val session = Session(MemoryStore())
-        val vm = SignInViewModel(AuthRepository(io.ktor.client.HttpClient(engine), config, session))
+        val client = io.ktor.client.HttpClient(engine)
+        val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
         vm.updatePhone("305-555-0123")
         vm.submit(); runCurrent()
         assertEquals(SignInError.PhoneInvalid, vm.state.value.error)

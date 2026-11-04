@@ -151,6 +151,7 @@ public data class ModerationQueueOutput(
         val municipalityName: String,
         val openedBy: String? = null,
         val supportCount: Long,
+        val photos: List<ModerationQueueOutput.Consultation.Photo>,
     ) {
         @Serializable
         public enum class Status {
@@ -167,6 +168,14 @@ public data class ModerationQueueOutput(
             @SerialName("published") Published,
             @SerialName("hidden") Hidden;
         }
+
+        @Serializable
+        public data class Photo(
+            val url: String,
+            val width: Long,
+            val height: Long,
+            val alt: String? = null,
+        )
     }
 
     @Serializable

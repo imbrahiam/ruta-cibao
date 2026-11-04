@@ -14,6 +14,7 @@ import rutacibao.api.generated.ConsultationsCategoriesItem
 import rutacibao.api.generated.ConsultationsOpenInput
 import rutacibao.api.generated.MunicipalitiesListItem
 import rutacibao.data.ConsultationsRepository
+import rutacibao.data.DraftPhoto
 import rutacibao.data.Session
 import rutacibao.presentation.UiError
 
@@ -27,6 +28,10 @@ public data class NewConsultationUiState(
     val latitude: Double? = null,
     val longitude: Double? = null,
     val sending: Boolean = false,
+    val submitted: Boolean = false,
+    val queued: Boolean = false,
+    val photoCount: Int = 0,
+    val photos: List<DraftPhoto> = emptyList(),
     /** Field problems, shown only after a first submit attempt. */
     val problems: Set<Problem> = emptySet(),
     val error: UiError? = null,
@@ -50,6 +55,7 @@ public data class NewConsultationUiState(
         /** Same bounds as the contract (`openConsultationInput`). */
         public val TITLE: IntRange = 8..120
         public val BODY: IntRange = 40..2_000
+        public const val MAX_PHOTOS: Int = 4
     }
 }
 
@@ -65,6 +71,7 @@ public class NewConsultationViewModel(
 
     /** One id per draft: a retried send can't open the case twice. */
     private val requestId = Uuid.random().toString()
+    private val photos = mutableListOf<DraftPhoto>()
 
     init {
         viewModelScope.launch {
@@ -88,10 +95,22 @@ public class NewConsultationViewModel(
     public fun updateBody(value: String) { edit { copy(body = value.take(NewConsultationUiState.BODY.last)) } }
     public fun setLocation(latitude: Double, longitude: Double) { edit { copy(latitude = latitude, longitude = longitude) } }
     public fun clearLocation() { edit { copy(latitude = null, longitude = null) } }
+    public fun addPhoto(jpeg: ByteArray) {
+        if (_state.value.submitted || photos.size >= NewConsultationUiState.MAX_PHOTOS) return
+        photos += DraftPhoto(Uuid.random().toString(), jpeg)
+        _state.update { it.copy(photoCount = photos.size, photos = photos.toList()) }
+    }
+
+    public fun removePhoto(index: Int) {
+        if (_state.value.submitted || index !in photos.indices) return
+        photos.removeAt(index)
+        _state.update { it.copy(photoCount = photos.size, photos = photos.toList()) }
+    }
+
 
     public fun send() {
         val s = _state.value
-        if (s.sending) return
+        if (s.sending || s.queued || s.openedSlug != null) return
         val problems = s.problemsNow()
         if (problems.isNotEmpty()) {
             _state.update { it.copy(problems = problems) }
@@ -101,7 +120,7 @@ public class NewConsultationViewModel(
             _state.update { it.copy(signInRequested = true) }
             return
         }
-        _state.update { it.copy(sending = true, error = null) }
+        _state.update { it.copy(sending = true, submitted = true, error = null) }
         viewModelScope.launch {
             val input = ConsultationsOpenInput(
                 requestId = requestId,
@@ -111,8 +130,8 @@ public class NewConsultationViewModel(
                 municipalityId = s.municipalityId!!,
                 location = if (s.latitude != null && s.longitude != null) ConsultationsOpenInput.Location(lng = s.longitude, lat = s.latitude) else null,
             )
-            runCatching { repository.open(input) }
-                .onSuccess { out -> _state.update { it.copy(sending = false, openedSlug = out.slug) } }
+            runCatching { repository.openWithPhotos(input, photos.toList()) }
+                .onSuccess { delivery -> _state.update { it.copy(sending = false, queued = delivery.queued, openedSlug = delivery.slug) } }
                 .onFailure { e ->
                     val kind = UiError.from(e)
                     _state.update { it.copy(sending = false, error = kind, signInRequested = kind == UiError.SignedOut) }
@@ -125,6 +144,7 @@ public class NewConsultationViewModel(
     /** Editing clears the problems it fixes, never adds new ones mid-typing. */
     private fun edit(change: NewConsultationUiState.() -> NewConsultationUiState) {
         _state.update { old ->
+            if (old.submitted) return@update old
             val next = old.change()
             next.copy(problems = old.problems intersect next.problemsNow(), error = null)
         }

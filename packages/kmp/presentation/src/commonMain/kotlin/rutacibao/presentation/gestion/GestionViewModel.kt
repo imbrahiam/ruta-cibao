@@ -115,6 +115,13 @@ public class GestionViewModel(
         viewModelScope.launch { fetchPdf(report.id) }
     }
 
+    /** A shared weekly report must open that report, not whichever is latest. */
+    public fun openLinkedReport(reportId: String) {
+        if (_state.value.pdf == PdfState.Loading) return
+        _state.update { it.copy(pdf = PdfState.Loading) }
+        viewModelScope.launch { fetchPdf(reportId) }
+    }
+
     public fun pdfHandled() {
         _state.update { it.copy(pdf = PdfState.Idle, pdfUrl = null) }
     }

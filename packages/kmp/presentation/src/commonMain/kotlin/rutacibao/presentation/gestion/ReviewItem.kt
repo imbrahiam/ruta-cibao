@@ -78,6 +78,7 @@ public sealed interface ReviewItem {
         override val createdAt: Instant,
         override val snippet: String?,
         override val imageUrl: String? = null,
+        val photoUrls: List<String> = emptyList(),
     ) : ReviewItem { override val kind: ReviewKind get() = ReviewKind.Consultation }
 }
 
@@ -106,5 +107,7 @@ internal fun ModerationQueueOutput.toItems(config: AppConfig): List<ReviewItem> 
                 ),
             )
         }
-        consultations.forEach { add(ReviewItem.Consultation(it.id, it.title, it.municipalityName, it.createdAt, it.body)) }
+        consultations.forEach {
+            add(ReviewItem.Consultation(it.id, it.title, it.municipalityName, it.createdAt, it.body, photoUrls = it.photos.map { photo -> config.absolute(photo.url) }))
+        }
     }.sortedByDescending { it.createdAt }

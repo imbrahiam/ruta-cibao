@@ -26,6 +26,23 @@ public class Session(private val store: SecureStore) {
 
     public val isSignedIn: StateFlow<Boolean> get() = signedIn.asStateFlow()
     private val signedIn = MutableStateFlow(cookies.value.keys.any(::isSessionCookie))
+    private val owner = MutableStateFlow(loadOwner())
+    public val accountId: StateFlow<String?> = owner.asStateFlow()
+
+    internal fun identityToken(): String? = cookies.value.entries.firstOrNull { isSessionCookie(it.key) }?.value
+
+    /** Bind only a server-verified identity to the exact session that fetched it. */
+    internal fun bindAccount(id: String, token: String?) {
+        if (token == null || token != identityToken()) return
+        store.write(OWNER_KEY, "${sha256(token.encodeToByteArray())}\n$id")
+        owner.value = id
+    }
+
+    private fun loadOwner(): String? {
+        val token = identityToken() ?: return null
+        val record = store.read(OWNER_KEY)?.split('\n', limit = 2) ?: return null
+        return record.getOrNull(1)?.takeIf { record.first() == sha256(token.encodeToByteArray()) }
+    }
 
     internal fun cookieHeader(): String? =
         cookies.value.takeIf { it.isNotEmpty() }?.entries?.joinToString("; ") { "${it.key}=${it.value}" }
@@ -51,8 +68,13 @@ public class Session(private val store: SecureStore) {
     }
 
     private fun save(next: Map<String, String>) {
+        val previousToken = identityToken()
         cookies.value = next
         signedIn.value = next.keys.any(::isSessionCookie)
+        if (previousToken != identityToken()) {
+            store.delete(OWNER_KEY)
+            owner.value = null
+        }
         if (next.isEmpty()) store.delete(KEY) else store.write(KEY, next.entries.joinToString("\n") { "${it.key}=${it.value}" })
     }
 
@@ -64,18 +86,29 @@ public class Session(private val store: SecureStore) {
 
     private companion object {
         const val KEY = "rutacibao.session.cookies"
+        const val OWNER_KEY = "rutacibao.session.owner"
         fun isSessionCookie(name: String) = name.endsWith("session_token")
     }
+}
+
+/** Queue replays must never adopt another account's cookie between API calls. */
+internal class BoundSession(val token: String, val cookie: String) :
+    kotlin.coroutines.AbstractCoroutineContextElement(Key) {
+    companion object Key : kotlin.coroutines.CoroutineContext.Key<BoundSession>
 }
 
 /** Ktor plugin wiring [Session] and the trusted origin into every request. */
 internal fun sessionPlugin(session: Session, config: AppConfig) = createClientPlugin("RutaSession") {
     onRequest { request, _ ->
         request.headers.append(HttpHeaders.Origin, config.origin)
-        session.cookieHeader()?.let { request.headers.append(HttpHeaders.Cookie, it) }
+        val bound = kotlinx.coroutines.currentCoroutineContext()[BoundSession]
+        if (bound != null && bound.token != session.identityToken()) throw rutacibao.api.ApiError(401, "UNAUTHORIZED", "session")
+        (bound?.cookie ?: session.cookieHeader())?.let { request.headers.append(HttpHeaders.Cookie, it) }
     }
     onResponse { response ->
-        session.accept(response.headers.getAll(HttpHeaders.SetCookie).orEmpty())
+        if (response.call.request.headers[HttpHeaders.Cookie] == session.cookieHeader()) {
+            session.accept(response.headers.getAll(HttpHeaders.SetCookie).orEmpty())
+        }
     }
 }
 
