@@ -55,7 +55,8 @@ struct RootView: View {
         .onChange(of: links.pending, initial: true) { _, target in
             switch target {
             case .consultation: selection = .consultations
-            case .place, .route, .map: selection = .map
+            case .place, .route, .traffic: selection = .map
+            case .report: selection = .account
             case .contributions: selection = .contributions
             case nil: break
             }

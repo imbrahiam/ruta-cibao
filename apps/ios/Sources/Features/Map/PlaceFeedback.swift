@@ -1,0 +1,114 @@
+import RutaKit
+import SwiftUI
+
+struct PlaceFeedbackView: View {
+    let sheet: PlaceSheet
+    let confirm: (PlacesConfirmInput.Verdict) -> Void
+    let requestReport: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if sheet.cached {
+                Label(L10n.Offline.mapNote, systemImage: "wifi.slash")
+                    .font(.footnote).foregroundStyle(.secondary)
+            } else if let detail = sheet.detail, !detail.isMine {
+                Text(L10n.Place.stillThere).font(.headline)
+                Text(detail.myVerdict == nil ? L10n.Place.stillThereBody : L10n.Place.answered)
+                    .font(.subheadline).foregroundStyle(.secondary)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) { verdictButtons(detail) }
+                    VStack(alignment: .leading, spacing: 8) { verdictButtons(detail) }
+                }
+                .disabled(sheet.confirming)
+                if sheet.confirming { ProgressView() }
+            }
+            if let error = sheet.feedbackError {
+                Label(error == .offline ? L10n.Common.offlineBody : L10n.Common.errorBody, systemImage: "exclamationmark.circle")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            Button(action: requestReport) {
+                Label(L10n.Place.report, systemImage: "flag")
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder private func verdictButtons(_ detail: PlacesDetailOutput) -> some View {
+        Button { confirm(.exists) } label: {
+            Label(L10n.Place.exists, systemImage: detail.myVerdict == .exists ? "checkmark.circle.fill" : "checkmark.circle")
+                .frame(minHeight: 44)
+        }
+        Button { confirm(.gone) } label: {
+            Label(L10n.Place.gone, systemImage: detail.myVerdict == .gone ? "xmark.circle.fill" : "xmark.circle")
+                .frame(minHeight: 44)
+        }
+    }
+}
+
+struct PlaceReportView: View {
+    let report: PlaceReportState
+    let updateReason: (PlacesReportInput.Reason) -> Void
+    let updateDetails: (String) -> Void
+    let submit: () -> Void
+    let close: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if report.sent {
+                    VStack(spacing: 16) {
+                        Image(systemName: report.queued ? "clock.arrow.circlepath" : "checkmark.circle")
+                            .font(.largeTitle)
+                        Text(report.queued ? L10n.Offline.queuedToast : L10n.Place.reportSent).font(.title2.bold())
+                        Text(report.queued ? L10n.Offline.queuedToastBody : L10n.Place.reportSentBody)
+                            .foregroundStyle(.secondary).multilineTextAlignment(.center)
+                        Button(L10n.Common.close, action: close).frame(minHeight: 44)
+                    }.padding(24).frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    Form {
+                        Picker(L10n.Place.reportTitle, selection: Binding(get: { report.reason }, set: updateReason)) {
+                            ForEach(PlacesReportInput.Reason.allCases, id: \.self) { reason in
+                                Text(Self.reasonText(reason)).tag(reason)
+                            }
+                        }
+                        .pickerStyle(.inline)
+                        Section(L10n.Place.reportDetails) {
+                            TextField(L10n.Place.reportDetails, text: Binding(get: { report.details }, set: updateDetails), axis: .vertical)
+                                .lineLimit(4...8)
+                            if report.invalidDetails {
+                                Label(L10n.Place.reportDetailsRequired, systemImage: "exclamationmark.circle")
+                                    .font(.footnote)
+                            }
+                        }
+                        if let error = report.error {
+                            Label(error == .offline ? L10n.Common.offlineBody : L10n.Common.errorBody, systemImage: "exclamationmark.circle")
+                        }
+                    }
+                    .disabled(report.submitting)
+                    .scrollDismissesKeyboard(.interactively)
+                    .safeAreaInset(edge: .bottom) {
+                        SubmitBar(title: L10n.Safety.Report.submit, busy: report.submitting, enabled: !report.submitting, action: submit)
+                    }
+                }
+            }
+            .navigationTitle(L10n.Place.reportTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.Common.cancel, action: close).disabled(report.submitting)
+                }
+            }
+        }
+    }
+
+    static func reasonText(_ reason: PlacesReportInput.Reason) -> String {
+        switch reason {
+        case .incorrectInformation: L10n.Place.Reasons.incorrect_information
+        case .closed: L10n.Place.Reasons.closed
+        case .duplicate: L10n.Place.Reasons.duplicate
+        case .wrongLocation: L10n.Place.Reasons.wrong_location
+        case .other: L10n.Place.Reasons.other
+        }
+    }
+}

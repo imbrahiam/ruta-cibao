@@ -7,6 +7,7 @@ enum MessageArgs {
         "notifications.routeReviewed": [],
         "notifications.title": [],
         "notifications.pushGeneric": [],
+        "notifications.pushUnavailable": [],
         "notifications.errors.invalidPreferences": [],
         "notifications.errors.invalidMunicipalities": [],
         "notifications.errors.invalidCategories": [],

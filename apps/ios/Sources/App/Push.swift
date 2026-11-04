@@ -3,53 +3,50 @@ import SwiftUI
 import UIKit
 import UserNotifications
 
-/// Where a link, a notification or a share points (`packages/shared/src/app-target.ts`):
-/// `/s/<kind>/<ref>` or `/contributions`. Screens read `pending` and clear it.
+/// Every accepted opening gets its own serial, including the same URL twice.
 @MainActor @Observable
 final class DeepLinks {
     enum Target: Equatable {
         case consultation(slug: String)
         case place(slug: String)
         case route(id: String)
-        case map
+        case traffic(id: String)
+        case report(id: String)
         case contributions
     }
 
     var pending: Target?
+    private(set) var requestId: UInt64 = 0
 
     func open(_ href: String) {
-        pending = Self.parse(href)
+        guard let target = Self.parse(href) else { return }
+        pending = target
+        requestId &+= 1
     }
 
     static func parse(_ href: String) -> Target? {
-        // Accept `/s/…`, `https://host/s/…` and `scheme://s/…` alike.
-        var path = href
-        if let url = URL(string: href), url.scheme != nil {
-            path = url.host().map { url.scheme == "http" || url.scheme == "https" ? url.path() : "/\($0)\(url.path())" } ?? url.path()
-        }
-        path = path.components(separatedBy: CharacterSet(charactersIn: "?#")).first ?? path
-        if path == "/contributions" { return .contributions }
-        let parts = path.split(separator: "/").map { String($0).removingPercentEncoding ?? String($0) }
-        guard parts.count == 3, parts[0] == "s" else { return nil }
-        switch parts[1] {
-        case "consultation": return .consultation(slug: parts[2])
-        case "place": return .place(slug: parts[2])
-        case "route": return .route(id: parts[2])
-        case "traffic": return .map
-        case "report": return .contributions
+        guard let target = AppTarget.companion.parse(href: href, apiOrigin: AppConfig.current.apiOrigin, appScheme: AppConfig.current.appScheme) else { return nil }
+        switch target.kind {
+        case "consultation": return target.ref.map { .consultation(slug: $0) }
+        case "place": return target.ref.map { .place(slug: $0) }
+        case "route": return target.ref.map { .route(id: $0) }
+        case "traffic": return target.ref.map { .traffic(id: $0) }
+        case "report": return target.ref.map { .report(id: $0) }
+        case "contributions": return .contributions
         default: return nil
         }
     }
 }
 
-/// APNs plumbing. The token goes to the account through the shared
-/// `PushRepository`; a tap routes through `DeepLinks`; a push that arrives
-/// in the foreground shows as a banner and refreshes Avisos.
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-    @MainActor var graph: AppGraph?
+    @MainActor var graph: AppGraph? {
+        didSet {
+            guard let graph, let token else { return }
+            Task { _ = try? await graph.push.register(platform: .ios, token: token) }
+        }
+    }
+    @MainActor private var token: String?
     @MainActor let links = DeepLinks()
-
-    /// Posted when a push arrives, so Avisos can refresh without a pull.
     static let pushReceived = Notification.Name("RutaPushReceived")
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
@@ -58,15 +55,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        let token = deviceToken.map { String(format: "%02x", $0) }.joined()
-        Task { @MainActor in
-            _ = try? await graph?.push.register(platform: .ios, token: token)
-        }
+        let value = deviceToken.map { String(format: "%02x", $0) }.joined()
+        token = value
+        Task { _ = try? await graph?.push.register(platform: .ios, token: value) }
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        // No token (no entitlement, simulator without APNs, airplane mode): the
-        // in-app inbox still carries every notice.
+        // No entitlement/provider connectivity: the durable in-app inbox remains available.
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async -> UNNotificationPresentationOptions {
@@ -76,26 +71,26 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
         let href = response.notification.request.content.userInfo["href"] as? String
-        await MainActor.run { links.open(href ?? "/contributions") }
+        await MainActor.run {
+            NotificationCenter.default.post(name: Self.pushReceived, object: nil)
+            links.open(href ?? "/contributions")
+        }
     }
 }
 
 enum PushPermission {
-    /// Ask once, in context (right after signing in); afterwards just refresh
-    /// the token, as Apple recommends doing on every launch.
-    @MainActor static func registerIfAllowed(ask: Bool) async {
+    /// Ask after sign-in; refresh authorization and the provider token on foreground.
+    @MainActor @discardableResult static func registerIfAllowed(ask: Bool) async -> Bool {
         let center = UNUserNotificationCenter.current()
         var status = await center.notificationSettings().authorizationStatus
         if status == .notDetermined, ask {
             _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
             status = await center.notificationSettings().authorizationStatus
         }
-        if status == .authorized || status == .provisional || status == .ephemeral {
-            UIApplication.shared.registerForRemoteNotifications()
-        }
+        let allowed = status == .authorized || status == .provisional || status == .ephemeral
+        if allowed { UIApplication.shared.registerForRemoteNotifications() }
+        return allowed
     }
 }
 
-/// Kotlin objects aren't Sendable to Swift; `PushRepository` is safe to call
-/// from any context (its suspend functions run on Kotlin's own dispatchers).
 extension PushRepository: @unchecked @retroactive Sendable {}

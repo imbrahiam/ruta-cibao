@@ -61,6 +61,8 @@ private struct DetailContent: View {
     @Environment(\.palette) private var palette
     @FocusState private var composing: Bool
     @State private var replyingAsStaff = true
+    @State private var officialDraft = ""
+    @State private var officialStatus: ConsultationsRespondInput.StatusAfter = .answered
     private var state: ConsultationDetailUiState { model.state }
     private var vm: ConsultationDetailViewModel { model.viewModel }
 
@@ -88,24 +90,27 @@ private struct DetailContent: View {
                 }
                 .defaultScrollAnchor(DebugFlags.scrollToBottom ? .bottom : .top)
                 .scrollDismissesKeyboard(.interactively)
-                // Threads' reply bar: always at hand at the bottom of the post.
-                .safeAreaInset(edge: .bottom) {
-                    if state.canRespond && replyingAsStaff {
-                        StaffReplyComposer(model: model) { replyingAsStaff = false }
-                    } else if let comments {
-                        HStack(spacing: 0) {
-                            if state.canRespond {
-                                Button { replyingAsStaff = true } label: {
-                                    Image(systemName: "building.columns")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .frame(width: 44, height: 44)
-                                }
-                                .buttonStyle(.plain)
-                                .padding(.leading, 8)
-                                .accessibilityLabel(L10n.Gestion.replyTitle)
-                            }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    ThreadComposerBar {
+                        if state.canRespond {
+                            composerMode
+                        }
+                        if state.canRespond && replyingAsStaff {
+                            StaffReplyComposer(
+                                model: model,
+                                text: $officialDraft,
+                                status: $officialStatus,
+                                focus: $composing
+                            )
+                        } else if let comments {
                             CommentComposer(model: comments, placeholder: L10n.Comments.placeholder, focus: $composing)
                         }
+                    }
+                }
+                .onChange(of: state.replySent) { _, sent in
+                    if sent {
+                        officialDraft = ""
+                        vm.replySentHandled()
                     }
                 }
                 .sheet(isPresented: Binding(
@@ -140,6 +145,34 @@ private struct DetailContent: View {
             }
         }
     }
+
+    private var composerMode: some View {
+        Menu {
+            Picker(L10n.Comments.composerMode, selection: $replyingAsStaff) {
+                Label(L10n.Comments.participantMode, systemImage: "person").tag(false)
+                Label(L10n.Comments.officialMode, systemImage: "building.columns").tag(true)
+            }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(L10n.Comments.composerMode)
+                    .foregroundStyle(.secondary)
+                Text(replyingAsStaff ? L10n.Comments.officialMode : L10n.Comments.participantMode)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.semibold))
+            }
+            .font(.subheadline)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(state.replying || (comments?.state.sending ?? false))
+        .padding(.horizontal, 16)
+        .onChange(of: replyingAsStaff) { _, _ in composing = false }
+    }
 }
 
 // MARK: - The post
@@ -151,6 +184,7 @@ private struct OriginalPost: View {
     let detail: ConsultationsDetailOutput
     let support: () -> Void
     @Environment(\.palette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var menuOpen = false
 
     private let inset = PostMetrics.inset
@@ -163,11 +197,11 @@ private struct OriginalPost: View {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(author)
                         .font(PostMetrics.name)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text("\(detail.municipalityName) · \(CompactTime.since(detail.createdAt.date))")
                         .font(PostMetrics.text)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 8)
                 MoreButton { menuOpen = true }
@@ -201,18 +235,17 @@ private struct OriginalPost: View {
                     .padding(.top, 12)
             }
 
-            HStack(spacing: 0) {
-                PostActions(supported: detail.supported, support: support, reply: {}, shareURL: shareURL(detail.slug), shareTitle: detail.title, showsReply: false)
-                if detail.supportCount > 0 {
-                    Text(L10n.Consultations.supports(count: Int(detail.supportCount)))
-                        .font(PostMetrics.text)
-                        .foregroundStyle(.secondary)
-                        .contentTransition(.numericText())
-                        .animation(.snappy, value: detail.supportCount)
-                        .padding(.leading, 4)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    actions
+                    Spacer(minLength: 0)
+                    StatusPill(status: detail.statusValue)
                 }
-                Spacer(minLength: 8)
-                StatusPill(status: detail.statusValue)
+                VStack(alignment: .leading, spacing: 8) {
+                    actions
+                    StatusPill(status: detail.statusValue)
+                        .padding(.leading, 11)
+                }
             }
             .padding(.leading, inset - 11)
             .padding(.trailing, inset)
@@ -222,6 +255,20 @@ private struct OriginalPost: View {
         .padding(.top, 8)
         .sheet(isPresented: $menuOpen) {
             PostMenu(consultationId: detail.id, slug: detail.slug, title: detail.title) {}
+        }
+    }
+
+    private var actions: some View {
+        HStack(spacing: 4) {
+            PostActions(supported: detail.supported, support: support, reply: {}, shareURL: shareURL(detail.slug), shareTitle: detail.title, showsReply: false)
+            if detail.supportCount > 0 {
+                Text(L10n.Consultations.supports(count: Int(detail.supportCount)))
+                    .font(PostMetrics.text)
+                    .foregroundStyle(.secondary)
+                    .contentTransition(reduceMotion ? .identity : .numericText())
+                    .animation(reduceMotion ? nil : .snappy, value: detail.supportCount)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 
@@ -317,6 +364,7 @@ private struct Thread: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Rectangle().fill(palette.hairline).frame(height: 0.5)
+            CommentsHeader(title: L10n.Comments.officialReplies, total: detail.responses.count)
             if detail.responses.isEmpty {
                 Text(L10n.Consultations.noResponses)
                     .font(PostMetrics.text)
@@ -351,24 +399,24 @@ private struct Reply: View {
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(response.author ?? L10n.Consultations.municipality)
                         .font(PostMetrics.name)
-                        .lineLimit(1)
-                    Image(systemName: "checkmark.seal.fill")
-                        .font(.caption)
-                        .foregroundStyle(RutaBrand.iris)
-                        // Who speaks, in words: the seal says "ayuntamiento".
-                        .accessibilityLabel("\(L10n.Consultations.municipality) · \(municipality)")
-                    Spacer(minLength: 8)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
                     Text(CompactTime.since(response.createdAt.date))
-                        .font(PostMetrics.text)
-                        .foregroundStyle(palette.textTertiary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
+                Label(L10n.Comments.officialReply, systemImage: "checkmark.seal.fill")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(RutaBrand.iris)
+                    .accessibilityLabel("\(L10n.Comments.officialReply) · \(municipality)")
                 Text(response.body)
                     .font(PostMetrics.text)
                     .lineSpacing(2)
                     .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
                 StatusPill(status: response.statusAfterValue)
                     .padding(.top, 6)
             }
@@ -386,77 +434,76 @@ private struct Reply: View {
 /// reply. It sits in the same bar as the comment composer.
 private struct StaffReplyComposer: View {
     let model: ConsultationDetailModel
-    let showComments: () -> Void
+    @Binding var text: String
+    @Binding var status: ConsultationsRespondInput.StatusAfter
+    var focus: FocusState<Bool>.Binding
     @Environment(\.palette) private var palette
     @Environment(\.colorScheme) private var scheme
-    @State private var text = ""
-    @State private var status: ConsultationsRespondInput.StatusAfter = .answered
     private var state: ConsultationDetailUiState { model.state }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Menu {
-                    Picker(L10n.Gestion.replyStatus, selection: $status) {
-                        ForEach(state.replyStatuses, id: \.self) { option in
-                            Text(Self.label(option)).tag(option)
-                        }
-                    }
-                } label: {
-                    Label(Self.label(status), systemImage: "chevron.up.chevron.down")
-                        .labelStyle(TrailingChevron())
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 14)
-                        .frame(minHeight: 44)
-                        .background(palette.raised(scheme), in: Capsule())
-                }
-                .accessibilityLabel(L10n.Gestion.replyStatus)
-                .accessibilityValue(Self.label(status))
-                Spacer(minLength: 8)
-                Button(action: showComments) {
-                    Image(systemName: "bubble.left").frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(L10n.Comments.title)
-            }
-            HStack(alignment: .bottom, spacing: 8) {
-                TextField(L10n.Gestion.replyTitle, text: $text, axis: .vertical)
-                    .lineLimit(1...5)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
-                    .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                Button { model.viewModel.respond(body: text, statusAfter: status) } label: {
-                    ZStack {
-                        Image(systemName: "arrow.up").opacity(state.replying ? 0 : 1)
-                        if state.replying { ProgressView().tint(RutaHighlight.onPrimary(palette)) }
-                    }
-                    .font(.system(size: 17, weight: .bold))
-                    .frame(width: 44, height: 44)
-                }
-                .buttonStyle(RutaProminentStyle())
-                .buttonBorderShape(.circle)
-                .disabled(state.replying || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .accessibilityLabel(L10n.Gestion.replySend)
-            }
             if let error = state.replyError {
-                Label(error == .tooShort ? L10n.Gestion.replyTooShort : L10n.Common.errorBody, systemImage: "exclamationmark.circle.fill")
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(palette.dangerInk)
+                if error == .tooShort {
+                    Label(L10n.Gestion.replyTooShort, systemImage: "exclamationmark.circle")
+                        .font(.footnote)
+                        .foregroundStyle(palette.dangerInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    ThreadErrorNotice(message: L10n.Comments.officialReplyFailed) {
+                        model.viewModel.respond(body: text, statusAfter: status)
+                    }
+                }
+            }
+            Menu {
+                Picker(L10n.Gestion.replyStatus, selection: $status) {
+                    ForEach(state.replyStatuses, id: \.self) { option in
+                        Text(Self.label(option)).tag(option)
+                    }
+                }
+            } label: {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(L10n.Comments.statusAfter)
+                        .foregroundStyle(.secondary)
+                    Text(Self.label(status))
+                        .fontWeight(.semibold)
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.semibold))
+                }
+                .font(.subheadline)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(state.replying)
+            .accessibilityLabel(L10n.Gestion.replyStatus)
+            .accessibilityValue(Self.label(status))
+            HStack(alignment: .bottom, spacing: 10) {
+                ComposerAvatar(official: true)
+                    .padding(.bottom, 6)
+                HStack(alignment: .bottom, spacing: 4) {
+                    TextField(L10n.Gestion.replyTitle, text: $text, axis: .vertical)
+                        .font(.body)
+                        .lineLimit(1...5)
+                        .focused(focus)
+                        .disabled(state.replying)
+                        .padding(.leading, 16)
+                        .padding(.vertical, 12)
+                    ThreadSendButton(
+                        sending: state.replying,
+                        enabled: !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                        label: L10n.Gestion.replySend,
+                        action: { model.viewModel.respond(body: text, statusAfter: status) }
+                    )
+                    .padding(3)
+                }
+                .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        // Two rows tall, so the thread must not show through it.
-        .background(palette.background)
-        .overlay(alignment: .top) {
-            Rectangle().fill(palette.hairline).frame(height: 1)
-        }
-        .onChange(of: state.replySent) { _, sent in
-            if sent {
-                text = ""
-                model.viewModel.replySentHandled()
-            }
-        }
         .task { debugReply() }
     }
 
@@ -484,11 +531,3 @@ private struct StaffReplyComposer: View {
     }
 }
 
-private struct TrailingChevron: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 6) {
-            configuration.title
-            configuration.icon.font(.caption2.weight(.bold))
-        }
-    }
-}

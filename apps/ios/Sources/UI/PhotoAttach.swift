@@ -8,6 +8,7 @@ import UIKit
 /// it's handed on, so uploads stay small on a mobile connection.
 struct PhotoAttach: View {
     let max: Int
+    let images: [Data]
     let add: (Data) -> Void
     let remove: (Int) -> Void
 
@@ -15,6 +16,7 @@ struct PhotoAttach: View {
     @State private var thumbs: [UIImage] = []
     @State private var library: [PhotosPickerItem] = []
     @State private var camera = false
+    @State private var readFailed = false
 
     private var hasCamera: Bool { UIImagePickerController.isSourceTypeAvailable(.camera) }
     private var room: Int { Swift.max(0, max - thumbs.count) }
@@ -32,7 +34,6 @@ struct PhotoAttach: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 .overlay(alignment: .topTrailing) {
                                     Button {
-                                        thumbs.remove(at: index)
                                         remove(index)
                                     } label: {
                                         Image(systemName: "xmark")
@@ -73,14 +74,19 @@ struct PhotoAttach: View {
                     .accessibilityLabel(L10n.Contribute.Photos.library)
                 }
             }
+            if readFailed {
+                Text(L10n.Contribute.Photos.readError).font(.footnote).foregroundStyle(palette.dangerInk)
+            }
         }
+        .onAppear { thumbs = images.compactMap { UIImage(data: $0) } }
+        .onChange(of: images) { _, values in thumbs = values.compactMap { UIImage(data: $0) } }
         .onChange(of: library) { _, items in
             guard !items.isEmpty else { return }
             library = []
             Task {
                 for item in items {
                     guard let data = try? await item.loadTransferable(type: Data.self),
-                          let image = UIImage(data: data) else { continue }
+                          let image = UIImage(data: data) else { readFailed = true; continue }
                     take(image)
                 }
             }
@@ -91,8 +97,9 @@ struct PhotoAttach: View {
     }
 
     private func take(_ image: UIImage) {
-        guard thumbs.count < max, let jpeg = Self.jpeg(image) else { return }
-        thumbs.append(image)
+        guard thumbs.count < max else { return }
+        guard let jpeg = Self.jpeg(image), jpeg.count <= 8 * 1024 * 1024 else { readFailed = true; return }
+        readFailed = false
         add(jpeg)
     }
 

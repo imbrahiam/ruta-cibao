@@ -8,6 +8,7 @@ enum L10n {
         static var routeReviewed: String { String(localized: LocalizedStringResource("notifications.routeReviewed")) }
         static var title: String { String(localized: LocalizedStringResource("notifications.title")) }
         static var pushGeneric: String { String(localized: LocalizedStringResource("notifications.pushGeneric")) }
+        static var pushUnavailable: String { String(localized: LocalizedStringResource("notifications.pushUnavailable")) }
         static var empty: String { String(localized: LocalizedStringResource("notifications.empty")) }
         static var loading: String { String(localized: LocalizedStringResource("notifications.loading")) }
         static var emptyHint: String { String(localized: LocalizedStringResource("notifications.emptyHint")) }
@@ -106,6 +107,17 @@ enum L10n {
         static var reported: String { String(localized: LocalizedStringResource("comments.reported")) }
         static var more: String { String(localized: LocalizedStringResource("comments.more")) }
         static var options: String { String(localized: LocalizedStringResource("comments.options")) }
+        static var participantMode: String { String(localized: LocalizedStringResource("comments.participantMode")) }
+        static var officialMode: String { String(localized: LocalizedStringResource("comments.officialMode")) }
+        static var composerMode: String { String(localized: LocalizedStringResource("comments.composerMode")) }
+        static var signInToComment: String { String(localized: LocalizedStringResource("comments.signInToComment")) }
+        static var signInToExperience: String { String(localized: LocalizedStringResource("comments.signInToExperience")) }
+        static var sendFailed: String { String(localized: LocalizedStringResource("comments.sendFailed")) }
+        static var actionFailed: String { String(localized: LocalizedStringResource("comments.actionFailed")) }
+        static var officialReplyFailed: String { String(localized: LocalizedStringResource("comments.officialReplyFailed")) }
+        static var officialReplies: String { String(localized: LocalizedStringResource("comments.officialReplies")) }
+        static var statusAfter: String { String(localized: LocalizedStringResource("comments.statusAfter")) }
+        static var officialReply: String { String(localized: LocalizedStringResource("comments.officialReply")) }
     }
 
     enum About {
@@ -389,6 +401,7 @@ enum L10n {
             }
             static var denied: String { String(localized: LocalizedStringResource("contribute.photos.denied")) }
             static var deniedBody: String { String(localized: LocalizedStringResource("contribute.photos.deniedBody")) }
+            static var readError: String { String(localized: LocalizedStringResource("contribute.photos.readError")) }
             static func uploading(done: Int, total: Int) -> String {
                 String.localizedStringWithFormat(
                     NSLocalizedString("contribute.photos.uploading", comment: ""), done, total
@@ -726,6 +739,8 @@ enum L10n {
         static var locationDeniedBody: String { String(localized: LocalizedStringResource("map.locationDeniedBody")) }
         static var locationFailed: String { String(localized: LocalizedStringResource("map.locationFailed")) }
         static var trafficGone: String { String(localized: LocalizedStringResource("map.trafficGone")) }
+        static var basemapUnavailable: String { String(localized: LocalizedStringResource("map.basemapUnavailable")) }
+        static var basemapUnavailableBody: String { String(localized: LocalizedStringResource("map.basemapUnavailableBody")) }
     }
 
     enum MapLayers {
@@ -979,6 +994,7 @@ enum L10n {
         static var reportDetails: String { String(localized: LocalizedStringResource("place.reportDetails")) }
         static var reportSent: String { String(localized: LocalizedStringResource("place.reportSent")) }
         static var reportSentBody: String { String(localized: LocalizedStringResource("place.reportSentBody")) }
+        static var reportDetailsRequired: String { String(localized: LocalizedStringResource("place.reportDetailsRequired")) }
 
         enum Trust {
             static var new: String { String(localized: LocalizedStringResource("place.trust.new")) }

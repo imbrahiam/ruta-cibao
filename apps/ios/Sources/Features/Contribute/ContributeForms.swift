@@ -83,7 +83,7 @@ struct TrafficReportScreen: View {
         let state = model.state
         let vm = model.viewModel
         if state.sent {
-            Done(title: L10n.Contribute.Traffic.sent, body: L10n.Contribute.Traffic.sentBody) {
+            Done(title: state.queued ? L10n.Offline.queuedToast : L10n.Contribute.Traffic.sent, body: state.queued ? L10n.Offline.queuedToastBody : L10n.Contribute.Traffic.sentBody) {
                 sent()
                 dismiss()
             }
@@ -205,7 +205,7 @@ struct SuggestPlaceScreen: View {
         let state = model.state
         let vm = model.viewModel
         if state.sent {
-            Done(title: L10n.Contribute.Place.sent, body: state.photosFailed > 0 ? L10n.Contribute.Photos.failed(count: Int(state.photosFailed)) : L10n.Contribute.Place.sentBody, art: .colmado) {
+            Done(title: state.queued ? L10n.Offline.queuedToast : L10n.Contribute.Place.sent, body: state.queued ? L10n.Offline.queuedToastBody : L10n.Contribute.Place.sentBody, art: .colmado) {
                 sent()
                 dismiss()
             }
@@ -262,9 +262,11 @@ struct SuggestPlaceScreen: View {
 
                     PhotoAttach(
                         max: Int(SuggestPlaceUiState.companion.MAX_PHOTOS),
+                        images: state.photos.map { BytesKt.dataOf(bytes: $0.jpeg) as Data },
                         add: { vm.addPhoto(jpeg: BytesKt.byteArrayOf(data: $0)) },
                         remove: { vm.removePhoto(index: Int32($0)) }
                     )
+                    .disabled(state.sending)
 
                     if let error = state.error {
                         NoticeCard(symbol: "exclamationmark.circle.fill", title: error == .offline ? L10n.Common.offline : L10n.Common.errorTitle, body: nil, ink: palette.dangerInk)

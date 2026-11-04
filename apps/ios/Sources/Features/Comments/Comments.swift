@@ -19,28 +19,40 @@ final class CommentsModel {
     isolated deinit { scope.close() }
 }
 
-/// A thread of comments as Threads lays out replies: photo, name, age and
-/// "…" on one line, the text under it. Your own can be deleted; anyone
-/// else's reported. Loads more as you reach the end.
+/// Unboxed public replies with author, age, text and genuine moderation actions.
 struct CommentList: View {
     let model: CommentsModel
     var empty: String
 
-    @Environment(\.palette) private var palette
     private var state: CommentsUiState { model.state }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            if let error = state.loadError {
+                ThreadErrorNotice(
+                    message: error == .offline ? L10n.Common.offlineBody : L10n.Common.errorBody,
+                    retry: { model.viewModel.retryLoad() }
+                )
+                .padding(.horizontal, PostMetrics.inset)
+            }
+            if let error = state.actionError {
+                ThreadErrorNotice(
+                    message: error == .offline ? L10n.Common.offlineBody : L10n.Comments.actionFailed,
+                    retry: { model.viewModel.retryAction() }
+                )
+                .padding(.horizontal, PostMetrics.inset)
+            }
             if state.items.isEmpty {
                 if state.loading {
                     ProgressView().frame(maxWidth: .infinity).padding(.vertical, 24)
-                } else {
+                } else if state.loadError == nil {
                     Text(empty)
-                        .font(PostMetrics.text)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
                         .multilineTextAlignment(.center)
-                        .padding(.vertical, 24)
+                        .padding(.horizontal, PostMetrics.inset)
+                        .padding(.vertical, 28)
                 }
             }
             ForEach(state.items, id: \.id) { comment in
@@ -65,27 +77,33 @@ private struct CommentRow: View {
     let model: CommentsModel
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            AuthorAvatar(name: comment.author, image: comment.authorImage, size: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(comment.author).font(PostMetrics.name).lineLimit(1)
-                    Text(CompactTime.since(comment.createdAt.date))
-                        .font(PostMetrics.text)
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 8)
-                    menu
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 10) {
+                AuthorAvatar(name: comment.author, image: comment.authorImage, size: 36)
+                    .padding(.top, 4)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(comment.author)
+                            .font(PostMetrics.name)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(CompactTime.since(comment.createdAt.date))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 0)
+                    }
+                    .frame(minHeight: 36, alignment: .leading)
+                    Text(comment.body)
+                        .font(.body)
+                        .lineSpacing(2)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                Text(comment.body)
-                    .font(PostMetrics.text)
-                    .lineSpacing(2)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
+                menu
             }
+            .padding(.horizontal, PostMetrics.inset)
+            .padding(.vertical, 12)
+            Divider().padding(.leading, PostMetrics.inset + 46)
         }
-        .padding(.horizontal, PostMetrics.inset)
-        .padding(.vertical, 10)
-        .accessibilityElement(children: .combine)
     }
 
     private var menu: some View {
@@ -105,55 +123,75 @@ private struct CommentRow: View {
             Image(systemName: "ellipsis")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 32, height: 24)
+                .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
+        .disabled(model.state.workingCommentId != nil)
         .accessibilityLabel(L10n.Comments.options)
     }
 }
 
-/// The reply field, Threads-style: your photo, a growing field in a soft
-/// capsule, and send once there's something to send.
+/// A stable avatar and capsule. The send target never shifts as the draft grows.
 struct CommentComposer: View {
     let model: CommentsModel
     let placeholder: String
     var focus: FocusState<Bool>.Binding
+    var signInLabel: String = L10n.Comments.signInToComment
 
     @Environment(\.palette) private var palette
     @Environment(\.colorScheme) private var scheme
     private var state: CommentsUiState { model.state }
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 8) {
-            TextField(
-                text: Binding(get: { state.draft }, set: { model.viewModel.updateDraft(value: $0) }),
-                prompt: Text(placeholder).foregroundStyle(palette.textTertiary),
-                axis: .vertical
-            ) { Text(placeholder) }
-                .font(.body)
-                .lineLimit(1...5)
-                .focused(focus)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 11)
-                .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-
-            if state.canSend || state.sending {
-                Button { model.viewModel.send() } label: {
-                    ZStack {
-                        Image(systemName: "arrow.up").opacity(state.sending ? 0 : 1)
-                        if state.sending { ProgressView().tint(RutaHighlight.onPrimary(palette)) }
+        VStack(alignment: .leading, spacing: 8) {
+            if state.sendError != nil {
+                ThreadErrorNotice(message: L10n.Comments.sendFailed) { model.viewModel.send() }
+            }
+            HStack(alignment: .bottom, spacing: 10) {
+                ComposerAvatar()
+                    .padding(.bottom, 6)
+                if state.signedIn {
+                    HStack(alignment: .bottom, spacing: 4) {
+                        TextField(
+                            text: Binding(get: { state.draft }, set: { model.viewModel.updateDraft(value: $0) }),
+                            prompt: Text(placeholder).foregroundStyle(palette.textTertiary),
+                            axis: .vertical
+                        ) { Text(placeholder) }
+                            .font(.body)
+                            .lineLimit(1...5)
+                            .focused(focus)
+                            .disabled(state.sending)
+                            .padding(.leading, 16)
+                            .padding(.vertical, 12)
+                        ThreadSendButton(
+                            sending: state.sending,
+                            enabled: state.canSend,
+                            label: L10n.Comments.send,
+                            action: { model.viewModel.send() }
+                        )
+                        .padding(3)
                     }
-                    .font(.system(size: 17, weight: .bold))
-                    .frame(width: 44, height: 44)
+                    .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                } else {
+                    Button { model.viewModel.requestSignIn() } label: {
+                        HStack(spacing: 8) {
+                            Text(signInLabel)
+                                .font(.body)
+                                .multilineTextAlignment(.leading)
+                            Spacer(minLength: 0)
+                            Image(systemName: "arrow.right")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 16)
+                        .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
+                        .padding(.vertical, 2)
+                        .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(RutaProminentStyle())
-                .buttonBorderShape(.circle)
-                .disabled(state.sending)
-                .accessibilityLabel(L10n.Comments.send)
-                .transition(.scale.combined(with: .opacity))
             }
         }
-        .animation(.snappy, value: state.canSend)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
     }
@@ -175,5 +213,126 @@ struct CommentsHeader: View {
         .padding(.top, 18)
         .padding(.bottom, 4)
         .accessibilityAddTraits(.isHeader)
+    }
+}
+
+/// Solid, single-inset surface shared by consultation and place threads.
+struct ThreadComposerBar<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        VStack(spacing: 0, content: content)
+            .frame(maxWidth: .infinity)
+            .background(palette.background)
+            .overlay(alignment: .top) { Divider() }
+    }
+}
+
+struct ComposerAvatar: View {
+    var official = false
+
+    var body: some View {
+        Image(systemName: official ? "building.columns.fill" : "person.fill")
+            .font(.system(size: 15, weight: .medium))
+            .foregroundStyle(.secondary)
+            .frame(width: 36, height: 36)
+            .background(Color.primary.opacity(0.07), in: Circle())
+            .accessibilityHidden(true)
+    }
+}
+
+struct ThreadSendButton: View {
+    let sending: Bool
+    let enabled: Bool
+    let label: String
+    let action: () -> Void
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Image(systemName: "arrow.up").opacity(sending ? 0 : 1)
+                if sending { ProgressView().tint(RutaHighlight.onPrimary(palette)) }
+            }
+            .font(.system(size: 17, weight: .bold))
+            .frame(width: 44, height: 44)
+        }
+        .buttonStyle(RutaProminentStyle())
+        .buttonBorderShape(.circle)
+        .disabled(!enabled || sending)
+        .accessibilityLabel(label)
+    }
+}
+
+struct ThreadErrorNotice: View {
+    let message: String
+    let retry: () -> Void
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Label(message, systemImage: "exclamationmark.circle")
+                .font(.footnote)
+                .foregroundStyle(palette.dangerInk)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(L10n.Common.retry, action: retry)
+                .font(.footnote.weight(.semibold))
+                .frame(minHeight: 44)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 8)
+    }
+}
+
+struct PlaceExperiencesView: View {
+    let place: MapPlace
+    @Environment(\.graph) private var graph
+    @State private var model: CommentsModel?
+    @FocusState private var composing: Bool
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                if let model {
+                    VStack(alignment: .leading, spacing: 0) {
+                        CommentsHeader(title: L10n.Comments.experiences, total: Int(model.state.total))
+                        CommentList(model: model, empty: L10n.Comments.emptyExperiences)
+                    }
+                    .padding(.bottom, 16)
+                } else {
+                    ProgressView().frame(maxWidth: .infinity).padding(.top, 24)
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if let model {
+                    ThreadComposerBar {
+                        CommentComposer(
+                            model: model,
+                            placeholder: L10n.Comments.experiencePlaceholder,
+                            focus: $composing,
+                            signInLabel: L10n.Comments.signInToExperience
+                        )
+                    }
+                }
+            }
+            .refreshable { model?.viewModel.refresh() }
+            .navigationTitle(place.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { SheetCloseButton() } }
+        }
+        .task(id: place.slug) {
+            guard let graph else { return }
+            let model = self.model ?? CommentsModel(graph: graph, kind: .place, ref: place.slug)
+            self.model = model
+            await model.observe()
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { model?.state.signInRequested ?? false },
+            set: { if !$0 { model?.viewModel.signInHandled() } }
+        )) {
+            SignInScreen()
+        }
     }
 }

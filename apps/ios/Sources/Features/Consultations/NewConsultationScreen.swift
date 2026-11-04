@@ -35,7 +35,16 @@ struct NewConsultationScreen: View {
         NavigationStack {
             Group {
                 if let model {
-                    Composer(model: model)
+                    if model.state.queued {
+                        VStack(spacing: 16) {
+                            Image(systemName: "clock.arrow.circlepath").font(.largeTitle)
+                            Text(L10n.Offline.queuedToast).font(.title2.bold())
+                            Text(L10n.Offline.queuedToastBody).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            Button(L10n.Common.close) { dismiss() }.frame(minHeight: 44)
+                        }.padding(24)
+                    } else {
+                        Composer(model: model)
+                    }
                 } else {
                     Color.clear
                 }
@@ -88,6 +97,7 @@ private struct Composer: View {
                         .submitLabel(.next)
                         .onSubmit { focus = .body }
                         .onChange(of: title) { _, v in vm.updateTitle(value: v) }
+                        .disabled(state.submitted)
                     problem(.title, L10n.Consultations.Errors.title)
 
                     TextField(text: $text, prompt: Text(L10n.Consultations.bodyLabel).foregroundStyle(palette.textTertiary), axis: .vertical) { Text(L10n.Consultations.bodyLabel) }
@@ -95,10 +105,20 @@ private struct Composer: View {
                         .lineLimit(4...)
                         .focused($focus, equals: .body)
                         .onChange(of: text) { _, v in vm.updateBody(value: v) }
+                        .disabled(state.submitted)
                     problem(.body, L10n.Consultations.Errors.body)
 
                     chips.padding(.top, 8)
-                    attachments.padding(.top, 2)
+                    attachments.padding(.top, 2).disabled(state.submitted)
+                    PhotoAttach(
+                        max: Int(NewConsultationUiState.companion.MAX_PHOTOS),
+                        images: state.photos.map { BytesKt.dataOf(bytes: $0.jpeg) as Data },
+                        add: { vm.addPhoto(jpeg: BytesKt.byteArrayOf(data: $0)) },
+                        remove: { vm.removePhoto(index: Int32($0)) }
+                    ).disabled(state.submitted)
+                    if let error = state.error {
+                        NoticeCard(symbol: "exclamationmark.circle.fill", title: error == .offline ? L10n.Common.offline : L10n.Common.errorTitle, body: nil, ink: palette.dangerInk)
+                    }
                     Label(L10n.Consultations.publicNote, systemImage: "eye")
                         .font(.footnote)
                         .foregroundStyle(palette.textTertiary)
@@ -225,7 +245,7 @@ private struct Composer: View {
                 vm.send()
             } label: {
                 ZStack {
-                    Text(L10n.Consultations.submit).opacity(state.sending ? 0 : 1)
+                    Text(state.submitted ? L10n.Common.retry : L10n.Consultations.submit).opacity(state.sending ? 0 : 1)
                     if state.sending { ProgressView().tint(RutaHighlight.onPrimary(palette)) }
                 }
                 .font(.subheadline.weight(.semibold))
@@ -233,6 +253,7 @@ private struct Composer: View {
                 .frame(minHeight: 36)
             }
             .buttonStyle(RutaProminentStyle())
+            .disabled(state.sending)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

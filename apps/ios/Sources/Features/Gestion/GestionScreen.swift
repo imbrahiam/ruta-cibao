@@ -5,6 +5,7 @@ import SwiftUI
 /// Staff triage away from a desk: the latest weekly report, then one mixed
 /// queue of cards, each with two equal buttons. Full admin stays on the web.
 struct GestionScreen: View {
+    var linkedReportId: String? = nil
     @Environment(\.graph) private var graph
     @State private var model: GestionModel?
 
@@ -16,6 +17,7 @@ struct GestionScreen: View {
             guard let graph else { return }
             let model = self.model ?? GestionModel(graph: graph)
             self.model = model
+            if let linkedReportId { model.viewModel.openLinkedReport(reportId: linkedReportId) }
             await model.observe()
         }
     }
@@ -254,6 +256,19 @@ private struct ReviewCard: View {
                 .frame(maxWidth: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .accessibilityHidden(true)
+            }
+            if let consultation = item as? ReviewItemConsultation {
+                ForEach(Array(consultation.photoUrls.enumerated()), id: \.offset) { index, value in
+                    AsyncImage(url: URL(string: value)) { phase in
+                        switch phase {
+                        case .success(let picture): picture.resizable().aspectRatio(contentMode: .fit)
+                        default: Rectangle().fill(palette.inset)
+                        }
+                    }
+                    .frame(height: 240)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(L10n.Contribute.Photos.photoLabel(n: index + 1))
+                }
             }
             if let snippet = item.snippet, !snippet.isEmpty {
                 Text(snippet).font(.subheadline).lineLimit(3)

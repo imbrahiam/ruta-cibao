@@ -888,6 +888,28 @@
         }
       }
     },
+    "comments.actionFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo completar la acción."
+          }
+        }
+      }
+    },
+    "comments.composerMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar como"
+          }
+        }
+      }
+    },
     "comments.delete": {
       "extractionState": "manual",
       "localizations": {
@@ -954,6 +976,50 @@
         }
       }
     },
+    "comments.officialMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respuesta oficial"
+          }
+        }
+      }
+    },
+    "comments.officialReplies": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respuestas oficiales"
+          }
+        }
+      }
+    },
+    "comments.officialReply": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respuesta oficial"
+          }
+        }
+      }
+    },
+    "comments.officialReplyFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo enviar la respuesta. Tu texto sigue aquí."
+          }
+        }
+      }
+    },
     "comments.options": {
       "extractionState": "manual",
       "localizations": {
@@ -961,6 +1027,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Opciones del comentario"
+          }
+        }
+      }
+    },
+    "comments.participantMode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comentar"
           }
         }
       }
@@ -1009,6 +1086,17 @@
         }
       }
     },
+    "comments.sendFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo publicar. Tu texto sigue aquí."
+          }
+        }
+      }
+    },
     "comments.share": {
       "extractionState": "manual",
       "localizations": {
@@ -1016,6 +1104,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "Comparte tu experiencia"
+          }
+        }
+      }
+    },
+    "comments.signInToComment": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entra para comentar"
+          }
+        }
+      }
+    },
+    "comments.signInToExperience": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entra para compartir tu experiencia"
+          }
+        }
+      }
+    },
+    "comments.statusAfter": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estado después de responder"
           }
         }
       }
@@ -2109,6 +2230,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Foto %1$lld"
+          }
+        }
+      }
+    },
+    "contribute.photos.readError": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos preparar esta foto. Elige otra e inténtalo de nuevo."
           }
         }
       }
@@ -4309,6 +4441,28 @@
         }
       }
     },
+    "map.basemapUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fondo del mapa no disponible"
+          }
+        }
+      }
+    },
+    "map.basemapUnavailableBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta versión no tiene configurado el mapa de Android. Puedes consultar los lugares y las rutas en la lista."
+          }
+        }
+      }
+    },
     "map.camera": {
       "extractionState": "manual",
       "localizations": {
@@ -5313,6 +5467,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Tienes una actualización en Ruta Cibao. Abre la aplicación para verla."
+          }
+        }
+      }
+    },
+    "notifications.pushUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Las notificaciones del teléfono no están disponibles en esta instalación. Tus avisos siguen disponibles en Aportes."
           }
         }
       }
@@ -6854,6 +7019,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Detalles"
+          }
+        }
+      }
+    },
+    "place.reportDetailsRequired": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe al menos 10 caracteres para explicar el problema."
           }
         }
       }

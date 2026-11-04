@@ -262,7 +262,13 @@ private struct MapContent: View {
                     save: { vm.toggleSaved() },
                     directions: { navigate(to: Destination(name: sheet.place.name, coordinate: sheet.place.coordinate)) },
                     requestClaim: { vm.requestClaim() },
-                    refreshBusiness: { vm.refreshBusiness() }
+                    refreshBusiness: { vm.refreshBusiness() },
+                    confirm: { vm.confirmPlace(verdict: $0) },
+                    requestReport: { vm.openPlaceReport() },
+                    updateReportReason: { vm.updatePlaceReportReason(reason: $0) },
+                    updateReportDetails: { vm.updatePlaceReportDetails(value: $0) },
+                    submitReport: { vm.submitPlaceReport() },
+                    closeReport: { vm.closePlaceReport() }
                 )
                     .presentationDetents([compact, .large])
                     .presentationBackgroundInteraction(.enabled(upThrough: compact))
@@ -349,8 +355,9 @@ private struct MapContent: View {
             guard let route = state.routes.first(where: { $0.id == id }) else { return }
             links.pending = nil
             show(route)
-        case .map:
+        case .traffic(let id):
             links.pending = nil
+            vm.openTraffic(id: id)
         default:
             break
         }

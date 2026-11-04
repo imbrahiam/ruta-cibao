@@ -12,6 +12,12 @@ struct PlaceSheetView: View {
     /// Asks to claim; false when sign-in is needed first.
     let requestClaim: () -> Bool
     let refreshBusiness: () -> Void
+    let confirm: (PlacesConfirmInput.Verdict) -> Void
+    let requestReport: () -> Void
+    let updateReportReason: (PlacesReportInput.Reason) -> Void
+    let updateReportDetails: (String) -> Void
+    let submitReport: () -> Void
+    let closeReport: () -> Void
 
     private var place: MapPlace { sheet.place }
     private var detail: PlacesDetailOutput? { sheet.detail }
@@ -50,6 +56,7 @@ struct PlaceSheetView: View {
                 }
                 experiencesLink
                 businessRow
+                PlaceFeedbackView(sheet: sheet, confirm: confirm, requestReport: requestReport)
                 if sheet.loading {
                     ProgressView().frame(maxWidth: .infinity)
                 }
@@ -60,6 +67,15 @@ struct PlaceSheetView: View {
         }
         .sheet(isPresented: $showingExperiences) {
             PlaceExperiencesView(place: place)
+        }
+        .sheet(isPresented: Binding(get: { sheet.report != nil }, set: { if !$0 { closeReport() } })) {
+            if let report = sheet.report {
+                PlaceReportView(
+                    report: report, updateReason: updateReportReason, updateDetails: updateReportDetails,
+                    submit: submitReport, close: closeReport
+                )
+                .interactiveDismissDisabled(report.submitting)
+            }
         }
         #if DEBUG
         // `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=claim|edit` opens the business form (screenshot runs).
@@ -275,42 +291,4 @@ extension BusinessFormMode: @retroactive Identifiable {
     public var id: Int { Int(ordinal) }
 }
 
-private struct PlaceExperiencesView: View {
-    let place: MapPlace
-    @Environment(\.graph) private var graph
-    @State private var model: CommentsModel?
-    @FocusState private var composing: Bool
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                if let model {
-                    VStack(alignment: .leading, spacing: 4) {
-                        CommentsHeader(title: L10n.Comments.experiences, total: Int(model.state.total))
-                        CommentComposer(model: model, placeholder: L10n.Comments.experiencePlaceholder, focus: $composing)
-                        CommentList(model: model, empty: L10n.Comments.emptyExperiences)
-                    }
-                } else {
-                    ProgressView().frame(maxWidth: .infinity).padding(.top, 24)
-                }
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .navigationTitle(place.name)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { SheetCloseButton() } }
-        }
-        .task(id: place.slug) {
-            guard let graph else { return }
-            let model = CommentsModel(graph: graph, kind: .place, ref: place.slug)
-            self.model = model
-            await model.observe()
-        }
-        .fullScreenCover(isPresented: Binding(
-            get: { model?.state.signInRequested ?? false },
-            set: { if !$0 { model?.viewModel.signInHandled() } }
-        )) {
-            SignInScreen()
-        }
-    }
-}
 

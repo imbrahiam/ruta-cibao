@@ -240,7 +240,7 @@ struct MoreButton: View {
             Image(systemName: "ellipsis")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(palette.text)
-                .frame(width: 32, height: 24)
+                .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -270,14 +270,15 @@ struct PostActions: View {
     let shareTitle: String
     var showsReply = true
     @Environment(\.palette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 0) {
             Button(action: support) {
                 Image(systemName: supported ? "heart.fill" : "heart")
                     .foregroundStyle(supported ? RutaHighlight.support : palette.text)
-                    .symbolEffect(.bounce, value: supported)
-                    .contentTransition(.symbolEffect(.replace))
+                    .symbolEffect(.bounce, value: reduceMotion ? false : supported)
+                    .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
                     .postIcon()
             }
             .sensoryFeedback(.impact(weight: .light), trigger: supported)
@@ -304,7 +305,7 @@ struct PostActions: View {
 private extension View {
     func postIcon() -> some View {
         font(.system(size: 19, weight: .light))
-            .frame(width: 40, height: 36)
+            .frame(width: 44, height: 44)
             .contentShape(Rectangle())
     }
 }
@@ -380,7 +381,7 @@ struct StatusPill: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
         .background(ink.opacity(0.1), in: Capsule())
-        .fixedSize()
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     /// Each status has its own symbol, so colour is never the only signal.

@@ -21,7 +21,7 @@ final class AccountModel {
     isolated deinit { scope.close() }
 }
 
-private enum AccountRoute: Hashable { case profile, saved, passport, notifications, privacy, about, deletion, gestion }
+private enum AccountRoute: Hashable { case profile, saved, passport, notifications, privacy, about, deletion, gestion, offline }
 
 struct AccountScreen: View {
     @Environment(\.graph) private var graph
@@ -31,7 +31,8 @@ struct AccountScreen: View {
     /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_TAB=gestion` opens Cuenta with Gestión pushed.
     private static var initialPath: [AccountRoute] {
         #if DEBUG
-        ProcessInfo.processInfo.environment["RUTA_DEBUG_TAB"] == "gestion" ? [.gestion] : []
+        if ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"] == "offline" { return [.offline] }
+        return ProcessInfo.processInfo.environment["RUTA_DEBUG_TAB"] == "gestion" ? [.gestion] : []
         #else
         []
         #endif
@@ -75,6 +76,7 @@ struct AccountScreen: View {
             case .about: AboutView()
             case .deletion: DeletionView(model: model)
             case .gestion: GestionScreen()
+            case .offline: OfflineScreen()
             }
         }
         .toolbarVisibility(.visible, for: .navigationBar)
@@ -101,6 +103,7 @@ private struct SignedOutAccount: View {
             }
             .multilineTextAlignment(.center)
             Spacer()
+            NavigationLink(value: AccountRoute.offline) { Text(L10n.Offline.rowTitle) }
             Button { signingIn = true } label: {
                 Text(L10n.Account.signIn).font(.headline).frame(maxWidth: .infinity, minHeight: 52)
             }
@@ -158,6 +161,7 @@ private struct SignedInAccount: View {
                     GroupDivider()
                 }
                 link(.notifications, "bell.fill", L10n.NotificationSettings.title, badge: .red)
+                link(.offline, "arrow.down.circle.fill", L10n.Offline.rowTitle, badge: .green)
                 GroupDivider()
                 link(.privacy, "hand.raised.fill", L10n.Account.privacy, badge: .blue)
                 link(.about, "info", L10n.Account.aboutApp, badge: .gray)
