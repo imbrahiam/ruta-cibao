@@ -7,10 +7,10 @@ fails loudly when the evidence disappears.
 | Property | Gate |
 | --- | --- |
 | Every critical path tested | `docs/QUALITY.md` matrices + `bun run check:quality` |
-| Every failure observable | structured logs + empty-catch audit in `scripts/check-quality.ts` |
+| Every failure observable | structured logs + empty-catch audit in `scripts/checks/check-quality.ts` |
 | Every document executable | `bun run check:docs` |
 | Every external dependency degradable | `docs/QUALITY.md` matrix + `tests/degradation.test.ts` |
-| Every release reversible | `scripts/release.sh` gates + `infra/restore-rehearsal.sh` |
+| Every release reversible | `scripts/ops/release.sh` gates + `infra/restore-rehearsal.sh` |
 
 ## 1. Every critical path tested
 
@@ -23,6 +23,7 @@ rename cannot silently retire the promise.
 | Path | Promise | Evidence |
 | --- | --- | --- |
 | contribute-place | A resident submits a place that starts pending, is recorded in the audit trail, and a retry never creates a second copy. | `tests/submit-place.integration.test.ts` :: `a member submits a pending place, and the trail records it` |
+| comments | A resident's comment or place experience is published once even if the phone retries, hidden from whoever blocked the author, and removable only by its author. | `tests/comments.integration.test.ts` :: `an experience is published at once, once, with a trail` |
 | moderate-contribution | A moderator decides once, only inside their municipality, and the author is told. | `tests/moderation.integration.test.ts` :: `a place decision moves once, stays in scope, and tells the author` |
 | consultation-loop | A resident opens a case, a neighbour supports it, the municipality answers it, and the author is notified. | `tests/consultations.integration.test.ts` :: `the municipality answers once, moves the case, and tells the author` |
 | map-layer | The map draws the municipal outline and vector tiles, with pending places absent and neighbours clustered when zoomed out. | `tests/map-layer.integration.test.ts` :: `a close zoom carries the published place and never the pending one` |
@@ -90,7 +91,7 @@ test runs the real module in a process configured to fail, not a mock.
 | Dependency | When | Behaviour | Evidence |
 | --- | --- | --- | --- |
 | Google Routes | No server key | Directions answer `SERVICE_UNAVAILABLE` with `reason: unavailable`; the app offers the map handoff instead. | `tests/degradation.test.ts` :: `routing without a key refuses the request and names the reason` |
-| Expo Push | No access token | Delivery is skipped and the in-app notification remains. | `tests/degradation.test.ts` :: `push without a provider token is skipped, not failed` |
+| APNs push | No APNs key | Delivery is skipped and the in-app notification remains. | `tests/degradation.test.ts` :: `push without a provider token is skipped, not failed` |
 | Resend | No API key, log delivery off | Email fails safely instead of writing a sign-in link to the log. | `tests/degradation.test.ts` :: `email without a provider fails safely instead of logging a link` |
 | S3 / SeaweedFS | Endpoint unreachable | Readiness reports `degraded` with `storage: false`; the process stays up. | `tests/degradation.test.ts` :: `readiness turns a dead object store into a degraded answer` |
 | PostgreSQL | Unreachable | Readiness reports `degraded` with `database: false`; the process stays up. | `tests/degradation.test.ts` :: `readiness turns an unreachable database into a degraded answer` |
@@ -100,7 +101,7 @@ test runs the real module in a process configured to fail, not a mock.
 
 ## 5. Every release reversible
 
-A tag is the deployable unit. `scripts/release.sh` refuses to create one unless
+A tag is the deployable unit. `scripts/ops/release.sh` refuses to create one unless
 the working tree is clean, the version is free, typecheck, lint, the aggregate
 integration suite, the production build, the documentation gate and the quality
 gate all pass. It then restores the newest backup into a throwaway database
@@ -137,7 +138,7 @@ Cut a release with:
 DATABASE_URL=postgresql://ruta:ruta@localhost:5432/ruta_cibao_tests \
 S3_BUCKET=ruta-cibao-tests \
 BACKUP_DIR=/var/backups/ruta-cibao \
-scripts/release.sh 0.1.0
+scripts/ops/release.sh 0.1.0
 ```
 
 `BACKUP_DIR` is where the newest `db-*.dump` lives. Take one with
@@ -196,5 +197,5 @@ The storage suites also need the test bucket created once:
 ```bash
 AWS_ACCESS_KEY_ID=minioadmin AWS_SECRET_ACCESS_KEY=minioadmin \
   AWS_ENDPOINT_URL=http://localhost:9000 S3_BUCKET=ruta-cibao-tests \
-  CORS_ORIGIN='*' bun run scripts/init-storage.ts
+  CORS_ORIGIN='*' bun run scripts/ops/init-storage.ts
 ```

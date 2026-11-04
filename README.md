@@ -11,7 +11,9 @@ Built for the FUNDESER **TechEmprende SR Conecta 2026** contest. MIT licensed.
 
 | Path | What it is |
 | --- | --- |
-| `apps/mobile` | The citizen app — Expo / React Native (iOS and Android) |
+| `apps/ios` | The citizen app for iPhone — SwiftUI |
+| `apps/android` | The citizen app for Android — Jetpack Compose |
+| `packages/kmp` | Kotlin Multiplatform core shared by both apps (API client, data, view models) |
 | `apps/web` | Next.js 16: the API, the admin panel, the landing and share pages |
 | `packages/contracts` | oRPC contracts shared by the API and the app |
 | `packages/shared` | Shared code and the Spanish text catalogue (`messages/es.json`) |
@@ -33,7 +35,6 @@ bun install
 bun run db:migrate
 bun run db:seed && bun run db:seed:demo           # optional demo content
 bun run dev                                       # landing + API + admin on :3000
-bun run mobile:ios                                # or mobile:android
 ```
 
 - Landing: <http://localhost:3000/>
@@ -43,9 +44,9 @@ bun run mobile:ios                                # or mobile:android
 ### Web-only preview
 
 With dependencies installed and `.env` configured, run `bun run dev` from the
-repository root. This starts only Next.js, not Expo, the background worker or
-Docker services. The public landing can be inspected without starting the mobile
-app; database-backed requests still need Postgres.
+repository root. This starts only Next.js, not the background worker or
+Docker services. The public landing can be inspected without the native apps;
+database-backed requests still need Postgres.
 
 ### Which surface does what?
 
@@ -56,7 +57,7 @@ app; database-backed requests still need Postgres.
 | `/admin` | Municipal staff workspace; anonymous visitors see sign-in, and signing in does not grant a staff role |
 | `/s/[kind]/[ref]` | Public shared detail pages for places, routes, consultations and traffic notices |
 | `/privacy`, `/terms`, `/support`, `/account/delete` | Public privacy, terms, support and account-deletion pages |
-| `apps/mobile` | Citizen experience, including the interactive map and community participation |
+| `apps/ios`, `apps/android` | Citizen experience, including the interactive map and community participation |
 
 Public URLs and section anchors use English. Main calls to action navigate to
 `/experience`, `/territory` and `/download`; homepage section anchors remain
@@ -140,11 +141,9 @@ unpublished support address is invented.
 ### Social-app identity
 
 Encuentro is selected. `packages/shared/src/brand.ts` supplies its geometry and
-colors to the web logo, native brand component and asset generator. Run
-`bun run apps/mobile/scripts/generate-brand-assets.ts` after changing that source
-to regenerate the browser SVG, Apple touch icon, native launcher, splash and
-Android adaptive/themed layers. Native launcher and splash updates require a new
-native build; they are not delivered by an OTA update.
+colors to the web logo, the native brand component and the web asset generator.
+Run `bun run scripts/generate-brand-assets.ts` after changing that source to
+regenerate the browser SVG, the Apple touch icon and the native app icon.
 
 `/design/brand` marks Encuentro as active and preserves the three alternatives
 for comparison: Vínculo (linked strokes, forest `#28594a`), Rumbo (cut R, blue
@@ -281,8 +280,7 @@ revision does not change that subsystem.
 | --- | --- |
 | `bun run dev` / `build` / `start` | Web server |
 | `bun run worker` | Background jobs |
-| `bun run mobile` | Expo dev server |
-| `bun run typecheck` / `lint` | TypeScript (web + mobile) / Biome |
+| `bun run typecheck` / `lint` | TypeScript / Biome |
 | `bun test` | Tests |
 | `bun run test:db` | Tests that need Postgres and storage |
 | `bun run check:docs` | Fails when a document names something that does not exist |
@@ -293,7 +291,7 @@ revision does not change that subsystem.
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the pieces fit together
 - [DEPLOYMENT.md](docs/DEPLOYMENT.md) — VPS with Docker Compose, and the contest demo
 - [OPERATIONS.md](docs/OPERATIONS.md) — runbook
-- [MOBILE.md](docs/MOBILE.md) — building and publishing the phone app
+- [NATIVE.md](docs/NATIVE.md) — the native iOS and Android apps
 
 ## License and data
 

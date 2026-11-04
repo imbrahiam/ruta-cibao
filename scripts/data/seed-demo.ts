@@ -25,6 +25,7 @@ import { eq, inArray, sql } from "drizzle-orm";
 import { db, pool } from "@/db";
 import {
   businessClaims,
+  consultationPhotos,
   consultationResponses,
   consultations,
   consultationVotes,
@@ -222,6 +223,8 @@ const TRAFFIC = [
   },
 ] as const;
 
+type DemoPhoto = { file: string; width: number; height: number; alt: string };
+
 const CASES = [
   {
     title: "El agua no llega al barrio Los Cerros",
@@ -239,6 +242,14 @@ const CASES = [
         body: "La bomba tenía una válvula dañada. Ya se cambió y el servicio vuelve por horario normal desde mañana.",
         status: "resolved",
         hoursAgo: 6,
+      },
+    ],
+    photos: [
+      {
+        file: "agua-1.jpg",
+        width: 1280,
+        height: 1707,
+        alt: "Llave de agua seca",
       },
     ],
     hoursAgo: 72,
@@ -265,6 +276,20 @@ const CASES = [
     body: "El camión pasaba martes y viernes, pero hace un mes solo viene los viernes. Para el martes ya hay fundas en la acera y los perros las rompen.",
     votes: 4,
     replies: [],
+    photos: [
+      {
+        file: "basura-1.jpg",
+        width: 1280,
+        height: 960,
+        alt: "Montón de basura en la calle",
+      },
+      {
+        file: "basura-2.jpg",
+        width: 1280,
+        height: 1280,
+        alt: "Basura acumulada",
+      },
+    ],
     hoursAgo: 26,
   },
   {
@@ -274,6 +299,26 @@ const CASES = [
     body: "El tramo de tierra que sube a la presa está muy malo después de las lluvias. Los carros pequeños no pasan y las guaguas están dando la vuelta larga.",
     votes: 8,
     replies: [],
+    photos: [
+      {
+        file: "vias-1.jpg",
+        width: 1280,
+        height: 960,
+        alt: "Hoyo con agua en la calle",
+      },
+      {
+        file: "vias-2.jpg",
+        width: 1280,
+        height: 2633,
+        alt: "Hoyo en un camino",
+      },
+      {
+        file: "vias-3.jpg",
+        width: 1280,
+        height: 853,
+        alt: "Hoyo en la carretera",
+      },
+    ],
     hoursAgo: 10,
   },
 ] as const;
@@ -447,6 +492,24 @@ async function main() {
         .insert(consultationVotes)
         .values({ consultationId: id, userId: voter })
         .onConflictDoNothing();
+    }
+
+    // Public demo imagery under /demo/consultations (see CREDITS.md there);
+    // a storage key starting with "/" is served as-is by imageUrl().
+    await db
+      .delete(consultationPhotos)
+      .where(eq(consultationPhotos.consultationId, id));
+    const photos: readonly DemoPhoto[] = "photos" in item ? item.photos : [];
+    for (const [position, photo] of photos.entries()) {
+      await db.insert(consultationPhotos).values({
+        consultationId: id,
+        storageKey: `/demo/consultations/${photo.file}`,
+        width: photo.width,
+        height: photo.height,
+        alt: photo.alt,
+        position,
+        uploadedByUserId: author,
+      });
     }
 
     await db

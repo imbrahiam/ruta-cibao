@@ -15,9 +15,9 @@
       "!**/build",
       "!drizzle",
       "!apps/web/src/db/schema/auth.ts",
-      "!apps/mobile/ios",
-      "!apps/mobile/android",
-      "!apps/mobile/.expo"
+      "!**/*.xcassets",
+      "!apps/ios/DerivedData",
+      "!apps/ios/DerivedData-device"
     ]
   },
   "formatter": {
@@ -49,7 +49,7 @@
   },
   "overrides": [
     {
-      "includes": ["apps/web/src/**", "apps/mobile/src/**"],
+      "includes": ["apps/web/src/**"],
       "linter": {
         "rules": {
           "suspicious": {

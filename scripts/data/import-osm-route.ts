@@ -2,9 +2,9 @@
  * Imports the real OSM track Camino Los Cacaos, not a field-certified trail.
  *
  * Offline replay (requires an existing contact-verified staff account):
- *   bun --env-file=.env scripts/import-osm-route.ts --staff-user-id=<id>
+ *   bun --env-file=.env scripts/data/import-osm-route.ts --staff-user-id=<id>
  * Refresh the committed GeoJSON from Overpass, then import:
- *   bun --env-file=.env scripts/import-osm-route.ts --staff-user-id=<id> --refresh
+ *   bun --env-file=.env scripts/data/import-osm-route.ts --staff-user-id=<id> --refresh
  *
  * OSM contributors / ODbL 1.0. The snapshot retains all named path/track/footway
  * candidates and hiking-relation IDs returned for PROVINCE_BOUNDS. PostGIS checks
@@ -42,7 +42,7 @@ import { decideRoute, submitRoute } from "@/modules/routes/service";
 const SOURCE_ID = 291502845;
 const SOURCE_URL = `https://www.openstreetmap.org/way/${SOURCE_ID}`;
 const SNAPSHOT = new URL(
-  "../data/content/santiago-rodriguez-osm-routes.geojson",
+  "../../data/content/santiago-rodriguez-osm-routes.geojson",
   import.meta.url,
 );
 const coordinate = z.tuple([

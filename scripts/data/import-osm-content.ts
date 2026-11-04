@@ -25,13 +25,13 @@
  * Writes an append-only `audit_events` row per import batch.
  *
  * How to refresh:
- * Run `bun run scripts/import-osm-content.ts --refresh` to re-query the Overpass
+ * Run `bun run scripts/data/import-osm-content.ts --refresh` to re-query the Overpass
  * API (with automatic fallback mirrors), re-filter against the database's
  * PostGIS municipal boundaries, write updated snapshots to `data/content/`,
  * and import them. Review the diff before committing.
  *
- *   bun run scripts/import-osm-content.ts
- *   bun run scripts/import-osm-content.ts --refresh
+ *   bun run scripts/data/import-osm-content.ts
+ *   bun run scripts/data/import-osm-content.ts --refresh
  */
 
 import { createHash } from "node:crypto";
@@ -43,15 +43,15 @@ import { auditEvents, categories, municipalities, places } from "@/db/schema";
 import { env } from "@/lib/env";
 
 const PLACES_SNAPSHOT = new URL(
-  "../data/content/santiago-rodriguez-osm-places.geojson",
+  "../../data/content/santiago-rodriguez-osm-places.geojson",
   import.meta.url,
 );
 const ALL_POIS_SNAPSHOT = new URL(
-  "../data/content/santiago-rodriguez-osm-all-pois.geojson",
+  "../../data/content/santiago-rodriguez-osm-all-pois.geojson",
   import.meta.url,
 );
 const UNMAPPED_KINDS_SNAPSHOT = new URL(
-  "../data/content/osm-unmapped-kinds.json",
+  "../../data/content/osm-unmapped-kinds.json",
   import.meta.url,
 );
 
@@ -683,7 +683,9 @@ export async function refreshSnapshots(): Promise<void> {
     features: allFeatures,
   };
 
-  await mkdir(new URL("../data/content", import.meta.url), { recursive: true });
+  await mkdir(new URL("../../data/content", import.meta.url), {
+    recursive: true,
+  });
   await Bun.write(
     PLACES_SNAPSHOT,
     `${JSON.stringify(mappedCollection, null, 2)}\n`,

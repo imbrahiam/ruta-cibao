@@ -9,7 +9,7 @@ one.
 Companion documents:
 
 - `docs/OPERATIONS.md` — what to do when something breaks.
-- `docs/MOBILE.md` — building and publishing the phone app.
+- `docs/NATIVE.md` — the native iOS and Android apps.
 - `docs/ARCHITECTURE.md` — how the system is put together, for developers.
 
 ---
@@ -25,7 +25,7 @@ question below must be decided.
 **Sign-in is by verified phone (Twilio Verify) or email (Resend).** No cédula
 or identity document is collected. A municipal resident badge is optional and
 granted in person by scoped staff; staff authority comes from
-`scripts/grant-staff.ts` and requires TOTP enrollment. Passkeys are available
+`scripts/ops/grant-staff.ts` and requires TOTP enrollment. Passkeys are available
 for staff on the web admin.
 
 The intended public origin is `https://rutacibao.com`, subject to the domain
@@ -46,25 +46,15 @@ real service. Differences from section 6:
   `https://demo.rutacibao.com`, and `DEMO_DEPLOYMENT=1` (validation refuses it
   on any host not starting with `demo.`).
 - `LOCAL_DEMO_PHONES` (the fictional 809-555-01xx numbers from
-  `scripts/seed-demo.ts`) and `LOCAL_DEMO_OTP` are set, so the presenter signs
+  `scripts/data/seed-demo.ts`) and `LOCAL_DEMO_OTP` are set, so the presenter signs
   in without SMS and seeded staff skip TOTP. Real numbers and emails still go
   through Twilio Verify and Resend when those are configured.
-- `EXPO_PUSH_ACCESS_TOKEN` is optional.
+- `APNS_*` are optional on the demo (the in-app inbox still works); required in production.
 - Load content with `bun run db:seed`, the OSM import
-  (`bun run scripts/import-osm-content.ts`) and `bun run scripts/seed-demo.ts`.
+  (`bun run scripts/data/import-osm-content.ts`) and `bun run scripts/data/seed-demo.ts`.
 
-The demo phones run the `demo` EAS profile (`apps/mobile/eas.json`): the
-preview variant (`do.rutacibao.app.preview`) pointed at
-`https://demo.rutacibao.com`. Set `GOOGLE_MAPS_MOBILE_API_KEY` as an EAS
-environment variable (its Google Cloud project needs billing enabled, or the
-map draws no tiles); until then set `EXPO_PUBLIC_MAP_PROVIDER=apple` for the
-iOS build, which draws Apple Maps with no key.
-
-```bash
-cd apps/mobile
-bunx eas build --profile demo --platform ios      # TestFlight / ad hoc
-bunx eas build --profile demo --platform android  # installable APK
-```
+The demo phones run the native apps (`docs/NATIVE.md`) built against
+`https://demo.rutacibao.com`.
 
 What the code already guarantees, so you do not have to:
 
@@ -107,7 +97,7 @@ What the code already guarantees, so you do not have to:
 Seven containers, defined in `infra/docker-compose.yml`: `caddy`, `app`,
 `worker`, `postgres`, `storage`, a one-shot `storage-init`, and a one-shot
 `migrate`. They run on one server. The phone app is built separately and is not
-served by this stack; see `docs/MOBILE.md`.
+served by this stack; see `docs/NATIVE.md`.
 
 **The worker is not optional.** Without it, weekly reports are never produced,
 traffic reports never expire, and account deletions and notification deliveries
@@ -163,8 +153,8 @@ platform.
 | **Resend** | Sign-in links and notifications by email | **Yes** |
 | Object storage provider | Photos (option A only) | Option A |
 | Google Cloud | Maps SDK key for the phone app | Yes for Android |
-| Google Play Console | Android app listing (`docs/MOBILE.md`) | Optional |
-| Apple Developer Program | iOS app listing (`docs/MOBILE.md`) | Optional |
+| Google Play Console | Android app listing (`docs/NATIVE.md`) | Optional |
+| Apple Developer Program | iOS app listing (`docs/NATIVE.md`) | Optional |
 
 Google Routes and Places are optional server features. Without
 `GOOGLE_MAPS_SERVER_API_KEY`, in-app directions and Google photo fallback are
@@ -324,7 +314,11 @@ RESEND_API_KEY=REPLACE_ME
 EMAIL_FROM="Ruta Cibao <no-responder@example.do>"   # on the domain verified in Resend
 
 # --- Push notifications --------------------------------------------------
-EXPO_PUSH_ACCESS_TOKEN=REPLACE_ME
+APNS_KEY_ID=REPLACE_ME
+APNS_TEAM_ID=REPLACE_ME
+APNS_PRIVATE_KEY=REPLACE_ME
+APNS_TOPIC=do.rutacibao.app
+APNS_ENVIRONMENT=production
 
 # --- Storage, option A (managed) -----------------------------------------
 S3_ENDPOINT=https://ACCOUNT.r2.cloudflarestorage.com
@@ -354,10 +348,9 @@ GEOCODER=nominatim
 JOBS_ENABLED=1
 ```
 
-Leave `GOOGLE_MAPS_SERVER_API_KEY`, `IMGPROXY_*` and the mobile build values
-empty unless you have set those services up. `DEV_ORIGINS` is for development
-only. The mobile build values (`EXPO_PUBLIC_*`, `GOOGLE_MAPS_MOBILE_API_KEY`,
-`APP_VARIANT`) belong in the EAS environment, not on this server.
+Leave `GOOGLE_MAPS_SERVER_API_KEY` and `IMGPROXY_*` empty unless you have set
+those services up. `DEV_ORIGINS` is for development only. The native apps'
+build settings live in their projects (`docs/NATIVE.md`), not on this server.
 
 `NEXT_PUBLIC_*` values are built into the app. **Changing one requires a
 rebuild** (`rc up -d --build`). For every other value, a restart is enough.
@@ -390,9 +383,9 @@ The tables start empty. These commands fill them. Each is safe to run again,
 and re-running is how you update the data.
 
 ```bash
-rc run --rm migrate bun run scripts/seed.ts               # municipalities, categories
-rc run --rm migrate bun run scripts/import-boundaries.ts  # exact OSM municipal relations
-rc run --rm migrate bun run scripts/import-roads.ts       # road network (OpenStreetMap)
+rc run --rm migrate bun run scripts/data/seed.ts               # municipalities, categories
+rc run --rm migrate bun run scripts/data/import-boundaries.ts  # exact OSM municipal relations
+rc run --rm migrate bun run scripts/data/import-roads.ts       # road network (OpenStreetMap)
 ```
 
 | If you skip | What stops working |
@@ -403,7 +396,7 @@ rc run --rm migrate bun run scripts/import-roads.ts       # road network (OpenSt
 
 The road import downloads from Overpass and may be retried after a timeout.
 Boundary import uses the reviewed GeoJSON in the repository. To refresh it
-deliberately from OSM, run `bun run scripts/fetch-boundaries.ts`, review the
+deliberately from OSM, run `bun run scripts/data/fetch-boundaries.ts`, review the
 change, then import it.
 
 **Never run `seed-demo.ts` in production.** It creates fake accounts that can
@@ -423,9 +416,9 @@ institution, done from the server.
 2. On the server:
 
    ```bash
-   rc run --rm migrate bun run scripts/grant-staff.ts +18095551234 admin --approved-in-person
+   rc run --rm migrate bun run scripts/ops/grant-staff.ts +18095551234 admin --approved-in-person
    # A moderator is confined to one municipality:
-   rc run --rm migrate bun run scripts/grant-staff.ts staff@example.do moderator --municipality REPLACE_ME
+   rc run --rm migrate bun run scripts/ops/grant-staff.ts staff@example.do moderator --municipality REPLACE_ME
    # roles: moderator | admin | none     (none removes the role)
    ```
 
@@ -590,7 +583,7 @@ object store, and a recent backup:
 DATABASE_URL=postgresql://ruta:ruta@localhost:5432/ruta_cibao_tests \
 S3_BUCKET=ruta-cibao-tests \
 BACKUP_DIR=/var/backups/ruta-cibao \
-bun run scripts/release.sh 1.2.3
+bun run scripts/ops/release.sh 1.2.3
 git push origin main --follow-tags
 ```
 
@@ -638,7 +631,7 @@ calling the developers:
 - `bun run typecheck` generates Next route types before TypeScript runs.
 - Run `bun run lint`, `bun run test:db`, `bun run check:docs`,
   `bun run check:quality` and `bun run build` before tagging.
-- Apply every migration through `0037` before serving the new image. The
+- Apply every migration in `drizzle/` before serving the new image. The
   migrator container does this automatically.
 - Run database integration tests only against an isolated migrated database:
   `bun run test:db`.

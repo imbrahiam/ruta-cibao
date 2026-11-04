@@ -8,11 +8,11 @@
  *      and this script confirms the test exists by title.
  *   2. Failures observable — an empty `catch` is a lost error unless it is
  *      marked `// expected: <reason>`.
- *   3. Documents executable — `scripts/check-docs.ts` owns commands and paths;
+ *   3. Documents executable — `scripts/checks/check-docs.ts` owns commands and paths;
  *      this script owns shell syntax and the executable bit.
  *   4. Dependencies degradable — `docs/QUALITY.md` names a test for every
  *      dependency failure mode.
- *   5. Releases reversible — `scripts/release.sh` runs the gates before it
+ *   5. Releases reversible — `scripts/ops/release.sh` runs the gates before it
  *      tags, and the restore rehearsal exists and is executable.
  *
  * The point is to make the guarantee regress loudly. A matrix row whose test
@@ -23,7 +23,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { declaresTest, unmarkedCatchBodies } from "./quality-rules";
 
-const root = path.resolve(import.meta.dir, "..");
+const root = path.resolve(import.meta.dir, "../..");
 const problems: string[] = [];
 
 function fail(where: string, message: string): void {
@@ -189,7 +189,6 @@ for (const file of await filesUnder("tests", /\.integration\.test\.ts$/)) {
 
 const sourceFiles = [
   ...(await filesUnder("apps/web/src", /\.(ts|tsx)$/)),
-  ...(await filesUnder("apps/mobile/src", /\.(ts|tsx)$/)),
   ...(await filesUnder("packages", /\.(ts|tsx)$/)),
   ...(await filesUnder("scripts", /\.(ts|tsx)$/)),
 ];
@@ -246,10 +245,10 @@ for (const file of shellFiles) {
 // Release reversibility.
 // ---------------------------------------------------------------------------
 
-const release = await read("scripts/release.sh");
+const release = await read("scripts/ops/release.sh");
 const tagAt = release.indexOf("git tag");
 if (tagAt === -1) {
-  fail("scripts/release.sh", "never creates a tag");
+  fail("scripts/ops/release.sh", "never creates a tag");
 } else {
   const beforeTag = release.slice(0, tagAt);
   for (const gate of [
@@ -261,16 +260,16 @@ if (tagAt === -1) {
     "bun run check:docs",
   ]) {
     if (!beforeTag.includes(gate)) {
-      fail("scripts/release.sh", `tags without running \`${gate}\``);
+      fail("scripts/ops/release.sh", `tags without running \`${gate}\``);
     }
   }
   const rehearsal = beforeTag
     .split("\n")
     .find((line) => line.includes("infra/restore-rehearsal.sh"));
   if (!rehearsal) {
-    fail("scripts/release.sh", "tags without proving a restore");
+    fail("scripts/ops/release.sh", "tags without proving a restore");
   } else if (/^\s/.test(rehearsal)) {
-    fail("scripts/release.sh", "only rehearses a restore conditionally");
+    fail("scripts/ops/release.sh", "only rehearses a restore conditionally");
   }
 }
 for (const script of ["infra/restore-rehearsal.sh", "infra/restore.sh"]) {
@@ -279,7 +278,7 @@ for (const script of ["infra/restore-rehearsal.sh", "infra/restore.sh"]) {
   else if (!(await isExecutable(script))) fail(script, "is not executable");
 }
 if (!/rollback|restore/i.test(release)) {
-  fail("scripts/release.sh", "does not tell the operator how to roll back");
+  fail("scripts/ops/release.sh", "does not tell the operator how to roll back");
 }
 
 // Forward-only migrations: unique, increasing prefixes.

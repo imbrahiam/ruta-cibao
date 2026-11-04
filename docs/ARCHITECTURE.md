@@ -92,7 +92,7 @@ time out after eight seconds and are limited to 30 per client per minute through
 the existing database limiter. No key means typed `unavailable` (503), no route
 means `no_route` (404); invalid provider responses also become `unavailable`.
 Coordinates and provider bodies are not logged, cached, or audited.
-Run `bun run scripts/verify-directions.ts` against the running local API on port
+Run `bun run scripts/checks/verify-directions.ts` against the running local API on port
 3000 to report the real Sabaneta–Monción route distance and duration without
 printing credentials.
 
@@ -105,9 +105,28 @@ For a cached Google match without app imagery the URL is
 `/api/places/{id}/thumbnail`. Native list thumbnails fall back to category
 badges on missing images or errors.
 
+The staff desk lays each reported traffic stretch on Google's road with the
+Roads API `snapToRoads` (`interpolate=true`, 100 points per call) through
+`moderation.snapRoad`: moderator-only, 600 per client per minute, answers kept
+in process (a road does not move). Trails (`mode: "trail"`) are routed on foot
+through the traced points with the Routes API (`WALK`, `HIGH_QUALITY`,
+`GEO_JSON_LINESTRING`: the encoded polyline is rounded to about a metre). Both
+answers go through `cleanCentreline` (`modules/maps/centreline.ts`): vertices
+under 3 m apart merge, out-and-back spurs collapse, corners are rounded within
+4 m. The result is dropped, and the stretch keeps its own smoothed geometry,
+when a snapped vertex is more than 25 m from the reported line or the length
+differs by more than -15%/+30% (trails: -30%/+150%). The desk draws it as one
+line exactly as wide as the street's fill: `mapStyle` paints every road class
+with the same fill `weight` for the zoom (`ROAD_FILL_PX` in
+`components/admin/map/road-stretch.ts`, restyled when the zoom crosses a level)
+and `stretch-overlay.ts` strokes that same width, because Google's own fill
+widths vary by road type in ways no API reports. Enable the Roads and Routes
+APIs for `GOOGLE_MAPS_SERVER_API_KEY` or the desk falls back to the reported
+geometry.
+
 Enable Places API (New) and billing for `GOOGLE_MAPS_SERVER_API_KEY`, alongside
 Routes API. Run `bun run db:migrate`, then
-`bun run scripts/match-google-places.ts` to match published places without app
+`bun run scripts/data/match-google-places.ts` to match published places without app
 photos sequentially, with 200 ms spacing. Only matches within 250 metres are
 accepted; IDs and negative checks expire for rechecking after 30 days. Every
 completed check atomically records a system `places.google_match_checked` audit
@@ -134,8 +153,8 @@ image) plus the pgvector package. Multi-arch matters — the official
 Apple Silicon laptop.
 
 pgvector is no longer used by any table — the place embeddings went with the
-assistant (migration `0025`) — but the extension stays, because earlier
-migrations create a `vector` column and a fresh database replays them in order.
+assistant. The migrator still creates the extension, so databases set up before
+the migrations were squashed keep matching; it can leave the image later.
 
 Geometry columns are real
 geometries, not latitude/longitude pairs — map layers are served as Mapbox
@@ -168,7 +187,7 @@ Staff authority is a separate, explicit grant. `requireMember()` and
 `requireModerator()` enforce the split, and the oRPC builder each procedure
 hangs off is where the check lives — so a new procedure cannot quietly skip it.
 Better Auth's `admin` flag and the profile's staff role are written together by
-`scripts/grant-staff.ts`; no screen can grant authority.
+`scripts/ops/grant-staff.ts`; no screen can grant authority.
 
 ## Realtime
 
@@ -228,7 +247,7 @@ avoids a round trip.
 
 ## Background jobs
 
-pg-boss, in its own container (`scripts/worker.ts`, the `worker` compose
+pg-boss, in its own container (`scripts/ops/worker.ts`, the `worker` compose
 service), keeping its queues in the same PostgreSQL everything else uses. One
 database to back up and to explain in the handover runbook, and a job queued
 inside a transaction cannot survive that transaction rolling back.
@@ -253,7 +272,7 @@ ordinary.
 | `reports.weekly` | Mon 06:00 | Builds last week for every municipality |
 | `reports.render` | on request | Draws one report to PDF |
 | `notification.deliver` | on event | Push and email fan-out |
-| `notification.native-push-receipts` | every 5 min | Checks tickets Expo accepted |
+| `notification.native-push-receipts` | every 5 min | No-op: APNs reports each delivery in its response |
 | `account.deletion` | on request | Removes an account and what it contributed |
 | `offline.snapshot` | daily 04:30 | Rebuilds the versioned offline artifact |
 | `platform.cleanup` | hourly | Drops expired events, keys and buckets |
@@ -341,7 +360,7 @@ is a convenience that can be regenerated at any time.
 
 ## The phone map
 
-The map lives in the native app, not the web admin. It is `react-native-maps`,
+The public map lives in the native app. It is `react-native-maps`,
 with Google Maps on both platforms by default and Apple Maps as an iOS-only
 alternative (`EXPO_PUBLIC_MAP_PROVIDER=apple`). The app draws places, routes and
 traffic from first-party GeoJSON and vector tiles served by this API, so the
@@ -350,6 +369,52 @@ basemap provider is replaceable without touching the data layer.
 `/api/tiles/*` renders Mapbox Vector Tiles with `ST_AsMVT` in Postgres. The
 offline snapshot job publishes a versioned artifact the app downloads on
 request, so a phone with no signal still has the last published content.
+
+The staff desk draws maps too, for reviewing a place, a traffic report or a
+route (`apps/web/src/components/admin/map`). It uses the Google Maps JavaScript
+API with the phone app's marker semantics, severity colour plus category glyph,
+and solid routes with a start disc and an end square. It loads only when a map
+is on screen (`NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`). If the key is
+missing or rejected, or the script is blocked, each map becomes its coordinates
+with copy and open-in-maps actions. The traffic, places and routes desks also
+offer a `?view=map` mode that works the whole queue on one map.
+
+The map menu separates the basemap type, Map or Satellite, from the road-map
+style, Colores or Gris. Colores is the default. It uses green vegetation, blue
+water, warm pastel land and pale roads. Gris retains the existing monochrome
+palette. Both styles follow the system light or dark appearance.
+`use-map-choice.ts` shares one validated choice across thumbnails, enlarged maps
+and queue map views. It persists in `localStorage` and falls back to memory when
+storage is blocked. A style switch restyles the existing map without resetting
+its camera.
+
+Both styles use the same road-fill weight from `road-stretch.ts`. Changing the
+palette must not change that weight independently of the reported-stretch
+overlay. `stretch-color.ts` adjusts overlay contrast against the selected
+palette without adding an outline outside the road.
+
+
+## The staff desk's data flow
+
+The desk (`apps/web/src/components/admin`) is client-rendered behind the session
+gate and keeps its data in TanStack Query. Three rules keep it feeling instant:
+
+- **Decisions are optimistic.** `queue/use-decision.ts` removes the decided
+  card from every cached copy of its list (or patches it, for a consultation
+  that stays open or a traffic report whose text was reviewed) and moves the
+  sidebar count before the request leaves. A refusal puts back exactly that
+  card, in its place, with the reason inline; a conflict or a vanished item is
+  not put back and the lists refetch. The refetch is never awaited, and only
+  the last decision in flight triggers it. `useStaffMutation` keeps one request
+  id per payload (per card for decisions), and fails at once when offline.
+- **Nothing blanks.** Lists keep their previous rows while a filter changes,
+  failed background refetches leave data in place with a retry, and sidebar
+  hover (or, once the counts arrive, a short idle warm-up) prefetches the
+  sections that have something waiting. No fetching indicator exists; the only
+  trace of a refetch is `aria-busy`.
+- **Loading is shaped like the result.** `QueryState` takes a `skeleton`
+  matching the final rows, columns and heights (`skeletons.tsx`), so data
+  arriving changes no layout.
 
 ## Planned
 

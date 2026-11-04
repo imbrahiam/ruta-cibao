@@ -5,12 +5,12 @@
 # to, so it is created here rather than by hand: a tag on a tree that failed a
 # check is a promise the code cannot keep.
 set -euo pipefail
-VERSION=${1:?usage: scripts/release.sh <major.minor.patch>}
+VERSION=${1:?usage: scripts/ops/release.sh <major.minor.patch>}
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
   echo "version must be major.minor.patch, got: $VERSION" >&2
   exit 1
 }
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || {
   echo "not a git repository" >&2

@@ -10,7 +10,6 @@ FROM oven/bun:1.3.14-slim@sha256:d56a2534ffd262e92c12fd3249d3924d296d97086da773f
 WORKDIR /app
 COPY package.json bun.lock ./
 COPY apps/web/package.json ./apps/web/package.json
-COPY apps/mobile/package.json ./apps/mobile/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
 # Cache mount so a retry after a dropped connection resumes from what already
@@ -54,15 +53,15 @@ COPY apps/web/src ./apps/web/src
 COPY scripts ./scripts
 COPY data/boundaries ./data/boundaries
 COPY drizzle /migrations
-RUN bun build scripts/init-storage.ts --target=bun --minify --outfile=/runtime/init-storage.ts \
-    && bun build scripts/worker.ts --target=bun --minify \
+RUN bun build scripts/ops/init-storage.ts --target=bun --minify --outfile=/runtime/init-storage.ts \
+    && bun build scripts/ops/worker.ts --target=bun --minify \
       --outfile=/runtime/src/modules/jobs/worker.js --external=sharp --external=pg-native \
     && bun build apps/web/src/db/migrate.ts --target=bun --minify \
       --outfile=/runtime/apps/web/src/db/migrate.ts --external=pg-native \
-    && bun build scripts/seed.ts scripts/import-boundaries.ts scripts/import-roads.ts scripts/grant-staff.ts scripts/apply-deletion-ledger.ts \
+    && bun build scripts/data/seed.ts scripts/data/import-boundaries.ts scripts/data/import-roads.ts scripts/ops/grant-staff.ts scripts/ops/apply-deletion-ledger.ts \
       --target=bun --minify --outdir=/runtime/scripts --external=pg-native \
-    && bun run scripts/runtime-notices.ts /runtime/THIRD-PARTY-NOTICES.txt \
-    && bun run scripts/prepare-runtime.ts /worker-dependencies sharp \
+    && bun run scripts/ops/runtime-notices.ts /runtime/THIRD-PARTY-NOTICES.txt \
+    && bun run scripts/ops/prepare-runtime.ts /worker-dependencies sharp \
     && find /migrations/meta -type f ! -name _journal.json -delete \
     && for script in seed import-boundaries import-roads grant-staff apply-deletion-ledger; do \
          mv "/runtime/scripts/$script.js" "/runtime/scripts/$script.ts"; \
@@ -85,7 +84,7 @@ WORKDIR /app
 COPY --from=runtime-build /runtime/THIRD-PARTY-NOTICES.txt ./
 COPY --from=runtime-build /runtime/init-storage.ts ./scripts/init-storage.ts
 USER bun
-CMD ["bun", "run", "scripts/init-storage.ts"]
+CMD ["bun", "run", "scripts/ops/init-storage.ts"]
 
 FROM oven/bun:1.3.14-slim@sha256:d56a2534ffd262e92c12fd3249d3924d296d97086da773f821d7d0477435ea04 AS worker
 WORKDIR /app

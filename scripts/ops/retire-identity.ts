@@ -10,7 +10,7 @@
  * can retry; the dropping migration refuses to run while a review still has
  * unpurged documents.
  *
- *   bun --env-file=.env run scripts/retire-identity.ts
+ *   bun --env-file=.env run scripts/ops/retire-identity.ts
  *
  * Nothing is archived, decrypted, or sent to the civil registry.
  */

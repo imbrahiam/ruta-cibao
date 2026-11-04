@@ -24,7 +24,7 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
-const root = path.resolve(import.meta.dir, "..");
+const root = path.resolve(import.meta.dir, "../..");
 const problems: string[] = [];
 
 function report(file: string, line: number, message: string): void {
@@ -62,16 +62,11 @@ const appFiles = [
     new Bun.Glob("apps/web/src/**/*.{ts,tsx}").scan({ cwd: root }),
   )),
   ...(await Array.fromAsync(
-    new Bun.Glob("apps/mobile/src/**/*.{ts,tsx}").scan({ cwd: root }),
-  )),
-  ...(await Array.fromAsync(
     new Bun.Glob("packages/**/*.{ts,tsx}").scan({ cwd: root }),
   )),
   ...(await Array.fromAsync(
     new Bun.Glob("scripts/**/*.{ts,sh}").scan({ cwd: root }),
   )),
-  "apps/mobile/app.config.ts",
-  "apps/mobile/eas.json",
   "apps/web/next.config.ts",
 ];
 const appSource = (

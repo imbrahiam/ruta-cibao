@@ -7,7 +7,7 @@
  * before the restored system is made public. Restore automation runs this as a
  * required step. Safe to run any number of times.
  *
- *   bun --env-file=.env run scripts/apply-deletion-ledger.ts
+ *   bun --env-file=.env run scripts/ops/apply-deletion-ledger.ts
  */
 
 import { pool } from "@/db";

@@ -89,7 +89,7 @@ App photographs take precedence. For published places already matched to Google,
 warm the running web process's six-hour, memory-only photo cache with:
 
 ```bash
-bun run scripts/warm-google-photos.ts http://localhost:3000
+bun run scripts/data/warm-google-photos.ts http://localhost:3000
 ```
 
 The script reads matched places from the public GeoJSON endpoint and requests
@@ -122,7 +122,7 @@ environment.
 
 ## The background worker
 
-One container, `worker`, running `scripts/worker.ts`. It owns the pg-boss schema
+One container, `worker`, running `scripts/ops/worker.ts`. It owns the pg-boss schema
 (`JOBS_SCHEMA`, default `pgboss`) in the same database as everything else, so
 there is nothing extra to back up.
 

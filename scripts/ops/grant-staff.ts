@@ -6,9 +6,9 @@
  * platform, not a self-service setting, and it belongs in a shell someone had
  * to be given access to.
  *
- *   bun run scripts/grant-staff.ts <phone|email|userId> moderator --municipality <id>
- *   bun run scripts/grant-staff.ts <phone|email|userId> admin --approved-in-person
- *   bun run scripts/grant-staff.ts <phone|email|userId> none
+ *   bun run scripts/ops/grant-staff.ts <phone|email|userId> moderator --municipality <id>
+ *   bun run scripts/ops/grant-staff.ts <phone|email|userId> admin --approved-in-person
+ *   bun run scripts/ops/grant-staff.ts <phone|email|userId> none
  *
  * The account must already exist with a verified phone or email. A moderator
  * is confined to one municipality; an admin has the whole province and
@@ -42,7 +42,7 @@ function fail(message: string): never {
 
 if (!identifier || !role) {
   fail(
-    "usage: bun run scripts/grant-staff.ts <phone|email|userId> <moderator --municipality <id> | admin --approved-in-person | none>",
+    "usage: bun run scripts/ops/grant-staff.ts <phone|email|userId> <moderator --municipality <id> | admin --approved-in-person | none>",
   );
 }
 if (role !== "moderator" && role !== "admin" && role !== "none") {
