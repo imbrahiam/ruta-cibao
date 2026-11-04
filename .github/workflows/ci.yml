@@ -65,13 +65,13 @@ jobs:
         run: bun run check:quality
 
       - name: Unit tests
-        run: bun test tests
+        run: bun run test
 
       - name: Migrations apply cleanly
         run: bun run db:migrate
 
       - name: Database integration guarantees
-        run: RUN_DB_TESTS=1 bun test tests
+        run: RUN_DB_TESTS=1 bun test apps/web/tests
 
       - name: Start isolated object storage
         run: |

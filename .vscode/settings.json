@@ -4,11 +4,14 @@
     "source.organizeImports.biome": "explicit"
   },
   "[swift]": { "editor.defaultFormatter": "swiftlang.swift-vscode" },
-  "[kotlin]": { "editor.defaultFormatter": "jetbrains.kotlin-server" },
   "[python]": { "editor.defaultFormatter": null },
   "[xml]": { "editor.defaultFormatter": "redhat.vscode-xml" },
   "[markdown]": { "editor.defaultFormatter": "yzhang.markdown-all-in-one" },
-  "typescript.tsdk": "node_modules/typescript/lib",
+  "js/ts.tsdk.path": "node_modules/typescript/lib",
+
+  // Cursor ships with schema downloads off; package.json, tsconfig and the
+  // GitHub workflow get their completions and validation from SchemaStore.
+  "json.schemaDownload.enable": true,
 
   // Apple's formats: string catalogs and asset metadata are JSON; property
   // lists and entitlements are XML. Generated files stay read-mostly.

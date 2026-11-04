@@ -30,7 +30,7 @@ You need [Bun](https://bun.sh) and Docker.
 
 ```bash
 cp .env.example .env                              # fill in the values
-docker compose -f infra/docker-compose.yml up -d  # Postgres + storage
+bun run services:up                               # Postgres + storage (Docker)
 bun install
 bun run db:migrate
 bun run db:seed && bun run db:seed:demo           # optional demo content
@@ -278,13 +278,18 @@ revision does not change that subsystem.
 
 | Command | What it does |
 | --- | --- |
-| `bun run dev` / `build` / `start` | Web server |
+| `bun run dev` / `build` | Web server / production build |
 | `bun run worker` | Background jobs |
-| `bun run typecheck` / `lint` | TypeScript / Biome |
-| `bun test` | Tests |
-| `bun run test:db` | Tests that need Postgres and storage |
-| `bun run check:docs` | Fails when a document names something that does not exist |
-| `bun run db:generate` / `db:migrate` | Write / apply migrations |
+| `bun run services:up` / `services:down` | Local Postgres and object storage (Docker) |
+| `bun run check` | Typecheck, lint, docs, quality gates and unit tests in one go |
+| `bun run typecheck` / `lint` / `lint:fix` | TypeScript / Biome (`lint:fix` also formats) |
+| `bun run test` | Unit tests |
+| `bun run test:db` | Every suite, against a throwaway `<db>_tests` database and `<bucket>-tests` bucket |
+| `bun run check:docs` / `check:quality` | Docs that name missing things / the quality matrix |
+| `bun run db:generate` / `db:migrate` / `db:studio` | Write / apply / browse migrations and data |
+| `bun run db:seed` / `db:seed:demo` | Base catalogue / demo accounts and content |
+| `bun run db:boundaries` / `db:roads` | Municipal outlines / OSM road network |
+| `bun run gen:native` | Regenerate OpenAPI, Kotlin client, native strings and tokens |
 
 ## Repository layout
 
