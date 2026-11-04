@@ -8325,6 +8325,17 @@
         }
       }
     },
+    "traffic.goneShort": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya no está"
+          }
+        }
+      }
+    },
     "traffic.length": {
       "extractionState": "manual",
       "localizations": {
@@ -8344,6 +8355,17 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "traffic.mine": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Es tu aviso. Tus vecinos dirán si sigue ahí."
           }
         }
       }
@@ -8414,6 +8436,17 @@
         }
       }
     },
+    "traffic.sheetLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aviso de tránsito: %1$@"
+          }
+        }
+      }
+    },
     "traffic.still": {
       "extractionState": "manual",
       "localizations": {
@@ -8421,6 +8454,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Sí, sigue ahí"
+          }
+        }
+      }
+    },
+    "traffic.stillShort": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sigue ahí"
           }
         }
       }
@@ -8466,6 +8510,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Gracias, lo mantendremos en el mapa"
+          }
+        }
+      }
+    },
+    "traffic.yourAnswer": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu respuesta"
           }
         }
       }

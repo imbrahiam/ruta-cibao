@@ -1256,6 +1256,11 @@
     "ask": "¿Sigue ahí?",
     "still": "Sí, sigue ahí",
     "gone": "Ya pasó",
+    "stillShort": "Sigue ahí",
+    "goneShort": "Ya no está",
+    "mine": "Es tu aviso. Tus vecinos dirán si sigue ahí.",
+    "yourAnswer": "Tu respuesta",
+    "sheetLabel": "Aviso de tránsito: {category}",
     "thanksStill": "Gracias, lo mantendremos en el mapa",
     "thanksCleared": "Gracias, avisaremos que se despejó"
   },

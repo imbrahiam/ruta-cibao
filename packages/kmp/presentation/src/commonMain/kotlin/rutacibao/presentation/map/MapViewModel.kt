@@ -14,8 +14,10 @@ import rutacibao.api.generated.RoutesBrowseOutput
 import rutacibao.data.AccountRepository
 import rutacibao.data.BusinessRepository
 import rutacibao.data.MapPlace
+import rutacibao.data.Bbox
 import rutacibao.data.PlacesRepository
 import rutacibao.data.Session
+import rutacibao.data.TrafficRepository
 import rutacibao.presentation.UiError
 import rutacibao.presentation.business.BusinessState
 
@@ -38,6 +40,14 @@ public data class PlaceSheet(
     val business: BusinessState = BusinessState.NotABusiness,
 )
 
+/** What the map has open. One thing at a time: a place, a route or a traffic notice. */
+public sealed interface MapSelection {
+    public data object None : MapSelection
+    public data class Place(val sheet: PlaceSheet) : MapSelection
+    public data class Route(val route: RoutesBrowseOutput.Item) : MapSelection
+    public data class Traffic(val id: String) : MapSelection
+}
+
 public data class MapUiState(
     val phase: Phase = Phase.Loading,
     val all: List<MapPlace> = emptyList(),
@@ -50,13 +60,22 @@ public data class MapUiState(
     val routesSelected: Boolean = false,
     /** Municipality names by id, for search. */
     val municipalities: Map<String, String> = emptyMap(),
-    val sheet: PlaceSheet? = null,
-    /** A tapped route; exclusive with [sheet]. */
-    val route: RoutesBrowseOutput.Item? = null,
+    val selection: MapSelection = MapSelection.None,
+    /** Live road reports around the viewport. */
+    val traffic: List<TrafficNotice> = emptyList(),
+    /** Why the last "still there / it's over" answer was rolled back. */
+    val trafficError: UiError? = null,
     val error: UiError? = null,
     val signInRequested: Boolean = false,
 ) {
     public enum class Phase { Loading, Ready, Failed }
+
+    val sheet: PlaceSheet? get() = (selection as? MapSelection.Place)?.sheet
+
+    val route: RoutesBrowseOutput.Item? get() = (selection as? MapSelection.Route)?.route
+
+    val selectedTraffic: TrafficNotice?
+        get() = (selection as? MapSelection.Traffic)?.let { open -> traffic.firstOrNull { it.id == open.id } }
 
     /** Any chip on: the map shows only what's chosen. */
     val filtering: Boolean get() = selectedCategories.isNotEmpty() || routesSelected
@@ -68,6 +87,26 @@ public data class MapUiState(
     /** The routes to draw: with no filter, or when "Rutas" is one of the chips. */
     val visibleRoutes: List<RoutesBrowseOutput.Item>
         get() = if (!filtering || routesSelected) routes else emptyList()
+
+    internal fun selecting(sheet: PlaceSheet): MapUiState = copy(selection = MapSelection.Place(sheet), trafficError = null)
+
+    internal fun selecting(route: RoutesBrowseOutput.Item): MapUiState = copy(selection = MapSelection.Route(route), trafficError = null)
+
+    internal fun selectingTraffic(id: String): MapUiState = copy(selection = MapSelection.Traffic(id), trafficError = null)
+
+    internal fun clearingSelection(): MapUiState = copy(selection = MapSelection.None)
+
+    internal fun updatingSheet(placeId: String, change: (PlaceSheet) -> PlaceSheet): MapUiState {
+        val open = sheet ?: return this
+        return if (open.place.id != placeId) this else copy(selection = MapSelection.Place(change(open)))
+    }
+
+    /** A notice that left the map (cleared, expired) cannot stay open. */
+    internal fun withTraffic(list: List<TrafficNotice>): MapUiState {
+        val open = selection as? MapSelection.Traffic
+        val stale = open != null && list.none { it.id == open.id }
+        return copy(traffic = list, selection = if (stale) MapSelection.None else selection)
+    }
 }
 
 @Inject
@@ -75,10 +114,12 @@ public class MapViewModel(
     private val repository: PlacesRepository,
     private val account: AccountRepository,
     private val businesses: BusinessRepository,
+    traffic: TrafficRepository,
     private val session: Session,
 ) : ViewModel() {
     private val _state = MutableStateFlow(MapUiState())
     public val state: StateFlow<MapUiState> = _state.asStateFlow()
+    private val trafficLayer = TrafficLayer(traffic, viewModelScope)
     private var detailJob: Job? = null
     private var businessJob: Job? = null
 
@@ -88,9 +129,12 @@ public class MapViewModel(
     init {
         load()
         viewModelScope.launch {
+            trafficLayer.notices.collect { list -> _state.update { it.withTraffic(list) } }
+        }
+        viewModelScope.launch {
             session.isSignedIn.collect { signedIn ->
                 savedIds = if (signedIn) runCatching { account.saved().map { it.id }.toSet() }.getOrDefault(emptySet()) else emptySet()
-                _state.update { s -> s.copy(sheet = s.sheet?.copy(saved = s.sheet.place.id in savedIds)) }
+                _state.update { s -> s.sheet?.let { open -> s.updatingSheet(open.place.id) { it.copy(saved = open.place.id in savedIds) } } ?: s }
                 refreshBusiness()
             }
         }
@@ -120,40 +164,36 @@ public class MapViewModel(
     }
 
     /** A sheet for something the filter now hides would point at nothing. */
-    private fun MapUiState.hidingWhatsFilteredOut(): MapUiState = copy(
-        sheet = sheet?.takeIf { open -> places.any { it.id == open.place.id } },
-        route = route?.takeIf { open -> visibleRoutes.any { it.id == open.id } },
-    )
+    private fun MapUiState.hidingWhatsFilteredOut(): MapUiState {
+        val hidden = sheet?.let { open -> places.none { it.id == open.place.id } } == true ||
+            route?.let { open -> visibleRoutes.none { it.id == open.id } } == true
+        return if (hidden) clearingSelection() else this
+    }
 
     public fun selectRoute(id: String) {
         val route = _state.value.routes.firstOrNull { it.id == id } ?: return
         detailJob?.cancel()
-        _state.update { it.copy(route = route, sheet = null) }
+        businessJob?.cancel()
+        _state.update { it.selecting(route) }
     }
 
     public fun dismissRoute() {
-        _state.update { it.copy(route = null) }
+        _state.update { if (it.route != null) it.clearingSelection() else it }
     }
 
     public fun select(placeId: String) {
         val place = _state.value.all.firstOrNull { it.id == placeId } ?: return
         if (_state.value.sheet?.place?.id == placeId) return
-        _state.update { it.copy(sheet = PlaceSheet(place, saved = placeId in savedIds), route = null) }
+        _state.update { it.selecting(PlaceSheet(place, saved = placeId in savedIds)) }
         detailJob?.cancel()
         refreshBusiness()
         detailJob = viewModelScope.launch {
             runCatching { repository.detail(place.slug) }
                 .onSuccess { detail ->
-                    _state.update { s ->
-                        if (s.sheet?.place?.id != placeId) s
-                        else s.copy(sheet = s.sheet.copy(detail = detail, loading = false))
-                    }
+                    _state.update { s -> s.updatingSheet(placeId) { it.copy(detail = detail, loading = false) } }
                 }
                 .onFailure { error ->
-                    _state.update { s ->
-                        if (s.sheet?.place?.id != placeId) s
-                        else s.copy(sheet = s.sheet.copy(loading = false, error = UiError.from(error)))
-                    }
+                    _state.update { s -> s.updatingSheet(placeId) { it.copy(loading = false, error = UiError.from(error)) } }
                 }
         }
     }
@@ -169,9 +209,7 @@ public class MapViewModel(
             val business = runCatching { businesses.claimState(placeId) }
                 .map { BusinessState.from(it, session.isSignedIn.value) }
                 .getOrDefault(BusinessState.NotABusiness)
-            _state.update { s ->
-                if (s.sheet?.place?.id != placeId) s else s.copy(sheet = s.sheet.copy(business = business))
-            }
+            _state.update { s -> s.updatingSheet(placeId) { it.copy(business = business) } }
         }
     }
 
@@ -185,7 +223,42 @@ public class MapViewModel(
     public fun dismissSheet() {
         detailJob?.cancel()
         businessJob?.cancel()
-        _state.update { it.copy(sheet = null) }
+        _state.update { if (it.sheet != null) it.clearingSelection() else it }
+    }
+
+    /** Opens a traffic notice's sheet, closing whatever else was open. */
+    public fun selectTraffic(id: String) {
+        if (_state.value.traffic.none { it.id == id }) return
+        detailJob?.cancel()
+        businessJob?.cancel()
+        _state.update { it.selectingTraffic(id) }
+    }
+
+    public fun dismissTraffic() {
+        _state.update { if (it.selection is MapSelection.Traffic) it.clearingSelection() else it }
+    }
+
+    /** The map settled on a new viewport; loads the notices around it. */
+    public fun onViewportChanged(west: Double, south: Double, east: Double, north: Double) {
+        trafficLayer.viewportChanged(Bbox(west, south, east, north))
+    }
+
+    /** True while the map is on screen: notices refresh every minute. */
+    public fun setMapVisible(visible: Boolean) {
+        trafficLayer.setVisible(visible)
+    }
+
+    /** "Sigue ahí" / "Ya no está". Signed out it asks for sign-in; a refusal rolls the counts back. */
+    public fun confirmTraffic(verdict: TrafficVerdict) {
+        val open = _state.value.selectedTraffic ?: return
+        if (!session.isSignedIn.value) {
+            _state.update { it.copy(signInRequested = true) }
+            return
+        }
+        viewModelScope.launch {
+            val failure = trafficLayer.confirm(open.id, verdict) ?: return@launch
+            _state.update { it.copy(trafficError = failure, signInRequested = failure == UiError.SignedOut) }
+        }
     }
 
     /** Optimistic save; signed out it asks for sign-in instead. */
@@ -197,18 +270,20 @@ public class MapViewModel(
         }
         val next = !sheet.saved
         savedIds = if (next) savedIds + sheet.place.id else savedIds - sheet.place.id
-        _state.update { it.copy(sheet = sheet.copy(saved = next)) }
+        _state.update { it.updatingSheet(sheet.place.id) { open -> open.copy(saved = next) } }
         viewModelScope.launch {
             runCatching { repository.setSaved(sheet.place.id, next) }.onFailure { error ->
                 savedIds = if (next) savedIds - sheet.place.id else savedIds + sheet.place.id
                 _state.update { s ->
-                    s.copy(
-                        sheet = s.sheet?.takeIf { it.place.id == sheet.place.id }?.copy(saved = !next),
-                        signInRequested = UiError.from(error) == UiError.SignedOut,
-                    )
+                    s.updatingSheet(sheet.place.id) { it.copy(saved = !next) }
+                        .copy(signInRequested = UiError.from(error) == UiError.SignedOut)
                 }
             }
         }
+    }
+
+    public fun trafficErrorShown() {
+        _state.update { it.copy(trafficError = null) }
     }
 
     public fun signInHandled() {

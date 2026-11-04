@@ -806,6 +806,11 @@
     <string name="traffic_ask">¿Sigue ahí?</string>
     <string name="traffic_still">Sí, sigue ahí</string>
     <string name="traffic_gone">Ya pasó</string>
+    <string name="traffic_still_short">Sigue ahí</string>
+    <string name="traffic_gone_short">Ya no está</string>
+    <string name="traffic_mine">Es tu aviso. Tus vecinos dirán si sigue ahí.</string>
+    <string name="traffic_your_answer">Tu respuesta</string>
+    <string name="traffic_sheet_label">Aviso de tránsito: %1$s</string>
     <string name="traffic_thanks_still">Gracias, lo mantendremos en el mapa</string>
     <string name="traffic_thanks_cleared">Gracias, avisaremos que se despejó</string>
 </resources>

@@ -1224,6 +1224,15 @@ enum L10n {
         static var ask: String { String(localized: LocalizedStringResource("traffic.ask")) }
         static var still: String { String(localized: LocalizedStringResource("traffic.still")) }
         static var gone: String { String(localized: LocalizedStringResource("traffic.gone")) }
+        static var stillShort: String { String(localized: LocalizedStringResource("traffic.stillShort")) }
+        static var goneShort: String { String(localized: LocalizedStringResource("traffic.goneShort")) }
+        static var mine: String { String(localized: LocalizedStringResource("traffic.mine")) }
+        static var yourAnswer: String { String(localized: LocalizedStringResource("traffic.yourAnswer")) }
+        static func sheetLabel(category: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("traffic.sheetLabel", comment: ""), category
+            )
+        }
         static var thanksStill: String { String(localized: LocalizedStringResource("traffic.thanksStill")) }
         static var thanksCleared: String { String(localized: LocalizedStringResource("traffic.thanksCleared")) }
 
