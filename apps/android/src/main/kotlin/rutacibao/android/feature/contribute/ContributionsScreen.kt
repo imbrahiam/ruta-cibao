@@ -130,7 +130,7 @@ fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation:
 
             if (state.signedIn) {
                 stickyHeader { SectionTabs(section, notices.unread) { section = it } }
-                if (section == Section.Mine) item { rutacibao.android.feature.account.PendingContributions() }
+                if (section == Section.Mine) item { rutacibao.android.feature.account.PendingContributions(hideWhenEmpty = true) }
                 item {
                     Column {
                         if (section == Section.Mine) Mine(state, vm, onOpenConsultation) else Inbox(notices, inbox, onOpenHref)
@@ -303,11 +303,8 @@ private fun ActionTiles(start: (ContributeAction) -> Unit) {
 @Composable
 private fun Mine(state: ContributionsUiState, vm: ContributionsViewModel, open: (String) -> Unit) {
     val palette = LocalPalette.current
-    Text(
-        stringResource(R.string.contributions_mine),
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 28.dp, bottom = 6.dp).semantics { heading() },
-    )
+    // The tab above already says "Mis aportes"; a second heading would repeat it.
+    Spacer(Modifier.height(8.dp))
     when (state.phase) {
         ContributionsUiState.Phase.Loading -> Box(Modifier.fillMaxWidth().height(120.dp), Alignment.Center) { CircularProgressIndicator() }
         ContributionsUiState.Phase.Failed -> ErrorState(state.error ?: UiError.Unknown, onRetry = vm::retry, modifier = Modifier.height(320.dp))

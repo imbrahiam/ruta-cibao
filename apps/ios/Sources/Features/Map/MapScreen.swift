@@ -471,7 +471,7 @@ private struct MapContent: View {
     }
 
     private var topBar: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 14) {
             // One glass group: the reset button grows out of the search bar
             // when a filter is on and melts back into it when cleared.
             GlassEffectContainer(spacing: 10) {

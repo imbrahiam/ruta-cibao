@@ -155,10 +155,10 @@ struct ContributionsScreen: View {
 
                 if state.signedIn {
                     SwiftUI.Section {
-                        PendingOutboxView().padding(16)
                         if section == .inbox, let inbox {
                             InboxList(model: inbox) { slug in path.append(ConsultationRoute(slug: slug)) }
                         } else {
+                            PendingOutboxView(hidesWhenEmpty: true)
                             myContributions(model)
                         }
                     } header: {

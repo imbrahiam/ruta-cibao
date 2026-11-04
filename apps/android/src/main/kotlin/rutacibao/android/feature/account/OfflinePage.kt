@@ -81,9 +81,10 @@ fun OfflinePage(onBack: () -> Unit) {
 }
 
 @Composable
-fun PendingContributions() {
+fun PendingContributions(hideWhenEmpty: Boolean = false) {
     val offline = LocalAppGraph.current.offline
     val state by offline.state.collectAsStateWithLifecycle()
+    if (hideWhenEmpty && state.pending.isEmpty()) return
     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.offline_outbox_section), style = MaterialTheme.typography.titleMedium)
         if (state.pending.isEmpty()) Text(stringResource(R.string.offline_outbox_empty))

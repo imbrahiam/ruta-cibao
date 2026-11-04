@@ -75,10 +75,22 @@ struct OfflineScreen: View {
 }
 
 struct PendingOutboxView: View {
+    var hidesWhenEmpty = false
     @Environment(\.graph) private var graph
     @State private var state: OfflineUiState?
 
     var body: some View {
+        Group {
+            if hidesWhenEmpty && state?.pending.isEmpty != false { Color.clear.frame(height: 0) } else { content.padding(hidesWhenEmpty ? 16 : 0) }
+        }
+        .task {
+            guard let graph else { return }
+            state = graph.offline.state.value
+            for await next in graph.offline.state { state = next }
+        }
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(L10n.Offline.outboxSection).font(.headline)
             if state?.pending.isEmpty != false { Text(L10n.Offline.outboxEmpty).foregroundStyle(.secondary) }
@@ -98,11 +110,6 @@ struct PendingOutboxView: View {
                     }
                 }
             }
-        }
-        .task {
-            guard let graph else { return }
-            state = graph.offline.state.value
-            for await next in graph.offline.state { state = next }
         }
     }
 
