@@ -254,7 +254,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
             val sheet = state.sheet
             val route = state.route
             if (sheet != null) {
-                PlaceSheet(sheet, onSave = vm::toggleSaved, modifier = Modifier.fillMaxHeight())
+                PlaceSheet(sheet, onSave = vm::toggleSaved, onRequestClaim = vm::requestClaim, onBusinessChanged = vm::refreshBusiness, modifier = Modifier.fillMaxHeight())
             } else if (route != null) {
                 RouteSheet(route, modifier = Modifier.fillMaxHeight())
             } else {

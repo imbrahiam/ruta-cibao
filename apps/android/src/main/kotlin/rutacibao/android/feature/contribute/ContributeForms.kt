@@ -259,7 +259,7 @@ fun SuggestPlaceScreen(onBack: () -> Unit, onSent: () -> Unit) {
 // ------------------------------------------------------------------ shared pieces
 
 @Composable
-private fun SendError(error: UiError?) {
+internal fun SendError(error: UiError?) {
     Notice(
         Icons.Filled.ErrorOutline,
         stringResource(if (error == UiError.Offline) R.string.common_offline else R.string.common_error_title),
@@ -269,7 +269,7 @@ private fun SendError(error: UiError?) {
 }
 
 @Composable
-private fun Problem(show: Boolean, text: String) {
+internal fun Problem(show: Boolean, text: String) {
     if (!show) return
     Row(Modifier.padding(top = (-10).dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Filled.ErrorOutline, contentDescription = null, Modifier.size(16.dp), tint = LocalPalette.current.dangerInk)
@@ -279,7 +279,14 @@ private fun Problem(show: Boolean, text: String) {
 
 /** A filled, rounded text field with its placeholder inside. */
 @Composable
-private fun FieldBox(value: String, onChange: (String) -> Unit, placeholder: String, bold: Boolean = false, minLines: Int = 1) {
+internal fun FieldBox(
+    value: String,
+    onChange: (String) -> Unit,
+    placeholder: String,
+    bold: Boolean = false,
+    minLines: Int = 1,
+    keyboardType: androidx.compose.ui.text.input.KeyboardType = androidx.compose.ui.text.input.KeyboardType.Text,
+) {
     val palette = LocalPalette.current
     val style = TextStyle(fontSize = 15.sp, lineHeight = 21.sp, fontWeight = if (bold) FontWeight.SemiBold else FontWeight.Normal)
     BasicTextField(
@@ -289,6 +296,7 @@ private fun FieldBox(value: String, onChange: (String) -> Unit, placeholder: Str
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         minLines = minLines,
         maxLines = if (minLines > 1) minLines + 5 else 3,
+        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboardType),
         modifier = Modifier.fillMaxWidth(),
         decorationBox = { inner ->
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(palette.inset).heightIn(min = 52.dp).padding(14.dp), Alignment.CenterStart) {
@@ -343,7 +351,7 @@ fun LocationRow(latitude: Double?, longitude: Double?, label: String, pick: () -
 private fun Modifier.wrapContentHeightCenter(): Modifier = this.then(Modifier.padding(vertical = 6.dp))
 
 @Composable
-private fun SubmitBar(title: String, busy: Boolean, enabled: Boolean, onClick: () -> Unit) {
+internal fun SubmitBar(title: String, busy: Boolean, enabled: Boolean, onClick: () -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
         Box(Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)).padding(horizontal = 16.dp, vertical = 8.dp)) {
             PrimaryButton(title, onClick, Modifier.fillMaxWidth(), enabled = enabled, busy = busy)
