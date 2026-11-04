@@ -606,6 +606,13 @@
     <string name="place_claim_phone">Teléfono del negocio</string>
     <string name="place_claim_sent">Solicitud enviada</string>
     <string name="place_claim_sent_body">Te avisaremos cuando el ayuntamiento la revise.</string>
+    <string name="place_whatsapp">WhatsApp</string>
+    <string name="place_claim_review">Solicitud en revisión</string>
+    <string name="place_edit_business">Editar datos del negocio</string>
+    <string name="place_claim_submit">Enviar solicitud</string>
+    <string name="place_business_save">Guardar cambios</string>
+    <string name="place_business_phone_invalid">Escribe un número dominicano de 10 dígitos que empiece por 809, 829 o 849.</string>
+    <string name="place_business_evidence_short">Escribe al menos 20 caracteres.</string>
     <string name="place_nearby">Cerca de aquí</string>
     <string name="place_meters">a %1$s m</string>
     <string name="place_kilometers">a %1$s km</string>

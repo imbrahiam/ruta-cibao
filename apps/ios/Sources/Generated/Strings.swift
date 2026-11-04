@@ -908,6 +908,13 @@ enum L10n {
         static var claimPhone: String { String(localized: LocalizedStringResource("place.claimPhone")) }
         static var claimSent: String { String(localized: LocalizedStringResource("place.claimSent")) }
         static var claimSentBody: String { String(localized: LocalizedStringResource("place.claimSentBody")) }
+        static var whatsapp: String { String(localized: LocalizedStringResource("place.whatsapp")) }
+        static var claimReview: String { String(localized: LocalizedStringResource("place.claimReview")) }
+        static var editBusiness: String { String(localized: LocalizedStringResource("place.editBusiness")) }
+        static var claimSubmit: String { String(localized: LocalizedStringResource("place.claimSubmit")) }
+        static var businessSave: String { String(localized: LocalizedStringResource("place.businessSave")) }
+        static var businessPhoneInvalid: String { String(localized: LocalizedStringResource("place.businessPhoneInvalid")) }
+        static var businessEvidenceShort: String { String(localized: LocalizedStringResource("place.businessEvidenceShort")) }
         static var nearby: String { String(localized: LocalizedStringResource("place.nearby")) }
         static func meters(value: String) -> String {
             String.localizedStringWithFormat(

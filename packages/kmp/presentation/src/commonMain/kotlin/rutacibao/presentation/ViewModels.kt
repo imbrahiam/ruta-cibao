@@ -3,6 +3,7 @@ package rutacibao.presentation
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.Provider
 import rutacibao.presentation.account.AccountViewModel
+import rutacibao.presentation.business.BusinessFormViewModel
 import rutacibao.presentation.auth.SignInViewModel
 import rutacibao.presentation.comments.CommentsViewModel
 import rutacibao.presentation.consultations.ConsultationDetailViewModel
@@ -34,7 +35,9 @@ public class ViewModels(
     private val inboxProvider: Provider<InboxViewModel>,
     private val safetyProvider: Provider<SafetyViewModel>,
     private val commentsProvider: Provider<CommentsViewModel>,
+    private val businessFormProvider: Provider<BusinessFormViewModel>,
 ) {
+    public fun businessForm(): BusinessFormViewModel = businessFormProvider()
     public fun comments(): CommentsViewModel = commentsProvider()
     public fun safety(): SafetyViewModel = safetyProvider()
     public fun inbox(): InboxViewModel = inboxProvider()

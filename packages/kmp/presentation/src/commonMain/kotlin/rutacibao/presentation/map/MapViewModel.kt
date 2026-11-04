@@ -12,10 +12,12 @@ import kotlinx.coroutines.launch
 import rutacibao.api.generated.PlacesDetailOutput
 import rutacibao.api.generated.RoutesBrowseOutput
 import rutacibao.data.AccountRepository
+import rutacibao.data.BusinessRepository
 import rutacibao.data.MapPlace
 import rutacibao.data.PlacesRepository
 import rutacibao.data.Session
 import rutacibao.presentation.UiError
+import rutacibao.presentation.business.BusinessState
 
 /** A category chip: what the filter row shows, with how many places it holds. */
 public data class MapCategory(
@@ -33,6 +35,7 @@ public data class PlaceSheet(
     val loading: Boolean = true,
     val error: UiError? = null,
     val saved: Boolean = false,
+    val business: BusinessState = BusinessState.NotABusiness,
 )
 
 public data class MapUiState(
@@ -71,11 +74,13 @@ public data class MapUiState(
 public class MapViewModel(
     private val repository: PlacesRepository,
     private val account: AccountRepository,
+    private val businesses: BusinessRepository,
     private val session: Session,
 ) : ViewModel() {
     private val _state = MutableStateFlow(MapUiState())
     public val state: StateFlow<MapUiState> = _state.asStateFlow()
     private var detailJob: Job? = null
+    private var businessJob: Job? = null
 
     /** Ids the person has saved, so a sheet opens with the right bookmark. */
     private var savedIds: Set<String> = emptySet()
@@ -86,6 +91,7 @@ public class MapViewModel(
             session.isSignedIn.collect { signedIn ->
                 savedIds = if (signedIn) runCatching { account.saved().map { it.id }.toSet() }.getOrDefault(emptySet()) else emptySet()
                 _state.update { s -> s.copy(sheet = s.sheet?.copy(saved = s.sheet.place.id in savedIds)) }
+                refreshBusiness()
             }
         }
     }
@@ -134,6 +140,7 @@ public class MapViewModel(
         if (_state.value.sheet?.place?.id == placeId) return
         _state.update { it.copy(sheet = PlaceSheet(place, saved = placeId in savedIds), route = null) }
         detailJob?.cancel()
+        refreshBusiness()
         detailJob = viewModelScope.launch {
             runCatching { repository.detail(place.slug) }
                 .onSuccess { detail ->
@@ -151,8 +158,33 @@ public class MapViewModel(
         }
     }
 
+    /**
+     * Loads who owns the open place. It's an extra: a failure leaves the sheet
+     * as a plain place rather than breaking it.
+     */
+    public fun refreshBusiness() {
+        val placeId = _state.value.sheet?.place?.id ?: return
+        businessJob?.cancel()
+        businessJob = viewModelScope.launch {
+            val business = runCatching { businesses.claimState(placeId) }
+                .map { BusinessState.from(it, session.isSignedIn.value) }
+                .getOrDefault(BusinessState.NotABusiness)
+            _state.update { s ->
+                if (s.sheet?.place?.id != placeId) s else s.copy(sheet = s.sheet.copy(business = business))
+            }
+        }
+    }
+
+    /** "¿Es tu negocio?" while signed out asks for sign-in first. Returns whether the form may open. */
+    public fun requestClaim(): Boolean {
+        if (session.isSignedIn.value) return true
+        _state.update { it.copy(signInRequested = true) }
+        return false
+    }
+
     public fun dismissSheet() {
         detailJob?.cancel()
+        businessJob?.cancel()
         _state.update { it.copy(sheet = null) }
     }
 

@@ -5993,6 +5993,39 @@
         }
       }
     },
+    "place.businessEvidenceShort": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe al menos 20 caracteres."
+          }
+        }
+      }
+    },
+    "place.businessPhoneInvalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe un número dominicano de 10 dígitos que empiece por 809, 829 o 849."
+          }
+        }
+      }
+    },
+    "place.businessSave": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guardar cambios"
+          }
+        }
+      }
+    },
     "place.call": {
       "extractionState": "manual",
       "localizations": {
@@ -6081,6 +6114,17 @@
         }
       }
     },
+    "place.claimReview": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solicitud en revisión"
+          }
+        }
+      }
+    },
     "place.claimSent": {
       "extractionState": "manual",
       "localizations": {
@@ -6103,6 +6147,17 @@
         }
       }
     },
+    "place.claimSubmit": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar solicitud"
+          }
+        }
+      }
+    },
     "place.claimTitle": {
       "extractionState": "manual",
       "localizations": {
@@ -6121,6 +6176,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cómo llegar"
+          }
+        }
+      }
+    },
+    "place.editBusiness": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar datos del negocio"
           }
         }
       }
@@ -6539,6 +6605,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Quitado de tu lista"
+          }
+        }
+      }
+    },
+    "place.whatsapp": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "WhatsApp"
           }
         }
       }
