@@ -427,6 +427,16 @@
     <string name="gestion_action_approve">Aprobar</string>
     <string name="gestion_action_hide">Ocultar</string>
     <string name="gestion_action_remove">Retirar</string>
+    <string name="gestion_action_remove_traffic">Retirar aviso</string>
+    <string name="gestion_action_publish_text">Publicar texto</string>
+    <string name="gestion_action_hide_text">Ocultar texto</string>
+    <string name="gestion_action_hide_case">Ocultar caso</string>
+    <string name="gestion_action_respond">Responder</string>
+    <string name="gestion_state_text_pending">Texto en revisión</string>
+    <string name="gestion_state_text_published">Texto publicado</string>
+    <string name="gestion_state_text_hidden">Texto oculto</string>
+    <string name="gestion_state_case_pending">En revisión</string>
+    <string name="gestion_state_case_published">Publicada, sin respuesta</string>
     <string name="gestion_note_title">Motivo</string>
     <string name="gestion_note_hint">Explica tu decisión (mínimo 10 caracteres).</string>
     <string name="gestion_note_too_short">Escribe un motivo de al menos 10 caracteres.</string>

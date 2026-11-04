@@ -18,8 +18,10 @@ import rutacibao.presentation.UiError
 
 public data class KindCount(val kind: ReviewKind, val count: Int)
 
-/** A reject (or any verdict that needs a reason) waiting for its note. */
-public data class NoteRequest(val item: ReviewItem, val verdict: Verdict, val tooShort: Boolean = false)
+/** A decision that needs a reason, waiting for its note. */
+public data class NoteRequest(val item: ReviewItem, val action: ReviewAction.Decide, val tooShort: Boolean = false) {
+    val verdict: Verdict get() = action.verdict
+}
 
 public enum class PdfState { Idle, Loading, Unavailable }
 
@@ -79,14 +81,14 @@ public class GestionViewModel(
         _state.update { it.copy(filter = kind) }
     }
 
-    /** Approve or reject [item]; a verdict that needs a reason opens the note sheet first. */
-    public fun decide(item: ReviewItem, verdict: Verdict) {
+    /** Sends [action] for [item]; one that needs a reason opens the note sheet first. */
+    public fun decide(item: ReviewItem, action: ReviewAction.Decide) {
         if (item.id in _state.value.inFlight) return
-        if (item.kind.needsNote(verdict)) {
-            _state.update { it.copy(noteFor = NoteRequest(item, verdict)) }
+        if (action.needsNote) {
+            _state.update { it.copy(noteFor = NoteRequest(item, action)) }
             return
         }
-        viewModelScope.launch { decideNow(item, verdict, null) }
+        viewModelScope.launch { decideNow(item, action.verdict, null) }
     }
 
     public fun submitNote(note: String) {
@@ -146,13 +148,14 @@ public class GestionViewModel(
         }
     }
 
-    /** Takes the card off the list at once and puts it back if the server says no. */
+    /** Settles the card at once (off the list, or updated in place) and puts it back if the server says no. */
     private suspend fun decideNow(item: ReviewItem, verdict: Verdict, note: String?) {
+        val next = item.after(verdict)
         _state.update { s ->
             s.copy(
                 inFlight = s.inFlight + item.id,
-                items = s.items.filterNot { it.id == item.id },
-                counts = s.counts.adjust(item.kind, -1),
+                items = s.items.mapNotNull { if (it.id == item.id) next else it },
+                counts = if (next == null) s.counts.adjust(item.kind, -1) else s.counts,
             )
         }
         val outcome = gate.run(replay = { decideNow(item, verdict, note) }) { item.kind.decide(staff, item.id, verdict, note) }
@@ -160,14 +163,17 @@ public class GestionViewModel(
             val settled = s.copy(inFlight = s.inFlight - item.id)
             when (outcome) {
                 GateOutcome.Done -> settled.copy(phase = if (settled.total == 0) GestionUiState.Phase.Empty else settled.phase)
-                GateOutcome.Blocked -> settled.restore(item)
-                is GateOutcome.Failed -> settled.restore(item).copy(error = UiError.from(outcome.error))
+                GateOutcome.Blocked -> settled.restore(item, left = next == null)
+                is GateOutcome.Failed -> settled.restore(item, left = next == null).copy(error = UiError.from(outcome.error))
             }
         }
     }
 
-    private fun GestionUiState.restore(item: ReviewItem): GestionUiState =
-        copy(items = (items + item).sortedByDescending { it.createdAt }, counts = counts.adjust(item.kind, +1))
+    private fun GestionUiState.restore(item: ReviewItem, left: Boolean): GestionUiState =
+        copy(
+            items = (items.filterNot { it.id == item.id } + item).sortedByDescending { it.createdAt },
+            counts = if (left) counts.adjust(item.kind, +1) else counts,
+        )
 
     private fun List<KindCount>.adjust(kind: ReviewKind, by: Int): List<KindCount> =
         map { if (it.kind == kind) it.copy(count = (it.count + by).coerceAtLeast(0)) else it }

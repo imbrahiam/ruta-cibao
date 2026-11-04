@@ -32,6 +32,8 @@ import kotlin.time.Instant
 private class FakeStaff : StaffSource {
     var places = listOf(place("p1", 100), place("p2", 200))
     var photos = listOf(photo("f1", 300))
+    var traffic = emptyList<ModerationQueueOutput.TrafficItem>()
+    var cases = emptyList<ModerationQueueOutput.Consultation>()
     var decisions = mutableListOf<String>()
     var notes = mutableListOf<String?>()
     var stepUpOnce = false
@@ -42,12 +44,17 @@ private class FakeStaff : StaffSource {
     var hold: CompletableDeferred<Unit>? = null
 
     override suspend fun staffRole() = MeGetOutput.StaffRole.Moderator
-    override suspend fun counts() = ModerationCountsOutput(places.size.toDouble(), 0.0, photos.size.toDouble(), 0.0, 0.0, 0.0, 0.0)
+    override suspend fun counts() = ModerationCountsOutput(
+        places.size.toDouble(), 0.0, photos.size.toDouble(), 0.0, cases.size.toDouble(), traffic.size.toDouble(), 0.0,
+    )
     override suspend fun queue(queue: ModerationQueueInput.Queue, limit: Int) = ModerationQueueOutput(
         places = if (queue == ModerationQueueInput.Queue.Places) places else emptyList(),
         reports = emptyList(),
         photos = if (queue == ModerationQueueInput.Queue.Photos) photos else emptyList(),
-        claims = emptyList(), consultations = emptyList(), traffic = emptyList(), contentReports = emptyList(),
+        claims = emptyList(),
+        consultations = if (queue == ModerationQueueInput.Queue.Consultations) cases else emptyList(),
+        traffic = if (queue == ModerationQueueInput.Queue.Traffic) traffic else emptyList(),
+        contentReports = emptyList(),
     )
 
     private suspend fun gate() {
@@ -66,7 +73,8 @@ private class FakeStaff : StaffSource {
     override suspend fun decideContentReport(id: String, approve: Boolean, reason: String?) = gate()
     override suspend fun decidePublication(
         kind: ModerationDecidePublicationInput.Target.Kind, id: String, approve: Boolean, reason: String?,
-    ) = gate()
+    ) { gate(); decisions += "${kind.name.lowercase()}:$id:$approve"; notes += reason }
+    override suspend fun removeTraffic(id: String, note: String) { gate(); decisions += "remove:$id"; notes += note }
     override suspend fun respond(consultationId: String, body: String, statusAfter: ConsultationsRespondInput.StatusAfter) = gate()
     override suspend fun reports(): List<ReportsListItem> = emptyList()
     override suspend fun reportPdfUrl(reportId: String): String? = null
@@ -85,6 +93,31 @@ private fun photo(id: String, at: Long) = ModerationQueueOutput.Photo(
     id = id, url = "/img/$id.jpg", createdAt = Instant.fromEpochSeconds(at), placeName = "Foto $id", placeSlug = id,
     municipalityId = "m", municipalityName = "Monción", uploadedBy = null,
 )
+
+private fun trafficItem(id: String, at: Long, text: String?, status: ModerationQueueOutput.TrafficItem.DescriptionModerationStatus) =
+    ModerationQueueOutput.TrafficItem(
+        id = id, description = text, descriptionModerationStatus = status, lng = 0.0, lat = 0.0,
+        createdAt = Instant.fromEpochSeconds(at), expiresAt = Instant.fromEpochSeconds(at + 3600),
+        categoryName = "Accidente", categoryIcon = "triangle-alert", categoryColor = "#000",
+        municipalityId = "m", municipalityName = "Monción", reporterResidentVerified = false,
+    )
+
+private fun consultation(
+    id: String,
+    at: Long,
+    publication: ModerationQueueOutput.Consultation.PublicationStatus,
+    status: ModerationQueueOutput.Consultation.Status = ModerationQueueOutput.Consultation.Status.Open,
+) = ModerationQueueOutput.Consultation(
+    id = id, slug = "slug-$id", title = "Caso $id", body = "texto", status = status, publicationStatus = publication,
+    createdAt = Instant.fromEpochSeconds(at), categoryName = "c", categoryIcon = "map-pin", categoryColor = "#000",
+    municipalityId = "m", municipalityName = "Monción", supportCount = 0, photos = emptyList(),
+)
+
+private fun GestionViewModel.decide(item: ReviewItem, verdict: Verdict) =
+    decide(item, item.actions.filterIsInstance<ReviewAction.Decide>().first { it.verdict == verdict })
+
+private typealias Text = ModerationQueueOutput.TrafficItem.DescriptionModerationStatus
+private typealias Pub = ModerationQueueOutput.Consultation.PublicationStatus
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class GestionTest {
@@ -215,5 +248,151 @@ class GestionTest {
         runCurrent()
         assertEquals(StepUpState.None, vm.state.value.stepUp)
         assertEquals(listOf("photo:f1:true"), fake.decisions)
+    }
+
+    private fun labels(item: ReviewItem) = item.actions.map {
+        when (it) {
+            is ReviewAction.Decide -> "${it.verdict}:${it.labelKey}:${it.emphasis}:${it.needsNote}"
+            is ReviewAction.OpenThread -> "open:${it.slug}:${it.labelKey}:${it.emphasis}"
+        }
+    }
+
+    @Test fun ordinaryKindsOfferRejectThenApprove() = runTest(dispatcher) {
+        val vm = viewModel(FakeStaff())
+        runCurrent()
+        val photo = vm.state.value.items.first { it.id == "f1" }
+        assertEquals(
+            listOf("Reject:gestion.action.reject:Secondary:false", "Approve:gestion.action.publish:Primary:false"),
+            labels(photo),
+        )
+    }
+
+    @Test fun trafficAlwaysOffersRemovalAndOffersTheTextOnlyWhilePending() = runTest(dispatcher) {
+        val fake = FakeStaff().apply {
+            places = emptyList(); photos = emptyList()
+            traffic = listOf(
+                trafficItem("t1", 100, "Choque", Text.Pending),
+                trafficItem("t2", 200, "Choque", Text.Published),
+                trafficItem("t3", 300, null, Text.Pending),
+            )
+        }
+        val vm = viewModel(fake)
+        runCurrent()
+        val byId = vm.state.value.items.associateBy { it.id }
+        assertEquals(
+            listOf(
+                "Reject:gestion.action.hideText:Secondary:true",
+                "Approve:gestion.action.publishText:Secondary:false",
+                "Remove:gestion.action.removeTraffic:Primary:true",
+            ),
+            labels(byId.getValue("t1")),
+        )
+        assertEquals(listOf("Remove:gestion.action.removeTraffic:Primary:true"), labels(byId.getValue("t2")))
+        assertEquals(listOf("Remove:gestion.action.removeTraffic:Primary:true"), labels(byId.getValue("t3")))
+        assertEquals("gestion.state.textPending", byId.getValue("t1").stateKey)
+        assertNull(byId.getValue("t3").stateKey)
+    }
+
+    @Test fun removingTrafficNeedsANoteAndTakesItOffTheDesk() = runTest(dispatcher) {
+        val fake = FakeStaff().apply {
+            places = emptyList(); photos = emptyList()
+            traffic = listOf(trafficItem("t1", 100, "Choque", Text.Published))
+        }
+        val vm = viewModel(fake)
+        runCurrent()
+        vm.decide(vm.state.value.items.single(), Verdict.Remove)
+        assertEquals(Verdict.Remove, vm.state.value.noteFor?.verdict)
+        vm.submitNote("Ya no está ahí")
+        runCurrent()
+        assertEquals(listOf("remove:t1"), fake.decisions)
+        assertTrue(vm.state.value.items.isEmpty())
+        assertEquals(0, vm.state.value.counts.first { it.kind == ReviewKind.Traffic }.count)
+    }
+
+    @Test fun decidingTheTextKeepsTheReportOnTheDesk() = runTest(dispatcher) {
+        val fake = FakeStaff().apply {
+            places = emptyList(); photos = emptyList()
+            traffic = listOf(trafficItem("t1", 100, "Choque", Text.Pending))
+        }
+        val vm = viewModel(fake)
+        runCurrent()
+        vm.decide(vm.state.value.items.single(), Verdict.Approve)
+        runCurrent()
+        assertEquals(listOf("traffic:t1:true"), fake.decisions)
+        val kept = vm.state.value.items.single() as ReviewItem.Traffic
+        assertEquals(Publication.Published, kept.text)
+        assertEquals(listOf("Remove:gestion.action.removeTraffic:Primary:true"), labels(kept))
+        assertEquals(1, vm.state.value.counts.first { it.kind == ReviewKind.Traffic }.count)
+    }
+
+    @Test fun aFailedTextDecisionRestoresTheCard() = runTest(dispatcher) {
+        val fake = FakeStaff().apply {
+            places = emptyList(); photos = emptyList()
+            traffic = listOf(trafficItem("t1", 100, "Choque", Text.Pending))
+            decisionFailure = IOException("down")
+        }
+        val vm = viewModel(fake)
+        runCurrent()
+        vm.decide(vm.state.value.items.single(), Verdict.Approve)
+        runCurrent()
+        assertEquals(Publication.Pending, (vm.state.value.items.single() as ReviewItem.Traffic).text)
+        assertNotNull(vm.state.value.error)
+    }
+
+    @Test fun casesPublishOrHideWhilePendingThenRespondOrHideOnceLive() = runTest(dispatcher) {
+        val fake = FakeStaff().apply {
+            places = emptyList(); photos = emptyList()
+            cases = listOf(
+                consultation("c1", 100, Pub.Pending),
+                consultation("c2", 200, Pub.Published),
+            )
+        }
+        val vm = viewModel(fake)
+        runCurrent()
+        val byId = vm.state.value.items.associateBy { it.id }
+        assertEquals(
+            listOf("Reject:gestion.action.hide:Secondary:true", "Approve:gestion.action.publish:Primary:false"),
+            labels(byId.getValue("c1")),
+        )
+        assertEquals(
+            listOf("Reject:gestion.action.hideCase:Secondary:true", "open:slug-c2:gestion.action.respond:Primary"),
+            labels(byId.getValue("c2")),
+        )
+    }
+
+    @Test fun publishingAnOpenCaseKeepsItForTheAnswer() = runTest(dispatcher) {
+        val fake = FakeStaff().apply {
+            places = emptyList(); photos = emptyList()
+            cases = listOf(consultation("c1", 100, Pub.Pending))
+        }
+        val vm = viewModel(fake)
+        runCurrent()
+        vm.decide(vm.state.value.items.single(), Verdict.Approve)
+        runCurrent()
+        assertEquals(listOf("consultation:c1:true"), fake.decisions)
+        val kept = vm.state.value.items.single() as ReviewItem.Consultation
+        assertEquals(Publication.Published, kept.publication)
+        assertTrue(kept.actions.last() is ReviewAction.OpenThread)
+        assertEquals(1, vm.state.value.counts.first { it.kind == ReviewKind.Consultation }.count)
+    }
+
+    @Test fun publishingAnAnsweredCaseLeavesAndHidingAlwaysLeaves() = runTest(dispatcher) {
+        val fake = FakeStaff().apply {
+            places = emptyList(); photos = emptyList()
+            cases = listOf(
+                consultation("c1", 100, Pub.Pending, ModerationQueueOutput.Consultation.Status.Answered),
+                consultation("c2", 200, Pub.Published),
+            )
+        }
+        val vm = viewModel(fake)
+        runCurrent()
+        vm.decide(vm.state.value.items.first { it.id == "c1" }, Verdict.Approve)
+        runCurrent()
+        assertEquals(listOf("c2"), vm.state.value.items.map { it.id })
+        vm.decide(vm.state.value.items.single(), Verdict.Reject)
+        vm.submitNote("Contenido ajeno")
+        runCurrent()
+        assertTrue(vm.state.value.items.isEmpty())
+        assertEquals(listOf("consultation:c1:true", "consultation:c2:false"), fake.decisions)
     }
 }

@@ -5,7 +5,8 @@ import rutacibao.api.generated.ModerationDecidePublicationInput
 import rutacibao.api.generated.ModerationQueueInput
 import rutacibao.data.StaffSource
 
-public enum class Verdict { Approve, Reject }
+/** Remove is only for road reports: it takes the report off the map, unlike a decision on its text. */
+public enum class Verdict { Approve, Reject, Remove }
 
 /** A button on a review card: the verdict it sends and the catalogue key of its label. */
 public data class VerdictSpec(val verdict: Verdict, val labelKey: String)
@@ -58,8 +59,11 @@ public enum class ReviewKind(
     Traffic(
         ModerationQueueInput.Queue.Traffic, { it.traffic }, "gestion.kind.traffic", "triangle-alert",
         VerdictSpec(Verdict.Approve, "gestion.action.publish"), VerdictSpec(Verdict.Reject, "gestion.action.hide"),
-        setOf(Verdict.Reject),
-        { id, v, note -> decidePublication(ModerationDecidePublicationInput.Target.Kind.Traffic, id, v == Verdict.Approve, note) },
+        setOf(Verdict.Reject, Verdict.Remove),
+        { id, v, note ->
+            if (v == Verdict.Remove) removeTraffic(id, note.orEmpty())
+            else decidePublication(ModerationDecidePublicationInput.Target.Kind.Traffic, id, v == Verdict.Approve, note)
+        },
     ),
     ContentReport(
         ModerationQueueInput.Queue.ContentReports, { it.contentReports }, "gestion.kind.contentReport", "shield-alert",
@@ -76,7 +80,15 @@ public enum class ReviewKind(
 
     public fun count(counts: ModerationCountsOutput): Int = counted(counts).toInt()
 
-    public fun spec(verdict: Verdict): VerdictSpec = if (verdict == Verdict.Approve) approve else reject
+    /** The action for [verdict] with an explicit label, asking for a note where this kind requires one. */
+    internal fun decide(verdict: Verdict, labelKey: String, emphasis: Emphasis): ReviewAction.Decide =
+        ReviewAction.Decide(verdict, labelKey, emphasis, needsNote(verdict))
+
+    /** The ordinary two buttons: reject on the left, approve as the primary. */
+    internal fun pair(): List<ReviewAction> = listOf(
+        decide(Verdict.Reject, reject.labelKey, Emphasis.Secondary),
+        decide(Verdict.Approve, approve.labelKey, Emphasis.Primary),
+    )
 
     public fun needsNote(verdict: Verdict): Boolean = verdict in noteOn
 

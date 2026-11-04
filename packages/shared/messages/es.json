@@ -1777,7 +1777,19 @@
       "dismiss": "Descartar",
       "approve": "Aprobar",
       "hide": "Ocultar",
-      "remove": "Retirar"
+      "remove": "Retirar",
+      "removeTraffic": "Retirar aviso",
+      "publishText": "Publicar texto",
+      "hideText": "Ocultar texto",
+      "hideCase": "Ocultar caso",
+      "respond": "Responder"
+    },
+    "state": {
+      "textPending": "Texto en revisión",
+      "textPublished": "Texto publicado",
+      "textHidden": "Texto oculto",
+      "casePending": "En revisión",
+      "casePublished": "Publicada, sin respuesta"
     },
     "noteTitle": "Motivo",
     "noteHint": "Explica tu decisión (mínimo 10 caracteres).",

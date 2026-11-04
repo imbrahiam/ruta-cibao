@@ -696,6 +696,19 @@ enum L10n {
             static var approve: String { String(localized: LocalizedStringResource("gestion.action.approve")) }
             static var hide: String { String(localized: LocalizedStringResource("gestion.action.hide")) }
             static var remove: String { String(localized: LocalizedStringResource("gestion.action.remove")) }
+            static var removeTraffic: String { String(localized: LocalizedStringResource("gestion.action.removeTraffic")) }
+            static var publishText: String { String(localized: LocalizedStringResource("gestion.action.publishText")) }
+            static var hideText: String { String(localized: LocalizedStringResource("gestion.action.hideText")) }
+            static var hideCase: String { String(localized: LocalizedStringResource("gestion.action.hideCase")) }
+            static var respond: String { String(localized: LocalizedStringResource("gestion.action.respond")) }
+        }
+
+        enum State {
+            static var textPending: String { String(localized: LocalizedStringResource("gestion.state.textPending")) }
+            static var textPublished: String { String(localized: LocalizedStringResource("gestion.state.textPublished")) }
+            static var textHidden: String { String(localized: LocalizedStringResource("gestion.state.textHidden")) }
+            static var casePending: String { String(localized: LocalizedStringResource("gestion.state.casePending")) }
+            static var casePublished: String { String(localized: LocalizedStringResource("gestion.state.casePublished")) }
         }
     }
 

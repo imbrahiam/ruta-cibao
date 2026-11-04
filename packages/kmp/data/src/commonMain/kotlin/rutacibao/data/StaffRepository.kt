@@ -17,6 +17,7 @@ import rutacibao.api.generated.ModerationDecidePublicationInput
 import rutacibao.api.generated.ModerationDecideReportInput
 import rutacibao.api.generated.ModerationQueueInput
 import rutacibao.api.generated.ModerationQueueOutput
+import rutacibao.api.generated.ModerationRemoveTrafficInput
 import rutacibao.api.generated.ReportsDetailInput
 import rutacibao.api.generated.ReportsListInput
 import rutacibao.api.generated.ReportsListItem
@@ -74,6 +75,9 @@ public interface StaffSource {
         approve: Boolean,
         reason: String?,
     )
+
+    /** Takes a live road report off the map. The note is required (10 characters or more). */
+    public suspend fun removeTraffic(id: String, note: String)
 
     public suspend fun respond(consultationId: String, body: String, statusAfter: ConsultationsRespondInput.StatusAfter)
 
@@ -137,6 +141,10 @@ public class StaffRepository(private val api: RutaApi, private val config: AppCo
                 ModerationDecidePublicationInput(requestId(), ModerationDecidePublicationInput.Target(kind, id), status, reason),
             )
         }
+    }
+
+    override suspend fun removeTraffic(id: String, note: String) {
+        staffCall { api.moderation.removeTraffic(ModerationRemoveTrafficInput(id, requestId(), note)) }
     }
 
     override suspend fun respond(consultationId: String, body: String, statusAfter: ConsultationsRespondInput.StatusAfter) {

@@ -3950,6 +3950,28 @@
         }
       }
     },
+    "gestion.action.hideCase": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar caso"
+          }
+        }
+      }
+    },
+    "gestion.action.hideText": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ocultar texto"
+          }
+        }
+      }
+    },
     "gestion.action.publish": {
       "extractionState": "manual",
       "localizations": {
@@ -3957,6 +3979,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Publicar"
+          }
+        }
+      }
+    },
+    "gestion.action.publishText": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicar texto"
           }
         }
       }
@@ -3983,6 +4016,17 @@
         }
       }
     },
+    "gestion.action.removeTraffic": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirar aviso"
+          }
+        }
+      }
+    },
     "gestion.action.resolve": {
       "extractionState": "manual",
       "localizations": {
@@ -3990,6 +4034,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Marcar resuelto"
+          }
+        }
+      }
+    },
+    "gestion.action.respond": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Responder"
           }
         }
       }
@@ -4217,6 +4272,61 @@
           "stringUnit": {
             "state": "translated",
             "value": "La respuesta necesita al menos 10 caracteres."
+          }
+        }
+      }
+    },
+    "gestion.state.casePending": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En revisión"
+          }
+        }
+      }
+    },
+    "gestion.state.casePublished": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicada, sin respuesta"
+          }
+        }
+      }
+    },
+    "gestion.state.textHidden": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto oculto"
+          }
+        }
+      }
+    },
+    "gestion.state.textPending": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto en revisión"
+          }
+        }
+      }
+    },
+    "gestion.state.textPublished": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Texto publicado"
           }
         }
       }
