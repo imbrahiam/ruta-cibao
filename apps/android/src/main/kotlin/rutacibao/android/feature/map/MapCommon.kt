@@ -89,7 +89,7 @@ fun PinGlyph(color: Color, icon: androidx.compose.ui.graphics.vector.ImageVector
 
 /** A quiet, non-interactive map of one point (consultation detail, report form). */
 @Composable
-fun StaticPinMap(latitude: Double, longitude: Double, tint: Color, meters: Double, modifier: Modifier = Modifier) {
+fun StaticPinMap(latitude: Double, longitude: Double, tint: Color, meters: Double, modifier: Modifier = Modifier, pin: Boolean = true) {
     if (!mapsAvailable) {
         Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant), Alignment.Center) {
             Icon(Icons.Filled.Map, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -112,7 +112,7 @@ fun StaticPinMap(latitude: Double, longitude: Double, tint: Color, meters: Doubl
             rotationGesturesEnabled = false, tiltGesturesEnabled = false, mapToolbarEnabled = false, myLocationButtonEnabled = false,
         ),
     ) {
-        MarkerComposable(state = rememberUpdatedMarkerState(position), anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f)) {
+        if (pin) MarkerComposable(state = rememberUpdatedMarkerState(position), anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f)) {
             Box(Modifier.size(22.dp).background(tint, CircleShape).border(3.dp, Color.White, CircleShape))
         }
     }

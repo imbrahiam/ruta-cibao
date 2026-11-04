@@ -18,10 +18,22 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.PhotoLibrary
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,15 +99,31 @@ fun PhotoAttach(max: Int, photos: List<ByteArray>, enabled: Boolean, add: (ByteA
                 }
             }
         }
-        if (photos.size < max) Row {
-            TextButton(onClick = { library.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }, enabled = enabled && !loading) {
-                Text(stringResource(R.string.contribute_photos_library))
-            }
-            TextButton(onClick = {
+        if (photos.size < max) Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            PhotoButton(Icons.Outlined.CameraAlt, stringResource(R.string.contribute_photos_camera), stringResource(R.string.contribute_photos_camera), Modifier.weight(1f), enabled && !loading) {
                 try { camera.launch(null) } catch (_: android.content.ActivityNotFoundException) { failed = true }
-            }, enabled = enabled && !loading) { Text(stringResource(R.string.contribute_photos_camera)) }
+            }
+            PhotoButton(Icons.Outlined.PhotoLibrary, stringResource(R.string.contribute_photos_library_short), stringResource(R.string.contribute_photos_library), Modifier.weight(1f), enabled && !loading) {
+                library.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+            }
         }
         if (failed) Text(stringResource(R.string.contribute_photos_read_error), color = LocalPalette.current.dangerInk)
+    }
+}
+
+@Composable
+private fun PhotoButton(icon: ImageVector, label: String, description: String, modifier: Modifier, enabled: Boolean, onClick: () -> Unit) {
+    FilledTonalButton(
+        onClick = onClick,
+        enabled = enabled,
+        shape = CircleShape,
+        colors = ButtonDefaults.filledTonalButtonColors(containerColor = LocalPalette.current.inset, contentColor = MaterialTheme.colorScheme.onSurface),
+        contentPadding = PaddingValues(horizontal = 12.dp),
+        modifier = modifier.heightIn(min = 48.dp).semantics { contentDescription = description },
+    ) {
+        Icon(icon, contentDescription = null, Modifier.size(20.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(label, style = MaterialTheme.typography.titleSmall, maxLines = 1)
     }
 }
 

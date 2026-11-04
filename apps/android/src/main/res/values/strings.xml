@@ -225,6 +225,7 @@
     <string name="contribute_lede">Tu aporte ayuda a toda la provincia. El equipo municipal revisa lugares y consultas antes de publicarlos.</string>
     <string name="contribute_mark">Marcar</string>
     <string name="contribute_change">Cambiar</string>
+    <string name="contribute_counter">%1$s de %2$s</string>
     <string name="contribute_review_note">Lo revisa el equipo municipal antes de publicarlo. Te avisaremos.</string>
     <string name="contribute_photos_title">Fotos</string>
     <string name="contribute_photos_helper">Opcional, hasta %1$s. Se revisan antes de publicarse y se les quita la ubicación de la cámara.</string>

@@ -3,6 +3,7 @@ package rutacibao.android.ui
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.Composable
@@ -30,7 +31,7 @@ fun rutaButtonColors(): ButtonColors = ButtonDefaults.buttonColors(
     containerColor = RutaHighlight.solid,
     contentColor = RutaHighlight.onSolid,
     disabledContainerColor = RutaHighlight.solid.copy(alpha = 0.35f),
-    disabledContentColor = RutaHighlight.onSolid.copy(alpha = 0.8f),
+    disabledContentColor = MaterialTheme.colorScheme.onSurface,
 )
 
 @Composable

@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -74,7 +75,16 @@ import rutacibao.android.ui.CategoryAvatar
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.LocalPalette
 import rutacibao.android.ui.Notice
+import rutacibao.android.ui.FillingColumn
 import rutacibao.android.ui.PhotoAttach
+import rutacibao.android.ui.grow
+import rutacibao.android.feature.contribute.SubmitBar
+import androidx.compose.foundation.border
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import rutacibao.android.ui.PrimaryButton
 import rutacibao.android.ui.PushedScreen
 import rutacibao.android.ui.categoryIcon
@@ -115,28 +125,18 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
         title = stringResource(R.string.consultations_new_title),
         onBack = onBack,
         bottomBar = {
-            Surface(color = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 0.dp) {
-                Column(Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom))) {
-                    Row(
-                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        BodyRing(state.bodyLength, 40)
-                        Box(Modifier.weight(1f))
-                        PrimaryButton(
-                            text = stringResource(if (state.submitted) R.string.common_retry else R.string.consultations_submit),
-                            onClick = vm::send,
-                            busy = state.sending,
-                            height = 44.dp,
-                        )
-                    }
-                }
-            }
+            SubmitBar(
+                title = stringResource(if (state.submitted) R.string.common_retry else R.string.consultations_submit),
+                busy = state.sending,
+                enabled = true,
+                onClick = vm::send,
+            )
         },
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 12.dp, bottom = 24.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        FillingColumn(padding, spacing = 6.dp, growMin = 120.dp) {
+            val titleFocus = remember { FocusRequester() }
+            LaunchedEffect(Unit) { titleFocus.requestFocus() }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (category != null) {
                     CategoryAvatar(category.icon, category.color, 36.dp)
                 } else {
@@ -151,48 +151,53 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
                         placeholder = stringResource(R.string.consultations_title_label),
                         style = TextStyle(fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
                         enabled = !state.submitted,
+                        modifier = Modifier.focusRequester(titleFocus),
                     )
                     Problem(NewConsultationUiState.Problem.Title in state.problems, stringResource(R.string.consultations_errors_title))
-                    PlainField(
-                        value = text,
-                        onChange = { text = it.take(NewConsultationUiState.BODY.last); vm.updateBody(it) },
-                        placeholder = stringResource(R.string.consultations_body_label),
-                        style = TextStyle(fontSize = 15.sp, lineHeight = 21.sp),
-                        minLines = 4,
-                        enabled = !state.submitted,
+                }
+            }
+            PlainField(
+                value = text,
+                onChange = { text = it.take(NewConsultationUiState.BODY.last); vm.updateBody(it) },
+                placeholder = stringResource(R.string.consultations_body_label),
+                style = TextStyle(fontSize = 15.sp, lineHeight = 21.sp),
+                enabled = !state.submitted,
+                modifier = Modifier.grow(),
+                counter = state.bodyLength to 40,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Problem(NewConsultationUiState.Problem.Body in state.problems, stringResource(R.string.consultations_errors_body))
+                FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MenuChip(
+                        icon = category?.let { categoryIcon(it.icon) } ?: Icons.Outlined.LocalOffer,
+                        label = category?.name ?: stringResource(R.string.consultations_category),
+                        tint = category?.let { parseCategoryColor(it.color, palette.textSecondary) },
+                        chosen = category != null,
+                        problem = NewConsultationUiState.Problem.Category in state.problems,
+                        items = state.categories.map { Triple(it.id, it.name, categoryIcon(it.icon)) },
+                        onPick = vm::selectCategory,
                     )
-                    Problem(NewConsultationUiState.Problem.Body in state.problems, stringResource(R.string.consultations_errors_body))
-
-                    if (category != null || municipality != null || pinned != null) {
-                        FlowRow(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            category?.let { Chip(it.name, categoryIcon(it.icon), parseCategoryColor(it.color, palette.textSecondary)) }
-                            municipality?.let { Chip(it.name, Icons.Outlined.AccountBalance, palette.textSecondary) }
-                            if (pinned != null) {
-                                Chip(stringResource(R.string.consultations_pinned), Icons.Filled.LocationOn, palette.textSecondary, onClick = { picking = true })
-                            }
-                        }
-                    }
-
-                    Row(Modifier.offset(x = (-12).dp).padding(top = 2.dp)) {
-                        MenuIcon(
-                            icon = Icons.Outlined.LocalOffer,
-                            label = stringResource(R.string.consultations_category),
-                            problem = NewConsultationUiState.Problem.Category in state.problems,
-                            items = state.categories.map { Triple(it.id, it.name, categoryIcon(it.icon)) },
-                            onPick = vm::selectCategory,
-                        )
-                        MenuIcon(
-                            icon = Icons.Outlined.AccountBalance,
-                            label = stringResource(R.string.consultations_municipality),
-                            problem = NewConsultationUiState.Problem.Municipality in state.problems,
-                            items = state.municipalities.map { Triple(it.id, it.name, null) },
-                            onPick = vm::selectMunicipality,
-                        )
-                        val locationLabel = stringResource(if (pinned == null) R.string.consultations_add_location else R.string.consultations_change_location)
-                        AttachButton(if (pinned == null) Icons.Outlined.LocationOn else Icons.Filled.LocationOn, locationLabel, false) { picking = true }
-                    }
-                    Problem(NewConsultationUiState.Problem.Category in state.problems, stringResource(R.string.consultations_errors_category))
-                    Problem(NewConsultationUiState.Problem.Municipality in state.problems, stringResource(R.string.consultations_errors_municipality))
+                    MenuChip(
+                        icon = Icons.Outlined.AccountBalance,
+                        label = municipality?.name ?: stringResource(R.string.consultations_municipality),
+                        tint = null,
+                        chosen = municipality != null,
+                        problem = NewConsultationUiState.Problem.Municipality in state.problems,
+                        items = state.municipalities.map { Triple(it.id, it.name, null) },
+                        onPick = vm::selectMunicipality,
+                    )
+                    AttachChip(
+                        icon = if (pinned == null) Icons.Outlined.LocationOn else Icons.Filled.LocationOn,
+                        label = stringResource(R.string.consultations_location),
+                        tint = null,
+                        chosen = pinned != null,
+                        problem = false,
+                        description = stringResource(if (pinned == null) R.string.consultations_add_location else R.string.consultations_change_location),
+                    ) { picking = true }
+                }
+                Problem(NewConsultationUiState.Problem.Category in state.problems, stringResource(R.string.consultations_errors_category))
+                Problem(NewConsultationUiState.Problem.Municipality in state.problems, stringResource(R.string.consultations_errors_municipality))
+                Box(Modifier.padding(top = 4.dp)) {
                     PhotoAttach(
                         max = NewConsultationUiState.MAX_PHOTOS,
                         photos = state.photos.map { it.jpeg },
@@ -200,14 +205,13 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
                         add = vm::addPhoto,
                         remove = vm::removePhoto,
                     )
-                    state.error?.let { error ->
-                        Notice(Icons.Filled.ErrorOutline, stringResource(if (error == UiError.Offline) R.string.common_offline else R.string.common_error_title), null, palette.dangerInk)
-                    }
-
-                    Row(Modifier.padding(top = 28.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Outlined.Visibility, contentDescription = null, Modifier.size(16.dp).padding(top = 2.dp), tint = palette.textTertiary)
-                        Text(stringResource(R.string.consultations_public_note), style = MaterialTheme.typography.bodySmall, color = palette.textTertiary)
-                    }
+                }
+                state.error?.let { error ->
+                    Notice(Icons.Filled.ErrorOutline, stringResource(if (error == UiError.Offline) R.string.common_offline else R.string.common_error_title), null, palette.dangerInk)
+                }
+                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.Top) {
+                    Icon(Icons.Outlined.Visibility, contentDescription = null, Modifier.size(16.dp).padding(top = 2.dp), tint = palette.textSecondary)
+                    Text(stringResource(R.string.consultations_public_note), style = MaterialTheme.typography.bodySmall, color = palette.textSecondary)
                 }
             }
         }
@@ -224,7 +228,16 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
 }
 
 @Composable
-private fun PlainField(value: String, onChange: (String) -> Unit, placeholder: String, style: TextStyle, minLines: Int = 1, enabled: Boolean = true) {
+private fun PlainField(
+    value: String,
+    onChange: (String) -> Unit,
+    placeholder: String,
+    style: TextStyle,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+    counter: Pair<Int, Int>? = null,
+    filled: Boolean = counter != null,
+) {
     val palette = LocalPalette.current
     BasicTextField(
         value = value,
@@ -232,12 +245,19 @@ private fun PlainField(value: String, onChange: (String) -> Unit, placeholder: S
         enabled = enabled,
         textStyle = style.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-        minLines = minLines,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         decorationBox = { inner ->
-            Box {
+            Box(Modifier.fillMaxSize().then(if (filled) Modifier.clip(RoundedCornerShape(14.dp)).background(palette.inset).heightIn(min = 120.dp).padding(14.dp) else Modifier)) {
                 if (value.isEmpty()) Text(placeholder, style = style, color = palette.textTertiary)
                 inner()
+                if (counter != null && counter.first > 0 && counter.first < counter.second) {
+                    Text(
+                        stringResource(R.string.contribute_counter, counter.first.toString(), counter.second.toString()),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = palette.textSecondary,
+                        modifier = Modifier.align(Alignment.BottomEnd),
+                    )
+                }
             }
         },
     )
@@ -252,49 +272,52 @@ private fun Problem(show: Boolean, text: String) {
     }
 }
 
+/** A 48 dp chip with its label: the field's name until chosen, the choice after. */
 @Composable
-private fun Chip(text: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, onClick: (() -> Unit)? = null) {
+private fun AttachChip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    tint: Color?,
+    chosen: Boolean,
+    problem: Boolean,
+    description: String = label,
+    onClick: () -> Unit,
+) {
+    val palette = LocalPalette.current
     Row(
         Modifier
-            .height(28.dp)
+            .heightIn(min = 48.dp)
             .clip(CircleShape)
-            .background(LocalPalette.current.inset)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(horizontal = 10.dp),
+            .background(palette.inset)
+            .border(1.5.dp, if (problem) palette.dangerInk else Color.Transparent, CircleShape)
+            .clickable(onClickLabel = description, role = Role.Button, onClick = onClick)
+            .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Icon(icon, contentDescription = null, Modifier.size(14.dp), tint = tint)
-        Text(text, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-    }
-}
-
-@Composable
-private fun AttachButton(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, problem: Boolean, onClick: () -> Unit) {
-    Box(
-        Modifier.size(48.dp).clip(CircleShape).clickable(onClickLabel = label, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            Modifier.size(22.dp),
-            tint = if (problem) LocalPalette.current.danger else LocalPalette.current.textSecondary,
+        Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = tint ?: if (problem) palette.dangerInk else palette.textSecondary)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (chosen) FontWeight.SemiBold else FontWeight.Normal),
+            color = if (problem) palette.dangerInk else palette.text,
+            maxLines = 1,
         )
     }
 }
 
 @Composable
-private fun MenuIcon(
+private fun MenuChip(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
+    tint: Color?,
+    chosen: Boolean,
     problem: Boolean,
     items: List<Triple<String, String, androidx.compose.ui.graphics.vector.ImageVector?>>,
     onPick: (String) -> Unit,
 ) {
     var open by androidx.compose.runtime.remember { mutableStateOf(false) }
     Box {
-        AttachButton(icon, label, problem) { open = true }
+        AttachChip(icon, label, tint, chosen, problem) { open = true }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             items.forEach { (id, name, glyph) ->
                 DropdownMenuItem(
@@ -304,26 +327,5 @@ private fun MenuIcon(
                 )
             }
         }
-    }
-}
-
-/** Fills toward the description's minimum; a check once it's enough. */
-@Composable
-private fun BodyRing(length: Int, minimum: Int) {
-    val palette = LocalPalette.current
-    val progress by animateFloatAsState((length.toFloat() / minimum).coerceAtMost(1f), label = "ring")
-    val done = length >= minimum
-    val ink = if (done) palette.success else palette.text
-    val track = palette.hairline
-    val description = stringResource(R.string.consultations_body_helper, length.toString())
-    Box(Modifier.size(24.dp).semantics { contentDescription = description }, Alignment.Center) {
-        Canvas(Modifier.fillMaxSize().clearAndSetSemantics { }) {
-            val stroke = 2.5.dp.toPx()
-            val inset = stroke / 2
-            val arc = Size(size.width - stroke, size.height - stroke)
-            drawArc(track, 0f, 360f, false, topLeft = androidx.compose.ui.geometry.Offset(inset, inset), size = arc, style = Stroke(stroke))
-            drawArc(ink, -90f, 360f * progress, false, topLeft = androidx.compose.ui.geometry.Offset(inset, inset), size = arc, style = Stroke(stroke, cap = StrokeCap.Round))
-        }
-        if (done) Icon(Icons.Filled.Check, contentDescription = null, Modifier.size(12.dp), tint = ink)
     }
 }
