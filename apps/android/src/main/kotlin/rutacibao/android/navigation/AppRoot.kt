@@ -113,6 +113,7 @@ fun AppRoot(
             "consultation" -> Route.NewConsultation
             "traffic" -> Route.TrafficReport
             "place" -> Route.SuggestPlace
+            "inbox" -> { selected = Tab.Contributions; return@LaunchedEffect }
             else -> return@LaunchedEffect
         }
         selected = Tab.Contributions
@@ -176,6 +177,7 @@ fun AppRoot(
                                 )
                             },
                             onOpenConsultation = { push(Route.Consultation(it)) },
+                            startOnInbox = debugCompose == "inbox",
                         )
                     }
                     entry<Route.Account> { AccountScreen(onOpen = { push(Route.AccountSub(it)) }, onOpenGestion = { push(Route.Gestion) }) }

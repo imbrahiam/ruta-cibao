@@ -1,5 +1,22 @@
 package rutacibao.android.feature.contribute
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.filled.AltRoute
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
+import rutacibao.android.ui.MessageState
+import rutacibao.presentation.contributions.InboxUiState
+import rutacibao.presentation.contributions.InboxViewModel
+import rutacibao.presentation.contributions.Notice
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,10 +28,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ChatBubble
@@ -77,41 +92,153 @@ private val Indigo = Color(0xFF5E5CE6)
 private val Orange = Color(0xFFFF9500)
 private val Green = Color(0xFF30A45A)
 
-/** "Aportes": start a contribution, and follow the ones you've made. */
+private enum class Section { Mine, Inbox }
+
+/** "Aportes": start a contribution, and follow the ones you've made and the notices about them. */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation: (String) -> Unit) {
+fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation: (String) -> Unit, startOnInbox: Boolean = false) {
     val graph = LocalAppGraph.current
     val vm: ContributionsViewModel = rootViewModel("contributions") { graph.viewModels.contributions() }
+    val inbox: InboxViewModel = rootViewModel("inbox") { graph.viewModels.inbox() }
     val state by vm.state.collectAsStateWithLifecycle()
+    val notices by inbox.state.collectAsStateWithLifecycle()
     var signingIn by rememberSaveable { mutableStateOf(false) }
+    var section by rememberSaveable { mutableStateOf(if (startOnInbox) Section.Inbox else Section.Mine) }
     val screenName = stringResource(R.string.contributions_title)
 
-    PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = vm::refresh, modifier = Modifier.semantics { paneTitle = screenName }) {
-        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
-            Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 16.dp), Alignment.Center) {
-                BrandMark(28.dp, Modifier.semantics { contentDescription = screenName; heading() })
+    PullToRefreshBox(
+        isRefreshing = state.refreshing,
+        onRefresh = { vm.refresh(); inbox.refresh() },
+        modifier = Modifier.semantics { paneTitle = screenName },
+    ) {
+        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 16.dp), Alignment.Center) {
+                    BrandMark(28.dp, Modifier.semantics { contentDescription = screenName; heading() })
+                }
             }
-            ActionTiles { action -> if (state.signedIn) onStart(action) else signingIn = true }
+            item { ActionTiles { action -> if (state.signedIn) onStart(action) else signingIn = true } }
 
             if (state.signedIn) {
-                Mine(state, vm, onOpenConsultation)
+                stickyHeader { SectionTabs(section, notices.unread) { section = it } }
+                item {
+                    Column {
+                        if (section == Section.Mine) Mine(state, vm, onOpenConsultation) else Inbox(notices, inbox, onOpenConsultation)
+                    }
+                }
             } else {
-                Column(
-                    Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 36.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
-                    Text(
-                        stringResource(R.string.contributions_signed_out_title),
-                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
-                        textAlign = TextAlign.Center,
-                    )
-                    PrimaryButton(stringResource(R.string.contributions_sign_in), { signingIn = true }, Modifier.fillMaxWidth())
+                item {
+                    Column(
+                        Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(top = 36.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        Text(
+                            stringResource(R.string.contributions_signed_out_title),
+                            style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp),
+                            textAlign = TextAlign.Center,
+                        )
+                        PrimaryButton(stringResource(R.string.contributions_sign_in), { signingIn = true }, Modifier.fillMaxWidth())
+                    }
                 }
             }
         }
     }
     if (signingIn && !state.signedIn) SignInDialog(onDismiss = { signingIn = false })
+}
+
+/** Mis aportes / Avisos, pinned while the list scrolls. The unread count is in the label, not just a colour. */
+@Composable
+private fun SectionTabs(selected: Section, unread: Int, onSelect: (Section) -> Unit) {
+    val labels = listOf(
+        Section.Mine to stringResource(R.string.contributions_mine),
+        Section.Inbox to if (unread > 0) stringResource(R.string.contributions_inbox_count, unread.toString()) else stringResource(R.string.contributions_inbox),
+    )
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(horizontal = 16.dp, vertical = 8.dp)) {
+        labels.forEachIndexed { index, (section, label) ->
+            SegmentedButton(
+                selected = section == selected,
+                onClick = { onSelect(section) },
+                shape = SegmentedButtonDefaults.itemShape(index, labels.size),
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        }
+    }
+}
+
+@Composable
+private fun Inbox(state: InboxUiState, vm: InboxViewModel, open: (String) -> Unit) {
+    val palette = LocalPalette.current
+    when (state.phase) {
+        InboxUiState.Phase.Loading -> Box(Modifier.fillMaxWidth().height(120.dp), Alignment.Center) { CircularProgressIndicator() }
+        InboxUiState.Phase.Failed -> ErrorState(state.error ?: UiError.Unknown, onRetry = vm::refresh, modifier = Modifier.height(320.dp))
+        InboxUiState.Phase.Empty -> MessageState(
+            stringResource(R.string.contributions_inbox_empty),
+            stringResource(R.string.contributions_inbox_empty_body),
+            Modifier.height(320.dp),
+            icon = Icons.Filled.Notifications,
+        )
+        InboxUiState.Phase.Ready -> {
+            if (state.unread > 0) {
+                Box(Modifier.fillMaxWidth(), Alignment.CenterEnd) {
+                    TextButton(onClick = { vm.markRead(null) }, Modifier.heightIn(min = 48.dp).padding(horizontal = 8.dp)) {
+                        Text(stringResource(R.string.contributions_mark_all))
+                    }
+                }
+            }
+            state.items.forEach { notice ->
+                NoticeRow(notice) {
+                    vm.markRead(notice.id)
+                    notice.consultationSlug?.let(open)
+                }
+            }
+        }
+    }
+}
+
+/** One notice: unread shows a dot, heavier text and a spoken "Sin leer"; the target opens on tap. */
+@Composable
+private fun NoticeRow(notice: Notice, onClick: () -> Unit) {
+    val palette = LocalPalette.current
+    val context = LocalContext.current
+    val (icon, color) = noticeLook(notice.messageKey)
+    val unreadLabel = stringResource(R.string.notifications_unread)
+    Column {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onClick)
+                .semantics(mergeDescendants = true) { if (notice.unread) stateDescription = unreadLabel }
+                .padding(horizontal = PostInset, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(PostGap),
+        ) {
+            Box(Modifier.size(PostAvatar).background(color.copy(alpha = 0.16f), CircleShape), Alignment.Center) {
+                Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = color)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    noticeMessage(context, notice.messageKey, notice.params),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (notice.unread) FontWeight.SemiBold else FontWeight.Normal,
+                )
+                Text(relativeTimeText(notice.createdAt), style = MaterialTheme.typography.bodyMedium, color = palette.textTertiary)
+            }
+            if (notice.unread) {
+                Box(Modifier.padding(top = 6.dp).size(9.dp).background(palette.accent, CircleShape).clearAndSetSemantics { })
+            }
+        }
+        Hairline()
+    }
+}
+
+private fun noticeLook(key: String): Pair<ImageVector, Color> = when {
+    "consultation" in key -> Icons.Filled.ChatBubble to Indigo
+    "traffic" in key -> Icons.Filled.Warning to Orange
+    "place" in key -> Icons.Filled.LocationOn to Green
+    "business" in key -> Icons.Filled.Storefront to Color(0xFFAF52DE)
+    "route" in key -> Icons.Filled.AltRoute to Green
+    else -> Icons.Filled.Notifications to Color(0xFF8E8E93)
 }
 
 /** Three big tiles: icon and label, always both. */

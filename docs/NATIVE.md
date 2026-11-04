@@ -149,8 +149,8 @@ the alternative is MapLibre Native on both, decided per feature, not up front.
 | Aportes: hub + my contributions | ☑ | ☑ | ☑ |
 | Report on the road / suggest a place | ☑ | ☑ | ☑ |
 | Account: profile, saved, passport, notifications, privacy, about, delete | ☑ | ☑ | ☑ |
-| Gestión (staff): review queue, ayuntamiento reply, weekly PDF, step-up | ☑ | ☑ | ☐ |
-| Notices inbox (Avisos), catalogue key + params | ☑ | ☑ | ☐ |
+| Gestión (staff): review queue, ayuntamiento reply, weekly PDF, step-up | ☑ | ☑ | ☑ |
+| Notices inbox (Avisos), catalogue key + params | ☑ | ☑ | ☑ |
 | Photo upload (place, consultation) | ☐ | ☐ | ☐ |
 | Offline bundle + outbox | ☐ | ☐ | ☐ |
 | Push notifications + deep links (`/s/[kind]/[ref]`) | ☐ | ☐ | ☐ |
@@ -176,6 +176,12 @@ screenshot runs, compiled out of Release:
   `..._GESTION_KIND=<place|photo|claim|traffic|consultation|contentReport|placeReport>` decides the first card of that kind (a reject
   also takes `..._GESTION_NOTE=<text>` and `..._GESTION_SEND=1`); `=report` opens the latest weekly PDF.
   `SIMCTL_CHILD_RUTA_DEBUG_REPLY=<text>` (+ `..._REPLY_SEND=1`) fills and sends the staff reply on an open consultation.
+
+  Android: `adb shell am start -n do.rutacibao.app.dev/rutacibao.android.MainActivity --es ruta_debug_tab gestion|contributions|account`
+  (`gestion` opens Cuenta with Gestión pushed), `--es ruta_debug_compose inbox` opens Aportes on Avisos, `--es ruta_debug_stepup 1`
+  shows the second-factor sheet on Gestión, `--es ruta_debug_slug <slug>` opens a consultation. The session is seeded from a file instead
+  of an extra, because the graph reads it in `Application.onCreate` before any intent exists: write
+  `better-auth.session_token=…` to `files/debug-session` with `adb push` to `/data/local/tmp` and `run-as do.rutacibao.app.dev cp`.
 
 Simulator builds sign ad hoc (`CODE_SIGN_IDENTITY[sdk=iphonesimulator*] = -`), because the Keychain
 refuses unsigned apps.
