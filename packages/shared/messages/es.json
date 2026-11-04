@@ -1008,6 +1008,7 @@
     "lede": "Tu aporte ayuda a toda la provincia. El equipo municipal revisa lugares y consultas antes de publicarlos.",
     "mark": "Marcar",
     "change": "Cambiar",
+    "counter": "{count} de {min}",
     "reviewNote": "Lo revisa el equipo municipal antes de publicarlo. Te avisaremos.",
     "photos": {
       "title": "Fotos",

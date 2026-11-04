@@ -375,6 +375,11 @@ enum L10n {
         static var lede: String { String(localized: LocalizedStringResource("contribute.lede")) }
         static var mark: String { String(localized: LocalizedStringResource("contribute.mark")) }
         static var change: String { String(localized: LocalizedStringResource("contribute.change")) }
+        static func counter(count: String, min: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("contribute.counter", comment: ""), count, min
+            )
+        }
         static var reviewNote: String { String(localized: LocalizedStringResource("contribute.reviewNote")) }
 
         enum Photos {

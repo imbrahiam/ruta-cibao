@@ -68,7 +68,7 @@ struct TrafficReportScreen: View {
             .navigationTitle(L10n.Contribute.Traffic.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button(L10n.Common.cancel) { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { SheetClose { dismiss() } }
             }
         }
         .task {
@@ -100,39 +100,29 @@ struct TrafficReportScreen: View {
                 dismiss()
             }
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+            FillingScroll {
+                VStack(alignment: .leading, spacing: 16) {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 10)], spacing: 10) {
                         ForEach(state.categories, id: \.id) { c in
                             let selected = c.id == state.categoryId
                             let style = CategoryGlyph.style(c.icon, hex: c.color)
                             Button { vm.selectCategory(id: c.id) } label: {
-                                // Each kind in its own colour: a coloured badge on
-                                // a neutral tile, and the whole tile in that colour's
-                                // gradient once chosen (the fill marks it, not hue alone).
-                                let ink = selected ? RutaProminentStyle.ink(on: style.color, scheme) : palette.text
                                 VStack(spacing: 10) {
-                                    if selected {
-                                        Image(systemName: style.symbol)
-                                            .font(.system(size: 22, weight: .semibold))
-                                            .foregroundStyle(ink)
-                                            .frame(width: 40, height: 40)
-                                    } else {
-                                        PinBadge(symbol: style.symbol, color: style.color, size: 40)
-                                    }
+                                    PinBadge(symbol: style.symbol, color: style.color, size: 48)
                                     Text(c.name)
-                                        .font(.footnote.weight(.semibold))
+                                        .font(.footnote.weight(selected ? .bold : .medium))
                                         .multilineTextAlignment(.center)
                                         .lineLimit(2)
-                                        .foregroundStyle(ink)
+                                        .foregroundStyle(palette.text)
                                 }
                                 .padding(.horizontal, 8)
-                                .frame(maxWidth: .infinity, minHeight: 104)
-                                .background {
+                                .frame(maxWidth: .infinity, minHeight: 112)
+                                .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay {
                                     RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .fill(selected ? AnyShapeStyle(style.color.gradient) : AnyShapeStyle(palette.raised(scheme)))
+                                        .strokeBorder(selected ? palette.text : .clear, lineWidth: 2)
                                 }
-                                .animation(.snappy(duration: 0.2), value: selected)
+                                .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                             }
                             .buttonStyle(.plain)
                             .accessibilityAddTraits(selected ? .isSelected : [])
@@ -143,14 +133,11 @@ struct TrafficReportScreen: View {
                     LocationRow(
                         latitude: state.latitude?.doubleValue,
                         longitude: state.longitude?.doubleValue,
-                        required: false
+                        required: false,
+                        grows: true
                     ) { picking = true }
 
-                    TextField(text: $detail, prompt: Text(L10n.Contribute.Traffic.description).foregroundStyle(palette.textTertiary), axis: .vertical) { Text(L10n.Contribute.Traffic.description) }
-                        .font(PostMetrics.text)
-                        .lineLimit(2...5)
-                        .padding(14)
-                        .background(palette.inset, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    GrowField(text: $detail, placeholder: L10n.Contribute.Traffic.description, font: PostMetrics.text, grows: false)
                         .onChange(of: detail) { _, v in vm.updateDescription(value: v) }
 
                     if state.duplicate {
@@ -202,7 +189,7 @@ struct SuggestPlaceScreen: View {
             .navigationTitle(L10n.Contribute.Place.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button(L10n.Common.cancel) { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { SheetClose { dismiss() } }
             }
         }
         .task {
@@ -229,13 +216,13 @@ struct SuggestPlaceScreen: View {
                 Spacer()
             }
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+            FillingScroll {
+                VStack(alignment: .leading, spacing: 14) {
                     Field(text: $name, placeholder: L10n.Contribute.Place.name, font: PostMetrics.name)
                         .onChange(of: name) { _, v in vm.updateName(value: v) }
                     problem(state, .name, L10n.Contribute.Place.Errors.name)
 
-                    Field(text: $about, placeholder: L10n.Contribute.Place.descriptionHelper, font: PostMetrics.text, lines: 3...8)
+                    GrowField(text: $about, placeholder: L10n.Contribute.Place.description, font: PostMetrics.text, counter: (Int(state.descriptionLength), 20))
                         .onChange(of: about) { _, v in vm.updateDescription(value: v) }
                     problem(state, .theDescription, L10n.Contribute.Place.Errors.description)
 
@@ -286,7 +273,6 @@ struct SuggestPlaceScreen: View {
                 }
                 .padding(16)
             }
-            .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge: .bottom) {
                 SubmitBar(title: L10n.Contribute.Place.submit, busy: state.sending, enabled: !state.sending) { vm.send() }
             }
@@ -332,6 +318,8 @@ struct LocationRow: View {
     let latitude: Double?
     let longitude: Double?
     let required: Bool
+    /// Takes the free height (never under `height`) instead of staying fixed.
+    var grows = false
     let pick: () -> Void
     @Environment(\.palette) private var palette
 
@@ -354,9 +342,9 @@ struct LocationRow: View {
                     }
                 }
             }
-            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
+            .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
             .tint(palette.locate)
-            .frame(height: 150)
+            .frame(minHeight: 180, maxHeight: grows ? .infinity : 180)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
@@ -377,6 +365,65 @@ struct LocationRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(L10n.Contribute.Place.location)
+    }
+}
+
+/// Scrolls, but at least as tall as the viewport, so a flexible field inside
+/// takes the leftover height instead of leaving a gap above the button.
+struct FillingScroll<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        GeometryReader { proxy in
+            ScrollView {
+                content.frame(minHeight: proxy.size.height, alignment: .top)
+            }
+            .scrollBounceBehavior(.basedOnSize)
+            .scrollDismissesKeyboard(.interactively)
+        }
+    }
+}
+
+/// A filled multi-line field that grows into the free height, with the
+/// minimum-length counter once typing has started.
+struct GrowField: View {
+    @Binding var text: String
+    let placeholder: String
+    let font: Font
+    var minHeight: CGFloat = 120
+    var grows = true
+    var counter: (count: Int, min: Int)?
+    @Environment(\.palette) private var palette
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        TextField(text: $text, prompt: Text(placeholder).foregroundStyle(palette.textTertiary), axis: .vertical) { Text(placeholder) }
+            .font(font)
+            .focused($focused)
+            .padding(14)
+            .frame(maxWidth: .infinity, minHeight: minHeight, maxHeight: grows ? .infinity : minHeight, alignment: .topLeading)
+            .background(palette.inset, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .onTapGesture { focused = true }
+            .overlay(alignment: .bottomTrailing) {
+                if let counter, counter.count > 0, counter.count < counter.min {
+                    Text(L10n.Contribute.counter(count: String(counter.count), min: String(counter.min)))
+                        .font(.footnote)
+                        .foregroundStyle(palette.textSecondary)
+                        .padding(12)
+                        .allowsHitTesting(false)
+                }
+            }
+    }
+}
+
+/// The sheet's dismiss control: the system's close button, so the title
+/// stays centred between two quiet ends.
+struct SheetClose: View {
+    let action: () -> Void
+    var body: some View {
+        Button(role: .close, action: action)
+            .accessibilityLabel(L10n.Common.close)
     }
 }
 

@@ -52,9 +52,7 @@ struct NewConsultationScreen: View {
             .navigationTitle(L10n.Consultations.newTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(L10n.Common.cancel) { dismiss() }
-                }
+                ToolbarItem(placement: .cancellationAction) { SheetClose { dismiss() } }
             }
         }
         .task {
@@ -79,6 +77,7 @@ private struct Composer: View {
     @State private var title = ""
     @State private var text = ""
 
+    private static let minimumBody = 40
     private enum Field { case title, body }
     private var state: NewConsultationUiState { model.state }
     private var vm: NewConsultationViewModel { model.viewModel }
@@ -87,49 +86,66 @@ private struct Composer: View {
     private var municipality: MunicipalitiesListItem? { state.municipalities.first { $0.id == state.municipalityId } }
 
     var body: some View {
-        ScrollView {
-            HStack(alignment: .top, spacing: PostMetrics.gap) {
-                avatar
-                VStack(alignment: .leading, spacing: 6) {
-                    TextField(text: $title, prompt: Text(L10n.Consultations.titleLabel).foregroundStyle(palette.textTertiary), axis: .vertical) { Text(L10n.Consultations.titleLabel) }
-                        .font(PostMetrics.name)
-                        .focused($focus, equals: .title)
-                        .submitLabel(.next)
-                        .onSubmit { focus = .body }
-                        .onChange(of: title) { _, v in vm.updateTitle(value: v) }
-                        .disabled(state.submitted)
-                    problem(.title, L10n.Consultations.Errors.title)
-
-                    TextField(text: $text, prompt: Text(L10n.Consultations.bodyLabel).foregroundStyle(palette.textTertiary), axis: .vertical) { Text(L10n.Consultations.bodyLabel) }
-                        .font(PostMetrics.text)
-                        .lineLimit(4...)
-                        .focused($focus, equals: .body)
-                        .onChange(of: text) { _, v in vm.updateBody(value: v) }
-                        .disabled(state.submitted)
-                    problem(.body, L10n.Consultations.Errors.body)
-
-                    chips.padding(.top, 8)
-                    attachments.padding(.top, 2).disabled(state.submitted)
-                    PhotoAttach(
-                        max: Int(NewConsultationUiState.companion.MAX_PHOTOS),
-                        images: state.photos.map { BytesKt.dataOf(bytes: $0.jpeg) as Data },
-                        add: { vm.addPhoto(jpeg: BytesKt.byteArrayOf(data: $0)) },
-                        remove: { vm.removePhoto(index: Int32($0)) }
-                    ).disabled(state.submitted)
-                    if let error = state.error {
-                        NoticeCard(symbol: "exclamationmark.circle.fill", title: error == .offline ? L10n.Common.offline : L10n.Common.errorTitle, body: nil, ink: palette.dangerInk)
+        FillingScroll {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top, spacing: PostMetrics.gap) {
+                    avatar
+                    VStack(alignment: .leading, spacing: 6) {
+                        TextField(text: $title, prompt: Text(L10n.Consultations.titleLabel).foregroundStyle(palette.textTertiary), axis: .vertical) { Text(L10n.Consultations.titleLabel) }
+                            .font(PostMetrics.name)
+                            .focused($focus, equals: .title)
+                            .submitLabel(.next)
+                            .onSubmit { focus = .body }
+                            .onChange(of: title) { _, v in vm.updateTitle(value: v) }
+                            .disabled(state.submitted)
+                            .frame(minHeight: PostMetrics.avatar, alignment: .leading)
+                        problem(.title, L10n.Consultations.Errors.title)
                     }
-                    Label(L10n.Consultations.publicNote, systemImage: "eye")
-                        .font(.footnote)
-                        .foregroundStyle(palette.textTertiary)
-                        .padding(.top, 28)
                 }
+
+                TextField(text: $text, prompt: Text(L10n.Consultations.bodyLabel).foregroundStyle(palette.textTertiary), axis: .vertical) { Text(L10n.Consultations.bodyLabel) }
+                    .font(PostMetrics.text)
+                    .focused($focus, equals: .body)
+                    .onChange(of: text) { _, v in vm.updateBody(value: v) }
+                    .disabled(state.submitted)
+                    .padding(14)
+                    .frame(maxWidth: .infinity, minHeight: 120, maxHeight: .infinity, alignment: .topLeading)
+                    .background(palette.inset, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .onTapGesture { focus = .body }
+                    .overlay(alignment: .bottomTrailing) {
+                        let count = Int(state.bodyLength)
+                        if count > 0, count < Self.minimumBody {
+                            Text(L10n.Contribute.counter(count: String(count), min: String(Self.minimumBody)))
+                                .font(.footnote)
+                                .foregroundStyle(palette.textSecondary)
+                                .padding(12)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                problem(.body, L10n.Consultations.Errors.body)
+
+                attachments.disabled(state.submitted)
+                PhotoAttach(
+                    max: Int(NewConsultationUiState.companion.MAX_PHOTOS),
+                    images: state.photos.map { BytesKt.dataOf(bytes: $0.jpeg) as Data },
+                    add: { vm.addPhoto(jpeg: BytesKt.byteArrayOf(data: $0)) },
+                    remove: { vm.removePhoto(index: Int32($0)) }
+                ).padding(.top, 2).disabled(state.submitted)
+                if let error = state.error {
+                    NoticeCard(symbol: "exclamationmark.circle.fill", title: error == .offline ? L10n.Common.offline : L10n.Common.errorTitle, body: nil, ink: palette.dangerInk)
+                }
+                Label(L10n.Consultations.publicNote, systemImage: "eye")
+                    .font(.footnote)
+                    .foregroundStyle(palette.textSecondary)
             }
             .padding(.horizontal, PostMetrics.inset)
             .padding(.top, 12)
+            .padding(.bottom, 8)
         }
-        .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) { footer }
+        .safeAreaInset(edge: .bottom) {
+            SubmitBar(title: state.submitted ? L10n.Common.retry : L10n.Consultations.submit, busy: state.sending, enabled: !state.sending) { vm.send() }
+        }
         .onAppear { focus = .title }
         #if DEBUG
         // `SIMCTL_CHILD_RUTA_DEBUG_FORM=send` (+ `RUTA_DEBUG_PHOTOS=/a.jpg,/b.jpg`): fills the case, attaches the
@@ -176,75 +192,60 @@ private struct Composer: View {
         .animation(.snappy, value: state.categoryId)
     }
 
-    /// Chosen attachments as removable-looking chips; tap one to change it.
-    @ViewBuilder private var chips: some View {
-        let any = category != nil || municipality != nil || pinned != nil
-        if any {
-            FlowChips {
-                if let category {
-                    Chip(text: category.name, symbol: CategoryGlyph.symbol(category.icon), tint: CategoryGlyph.style(category.icon, hex: category.color).color)
-                }
-                if let municipality {
-                    Chip(text: municipality.name, symbol: "building.columns", tint: nil)
-                }
-                if pinned != nil {
-                    Button { picking = true } label: {
-                        Chip(text: L10n.Consultations.pinned, symbol: "mappin.and.ellipse", tint: nil)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    /// Icon-only attach row, like the composer's media row in Threads.
+    /// Topic, municipality and place as labelled chips: each shows what it
+    /// is until something is chosen, then the choice.
     private var attachments: some View {
-        HStack(spacing: 0) {
-            Menu {
-                Picker(L10n.Consultations.category, selection: Binding(
-                    get: { state.categoryId ?? "" }, set: { vm.selectCategory(id: $0) }
-                )) {
-                    ForEach(state.categories, id: \.id) { c in
-                        Label(c.name, systemImage: CategoryGlyph.symbol(c.icon)).tag(c.id)
+        VStack(alignment: .leading, spacing: 6) {
+            FlowChips {
+                Menu {
+                    Picker(L10n.Consultations.category, selection: Binding(
+                        get: { state.categoryId ?? "" }, set: { vm.selectCategory(id: $0) }
+                    )) {
+                        ForEach(state.categories, id: \.id) { c in
+                            Label(c.name, systemImage: CategoryGlyph.symbol(c.icon)).tag(c.id)
+                        }
                     }
+                } label: {
+                    AttachChip(
+                        text: category?.name ?? L10n.Consultations.category,
+                        symbol: category.map { CategoryGlyph.symbol($0.icon) } ?? "tag",
+                        tint: category.map { CategoryGlyph.style($0.icon, hex: $0.color).color },
+                        chosen: category != nil,
+                        problem: state.problems.contains(.category)
+                    )
                 }
-            } label: {
-                attachIcon("tag", problem: state.problems.contains(.category))
-            }
-            .accessibilityLabel(L10n.Consultations.category)
 
-            Menu {
-                Picker(L10n.Consultations.municipality, selection: Binding(
-                    get: { state.municipalityId ?? "" }, set: { vm.selectMunicipality(id: $0) }
-                )) {
-                    ForEach(state.municipalities, id: \.id) { m in Text(m.name).tag(m.id) }
+                Menu {
+                    Picker(L10n.Consultations.municipality, selection: Binding(
+                        get: { state.municipalityId ?? "" }, set: { vm.selectMunicipality(id: $0) }
+                    )) {
+                        ForEach(state.municipalities, id: \.id) { m in Text(m.name).tag(m.id) }
+                    }
+                } label: {
+                    AttachChip(
+                        text: municipality?.name ?? L10n.Consultations.municipality,
+                        symbol: "building.columns",
+                        tint: nil,
+                        chosen: municipality != nil,
+                        problem: state.problems.contains(.municipality)
+                    )
                 }
-            } label: {
-                attachIcon("building.columns", problem: state.problems.contains(.municipality))
-            }
-            .accessibilityLabel(L10n.Consultations.municipality)
 
-            Button { picking = true } label: {
-                attachIcon(pinned == nil ? "mappin.and.ellipse" : "mappin.circle.fill", problem: false)
+                Button { picking = true } label: {
+                    AttachChip(
+                        text: L10n.Consultations.location,
+                        symbol: pinned == nil ? "mappin.and.ellipse" : "mappin.circle.fill",
+                        tint: nil,
+                        chosen: pinned != nil,
+                        problem: false
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(pinned == nil ? L10n.Consultations.addLocation : L10n.Consultations.changeLocation)
             }
-            .accessibilityLabel(pinned == nil ? L10n.Consultations.addLocation : L10n.Consultations.changeLocation)
+            problem(.category, L10n.Consultations.Errors.category)
+            problem(.municipality, L10n.Consultations.Errors.municipality)
         }
-        .padding(.leading, -10)
-        .overlay(alignment: .bottomLeading) {
-            VStack(alignment: .leading, spacing: 2) {
-                problem(.category, L10n.Consultations.Errors.category)
-                problem(.municipality, L10n.Consultations.Errors.municipality)
-            }
-            .offset(y: 26)
-        }
-    }
-
-    private func attachIcon(_ symbol: String, problem: Bool) -> some View {
-        Image(systemName: symbol)
-            .font(.system(size: 18))
-            .foregroundStyle(problem ? palette.danger : palette.textSecondary)
-            .frame(width: 40, height: 40)
-            .contentShape(Rectangle())
     }
 
     @ViewBuilder private func problem(_ p: NewConsultationUiState.Problem, _ text: String) -> some View {
@@ -254,69 +255,28 @@ private struct Composer: View {
                 .foregroundStyle(palette.dangerInk)
         }
     }
-
-    private var footer: some View {
-        HStack(spacing: 12) {
-            BodyRing(length: Int(state.bodyLength), minimum: 40)
-            Spacer(minLength: 8)
-            Button {
-                vm.send()
-            } label: {
-                ZStack {
-                    Text(state.submitted ? L10n.Common.retry : L10n.Consultations.submit).opacity(state.sending ? 0 : 1)
-                    if state.sending { ProgressView().tint(RutaHighlight.onPrimary(palette)) }
-                }
-                .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 6)
-                .frame(minHeight: 36)
-            }
-            .buttonStyle(RutaProminentStyle())
-            .disabled(state.sending)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-    }
 }
 
-/// Fills toward the description's minimum; a check once it's enough.
-private struct BodyRing: View {
-    let length: Int
-    let minimum: Int
-    @Environment(\.palette) private var palette
-
-    var body: some View {
-        let progress = min(Double(length) / Double(minimum), 1)
-        ZStack {
-            Circle().stroke(palette.hairline, lineWidth: 2.5)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(progress >= 1 ? palette.success : palette.text, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            if progress >= 1 {
-                Image(systemName: "checkmark").font(.system(size: 9, weight: .bold)).foregroundStyle(palette.success)
-            }
-        }
-        .frame(width: 22, height: 22)
-        .animation(.snappy, value: progress)
-        .accessibilityElement()
-        .accessibilityLabel(L10n.Consultations.bodyHelper(count: String(length)))
-    }
-}
-
-struct Chip: View {
+/// A 44 pt chip with its label: the field's name until chosen, the choice after.
+struct AttachChip: View {
     let text: String
     let symbol: String
     let tint: Color?
+    let chosen: Bool
+    let problem: Bool
     @Environment(\.palette) private var palette
 
     var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(tint ?? palette.textSecondary)
-            Text(text).font(.footnote.weight(.semibold))
+        HStack(spacing: 6) {
+            Image(systemName: symbol).font(.system(size: 14, weight: .semibold)).foregroundStyle(tint ?? (problem ? palette.dangerInk : palette.textSecondary))
+            Text(text).font(.subheadline.weight(chosen ? .semibold : .regular)).lineLimit(1)
+                .foregroundStyle(problem ? palette.dangerInk : palette.text)
         }
-        .padding(.horizontal, 10)
-        .frame(height: 28)
+        .padding(.horizontal, 12)
+        .frame(minHeight: 44)
         .background(palette.inset, in: Capsule())
+        .overlay { Capsule().strokeBorder(problem ? palette.dangerInk : .clear, lineWidth: 1.5) }
+        .contentShape(Capsule())
     }
 }
 

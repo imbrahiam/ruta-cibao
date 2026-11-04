@@ -76,9 +76,17 @@ struct RutaProminentStyle: PrimitiveButtonStyle {
     var tint: Color? = nil
     @Environment(\.palette) private var palette
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
-        if let tint {
+        if tint == nil, !isEnabled {
+            // Clearly off, still legible: the accent washed out, the label in full ink.
+            // A plain label, not a Button: the system dims disabled buttons again.
+            configuration.label
+                .foregroundStyle(palette.text)
+                .background((RutaHighlight.enabled && RutaHighlight.primaryButtons ? RutaHighlight.solid : palette.accent).opacity(0.35), in: Capsule())
+                .accessibilityAddTraits(.isButton)
+        } else if let tint {
             // Exactly the badge's fill (the colour's own gradient), so the
             // button and the pin above it read as one colour.
             Button(role: configuration.role, action: configuration.trigger) {

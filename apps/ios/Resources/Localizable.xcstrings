@@ -2068,6 +2068,17 @@
         }
       }
     },
+    "contribute.counter": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ de %2$@"
+          }
+        }
+      }
+    },
     "contribute.lede": {
       "extractionState": "manual",
       "localizations": {
