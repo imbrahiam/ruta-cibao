@@ -21,14 +21,24 @@ final class AccountModel {
     isolated deinit { scope.close() }
 }
 
-private enum AccountRoute: Hashable { case profile, saved, passport, notifications, privacy, about, deletion }
+private enum AccountRoute: Hashable { case profile, saved, passport, notifications, privacy, about, deletion, gestion }
 
 struct AccountScreen: View {
     @Environment(\.graph) private var graph
     @State private var model: AccountModel?
+    @State private var path = Self.initialPath
+
+    /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_TAB=gestion` opens Cuenta with Gestión pushed.
+    private static var initialPath: [AccountRoute] {
+        #if DEBUG
+        ProcessInfo.processInfo.environment["RUTA_DEBUG_TAB"] == "gestion" ? [.gestion] : []
+        #else
+        []
+        #endif
+    }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             Group {
                 if let model {
                     if model.state.signedIn {
@@ -64,6 +74,7 @@ struct AccountScreen: View {
             case .privacy: PrivacyView()
             case .about: AboutView()
             case .deletion: DeletionView(model: model)
+            case .gestion: GestionScreen()
             }
         }
         .toolbarVisibility(.visible, for: .navigationBar)
@@ -110,6 +121,7 @@ private struct SignedInAccount: View {
     @State private var confirmingSignOut = false
 
     private var state: AccountUiState { model.state }
+    private var staffPending: Int? { state.staffPending.map { Int(truncating: $0) } }
 
     var body: some View {
         ScrollView {
@@ -136,7 +148,15 @@ private struct SignedInAccount: View {
                     VStack(spacing: 12) { shortcuts }
                 }
                 .padding(.horizontal, AccountMetrics.inset)
-                .padding(.bottom, 20)
+                .padding(.bottom, staffPending == nil ? 20 : 4)
+                if let pending = staffPending {
+                    NavigationLink(value: AccountRoute.gestion) {
+                        SettingsRow(symbol: "checklist", title: L10n.Gestion.title, count: pending)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityValue(L10n.Gestion.pending(count: pending))
+                    GroupDivider()
+                }
                 link(.notifications, "bell.fill", L10n.NotificationSettings.title, badge: .red)
                 GroupDivider()
                 link(.privacy, "hand.raised.fill", L10n.Account.privacy, badge: .blue)

@@ -149,6 +149,7 @@ the alternative is MapLibre Native on both, decided per feature, not up front.
 | Aportes: hub + my contributions | ☑ | ☑ | ☑ |
 | Report on the road / suggest a place | ☑ | ☑ | ☑ |
 | Account: profile, saved, passport, notifications, privacy, about, delete | ☑ | ☑ | ☑ |
+| Gestión (staff): review queue, ayuntamiento reply, weekly PDF, step-up | ☑ | ☑ | ☐ |
 | Notices inbox (Avisos), catalogue key + params | ☑ | ☑ | ☐ |
 | Photo upload (place, consultation) | ☐ | ☐ | ☐ |
 | Offline bundle + outbox | ☐ | ☐ | ☐ |
@@ -169,6 +170,12 @@ screenshot runs, compiled out of Release:
   (open the sheet with `xcrun simctl openurl booted rutacibao-dev://s/place/<slug>`).
 - `SIMCTL_CHILD_RUTA_DEBUG_TRAFFIC=select|still` opens the first road report that isn't yours (needs the session hook for `still`),
   and `still` also answers "Sigue ahí" after 5 s. Android: `adb shell am start ... --es ruta_debug_traffic select|still`.
+
+- `SIMCTL_CHILD_RUTA_DEBUG_TAB=gestion` opens Cuenta with Gestión (staff only) pushed. `SIMCTL_CHILD_RUTA_DEBUG_STEPUP=1` shows the
+  second-factor sheet (the local demo staff skip the step-up on the server). `SIMCTL_CHILD_RUTA_DEBUG_GESTION=approve|reject` with
+  `..._GESTION_KIND=<place|photo|claim|traffic|consultation|contentReport|placeReport>` decides the first card of that kind (a reject
+  also takes `..._GESTION_NOTE=<text>` and `..._GESTION_SEND=1`); `=report` opens the latest weekly PDF.
+  `SIMCTL_CHILD_RUTA_DEBUG_REPLY=<text>` (+ `..._REPLY_SEND=1`) fills and sends the staff reply on an open consultation.
 
 Simulator builds sign ad hoc (`CODE_SIGN_IDENTITY[sdk=iphonesimulator*] = -`), because the Keychain
 refuses unsigned apps.

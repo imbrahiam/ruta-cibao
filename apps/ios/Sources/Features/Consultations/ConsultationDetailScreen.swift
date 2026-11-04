@@ -60,6 +60,7 @@ private struct DetailContent: View {
     let comments: CommentsModel?
     @Environment(\.palette) private var palette
     @FocusState private var composing: Bool
+    @State private var replyingAsStaff = true
     private var state: ConsultationDetailUiState { model.state }
     private var vm: ConsultationDetailViewModel { model.viewModel }
 
@@ -89,9 +90,34 @@ private struct DetailContent: View {
                 .scrollDismissesKeyboard(.interactively)
                 // Threads' reply bar: always at hand at the bottom of the post.
                 .safeAreaInset(edge: .bottom) {
-                    if let comments {
-                        CommentComposer(model: comments, placeholder: L10n.Comments.placeholder, focus: $composing)
+                    if state.canRespond && replyingAsStaff {
+                        StaffReplyComposer(model: model) { replyingAsStaff = false }
+                    } else if let comments {
+                        HStack(spacing: 0) {
+                            if state.canRespond {
+                                Button { replyingAsStaff = true } label: {
+                                    Image(systemName: "building.columns")
+                                        .font(.system(size: 17, weight: .semibold))
+                                        .frame(width: 44, height: 44)
+                                }
+                                .buttonStyle(.plain)
+                                .padding(.leading, 8)
+                                .accessibilityLabel(L10n.Gestion.replyTitle)
+                            }
+                            CommentComposer(model: comments, placeholder: L10n.Comments.placeholder, focus: $composing)
+                        }
                     }
+                }
+                .sheet(isPresented: Binding(
+                    get: { if case .none = onEnum(of: state.stepUp) { false } else { true } },
+                    set: { if !$0 { vm.dismissStepUp() } }
+                )) {
+                    StepUpSheet(
+                        state: state.stepUp,
+                        verify: { vm.verifyStepUp(code: $0) },
+                        useRecovery: { vm.useRecoveryCode(recovery: $0) },
+                        dismiss: { vm.dismissStepUp() }
+                    )
                 }
                 .fullScreenCover(isPresented: Binding(
                     get: { comments?.state.signInRequested ?? false },
@@ -351,5 +377,113 @@ private struct Reply: View {
         .padding(.horizontal, PostMetrics.inset)
         .padding(.top, 12)
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Staff reply
+
+/// The composer for staff: the status the case is left in, then the public
+/// reply. It sits in the same bar as the comment composer.
+private struct StaffReplyComposer: View {
+    let model: ConsultationDetailModel
+    let showComments: () -> Void
+    @Environment(\.palette) private var palette
+    @Environment(\.colorScheme) private var scheme
+    @State private var text = ""
+    @State private var status: ConsultationsRespondInput.StatusAfter = .answered
+    private var state: ConsultationDetailUiState { model.state }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Menu {
+                    Picker(L10n.Gestion.replyStatus, selection: $status) {
+                        ForEach(state.replyStatuses, id: \.self) { option in
+                            Text(Self.label(option)).tag(option)
+                        }
+                    }
+                } label: {
+                    Label(Self.label(status), systemImage: "chevron.up.chevron.down")
+                        .labelStyle(TrailingChevron())
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 44)
+                        .background(palette.raised(scheme), in: Capsule())
+                }
+                .accessibilityLabel(L10n.Gestion.replyStatus)
+                .accessibilityValue(Self.label(status))
+                Spacer(minLength: 8)
+                Button(action: showComments) {
+                    Image(systemName: "bubble.left").frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(L10n.Comments.title)
+            }
+            HStack(alignment: .bottom, spacing: 8) {
+                TextField(L10n.Gestion.replyTitle, text: $text, axis: .vertical)
+                    .lineLimit(1...5)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 11)
+                    .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                Button { model.viewModel.respond(body: text, statusAfter: status) } label: {
+                    ZStack {
+                        Image(systemName: "arrow.up").opacity(state.replying ? 0 : 1)
+                        if state.replying { ProgressView().tint(RutaHighlight.onPrimary(palette)) }
+                    }
+                    .font(.system(size: 17, weight: .bold))
+                    .frame(width: 44, height: 44)
+                }
+                .buttonStyle(RutaProminentStyle())
+                .buttonBorderShape(.circle)
+                .disabled(state.replying || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .accessibilityLabel(L10n.Gestion.replySend)
+            }
+            if let error = state.replyError {
+                Label(error == .tooShort ? L10n.Gestion.replyTooShort : L10n.Common.errorBody, systemImage: "exclamationmark.circle.fill")
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(palette.dangerInk)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .onChange(of: state.replySent) { _, sent in
+            if sent {
+                text = ""
+                model.viewModel.replySentHandled()
+            }
+        }
+        .task { debugReply() }
+    }
+
+    /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_REPLY="texto"` types the reply and sends it.
+    private func debugReply() {
+        #if DEBUG
+        guard let value = ProcessInfo.processInfo.environment["RUTA_DEBUG_REPLY"], !value.isEmpty else { return }
+        text = value
+        if ProcessInfo.processInfo.environment["RUTA_DEBUG_REPLY_SEND"] == "1" {
+            Task {
+                try? await Task.sleep(for: .milliseconds(1500))
+                model.viewModel.respond(body: value, statusAfter: status)
+            }
+        }
+        #endif
+    }
+
+    private static func label(_ status: ConsultationsRespondInput.StatusAfter) -> String {
+        switch status {
+        case .inReview: L10n.Consultations.StatusLabel.in_review
+        case .answered: L10n.Consultations.StatusLabel.answered
+        case .resolved: L10n.Consultations.StatusLabel.resolved
+        case .rejected: L10n.Consultations.StatusLabel.rejected
+        }
+    }
+}
+
+private struct TrailingChevron: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 6) {
+            configuration.title
+            configuration.icon.font(.caption2.weight(.bold))
+        }
     }
 }

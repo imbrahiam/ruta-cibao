@@ -21,7 +21,7 @@ struct RootView: View {
         switch ProcessInfo.processInfo.environment["RUTA_DEBUG_TAB"] {
         case "consultations": return .consultations
         case "contributions": return .contributions
-        case "account": return .account
+        case "account", "gestion": return .account
         default: return .map
         }
         #else

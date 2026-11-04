@@ -71,6 +71,11 @@ enum CategoryGlyph {
         case "trash-2": Style(symbol: "trash.fill", color: .gray)
         case "wrench": Style(symbol: "wrench.and.screwdriver.fill", color: .gray)
         case "triangle-alert": Style(symbol: "exclamationmark.triangle.fill", color: .orange)
+        case "flag": Style(symbol: "flag.fill", color: .orange)
+        case "image": Style(symbol: "photo.fill", color: .teal)
+        case "store": Style(symbol: "storefront.fill", color: .mint)
+        case "shield-alert": Style(symbol: "exclamationmark.shield.fill", color: .red)
+        case "messages-square": Style(symbol: "bubble.left.and.bubble.right.fill", color: .blue)
         case "octagon-x": Style(symbol: "xmark.octagon.fill", color: .red)
         default: Style(symbol: "mappin", color: .gray)
         }

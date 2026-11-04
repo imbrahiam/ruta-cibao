@@ -597,7 +597,7 @@ private struct CategoryChips: View {
 /// A filter chip: monochrome outline icon and label; filled ink when on (a
 /// fill, not a hue change: it reads without colour vision too). Over the map (`floating`)
 /// it's Liquid Glass; in the search sheet, outlined white.
-private struct FilterChip: View {
+struct FilterChip: View {
     let symbol: String
     let tint: Color
     let title: String

@@ -30,6 +30,8 @@ struct SettingsRow: View {
     var chevron = true
     /// iOS Settings' icon: a white glyph on a rounded square of this colour.
     var badge: Color? = nil
+    /// A number shown as text in a capsule (never colour alone).
+    var count: Int? = nil
     /// Airbnb's menu gutter (24pt), wider than the feed's.
     var inset: CGFloat = 24
     @Environment(\.palette) private var palette
@@ -57,6 +59,14 @@ struct SettingsRow: View {
             Spacer(minLength: 8)
             if let value {
                 Text(value).font(.system(size: 15)).foregroundStyle(palette.textTertiary).monospacedDigit()
+            }
+            if let count {
+                Text(verbatim: "\(count)")
+                    .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                    .foregroundStyle(palette.background)
+                    .padding(.horizontal, 9)
+                    .frame(minWidth: 26, minHeight: 26)
+                    .background(palette.text, in: Capsule())
             }
             if chevron {
                 Image(systemName: "chevron.right")
