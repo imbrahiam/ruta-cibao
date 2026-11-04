@@ -1,1 +1,0 @@
-ALTER TABLE "traffic_reports" ADD COLUMN "path" geometry(LineString,4326);
