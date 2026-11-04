@@ -89,6 +89,14 @@ const serverSchema = z
     APNS_TOPIC: optionalString(),
     APNS_ENVIRONMENT: z.enum(["sandbox", "production"]).optional(),
 
+    // FCM HTTP v1 service-account credentials. Never sent to native clients.
+    FCM_PROJECT_ID: optionalString(),
+    FCM_CLIENT_EMAIL: optionalString(),
+    FCM_PRIVATE_KEY: optionalString(),
+    // Public app-link association identities; empty means no verified app binding.
+    IOS_APP_IDS: optionalString(),
+    ANDROID_APP_LINKS: optionalString(),
+
     // Object storage. MinIO locally and on the VPS; any S3-compatible service
     // works, which is what lets the same image run on Railway with R2.
     S3_ENDPOINT: z.url().default("http://localhost:9000"),
@@ -183,6 +191,20 @@ const serverSchema = z
         code: "custom",
         path: ["APNS_KEY_ID"],
         message: "APNs credentials are required in production",
+      });
+    }
+    if (
+      !(
+        value.FCM_PROJECT_ID &&
+        value.FCM_CLIENT_EMAIL &&
+        value.FCM_PRIVATE_KEY
+      ) &&
+      !value.DEMO_DEPLOYMENT
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["FCM_PROJECT_ID"],
+        message: "FCM credentials are required in production",
       });
     }
     if (

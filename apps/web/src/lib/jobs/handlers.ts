@@ -20,6 +20,7 @@ import { clearExpiredRateLimits } from "@/lib/rate-limit";
 import { clearExpiredRealtimeEvents } from "@/lib/realtime";
 import { clearExpiredStaffSessionVerifications } from "@/modules/access/staff-session";
 import { runAccountDeletion } from "@/modules/account/deletion";
+import { cleanupConsultationPhotoUploads } from "@/modules/consultations/photos";
 import { deliverNotification } from "@/modules/notifications/notify";
 import { buildOfflineSnapshot } from "@/modules/offline/snapshot";
 import { cleanupPhotoUploads } from "@/modules/places/photos";
@@ -54,15 +55,29 @@ const handlers: Handlers = {
    * schedules to explain in the runbook for no operational difference.
    */
   [QUEUES.platformCleanup]: async () => {
-    const [realtime, idempotency, rateLimits, photoUploads, staffSessions] =
-      await Promise.all([
-        clearExpiredRealtimeEvents(),
-        clearExpiredIdempotencyKeys(),
-        clearExpiredRateLimits(),
-        cleanupPhotoUploads(db),
-        clearExpiredStaffSessionVerifications(db),
-      ]);
-    return { realtime, idempotency, rateLimits, photoUploads, staffSessions };
+    const [
+      realtime,
+      idempotency,
+      rateLimits,
+      photoUploads,
+      staffSessions,
+      consultationPhotoUploads,
+    ] = await Promise.all([
+      clearExpiredRealtimeEvents(),
+      clearExpiredIdempotencyKeys(),
+      clearExpiredRateLimits(),
+      cleanupPhotoUploads(db),
+      clearExpiredStaffSessionVerifications(db),
+      cleanupConsultationPhotoUploads(db),
+    ]);
+    return {
+      realtime,
+      idempotency,
+      rateLimits,
+      photoUploads,
+      staffSessions,
+      consultationPhotoUploads,
+    };
   },
 
   [QUEUES.notificationDeliver]: (input) => deliverNotification(input),

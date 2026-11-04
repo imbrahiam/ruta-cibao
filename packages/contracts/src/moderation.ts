@@ -2,7 +2,7 @@ import { oc } from "@orpc/contract";
 import { openapi } from "@orpc/openapi";
 import { z } from "zod";
 import { decideClaimInput, pendingClaimShape } from "./businesses";
-import { consultationStatusSchema } from "./consultations";
+import { consultationPhoto, consultationStatusSchema } from "./consultations";
 import { okOutput } from "./me";
 import { contentTarget } from "./safety";
 import { removeTrafficInput } from "./traffic";
@@ -140,6 +140,7 @@ export const pendingCaseShape = z.object({
   municipalityName: z.string(),
   openedBy: z.string().nullable(),
   supportCount: z.number().int().nonnegative(),
+  photos: z.array(consultationPhoto).max(4),
 });
 
 export const liveTrafficShape = z.object({

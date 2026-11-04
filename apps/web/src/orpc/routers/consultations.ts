@@ -7,10 +7,15 @@ import {
   supportConsultation,
 } from "@/modules/consultations/open-consultation";
 import {
+  attachConsultationPhoto,
+  requestConsultationPhotoUpload,
+} from "@/modules/consultations/photos";
+import {
   browseConsultations,
   consultationDetail,
 } from "@/modules/consultations/read";
 import { respondToConsultation } from "@/modules/consultations/respond";
+import { PhotoError } from "@/modules/places/photos";
 import { impl, member, moderator } from "../base";
 
 /**
@@ -22,6 +27,19 @@ import { impl, member, moderator } from "../base";
  * procedure cannot quietly skip it.
  */
 function asConsultationError(error: unknown): never {
+  if (error instanceof PhotoError) {
+    throw new ORPCError(
+      error.reason === "not_found"
+        ? "NOT_FOUND"
+        : error.reason === "conflict"
+          ? "CONFLICT"
+          : "BAD_REQUEST",
+      {
+        message: "That photo cannot be accepted.",
+        data: { reason: error.reason },
+      },
+    );
+  }
   if (!(error instanceof ConsultationError)) throw error;
 
   switch (error.reason) {
@@ -44,6 +62,21 @@ function asConsultationError(error: unknown): never {
 }
 
 export const consultationsRouter = {
+  photoUpload: impl.consultations.photoUpload
+    .use(member)
+    .handler(({ context, input }) =>
+      requestConsultationPhotoUpload(context.db, context.viewer, input).catch(
+        asConsultationError,
+      ),
+    ),
+  attachPhoto: impl.consultations.attachPhoto
+    .use(member)
+    .handler(({ context, input }) =>
+      attachConsultationPhoto(context.db, context.viewer, input).catch(
+        asConsultationError,
+      ),
+    ),
+
   /** The consultation taxonomy, for the form and the filter chips. */
   categories: impl.consultations.categories.handler(({ context }) =>
     context.db

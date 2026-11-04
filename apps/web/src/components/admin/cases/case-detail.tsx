@@ -108,6 +108,24 @@ export function CaseDetail({ slug }: { slug: string }) {
             <p className="text-sm leading-relaxed whitespace-pre-line">
               {item.body}
             </p>
+            {item.photos?.map((photo) => (
+              <a
+                key={photo.url}
+                href={photo.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {/* Signed storage URLs also cover pending moderation imagery. */}
+                {/* biome-ignore lint/performance/noImgElement: private signed object URL */}
+                <img
+                  src={photo.url}
+                  alt={photo.alt ?? ""}
+                  width={photo.width}
+                  height={photo.height}
+                  className="mt-4 max-h-96 w-full rounded-lg object-contain"
+                />
+              </a>
+            ))}
           </AdminSection>
 
           <AdminSection

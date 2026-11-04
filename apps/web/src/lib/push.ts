@@ -1,4 +1,4 @@
-/** Native push over APNs. Provider acceptance is not a human read acknowledgement. */
+/** Native push over APNs and FCM. Acceptance is not a human read acknowledgement. */
 import { sign } from "node:crypto";
 import { type ClientHttp2Session, connect } from "node:http2";
 import { appTargetHref, parseAppTarget } from "@ruta/shared/app-target";
@@ -16,6 +16,7 @@ import { routing } from "@/i18n/routing";
 import { recordAudit } from "@/lib/audit";
 import { decryptSensitive } from "@/lib/crypto";
 import { env } from "@/lib/env";
+import { isFcmEnabled, sendToFcm } from "@/lib/fcm";
 import { logInfo } from "@/lib/log";
 
 const SEND_BATCH_SIZE = 100;
@@ -27,7 +28,9 @@ const PERMANENT_ERRORS = [
   "Unregistered",
   "BadDeviceToken",
   "DeviceTokenNotForTopic",
-  "PayloadTooLarge",
+  "FcmUNREGISTERED",
+  "FcmSENDER_ID_MISMATCH",
+  "FcmInvalidToken",
 ];
 const providerErrorCodes = new Set([
   ...PERMANENT_ERRORS,
@@ -51,13 +54,17 @@ type Device = Pick<
 
 export type PushPayload = { notificationId: string; href?: string };
 
-export function isPushEnabled(): boolean {
+function isApnsEnabled(): boolean {
   return Boolean(
     env.APNS_KEY_ID &&
       env.APNS_TEAM_ID &&
       env.APNS_PRIVATE_KEY &&
       env.APNS_TOPIC,
   );
+}
+
+export function isPushEnabled(): boolean {
+  return isApnsEnabled() || isFcmEnabled();
 }
 
 /** Provider text can contain tokens; only known error codes leave this boundary. */
@@ -159,9 +166,15 @@ function sendToApns(
       clearTimeout(timer);
       if (status === 200 && apnsId)
         return resolve({ status: "ok", id: apnsId });
+      let value: unknown;
+      try {
+        value = reply ? JSON.parse(reply) : {};
+      } catch {
+        value = {};
+      }
       const parsed = z
         .object({ reason: z.string().optional() })
-        .safeParse(reply ? JSON.parse(reply) : {});
+        .safeParse(value);
       // A 410 is always "this device is gone", whatever the reason says.
       const reason =
         status === 410
@@ -359,14 +372,10 @@ export async function sendPushToUser(
         .orderBy(asc(nativePushDevices.installationId))
         .for("update");
       if (!pending.length) return { accepted: 0, retry: false };
-      // iOS goes to APNs. Android (FCM) isn't wired yet: its devices wait,
-      // registered, and the in-app inbox still carries the notice.
-      const ios = pending.filter((device) => device.platform === "ios");
-      if (ios.length < pending.length)
-        logInfo("native_push.android.unconfigured", {
-          devices: pending.length - ios.length,
-        });
-      if (!ios.length) return { accepted: 0, retry: false };
+      const configured = pending.filter((device) =>
+        device.platform === "ios" ? isApnsEnabled() : isFcmEnabled(),
+      );
+      if (!configured.length) return { accepted: 0, retry: false };
       const body = JSON.stringify({
         aps: {
           alert: {
@@ -378,23 +387,30 @@ export async function sendPushToUser(
         },
         ...data,
       });
-      const session = connect(apnsOrigin());
-      session.on("error", () => {});
+      const session = configured.some((device) => device.platform === "ios")
+        ? connect(apnsOrigin())
+        : undefined;
+      session?.on("error", () => {});
       let batchAccepted = 0;
       let batchRetry = false;
       try {
-        for (const device of ios) {
-          const ticket = await sendToApns(
-            session,
-            decryptSensitive(device.tokenCiphertext),
-            body,
-          );
+        for (const device of configured) {
+          const token = decryptSensitive(device.tokenCiphertext);
+          const ticket =
+            device.platform === "ios" && session
+              ? await sendToApns(session, token, body)
+              : await sendToFcm(
+                  token,
+                  data,
+                  catalogue("notifications.title"),
+                  catalogue("notifications.pushGeneric"),
+                );
           const stored = await storeTicket(tx, notificationId, device, ticket);
           batchAccepted += stored.accepted;
           batchRetry ||= stored.retry;
         }
       } finally {
-        session.close();
+        session?.close();
       }
       return { accepted: batchAccepted, retry: batchRetry };
     });

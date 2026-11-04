@@ -13,6 +13,7 @@ import {
   userBlocks,
 } from "@/db/schema";
 import { imageUrl } from "@/lib/storage";
+import { hasStaffAuthority } from "@/modules/access/permissions";
 import type { Viewer } from "@/modules/access/viewer";
 import { notBlockedAuthor } from "@/modules/safety/blocks";
 import { ConsultationError } from "./open-consultation";
@@ -57,7 +58,7 @@ function supportedBy(userId: string | null) {
 type Photo = { url: string; width: number; height: number; alt: string | null };
 
 /** Photos for a page of cases, keyed by case id, in the author's order. */
-async function photosFor(db: Db, ids: string[]) {
+export async function photosFor(db: Db, ids: string[]) {
   const byCase = new Map<string, Photo[]>();
   if (ids.length === 0) return byCase;
   const rows = await db
@@ -226,11 +227,13 @@ export async function consultationDetail(db: Db, viewer: Viewer, slug: string) {
 
   if (!row) throw new ConsultationError("not_found");
 
-  // Pending and hidden cases are for their author alone here; staff review
-  // them through the moderation queue. What a blocked author wrote reads as
-  // missing to the person who blocked them.
+  // Authors and scoped staff can inspect pending imagery before publication.
+  // A staff grant for another municipality must not reveal the case.
   const isAuthor = viewerId !== null && row.openedByUserId === viewerId;
-  if (row.publicationStatus !== "published" && !isAuthor) {
+  const canReview =
+    viewer.kind !== "anonymous" &&
+    hasStaffAuthority(viewer, row.municipalityId);
+  if (row.publicationStatus !== "published" && !isAuthor && !canReview) {
     throw new ConsultationError("not_found");
   }
   if (row.publicationStatus === "published" && !isAuthor && viewerId) {

@@ -208,3 +208,32 @@ export const consultationPhotos = pgTable(
 );
 
 export type ConsultationPhoto = typeof consultationPhotos.$inferSelect;
+
+/** Durable capabilities and receipts; retrying a request never creates a second photo. */
+export const consultationPhotoUploads = pgTable(
+  "consultation_photo_uploads",
+  {
+    storageKey: text().primaryKey(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    consultationId: uuid()
+      .notNull()
+      .references(() => consultations.id, { onDelete: "cascade" }),
+    requestId: uuid().notNull(),
+    requestHash: text().notNull(),
+    sizeBytes: integer().notNull(),
+    contentType: text().notNull(),
+    finalKey: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    expiresAt: timestamp({ withTimezone: true }).notNull(),
+    temporaryDeletedAt: timestamp({ withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("consultation_photo_uploads_user_request_idx").on(
+      table.userId,
+      table.requestId,
+    ),
+    index("consultation_photo_uploads_expiry_idx").on(table.expiresAt),
+  ],
+);

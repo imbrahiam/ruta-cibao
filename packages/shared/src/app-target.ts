@@ -27,12 +27,44 @@ export function appTargetHref(target: AppTarget): string {
 
 /** Reads a canonical href back into a target; anything else is not a target. */
 export function parseAppTarget(href: string): AppTarget | null {
-  const path =
-    href.replace(/^[a-z][a-z0-9+.-]*:\/\/[^/]*/i, "").split(/[?#]/)[0] ?? "";
+  if (
+    href.includes("?") ||
+    href.includes("#") ||
+    href.includes("\\") ||
+    /\s/.test(href)
+  )
+    return null;
+  let path = href;
+  if (!href.startsWith("/")) {
+    try {
+      const url = new URL(href);
+      if (
+        url.username ||
+        url.password ||
+        !["https:", "http:"].includes(url.protocol)
+      )
+        return null;
+      path = url.pathname;
+    } catch {
+      return null;
+    }
+  }
   if (path === "/contributions") return { kind: "contributions" };
   const match = /^\/s\/([a-z]+)\/([^/]+)$/.exec(path);
   if (!match) return null;
   const kind = match[1] as TargetKind;
   if (!TARGET_KINDS.includes(kind)) return null;
-  return { kind, ref: decodeURIComponent(match[2] ?? "") };
+  let ref: string;
+  try {
+    ref = decodeURIComponent(match[2] ?? "");
+  } catch {
+    return null;
+  }
+  const valid =
+    kind === "place" || kind === "consultation"
+      ? /^[a-z0-9][a-z0-9-]{0,159}$/.test(ref)
+      : /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+          ref,
+        );
+  return valid ? { kind, ref } : null;
 }

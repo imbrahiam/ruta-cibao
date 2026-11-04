@@ -258,6 +258,17 @@ export const trafficContract = {
     .input(activeTrafficInput)
     .output(z.array(trafficReportShape)),
 
+  detail: oc
+    .meta(
+      openapi({
+        method: "GET",
+        path: "/traffic/{id}",
+        summary: "A current traffic report by id",
+      }),
+    )
+    .input(z.object({ id: z.uuid() }))
+    .output(trafficReportShape),
+
   report: oc
     .meta(
       openapi({

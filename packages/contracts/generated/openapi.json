@@ -758,6 +758,42 @@
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 9007199254740991
+                          },
+                          "photos": {
+                            "maxItems": 4,
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "url": {
+                                  "type": "string",
+                                  "minLength": 1
+                                },
+                                "width": {
+                                  "type": "integer",
+                                  "exclusiveMinimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "height": {
+                                  "type": "integer",
+                                  "exclusiveMinimum": 0,
+                                  "maximum": 9007199254740991
+                                },
+                                "alt": {
+                                  "anyOf": [
+                                    {
+                                      "type": "string",
+                                      "maxLength": 300
+                                    },
+                                    {
+                                      "type": "null"
+                                    }
+                                  ]
+                                }
+                              },
+                              "required": ["url", "width", "height", "alt"],
+                              "additionalProperties": false
+                            }
                           }
                         },
                         "required": [
@@ -774,7 +810,8 @@
                           "municipalityId",
                           "municipalityName",
                           "openedBy",
-                          "supportCount"
+                          "supportCount",
+                          "photos"
                         ],
                         "additionalProperties": false
                       }
@@ -4035,6 +4072,222 @@
         }
       }
     },
+    "/traffic/{id}": {
+      "get": {
+        "operationId": "traffic.detail",
+        "summary": "A current traffic report by id",
+        "parameters": [
+          {
+            "in": "path",
+            "required": true,
+            "name": "id",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "categoryId": {
+                      "type": "string"
+                    },
+                    "categoryName": {
+                      "type": "string"
+                    },
+                    "categoryIcon": {
+                      "type": "string"
+                    },
+                    "categoryColor": {
+                      "type": "string"
+                    },
+                    "description": {
+                      "type": ["string", "null"]
+                    },
+                    "descriptionModerationStatus": {
+                      "type": "string",
+                      "enum": ["pending", "published", "hidden"]
+                    },
+                    "lng": {
+                      "type": "number"
+                    },
+                    "lat": {
+                      "type": "number"
+                    },
+                    "path": {
+                      "anyOf": [
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "lng": {
+                                "type": "number"
+                              },
+                              "lat": {
+                                "type": "number"
+                              }
+                            },
+                            "required": ["lng", "lat"],
+                            "additionalProperties": false
+                          }
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "lengthMeters": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "state": {
+                      "type": "string",
+                      "enum": ["active", "cleared"]
+                    },
+                    "severity": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["blocking", "partial", "minor"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "municipalityId": {
+                      "type": "string"
+                    },
+                    "municipalityName": {
+                      "type": "string"
+                    },
+                    "reportedBy": {
+                      "type": ["string", "null"]
+                    },
+                    "reporterResidentVerified": {
+                      "type": "boolean"
+                    },
+                    "voices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": ["string", "null"]
+                          },
+                          "image": {
+                            "type": ["string", "null"]
+                          },
+                          "residentVerified": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "key",
+                          "name",
+                          "image",
+                          "residentVerified"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "voiceCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "stillCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "clearedCount": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "myVerdict": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["still", "cleared"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "isMine": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "categoryId",
+                    "categoryName",
+                    "categoryIcon",
+                    "categoryColor",
+                    "description",
+                    "descriptionModerationStatus",
+                    "lng",
+                    "lat",
+                    "path",
+                    "lengthMeters",
+                    "state",
+                    "severity",
+                    "municipalityId",
+                    "municipalityName",
+                    "reportedBy",
+                    "reporterResidentVerified",
+                    "voices",
+                    "voiceCount",
+                    "createdAt",
+                    "expiresAt",
+                    "stillCount",
+                    "clearedCount",
+                    "myVerdict",
+                    "isMine"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/traffic/street": {
       "post": {
         "operationId": "traffic.streetAt",
@@ -4359,6 +4612,133 @@
                     "clearedCount",
                     "expiresAt"
                   ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consultations/{consultationId}/photos/upload": {
+      "post": {
+        "operationId": "consultations.photoUpload",
+        "summary": "Reserve an author-owned consultation photo upload",
+        "parameters": [
+          {
+            "in": "path",
+            "required": true,
+            "name": "consultationId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "contentType": {
+                    "type": "string",
+                    "enum": ["image/jpeg", "image/png", "image/webp"]
+                  },
+                  "sizeBytes": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 8388608
+                  }
+                },
+                "required": ["requestId", "contentType", "sizeBytes"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": ["upload", "pending"]
+                    },
+                    "storageKey": {
+                      "type": "string"
+                    },
+                    "uploadUrl": {
+                      "type": ["string", "null"]
+                    }
+                  },
+                  "required": ["status", "storageKey", "uploadUrl"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/consultations/{consultationId}/photos": {
+      "post": {
+        "operationId": "consultations.attachPhoto",
+        "summary": "Attach an uploaded photo and submit the case for review",
+        "parameters": [
+          {
+            "in": "path",
+            "required": true,
+            "name": "consultationId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "storageKey": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  }
+                },
+                "required": ["storageKey"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "pending"
+                    }
+                  },
+                  "required": ["status"],
                   "additionalProperties": false
                 }
               }

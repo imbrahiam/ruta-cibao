@@ -68,6 +68,16 @@ export const trafficRouter = {
     activeTrafficReports(context.db, await context.getViewer(), input),
   ),
 
+  detail: impl.traffic.detail.handler(async ({ context, input }) => {
+    const [report] = await activeTrafficReports(
+      context.db,
+      await context.getViewer(),
+      input,
+    );
+    if (!report) throw new ORPCError("NOT_FOUND");
+    return report;
+  }),
+
   report: impl.traffic.report
     .use(member)
     .handler(({ context, input, errors }) =>

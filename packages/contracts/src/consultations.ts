@@ -2,7 +2,7 @@ import { oc } from "@orpc/contract";
 import { openapi } from "@orpc/openapi";
 import { z } from "zod";
 import { categorySummary } from "./catalog";
-import { mapPosition } from "./places";
+import { MAX_PHOTO_BYTES, mapPosition } from "./places";
 
 /**
  * Opening a case with the ayuntamiento.
@@ -111,10 +111,7 @@ const consultationSummary = z.object({
   responseCount: z.number().int().nonnegative(),
   createdAt: z.iso.datetime(),
   answeredAt: z.iso.datetime().nullable(),
-  /**
-   * Up to four photos, in the order the author chose. Optional until the
-   * upload pipeline (same as place photos: signed PUT, then moderation) ships.
-   */
+  /** Up to four normalized photos, reviewed together with the case. */
   photos: z.array(consultationPhoto).max(4).optional(),
 });
 
@@ -163,7 +160,47 @@ export const supportConsultationOutput = z.object({
 
 export const respondConsultationOutput = z.object({ status: z.literal("ok") });
 
+export const consultationPhotoUploadInput = z.object({
+  requestId: z.uuid(),
+  consultationId: z.uuid(),
+  contentType: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  sizeBytes: z.number().int().positive().max(MAX_PHOTO_BYTES),
+});
+
+export const consultationPhotoUploadOutput = z.object({
+  status: z.enum(["upload", "pending"]),
+  storageKey: z.string(),
+  uploadUrl: z.string().nullable(),
+});
+
+export const attachConsultationPhotoInput = z.object({
+  consultationId: z.uuid(),
+  storageKey: z.string().min(1).max(500),
+});
+
 export const consultationsContract = {
+  photoUpload: oc
+    .meta(
+      openapi({
+        method: "POST",
+        path: "/consultations/{consultationId}/photos/upload",
+        summary: "Reserve an author-owned consultation photo upload",
+      }),
+    )
+    .input(consultationPhotoUploadInput)
+    .output(consultationPhotoUploadOutput),
+
+  attachPhoto: oc
+    .meta(
+      openapi({
+        method: "POST",
+        path: "/consultations/{consultationId}/photos",
+        summary: "Attach an uploaded photo and submit the case for review",
+      }),
+    )
+    .input(attachConsultationPhotoInput)
+    .output(z.object({ status: z.literal("pending") })),
+
   /** The consultation taxonomy, for the form and the filter chips. */
   categories: oc
     .meta(

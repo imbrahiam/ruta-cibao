@@ -1,5 +1,4 @@
 import { createRouterClient, ORPCError } from "@orpc/server";
-import { PROVINCE_BOUNDS } from "@ruta/shared/geo";
 import { cache } from "react";
 import { db } from "@/db";
 import type { AppContext } from "@/orpc/context";
@@ -107,17 +106,9 @@ export const loadShare = cache(
         return data && { kind, ref, data };
       }
       case "traffic": {
-        const [west, south, east, north] = PROVINCE_BOUNDS;
-        const reports = await client.traffic.active({
-          west,
-          south,
-          east,
-          north,
-          limit: 200,
-        });
-        const data = reports.find((report) => report.id === ref);
-        // Only what the live map would still show; an expired or removed
-        // report is simply absent here and so is never described as current.
+        const data = await unlessUnavailable(
+          client.traffic.detail({ id: ref }),
+        );
         return data ? { kind, ref, data } : null;
       }
     }

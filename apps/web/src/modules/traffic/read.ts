@@ -71,7 +71,7 @@ type Voice = {
 export async function activeTrafficReports(
   db: Db,
   viewer: Viewer,
-  input: ActiveTrafficInput,
+  input: ActiveTrafficInput | { id: string },
 ) {
   const viewerId = viewer.kind === "anonymous" ? null : viewer.userId;
 
@@ -144,12 +144,17 @@ export async function activeTrafficReports(
             sql`${trafficReports.resolvedAt} > now() - make_interval(hours => ${CLEARED_VISIBLE_HOURS})`,
           ),
         ),
-        sql`ST_Intersects(${trafficReports.location}, ST_MakeEnvelope(${input.west}, ${input.south}, ${input.east}, ${input.north}, 4326))`,
+        "id" in input
+          ? and(
+              eq(trafficReports.id, input.id),
+              eq(trafficReports.status, "active"),
+            )
+          : sql`ST_Intersects(${trafficReports.location}, ST_MakeEnvelope(${input.west}, ${input.south}, ${input.east}, ${input.north}, 4326))`,
       ),
     )
     // Newest first: the thing that just happened is the thing nobody knows yet.
     .orderBy(sql`${trafficReports.createdAt} desc`)
-    .limit(input.limit);
+    .limit("id" in input ? 1 : input.limit);
 
   /**
    * Everyone who has spoken about the reports on screen, in one round trip.

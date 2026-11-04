@@ -20,6 +20,7 @@ import {
 import { imageUrl } from "@/lib/storage";
 import type { ModeratorViewer } from "@/modules/access/permissions";
 import { residentVerified } from "@/modules/access/resident";
+import { photosFor } from "@/modules/consultations/read";
 import { appThumbnailKey } from "@/modules/places/thumbnail";
 import { resolveContentTarget } from "@/modules/safety/targets";
 
@@ -459,9 +460,14 @@ export async function pendingConsultations(
       asc(consultations.createdAt),
     )
     .limit(input.limit);
+  const photos = await photosFor(
+    db,
+    rows.map((row) => row.id),
+  );
 
   return rows.map((row) => ({
     ...row,
+    photos: photos.get(row.id) ?? [],
     createdAt: row.createdAt.toISOString(),
   }));
 }
