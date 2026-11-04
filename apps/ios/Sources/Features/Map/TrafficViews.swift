@@ -144,9 +144,13 @@ struct TrafficSheetView: View {
                     .font(.subheadline.monospacedDigit())
                     .opacity(0.75)
             }
-            .foregroundStyle(chosen ? Color(.systemBackground) : Color.primary)
+            .foregroundStyle(chosen ? palette.onAccent : palette.text)
             .frame(maxWidth: .infinity, minHeight: 64)
-            .background(chosen ? Color.primary : palette.inset, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(chosen ? palette.accent : palette.inset, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(chosen ? .clear : palette.hairline, lineWidth: 1)
+            }
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
