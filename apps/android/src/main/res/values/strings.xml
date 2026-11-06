@@ -20,12 +20,12 @@
     <string name="notifications_place_rejected">No aprobaron %1$s. Toca para ver por qué.</string>
     <string name="notifications_consultation_answered">El ayuntamiento respondió tu caso: %1$s</string>
     <string name="notifications_consultation_status_changed">Tu caso «%1$s» pasó a %2$s</string>
-    <string name="notifications_traffic_nearby">Reporte de tránsito en un municipio que sigues: %1$s</string>
+    <string name="notifications_traffic_nearby">%1$s</string>
     <string name="notifications_business_claim_approved">Aprobaron tu solicitud sobre %1$s</string>
     <string name="notifications_report_ready">Ya está el informe semanal de %1$s</string>
     <string name="notifications_business_claim_rejected">No aprobaron tu solicitud sobre %1$s. Toca para ver por qué.</string>
     <string name="notifications_traffic_removed">Quitamos del mapa tu reporte de %1$s.</string>
-    <string name="notifications_consultation_published">Tu caso «%1$s» ya es público. Otros vecinos pueden apoyarlo.</string>
+    <string name="notifications_consultation_published">Tu caso «%1$s» ya es público.</string>
     <string name="notifications_consultation_hidden">Tu caso «%1$s» no se publicó. Toca para ver por qué.</string>
     <string name="notifications_traffic_text_hidden">Quitamos el texto de tu reporte de %1$s; el aviso sigue en el mapa.</string>
     <string name="notifications_content_removed">Retiramos un aporte tuyo tras revisar un reporte: %1$s</string>
@@ -874,7 +874,6 @@
     <string name="traffic_gone">Ya pasó</string>
     <string name="traffic_still_short">Sigue ahí</string>
     <string name="traffic_gone_short">Ya no está</string>
-    <string name="traffic_mine">Es tu aviso. Tus vecinos dirán si sigue ahí.</string>
     <string name="traffic_your_answer">Tu respuesta</string>
     <string name="traffic_sheet_label">Aviso de tránsito: %1$s</string>
     <string name="traffic_thanks_still">Gracias, lo mantendremos en el mapa</string>

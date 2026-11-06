@@ -120,14 +120,33 @@ private struct StatusFilter: View {
     let selected: ConsultationsBrowseInput.Status?
     let select: (ConsultationsBrowseInput.Status?) -> Void
 
+    @Environment(\.palette) private var palette
+
+    private var options: [ConsultationsBrowseInput.Status?] { [nil] + ConsultationsBrowseInput.Status.allCases }
+
     var body: some View {
-        CenterWheel(
-            options: [nil] + ConsultationsBrowseInput.Status.allCases,
-            selected: selected,
-            title: { $0.map(ConsultationStatusText.label) ?? L10n.Consultations.allTab },
-            select: select
-        )
-        .padding(.vertical, 4)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                    let current = option == selected
+                    Button { select(option) } label: {
+                        Text(option.map(ConsultationStatusText.label) ?? L10n.Consultations.allTab)
+                            .font(.subheadline.weight(current ? .bold : .semibold))
+                            .foregroundStyle(current ? Color.primary : Color.secondary)
+                            .padding(.horizontal, 14)
+                            .frame(minHeight: 44)
+                            .background(current ? palette.raised : .clear, in: Capsule())
+                            .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(current ? .isSelected : [])
+                }
+            }
+            .padding(.horizontal, PostMetrics.inset)
+        }
+        .accessibilityLabel(L10n.Consultations.filterStatus)
+        .sensoryFeedback(.selection, trigger: selected)
+        .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5) }
     }
 }
 
@@ -149,9 +168,11 @@ private struct ConsultationPost: View {
                 CategoryPinBadge(icon: item.categoryIcon, hex: item.categoryColor, size: PostMetrics.avatar)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(item.categoryName)
+                        Text(item.title)
                             .font(PostMetrics.name)
-                            .lineLimit(1)
+                            .lineSpacing(2)
+                            .lineLimit(3)
+                            .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 8)
                         Text(CompactTime.since(item.createdAt.date))
                             .font(PostMetrics.text)
@@ -159,11 +180,6 @@ private struct ConsultationPost: View {
                             .layoutPriority(1)
                         MoreButton(action: more)
                     }
-                    Text(item.title)
-                        .font(PostMetrics.text)
-                        .lineSpacing(2)
-                        .lineLimit(6)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(.horizontal, PostMetrics.inset)

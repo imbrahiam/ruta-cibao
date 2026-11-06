@@ -92,17 +92,20 @@ private struct DetailContent: View {
                 .scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     ThreadComposerBar {
-                        if state.canRespond {
-                            composerMode
-                        }
                         if state.canRespond && replyingAsStaff {
                             StaffReplyComposer(
                                 model: model,
                                 text: $officialDraft,
                                 status: $officialStatus,
+                                replyingAsStaff: $replyingAsStaff,
                                 focus: $composing
                             )
                         } else if let comments {
+                            if state.canRespond {
+                                ComposerModeMenu(replyingAsStaff: $replyingAsStaff, status: $officialStatus, statuses: state.replyStatuses)
+                                    .padding(.horizontal, 16)
+                                    .disabled(comments.state.sending)
+                            }
                             CommentComposer(model: comments, placeholder: L10n.Comments.placeholder, focus: $composing)
                         }
                     }
@@ -144,34 +147,6 @@ private struct DetailContent: View {
                 }
             }
         }
-    }
-
-    private var composerMode: some View {
-        Menu {
-            Picker(L10n.Comments.composerMode, selection: $replyingAsStaff) {
-                Label(L10n.Comments.participantMode, systemImage: "person").tag(false)
-                Label(L10n.Comments.officialMode, systemImage: "building.columns").tag(true)
-            }
-        } label: {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(L10n.Comments.composerMode)
-                    .foregroundStyle(.secondary)
-                Text(replyingAsStaff ? L10n.Comments.officialMode : L10n.Comments.participantMode)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.primary)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption.weight(.semibold))
-            }
-            .font(.subheadline)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(state.replying || (comments?.state.sending ?? false))
-        .padding(.horizontal, 16)
-        .onChange(of: replyingAsStaff) { _, _ in composing = false }
     }
 }
 
@@ -436,6 +411,7 @@ private struct StaffReplyComposer: View {
     let model: ConsultationDetailModel
     @Binding var text: String
     @Binding var status: ConsultationsRespondInput.StatusAfter
+    @Binding var replyingAsStaff: Bool
     var focus: FocusState<Bool>.Binding
     @Environment(\.palette) private var palette
     @Environment(\.colorScheme) private var scheme
@@ -455,34 +431,9 @@ private struct StaffReplyComposer: View {
                     }
                 }
             }
-            Menu {
-                Picker(L10n.Gestion.replyStatus, selection: $status) {
-                    ForEach(state.replyStatuses, id: \.self) { option in
-                        Text(Self.label(option)).tag(option)
-                    }
-                }
-            } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(L10n.Comments.statusAfter)
-                        .foregroundStyle(.secondary)
-                    Text(Self.label(status))
-                        .fontWeight(.semibold)
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption.weight(.semibold))
-                }
-                .font(.subheadline)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(minHeight: 44, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .disabled(state.replying)
-            .accessibilityLabel(L10n.Gestion.replyStatus)
-            .accessibilityValue(Self.label(status))
-            HStack(alignment: .bottom, spacing: 10) {
-                ComposerAvatar(official: true)
-                    .padding(.bottom, 6)
+            HStack(alignment: .bottom, spacing: 8) {
+                ComposerModeMenu(replyingAsStaff: $replyingAsStaff, status: $status, statuses: state.replyStatuses)
+                    .disabled(state.replying)
                 HStack(alignment: .bottom, spacing: 4) {
                     TextField(L10n.Gestion.replyTitle, text: $text, axis: .vertical)
                         .font(.body)
@@ -502,7 +453,7 @@ private struct StaffReplyComposer: View {
                 .background(palette.raised, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .task { debugReply() }
     }
@@ -521,7 +472,7 @@ private struct StaffReplyComposer: View {
         #endif
     }
 
-    private static func label(_ status: ConsultationsRespondInput.StatusAfter) -> String {
+    fileprivate static func label(_ status: ConsultationsRespondInput.StatusAfter) -> String {
         switch status {
         case .inReview: L10n.Consultations.StatusLabel.in_review
         case .answered: L10n.Consultations.StatusLabel.answered
@@ -531,3 +482,48 @@ private struct StaffReplyComposer: View {
     }
 }
 
+
+/// One compact menu: who answers, and the status the case is left in.
+private struct ComposerModeMenu: View {
+    @Binding var replyingAsStaff: Bool
+    @Binding var status: ConsultationsRespondInput.StatusAfter
+    let statuses: [ConsultationsRespondInput.StatusAfter]
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Menu {
+            Picker(L10n.Comments.composerMode, selection: $replyingAsStaff) {
+                Label(L10n.Comments.participantMode, systemImage: "person").tag(false)
+                Label(L10n.Consultations.municipality, systemImage: "building.columns").tag(true)
+            }
+            if replyingAsStaff {
+                Picker(L10n.Comments.statusAfter, selection: $status) {
+                    ForEach(statuses, id: \.self) { option in
+                        Text(StaffReplyComposer.label(option)).tag(option)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(replyingAsStaff ? L10n.Consultations.municipality : L10n.Comments.participantMode)
+                        .fontWeight(.semibold)
+                    if replyingAsStaff {
+                        Text(StaffReplyComposer.label(status)).foregroundStyle(.secondary)
+                    }
+                }
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2.weight(.semibold))
+            }
+            .font(.footnote)
+            .foregroundStyle(.primary)
+            .padding(.horizontal, 12)
+            .frame(minHeight: 50)
+            .background(palette.raised, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.Comments.composerMode)
+        .accessibilityValue(replyingAsStaff ? "\(L10n.Consultations.municipality), \(StaffReplyComposer.label(status))" : L10n.Comments.participantMode)
+    }
+}

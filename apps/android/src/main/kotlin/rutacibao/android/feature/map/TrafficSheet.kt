@@ -11,9 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.CheckCircle
@@ -98,7 +98,7 @@ fun TrafficPin(notice: TrafficNotice, selected: Boolean) {
 fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVerdict) -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val palette = LocalPalette.current
     Column(
-        modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 32.dp),
+        modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -117,26 +117,27 @@ fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVe
                     style = MaterialTheme.typography.bodyMedium,
                     color = palette.textSecondary,
                 )
+                // Only when it says something the title doesn't (a flood that also blocks the road).
+                notice.severity?.takeIf { stringResource(it.label()) != notice.categoryName }?.let { severity ->
+                    Row(
+                        Modifier.padding(top = 4.dp).clip(CircleShape).background(palette.fill).padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Icon(severity.icon, contentDescription = null, Modifier.size(16.dp))
+                        Text(stringResource(severity.label()), style = MaterialTheme.typography.labelLarge)
+                    }
+                }
             }
             CloseButton(onClose, Modifier.offset(x = 8.dp))
         }
-        notice.severity?.let { severity ->
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(severity.icon, contentDescription = null, Modifier.size(20.dp))
-                Text(stringResource(severity.label()), style = MaterialTheme.typography.titleSmall)
-            }
-        }
         notice.details?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary) }
-        if (notice.isMine) {
-            Text(stringResource(R.string.traffic_mine), style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
-        } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Answer(stringResource(R.string.traffic_still_short), notice.stillCount, notice.myVerdict == TrafficVerdict.Still, Modifier.weight(1f)) {
-                    onConfirm(TrafficVerdict.Still)
-                }
-                Answer(stringResource(R.string.traffic_gone_short), notice.clearedCount, notice.myVerdict == TrafficVerdict.Cleared, Modifier.weight(1f)) {
-                    onConfirm(TrafficVerdict.Cleared)
-                }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Answer(stringResource(R.string.traffic_still_short), notice.stillCount, notice.myVerdict == TrafficVerdict.Still, !notice.isMine, Modifier.weight(1f)) {
+                onConfirm(TrafficVerdict.Still)
+            }
+            Answer(stringResource(R.string.traffic_gone_short), notice.clearedCount, notice.myVerdict == TrafficVerdict.Cleared, !notice.isMine, Modifier.weight(1f)) {
+                onConfirm(TrafficVerdict.Cleared)
             }
         }
         if (failure != null) {
@@ -150,25 +151,24 @@ fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVe
 }
 
 @Composable
-private fun Answer(title: String, count: Int, chosen: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    val background = if (chosen) MaterialTheme.colorScheme.onSurface else LocalPalette.current.inset
-    val content = if (chosen) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurface
+private fun Answer(title: String, count: Int, chosen: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+    val palette = LocalPalette.current
+    val shape = RoundedCornerShape(14.dp)
     val description = "$title, $count"
-    Column(
+    Row(
         modifier
-            .heightIn(min = 64.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(background)
-            .clickable(role = Role.RadioButton, onClick = onClick)
+            .heightIn(min = 48.dp)
+            .clip(shape)
+            .background(if (chosen) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f) else palette.fill)
+            .then(if (chosen) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, shape) else Modifier)
+            .then(if (enabled) Modifier.clickable(role = Role.RadioButton, onClick = onClick) else Modifier)
             .semantics(mergeDescendants = true) { contentDescription = description; selected = chosen; role = Role.RadioButton }
             .padding(vertical = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            if (chosen) Icon(Icons.Filled.CheckCircle, contentDescription = null, Modifier.size(18.dp), tint = content)
-            Text(title, style = MaterialTheme.typography.titleMedium, color = content, textAlign = TextAlign.Center)
-        }
-        Text("$count", style = MaterialTheme.typography.bodyMedium, color = content.copy(alpha = 0.75f))
+        if (chosen) Icon(Icons.Filled.CheckCircle, contentDescription = null, Modifier.size(18.dp))
+        Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text("$count", style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
     }
 }

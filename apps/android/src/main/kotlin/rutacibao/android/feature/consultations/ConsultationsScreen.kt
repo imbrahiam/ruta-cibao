@@ -40,10 +40,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.Share
-import androidx.compose.material.icons.outlined.ThumbUp
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -89,6 +89,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import rutacibao.android.R
 import rutacibao.android.feature.auth.SignInDialog
+import rutacibao.android.navigation.LocalTabBarClearance
 import rutacibao.android.ui.LoadingMark
 import rutacibao.android.ui.EmptyState
 import rutacibao.android.ui.ErrorState
@@ -130,6 +131,7 @@ fun ConsultationsScreen(onOpen: (String) -> Unit = {}) {
                 LazyColumn(
                     state = list,
                     modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = LocalTabBarClearance.current + 16.dp),
                 ) {
                     item(key = "header") { FeedHeader(state.filters, state.status, vm::selectStatus) }
                     items(state.items, key = { it.id }) { item ->
@@ -266,9 +268,9 @@ private fun PostRow(item: Consultation, onOpen: () -> Unit, onToggleSupport: () 
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        item.categoryName,
+                        item.title,
                         style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
+                        maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
@@ -284,7 +286,6 @@ private fun PostRow(item: Consultation, onOpen: () -> Unit, onToggleSupport: () 
                         tint = LocalPalette.current.textTertiary,
                     )
                 }
-                Text(item.title, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 21.sp), maxLines = 6, overflow = TextOverflow.Ellipsis)
             }
         }
         val photos = item.photos.orEmpty()
@@ -349,7 +350,7 @@ private fun ActionsRow(item: Consultation, onReply: () -> Unit, onToggleSupport:
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         SupportIcon(item.supported, onToggleSupport)
         IconTarget(Icons.Outlined.ChatBubbleOutline, stringResource(R.string.consultations_timeline), ink, onReply)
-        IconTarget(Icons.Outlined.Share, shareLabel, ink) { shareText(context, item.title, item.slug) }
+        IconTarget(Icons.AutoMirrored.Outlined.Send, shareLabel, ink) { shareText(context, item.title, item.slug) }
     }
 }
 
@@ -399,7 +400,7 @@ internal fun SupportIcon(supported: Boolean, onToggle: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            if (supported) Icons.Filled.ThumbUp else Icons.Outlined.ThumbUp,
+            if (supported) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
             contentDescription = null,
             Modifier.size(20.dp).scale(scale.value),
             tint = ink,

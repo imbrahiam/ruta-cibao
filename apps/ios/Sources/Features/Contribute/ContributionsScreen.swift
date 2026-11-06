@@ -151,7 +151,7 @@ struct ContributionsScreen: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
-                .padding(.bottom, 12)
+                .padding(.bottom, 16)
 
                 if state.signedIn {
                     SwiftUI.Section {
@@ -162,7 +162,7 @@ struct ContributionsScreen: View {
                             myContributions(model)
                         }
                     } header: {
-                        tabs.background(palette.surface)
+                        tabs.background(palette.background)
                     }
                 } else {
                     signedOut
@@ -196,12 +196,25 @@ struct ContributionsScreen: View {
 
     private var tabs: some View {
         let unread = Int(inbox?.state.unread ?? 0)
-        return SegmentTabs(
-            options: [Section.mine, .inbox],
-            selected: section,
-            title: { $0 == .mine ? L10n.Contributions.mine : (unread > 0 ? L10n.Contributions.inboxCount(count: String(unread)) : L10n.Contributions.inbox) },
-            select: { section = $0 }
-        )
+        return HStack(spacing: 0) {
+            SegmentTabs(
+                options: [Section.mine, .inbox],
+                selected: section,
+                title: { $0 == .mine ? L10n.Contributions.mine : (unread > 0 ? L10n.Contributions.inboxCount(count: String(unread)) : L10n.Contributions.inbox) },
+                select: { section = $0 }
+            )
+            if section == .inbox, unread > 0 {
+                Button { inbox?.viewModel.markRead(id: nil) } label: {
+                    Image(systemName: "checkmark.circle")
+                        .font(.system(size: 20, weight: .regular))
+                        .frame(width: 44, height: 44)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(palette.textSecondary)
+                .accessibilityLabel(L10n.Contributions.markAll)
+                .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5) }
+            }
+        }
     }
 
     @ViewBuilder private func myContributions(_ model: ContributionsModel) -> some View {
@@ -233,20 +246,18 @@ struct ContributionsScreen: View {
 /// Full-colour action tiles, using the same gradient as contribution badges.
 private struct ActionTiles: View {
     let start: (ContributeAction) -> Void
-    @Environment(\.colorScheme) private var scheme
-
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             ForEach(ContributeAction.allCases) { action in
                 Button { start(action) } label: {
                     VStack(spacing: 8) {
                         RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(action.tint.gradient)
-                            .frame(height: 72)
+                            .fill(action.tint)
+                            .frame(height: 56)
                             .overlay {
                                 Image(systemName: action.symbol)
                                     .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(scheme == .dark ? RutaProminentStyle.ink(on: action.tint, scheme) : .white)
+                                    .foregroundStyle(.white)
                                     .accessibilityHidden(true)
                             }
                         Text(action.title)
@@ -304,13 +315,6 @@ private struct ContributionRow: View {
                         .foregroundStyle(palette.textSecondary)
                         .padding(.top, 2)
                 }
-            }
-            if opens {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(palette.textTertiary)
-                    .padding(.top, 2)
-                    .accessibilityHidden(true)
             }
         }
         .padding(.horizontal, PostMetrics.inset)
@@ -378,13 +382,6 @@ private struct InboxList: View {
             EmptyState(symbol: "bell", title: L10n.Contributions.inboxEmpty, message: L10n.Contributions.inboxEmptyBody)
                 .padding(.top, 40)
         case .ready:
-            if state.unread > 0 {
-                Button(L10n.Contributions.markAll) { model.viewModel.markRead(id: nil) }
-                    .font(.footnote.weight(.semibold))
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.horizontal, 16)
-                    .frame(minHeight: 44)
-            }
             ForEach(state.items, id: \.id) { notice in
                 Button {
                     model.viewModel.markRead(id: notice.id)
@@ -409,15 +406,15 @@ private struct NoticeRow: View {
             PinBadge(symbol: style.symbol, color: style.color, size: PostMetrics.avatar)
             VStack(alignment: .leading, spacing: 3) {
                 Text(L10n.message(key: notice.messageKey, params: notice.params))
-                    .font(notice.unread ? PostMetrics.text.weight(.medium) : PostMetrics.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(notice.createdAt.date, format: .relative(presentation: .numeric, unitsStyle: .narrow))
+                    .font(notice.unread ? PostMetrics.text.weight(.semibold) : PostMetrics.text)
+                    .lineLimit(2)
+                Text(CompactTime.since(notice.createdAt.date))
                     .font(PostMetrics.text)
                     .foregroundStyle(palette.textTertiary)
             }
             Spacer(minLength: 0)
             if notice.unread {
-                Circle().fill(palette.locate).frame(width: 9, height: 9).padding(.top, 6).accessibilityHidden(true)
+                Circle().fill(RutaHighlight.color).frame(width: 9, height: 9).padding(.top, 6).accessibilityHidden(true)
             }
         }
         .padding(.horizontal, PostMetrics.inset)

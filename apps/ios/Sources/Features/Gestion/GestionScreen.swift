@@ -117,8 +117,11 @@ private struct Content: View {
             }
         } label: {
             let count = state.filter.flatMap { kind in state.filters.first { $0.kind == kind }?.count } ?? state.total
-            Label("\(state.filter?.title ?? L10n.Gestion.all) · \(count)", systemImage: "line.3.horizontal.decrease")
-                .labelStyle(.titleAndIcon)
+            HStack(spacing: 6) {
+                Image(systemName: "line.3.horizontal.decrease")
+                Text(verbatim: "\(state.filter?.title ?? L10n.Gestion.all) · \(count)")
+            }
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -266,10 +269,11 @@ private struct ReviewCard: View {
                 if let key = item.stateKey {
                     Text(catalogue(key))
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(palette.textSecondary)
+                        .foregroundStyle(.primary)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(palette.inset, in: Capsule())
+                        .background(Color.primary.opacity(0.08), in: Capsule())
+                        .overlay { Capsule().strokeBorder(Color.primary.opacity(0.2), lineWidth: 0.5) }
                 }
             }
             VStack(alignment: .leading, spacing: 3) {
@@ -318,29 +322,34 @@ private struct ReviewCard: View {
         .accessibilityElement(children: .contain)
     }
 
-    /// One secondary sits beside the primary. More than one drops under it, so the primary stays dominant.
+    /// One primary button, the rest in an overflow menu, on a single row.
     @ViewBuilder private var actions: some View {
-        if secondary.count <= 1 {
-            HStack(spacing: 12) {
-                ForEach(secondary, id: \.labelKey) { button($0, prominent: false) }
-                if let primary { button(primary, prominent: true) }
-            }
-        } else {
-            VStack(spacing: 8) {
-                if let primary { button(primary, prominent: true) }
-                HStack(spacing: 8) {
-                    ForEach(secondary, id: \.labelKey) { button($0, prominent: false) }
+        HStack(spacing: 8) {
+            Spacer(minLength: 0)
+            if !secondary.isEmpty {
+                Menu {
+                    ForEach(secondary, id: \.labelKey) { action in
+                        Button(catalogue(action.labelKey)) { act(action) }
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 48, height: 48)
+                        .background(Color.primary.opacity(0.08), in: Circle())
+                        .contentShape(Circle())
                 }
+                .accessibilityLabel(L10n.SafetyUi.menuLabel)
             }
-        }
-    }
-
-    @ViewBuilder private func button(_ action: ReviewAction, prominent: Bool) -> some View {
-        let label = Text(catalogue(action.labelKey)).font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 48)
-        if prominent {
-            Button { act(action) } label: { label }.buttonStyle(RutaProminentStyle())
-        } else {
-            Button { act(action) } label: { label }.buttonStyle(.glass)
+            if let primary {
+                Button { act(primary) } label: {
+                    Text(catalogue(primary.labelKey))
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 20)
+                        .frame(minHeight: 48)
+                }
+                .buttonStyle(RutaProminentStyle())
+            }
         }
     }
 }

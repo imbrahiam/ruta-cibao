@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Hiking
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import com.google.android.gms.maps.model.JointType
 import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.RoundCap
@@ -310,7 +311,8 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
     DisposableEffect(chrome) { onDispose { chrome.hidden = false } }
 
     // A place with a photo opens tall enough to show it, like the iOS medium detent.
-    val peek = if (state.sheet?.let { it.detail?.imageUrl ?: it.place.thumbnailUrl } != null) SheetPeekWithPhoto else SheetPeek
+    var trafficHeight by remember { mutableStateOf(0.dp) }
+    val peek = if (selectedTraffic != null && trafficHeight > 0.dp) trafficHeight + 48.dp else if (state.sheet?.let { it.detail?.imageUrl ?: it.place.thumbnailUrl } != null) SheetPeekWithPhoto else SheetPeek
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         modifier = modifier,
@@ -327,7 +329,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
             } else if (route != null) {
                 RouteSheet(route, modifier = Modifier.fillMaxHeight())
             } else if (selectedTraffic != null) {
-                TrafficSheet(selectedTraffic, state.trafficError, onConfirm = vm::confirmTraffic, onClose = vm::dismissTraffic, modifier = Modifier.fillMaxHeight())
+                TrafficSheet(selectedTraffic, state.trafficError, onConfirm = vm::confirmTraffic, onClose = vm::dismissTraffic, modifier = Modifier.onSizeChanged { trafficHeight = with(density) { it.height.toDp() } })
             } else {
                 Spacer(Modifier.height(1.dp))
             }

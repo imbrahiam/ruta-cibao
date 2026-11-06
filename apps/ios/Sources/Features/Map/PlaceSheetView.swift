@@ -30,6 +30,7 @@ struct PlaceSheetView: View {
     @State private var showingExperiences = false
     @State private var businessForm: BusinessFormMode?
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.palette) private var palette
 
     var body: some View {
         ScrollView {
@@ -54,6 +55,11 @@ struct PlaceSheetView: View {
                             .navigationTransition(.zoom(sourceID: "hero", in: zoom))
                     }
                 }
+                if let description = detail?.description_, !description.isEmpty {
+                    Text(description)
+                        .font(.subheadline)
+                        .lineSpacing(3)
+                }
                 experiencesLink
                 businessRow
                 PlaceFeedbackView(sheet: sheet, confirm: confirm, requestReport: requestReport)
@@ -65,6 +71,7 @@ struct PlaceSheetView: View {
             .padding(.top, 20)
             .padding(.bottom, 12)
         }
+        .presentationBackground(scheme == .dark ? AnyShapeStyle(.thickMaterial) : AnyShapeStyle(.regularMaterial))
         .sheet(isPresented: $showingExperiences) {
             PlaceExperiencesView(place: place)
         }
@@ -123,7 +130,7 @@ struct PlaceSheetView: View {
                 Label(hours, systemImage: "clock")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityElement(children: .combine)
             }
         }
@@ -179,24 +186,25 @@ struct PlaceSheetView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                if sheet.cached == false, let trust = detail?.trust { trustLine(trust.state) }
             }
             Spacer(minLength: 8)
             SheetCloseButton()
         }
     }
 
-    private var openElsewhere: some View {
-        Menu {
-            Button(L10n.Place.openAppleMaps, systemImage: "map") { open(Self.appleMaps(place)) }
-            Button(L10n.Place.openGoogleMaps, systemImage: "globe.americas") { open(Self.googleMaps(place)) }
-        } label: {
-            Image(systemName: "arrow.up.forward.app")
-                .font(.system(size: 17, weight: .semibold))
-                .frame(width: 44, height: 44)
+    /// How much neighbours vouch for the place, as icon + words.
+    private func trustLine(_ state: PlacesDetailOutput.TrustState) -> some View {
+        let (symbol, text, ink): (String, String, Color) = switch state {
+        case .confirmed: ("checkmark.circle.fill", L10n.Place.Trust.confirmed, palette.successInk)
+        case .doubted: ("questionmark.circle", L10n.Place.Trust.doubted, palette.warningInk)
+        case .established: ("checkmark.seal.fill", L10n.Place.Trust.established, palette.successInk)
+        default: ("sparkles", L10n.Place.Trust.new, palette.textSecondary)
         }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .accessibilityLabel(L10n.Place.openIn)
+        return Label(text, systemImage: symbol)
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(ink)
+            .padding(.top, 2)
     }
 
     private var experiencesLink: some View {
@@ -264,8 +272,6 @@ struct PlaceSheetView: View {
             .glassEffect(.regular.interactive(), in: .circle)
             .sensoryFeedback(.impact(weight: .light), trigger: sheet.saved)
             .accessibilityLabel(sheet.saved ? L10n.Place.savedLabel : L10n.Place.save)
-
-            openElsewhere
 
             ShareLink(item: URL(string: "https://rutacibao.do/lugares/\(place.slug)")!, subject: Text(place.name)) {
                 Image(systemName: "square.and.arrow.up")

@@ -5,7 +5,6 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Church
 import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Coffee
 import androidx.compose.material.icons.filled.Dangerous
@@ -29,6 +28,9 @@ import androidx.compose.material.icons.filled.Waves
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.vector.ImageVector
 
 /** Lucide names come from the database; map to the nearest Material glyph. */
@@ -50,7 +52,7 @@ fun categoryIcon(name: String): ImageVector = when (name) {
     "footprints" -> Icons.Filled.DirectionsWalk
     "cross" -> Icons.Filled.LocalHospital
     "coffee" -> Icons.Filled.Coffee
-    "cloud-rain" -> Icons.Filled.Cloud
+    "cloud-rain" -> CloudRain
     "church" -> Icons.Filled.Church
     "car" -> Icons.Filled.DirectionsCar
     "bus" -> Icons.Filled.DirectionsBus
@@ -66,3 +68,17 @@ fun categoryIcon(name: String): ImageVector = when (name) {
 fun parseCategoryColor(hex: String, fallback: Color): Color = runCatching {
     Color(android.graphics.Color.parseColor(hex))
 }.getOrDefault(fallback)
+
+/** Material has no rain cloud; this matches SF Symbols' cloud.rain.fill. */
+private val CloudRain: ImageVector by lazy {
+    ImageVector.Builder("CloudRain", 24.dp, 24.dp, 24f, 24f).apply {
+        addPath(
+            PathParser().parsePathString("M6.5 15a4.5 4.5 0 0 1-.4-8.98A6 6 0 0 1 17.6 7.2 4 4 0 0 1 17.5 15z").toNodes(),
+            fill = SolidColor(Color.Black),
+        )
+        addPath(
+            PathParser().parsePathString("M7.6 16.5h1.5l-1.7 4.5H5.9zM12.6 16.5h1.5l-1.7 4.5h-1.5zM17.6 16.5h1.5l-1.7 4.5h-1.5z").toNodes(),
+            fill = SolidColor(Color.Black),
+        )
+    }.build()
+}

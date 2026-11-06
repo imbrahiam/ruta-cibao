@@ -248,18 +248,25 @@ struct ThreadSendButton: View {
     let label: String
     let action: () -> Void
     @Environment(\.palette) private var palette
+    @Environment(\.colorScheme) private var scheme
+
+    /// Dark: a light disc with a dark arrow, so it reads on black.
+    private var disc: Color { scheme == .dark ? .white : RutaBrand.iris }
+    private var glyph: Color { scheme == .dark ? .black : .white }
 
     var body: some View {
         Button(action: action) {
             ZStack {
                 Image(systemName: "arrow.up").opacity(sending ? 0 : 1)
-                if sending { ProgressView().tint(RutaHighlight.onPrimary(palette)) }
+                if sending { ProgressView().tint(glyph) }
             }
             .font(.system(size: 17, weight: .bold))
+            .foregroundStyle(glyph)
             .frame(width: 44, height: 44)
+            .background(disc.opacity(enabled || sending ? 1 : 0.4), in: Circle())
+            .contentShape(Circle())
         }
-        .buttonStyle(RutaProminentStyle())
-        .buttonBorderShape(.circle)
+        .buttonStyle(.plain)
         .disabled(!enabled || sending)
         .accessibilityLabel(label)
     }

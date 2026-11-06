@@ -129,27 +129,25 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
                         NavRow(
                             stringResource(R.string.gestion_title),
                             Icons.Filled.Checklist,
-                            null,
+                            Color(0xFF5856D6),
                             count = pending,
                             value = if (pending == 0) stringResource(R.string.gestion_pending_zero) else pluralStringResource(R.plurals.gestion_pending, pending, pending),
                             onClick = onOpenGestion,
                         )
                     }
                     NavRow(stringResource(R.string.notification_settings_title), Icons.Filled.Notifications, Color(0xFFFF3B30), onClick = { onOpen(AccountPage.Notifications) })
-                    NavRow(stringResource(R.string.offline_row_title), Icons.Filled.Download, Color(0xFF30A45A), onClick = { onOpen(AccountPage.Offline) }, last = true)
+                    NavRow(stringResource(R.string.offline_row_title), Icons.Filled.Download, Color(0xFF30A45A), onClick = { onOpen(AccountPage.Offline) })
                     if (rutacibao.android.platform.PushNotifications.capability != rutacibao.android.platform.PushNotifications.Capability.Available) {
                         Text(stringResource(R.string.notifications_push_unavailable), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))
                     }
                 }
-                Box(Modifier.height(12.dp))
                 Group {
                     NavRow(stringResource(R.string.account_privacy), Icons.Filled.PanTool, Color(0xFF0A84FF), onClick = { onOpen(AccountPage.Privacy) })
-                    NavRow(stringResource(R.string.account_about_app), Icons.Filled.Info, Color(0xFF8E8E93), onClick = { onOpen(AccountPage.About) }, last = true)
+                    NavRow(stringResource(R.string.account_about_app), Icons.Filled.Info, Color(0xFF8E8E93), onClick = { onOpen(AccountPage.About) })
                 }
-                Box(Modifier.height(24.dp))
                 Group {
                     PlainRow(stringResource(R.string.account_sign_out), palette.text, Icons.AutoMirrored.Filled.Logout, chevron = false) { confirmSignOut = true }
-                    HorizontalDivider(Modifier.padding(start = 16.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(Modifier.padding(start = 58.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     PlainRow(stringResource(R.string.account_deletion_row_title), palette.dangerInk, Icons.Filled.Delete, chevron = true) { onOpen(AccountPage.Deletion) }
                 }
             }
@@ -181,23 +179,23 @@ private fun Header(name: String?, image: String?, verified: Boolean, municipalit
     val palette = LocalPalette.current
     Row(
         Modifier.padding(horizontal = 24.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
-            .background(palette.raised(isSystemInDarkTheme())).clickable(role = Role.Button, onClick = onClick).padding(16.dp),
+            .background(cardFill()).clickable(role = Role.Button, onClick = onClick).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         ThreadAvatar(name, image, size = 64.dp)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                name ?: " ",
-                style = MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold),
-                maxLines = 2,
-                modifier = Modifier.semantics { heading() },
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    name ?: " ",
+                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold),
+                    maxLines = 2,
+                    modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+                )
+                if (verified) Icon(Icons.Filled.Verified, contentDescription = null, Modifier.size(18.dp), tint = RutaBrand.iris)
+            }
             if (verified && municipality != null) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(stringResource(R.string.account_resident, municipality), style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary, modifier = Modifier.weight(1f, fill = false))
-                    Icon(Icons.Filled.Verified, contentDescription = null, Modifier.size(15.dp), tint = RutaBrand.iris)
-                }
+                Text(stringResource(R.string.account_resident, municipality), style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
             } else if (contact != null) {
                 Text(contact, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
             }
@@ -211,9 +209,8 @@ private fun Header(name: String?, image: String?, verified: Boolean, municipalit
 private fun SectionTitle(text: String) {
     Text(
         text,
-        style = MaterialTheme.typography.labelLarge,
-        color = LocalPalette.current.textSecondary,
-        modifier = Modifier.padding(start = 32.dp, end = 16.dp, top = 16.dp, bottom = 8.dp).semantics { heading() },
+        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 12.dp).semantics { heading() },
     )
 }
 
@@ -243,7 +240,7 @@ private fun AccountShortcuts(saved: Int, passport: Int, onOpen: (AccountPage) ->
 @Composable
 private fun AccountShortcut(title: String, icon: ImageVector, count: Int, modifier: Modifier, onClick: () -> Unit) {
     Column(
-        modifier.clip(RoundedCornerShape(20.dp)).background(LocalPalette.current.raised(isSystemInDarkTheme()))
+        modifier.clip(RoundedCornerShape(20.dp)).background(cardFill())
             .clickable(role = Role.Button, onClick = onClick).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -255,6 +252,10 @@ private fun AccountShortcut(title: String, icon: ImageVector, count: Int, modifi
     }
 }
 
+/** A card on the page: the surface step in dark (as on iOS), so avatars and chips sit one step above it. */
+@Composable
+private fun cardFill(): Color = if (isSystemInDarkTheme()) LocalPalette.current.surface else LocalPalette.current.inset
+
 /** A row with a coloured rounded-square icon, its label always visible, and a chevron. */
 @Composable
 private fun NavRow(
@@ -262,7 +263,6 @@ private fun NavRow(
     icon: ImageVector,
     color: Color?,
     count: Int? = null,
-    last: Boolean = false,
     value: String? = null,
     onClick: () -> Unit,
 ) {
@@ -294,7 +294,7 @@ private fun NavRow(
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = palette.textTertiary)
         }
-        if (!last) HorizontalDivider(Modifier.padding(start = 58.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(Modifier.padding(start = 58.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 

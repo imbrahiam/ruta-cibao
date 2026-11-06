@@ -67,43 +67,35 @@ struct TrafficSheetView: View {
     let confirm: (TrafficVerdict) -> Void
     @Environment(\.palette) private var palette
 
-    static let height: CGFloat = 250
+    /// Measured from the content, so the sheet is exactly as tall as what it says.
+    @State private var contentHeight: CGFloat = 230
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                header
-                if let text = notice.severityText {
-                    Label(text, systemImage: notice.severitySymbol)
-                        .font(.subheadline.weight(.semibold))
-                }
-                if let description = notice.details {
-                    Text(description)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                if notice.isMine {
-                    Text(L10n.Traffic.mine)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                } else {
-                    HStack(spacing: 12) {
-                        answer(.still, title: L10n.Traffic.stillShort, count: Int(notice.stillCount))
-                        answer(.cleared, title: L10n.Traffic.goneShort, count: Int(notice.clearedCount))
-                    }
-                }
-                if let failure {
-                    Text(failure == .offline ? L10n.Common.offlineBody : L10n.Common.errorBody)
-                        .font(.footnote)
-                        .foregroundStyle(palette.warningInk)
-                }
+        VStack(alignment: .leading, spacing: 16) {
+            header
+            if let description = notice.details {
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-            .padding(.bottom, 12)
+            HStack(spacing: 12) {
+                answer(.still, title: L10n.Traffic.stillShort, count: Int(notice.stillCount))
+                answer(.cleared, title: L10n.Traffic.goneShort, count: Int(notice.clearedCount))
+            }
+            .allowsHitTesting(!notice.isMine)
+            if let failure {
+                Text(failure == .offline ? L10n.Common.offlineBody : L10n.Common.errorBody)
+                    .font(.footnote)
+                    .foregroundStyle(palette.warningInk)
+            }
         }
-        .scrollBounceBehavior(.basedOnSize)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+        .presentationDetents([.height(contentHeight)])
+        .presentationBackgroundInteraction(.enabled(upThrough: .height(contentHeight)))
     }
 
     private var header: some View {
@@ -126,6 +118,15 @@ struct TrafficSheetView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                // Only when it says something the title doesn't (a flood that also blocks the road).
+                if let text = notice.severityText, text != notice.categoryName {
+                    Label(text, systemImage: notice.severitySymbol)
+                        .font(.footnote.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.primary.opacity(0.1), in: Capsule())
+                        .padding(.top, 4)
+                }
             }
             Spacer(minLength: 8)
             SheetCloseButton()
@@ -134,24 +135,20 @@ struct TrafficSheetView: View {
 
     private func answer(_ verdict: TrafficVerdict, title: String, count: Int) -> some View {
         let chosen = notice.myVerdict == verdict
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
         return Button { confirm(verdict) } label: {
-            VStack(spacing: 2) {
-                HStack(spacing: 6) {
-                    if chosen { Image(systemName: "checkmark.circle.fill") }
-                    Text(title).font(.headline)
-                }
+            HStack(spacing: 8) {
+                if chosen { Image(systemName: "checkmark.circle.fill") }
+                Text(title).font(.headline)
                 Text("\(count)")
                     .font(.subheadline.monospacedDigit())
-                    .opacity(0.75)
+                    .foregroundStyle(.secondary)
             }
-            .foregroundStyle(chosen ? palette.onAccent : palette.text)
-            .frame(maxWidth: .infinity, minHeight: 64)
-            .background(chosen ? palette.accent : palette.inset, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(chosen ? .clear : palette.hairline, lineWidth: 1)
-            }
-            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, minHeight: 48)
+            .background(chosen ? RutaHighlight.color.opacity(0.22) : Color.primary.opacity(0.1), in: shape)
+            .overlay { shape.strokeBorder(chosen ? RutaHighlight.color : .clear, lineWidth: 2) }
+            .contentShape(shape)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(title), \(count)")

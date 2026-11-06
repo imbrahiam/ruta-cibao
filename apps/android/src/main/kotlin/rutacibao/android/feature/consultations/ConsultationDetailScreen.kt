@@ -26,7 +26,7 @@ import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.filled.Verified
-import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -62,6 +63,7 @@ import rutacibao.android.feature.comments.ThreadAvatar
 import rutacibao.android.feature.comments.commentThread
 import rutacibao.android.feature.gestion.StepUpSheet
 import rutacibao.android.feature.map.StaticPinMap
+import rutacibao.android.ui.CategoryAvatar
 import rutacibao.android.ui.ErrorState
 import rutacibao.android.ui.Hairline
 import rutacibao.android.ui.LoadingState
@@ -100,13 +102,6 @@ fun ConsultationDetailScreen(slug: String, onBack: () -> Unit) {
     PushedScreen(
         title = stringResource(R.string.consultations_post_title),
         onBack = onBack,
-        actions = {
-            if (detail != null) {
-                IconButton(onClick = { shareText(context, detail.title, detail.slug) }) {
-                    Icon(Icons.Outlined.Share, contentDescription = stringResource(R.string.common_share))
-                }
-            }
-        },
         bottomBar = {
             if (state.phase == Phase.Ready && detail != null) ConsultationComposer(state, vm, comments, commentsVm)
         },
@@ -118,7 +113,7 @@ fun ConsultationDetailScreen(slug: String, onBack: () -> Unit) {
                 Phase.Failed -> ErrorState(state.error ?: UiError.Unknown, onRetry = vm::retry)
                 Phase.Ready -> if (detail != null) {
                     PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = { vm.refresh(); commentsVm.refresh() }) {
-                        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+                        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
                             item(key = "original") { OriginalPost(detail, onSupport = vm::toggleSupport) }
                             item(key = "official") { Thread(detail) }
                             item(key = "comments:header") {
@@ -156,8 +151,11 @@ private fun OriginalPost(detail: ConsultationDetail, onSupport: () -> Unit) {
             ThreadAvatar(author, detail.openedByImage, size = PostAvatar)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(author, style = MaterialTheme.typography.titleSmall)
-                Text(listOf(detail.municipalityName, relativeTimeText(detail.createdAt)).joinToString(" · "),
-                    style = MaterialTheme.typography.bodyMedium, color = palette.textTertiary)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(listOf(detail.municipalityName, relativeTimeText(detail.createdAt)).joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium, color = palette.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    StatusPill(detail.statusValue)
+                }
             }
             Icon(
                 Icons.Filled.MoreHoriz,
@@ -169,7 +167,14 @@ private fun OriginalPost(detail: ConsultationDetail, onSupport: () -> Unit) {
         Column(Modifier.padding(horizontal = PostInset).padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(detail.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
             SelectionContainer { Text(detail.body, style = MaterialTheme.typography.bodyLarge) }
-            Text(detail.categoryName, style = MaterialTheme.typography.labelLarge, color = palette.textSecondary)
+            Row(
+                Modifier.clip(CircleShape).background(palette.inset).padding(start = 4.dp, end = 10.dp).height(28.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                CategoryAvatar(detail.categoryIcon, detail.categoryColor, 20.dp)
+                Text(detail.categoryName, style = MaterialTheme.typography.labelLarge)
+            }
         }
         if (photos.isNotEmpty()) PostPhotos(photos, onOpen = { viewerStart = it }, modifier = Modifier.padding(start = PostInset, top = 10.dp))
         detail.location?.let { loc ->
@@ -201,11 +206,10 @@ private fun OriginalPost(detail: ConsultationDetail, onSupport: () -> Unit) {
                     Text(pluralStringResource(R.plurals.consultations_supports, count, count),
                         style = MaterialTheme.typography.bodyMedium, color = palette.textTertiary)
                 }
-                IconTarget(Icons.Outlined.Share, stringResource(R.string.common_share), MaterialTheme.colorScheme.onSurface) {
+                IconTarget(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.common_share), MaterialTheme.colorScheme.onSurface) {
                     shareText(context, detail.title, detail.slug)
                 }
             }
-            StatusPill(detail.statusValue, Modifier.padding(start = 14.dp))
         }
     }
 }

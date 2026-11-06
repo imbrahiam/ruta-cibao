@@ -32,5 +32,5 @@ internal fun compactAge(instant: Instant, now: Instant, locale: Locale, nowLabel
         seconds < 365 * 86_400 -> seconds / (30 * 86_400) to MeasureUnit.MONTH
         else -> seconds / (365 * 86_400) to MeasureUnit.YEAR
     }
-    return MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.SHORT).format(Measure(value, unit)).trimEnd('.').replace(" sems", " sem")
+    return MeasureFormat.getInstance(locale, MeasureFormat.FormatWidth.SHORT).format(Measure(value, unit)).trimEnd('.').replace(" sems", " sem").replace(" dd", " d")
 }

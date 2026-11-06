@@ -47,6 +47,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.foundation.border
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.MaterialTheme
@@ -403,7 +405,7 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, act: (ReviewAction) -> U
             .padding(horizontal = Inset)
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(palette.raised(isSystemInDarkTheme()))
+            .background(if (isSystemInDarkTheme()) palette.surface else palette.inset)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -419,8 +421,12 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, act: (ReviewAction) -> U
                 Text(
                     stringResource(stateLabel(key)),
                     style = MaterialTheme.typography.labelMedium,
-                    color = palette.textSecondary,
-                    modifier = Modifier.clip(CircleShape).background(palette.inset).padding(horizontal = 10.dp, vertical = 4.dp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                        .border(0.5.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f), CircleShape)
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
                 )
             }
         }
@@ -465,18 +471,25 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, act: (ReviewAction) -> U
         }
         val primary = item.actions.firstOrNull { it.emphasis == Emphasis.Primary }
         val secondary = item.actions.filter { it.emphasis == Emphasis.Secondary }
-        if (secondary.size <= 1) {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                secondary.forEach { ActionButton(it, busy, act, primary = false, Modifier.weight(1f)) }
-                primary?.let { ActionButton(it, busy, act, primary = true, Modifier.weight(1f)) }
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                primary?.let { ActionButton(it, busy, act, primary = true, Modifier.fillMaxWidth()) }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    secondary.forEach { ActionButton(it, busy, act, primary = false, Modifier.weight(1f)) }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End), verticalAlignment = Alignment.CenterVertically) {
+            if (secondary.isNotEmpty()) {
+                var open by remember { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick = { open = true }, enabled = !busy) {
+                        Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.safety_ui_menu_label))
+                    }
+                    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                        secondary.forEach { action ->
+                            DropdownMenuItem(
+                                text = { Text(stringResource(actionLabel(action.labelKey))) },
+                                onClick = { open = false; act(action) },
+                                modifier = Modifier.heightIn(min = 48.dp),
+                            )
+                        }
+                    }
                 }
             }
+            primary?.let { ActionButton(it, busy, act, primary = true, Modifier) }
         }
     }
 }

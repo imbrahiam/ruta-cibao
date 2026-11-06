@@ -25,6 +25,7 @@ import rutacibao.presentation.business.BusinessFormMode
 import rutacibao.presentation.business.BusinessState
 import rutacibao.presentation.business.Contact
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -106,13 +107,13 @@ fun PlaceSheet(
     }
     val hero = absoluteUrl(detail?.imageUrl) ?: absoluteUrl(place.thumbnailUrl)
     Column(
-        modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 32.dp),
+        modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CategoryBadge(place.icon, place.color, 48.dp)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(place.name, style = MaterialTheme.typography.titleLarge.copy(fontSize = 20.sp))
+                Text(place.name, style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp))
                 Text(
                     listOfNotNull(place.categoryName, detail?.municipality?.name).joinToString(" · "),
                     style = MaterialTheme.typography.bodyMedium,

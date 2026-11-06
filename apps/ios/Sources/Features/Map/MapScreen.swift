@@ -284,8 +284,6 @@ private struct MapContent: View {
         .sheet(isPresented: trafficSheetBinding, onDismiss: openPendingSearch) {
             if let notice = state.selectedTraffic {
                 TrafficSheetView(notice: notice, failure: state.trafficError) { vm.confirmTraffic(verdict: $0) }
-                    .presentationDetents([.height(TrafficSheetView.height), .large])
-                    .presentationBackgroundInteraction(.enabled(upThrough: .height(TrafficSheetView.height)))
                     .presentationDragIndicator(.visible)
             }
         }

@@ -152,7 +152,7 @@ private struct SignedInAccount: View {
                 .padding(.bottom, staffPending == nil ? 20 : 4)
                 if let pending = staffPending {
                     NavigationLink(value: AccountRoute.gestion) {
-                        SettingsRow(symbol: "checklist", title: L10n.Gestion.title, count: pending)
+                        SettingsRow(symbol: "checklist", title: L10n.Gestion.title, badge: .indigo, count: pending)
                     }
                     .buttonStyle(.plain)
                     .accessibilityValue(L10n.Gestion.pending(count: pending))
@@ -227,18 +227,22 @@ private struct SignedInAccount: View {
         HStack(spacing: 16) {
             AuthorAvatar(name: state.me?.displayName ?? "", image: state.me?.image, size: 64)
             VStack(alignment: .leading, spacing: 4) {
-                Text(state.me?.displayName ?? " ")
-                    .font(.title3.weight(.bold))
-                    .redacted(reason: state.me == nil ? .placeholder : [])
+                HStack(spacing: 6) {
+                    Text(state.me?.displayName ?? " ")
+                        .font(.title3.weight(.bold))
+                        .redacted(reason: state.me == nil ? .placeholder : [])
+                    if state.me?.residencyVerified == true {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(RutaBrand.iris)
+                            .accessibilityHidden(true)
+                    }
+                }
                 if state.me?.residencyVerified == true, let place = state.municipalityName {
-                    Label(L10n.Account.resident(place: place), systemImage: "checkmark.seal.fill")
+                    Text(L10n.Account.resident(place: place))
                         .font(.footnote)
                         .foregroundStyle(palette.textSecondary)
-                        .labelStyle(TrailingIconLabelStyle(tint: RutaBrand.iris))
                 }
-                Text(L10n.Account.profile)
-                    .font(.subheadline)
-                    .foregroundStyle(palette.textSecondary)
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")
@@ -253,16 +257,6 @@ private struct SignedInAccount: View {
     }
 
 
-}
-
-private struct TrailingIconLabelStyle: LabelStyle {
-    let tint: Color
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 4) {
-            configuration.title
-            configuration.icon.foregroundStyle(tint).font(.footnote)
-        }
-    }
 }
 
 // MARK: - Profile

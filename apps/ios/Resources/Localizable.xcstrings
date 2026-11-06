@@ -5433,7 +5433,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tu caso «%1$@» ya es público. Otros vecinos pueden apoyarlo."
+            "value": "Tu caso «%1$@» ya es público."
           }
         }
       }
@@ -5642,7 +5642,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reporte de tránsito en un municipio que sigues: %1$@"
+            "value": "%1$@"
           }
         }
       }
@@ -9055,17 +9055,6 @@
                 }
               }
             }
-          }
-        }
-      }
-    },
-    "traffic.mine": {
-      "extractionState": "manual",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Es tu aviso. Tus vecinos dirán si sigue ahí."
           }
         }
       }

@@ -41,8 +41,8 @@ import rutacibao.presentation.consultations.ConsultationStatus
 @Composable
 fun CategoryAvatar(icon: String, hex: String, size: Dp, modifier: Modifier = Modifier) {
     val color = parseCategoryColor(hex, MaterialTheme.colorScheme.onSurfaceVariant)
-    Box(modifier.size(size).background(color.copy(alpha = 0.16f), CircleShape), Alignment.Center) {
-        Icon(categoryIcon(icon), contentDescription = null, Modifier.size(size * 0.5f), tint = color)
+    Box(modifier.size(size).background(Brush.verticalGradient(listOf(color.lighten(0.14f), color)), CircleShape), Alignment.Center) {
+        Icon(categoryIcon(icon), contentDescription = null, Modifier.size(size * 0.5f), tint = Color.White)
     }
 }
 
