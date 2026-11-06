@@ -251,8 +251,8 @@ fun rutaMapPalette(theme: RutaTheme, dark: Boolean): RutaMapPalette =
             if (dark) {
                 RutaMapPalette(
                     ground = Color(0xFF181816),
-                    natural = Color(0xFF181816),
-                    park = Color(0xFF1C241D),
+                    natural = Color(0xFF1B221C),
+                    park = Color(0xFF1F2B21),
                     water = Color(0xFF121A1D),
                     waterLabel = Color(0xFF4E636B),
                     road = Color(0xFF2A2A27),
@@ -267,8 +267,8 @@ fun rutaMapPalette(theme: RutaTheme, dark: Boolean): RutaMapPalette =
             } else {
                 RutaMapPalette(
                     ground = Color(0xFFF4F3EF),
-                    natural = Color(0xFFF4F3EF),
-                    park = Color(0xFFE2EADD),
+                    natural = Color(0xFFE6EDDD),
+                    park = Color(0xFFDAE7D0),
                     water = Color(0xFFCFDDE3),
                     waterLabel = Color(0xFF5E7F8C),
                     road = Color(0xFFFFFFFF),
@@ -285,8 +285,8 @@ fun rutaMapPalette(theme: RutaTheme, dark: Boolean): RutaMapPalette =
             if (dark) {
                 RutaMapPalette(
                     ground = Color(0xFF1B1B1B),
-                    natural = Color(0xFF1B1B1B),
-                    park = Color(0xFF1F241F),
+                    natural = Color(0xFF1C221D),
+                    park = Color(0xFF212C22),
                     water = Color(0xFF0E1418),
                     waterLabel = Color(0xFF4E5A62),
                     road = Color(0xFF2E2E2E),
@@ -301,8 +301,8 @@ fun rutaMapPalette(theme: RutaTheme, dark: Boolean): RutaMapPalette =
             } else {
                 RutaMapPalette(
                     ground = Color(0xFFF3F3F3),
-                    natural = Color(0xFFF3F3F3),
-                    park = Color(0xFFE6EBE6),
+                    natural = Color(0xFFE6EDE3),
+                    park = Color(0xFFDCE8D8),
                     water = Color(0xFFD6DDE3),
                     waterLabel = Color(0xFF8A97A1),
                     road = Color(0xFFFFFFFF),

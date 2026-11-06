@@ -44,6 +44,7 @@ private struct Content: View {
                         vm.openReport()
                     }
                     .padding(.horizontal, GestionMetrics.inset)
+                    .padding(.top, 16)
                     .padding(.bottom, 12)
                 }
                 switch state.phase {
@@ -336,7 +337,7 @@ private struct ReviewCard: View {
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(.primary)
                         .frame(width: 48, height: 48)
-                        .background(Color.primary.opacity(0.08), in: Circle())
+                        .background(palette.fill, in: Circle())
                         .contentShape(Circle())
                 }
                 .accessibilityLabel(L10n.SafetyUi.menuLabel)
@@ -348,9 +349,22 @@ private struct ReviewCard: View {
                         .padding(.horizontal, 20)
                         .frame(minHeight: 48)
                 }
-                .buttonStyle(RutaProminentStyle())
+                .buttonStyle(TonalCapsuleStyle())
             }
         }
+    }
+}
+
+/// A neutral tonal capsule: one step above the card, the label in the primary ink.
+private struct TonalCapsuleStyle: ButtonStyle {
+    @Environment(\.palette) private var palette
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(palette.text)
+            .background(palette.fill, in: Capsule())
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .contentShape(Capsule())
     }
 }
 

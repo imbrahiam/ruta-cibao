@@ -101,12 +101,10 @@ private struct DetailContent: View {
                                 focus: $composing
                             )
                         } else if let comments {
-                            if state.canRespond {
+                            CommentComposer(model: comments, placeholder: L10n.Comments.placeholder, focus: $composing, leading: state.canRespond ? AnyView(
                                 ComposerModeMenu(replyingAsStaff: $replyingAsStaff, status: $officialStatus, statuses: state.replyStatuses)
-                                    .padding(.horizontal, 16)
                                     .disabled(comments.state.sending)
-                            }
-                            CommentComposer(model: comments, placeholder: L10n.Comments.placeholder, focus: $composing)
+                            ) : nil)
                         }
                     }
                 }
@@ -320,7 +318,7 @@ private struct LocationCard: View {
         Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 600, longitudinalMeters: 600)), interactionModes: []) {
             Marker("", coordinate: coordinate).tint(tint)
         }
-        .mapStyle(.standard(pointsOfInterest: .excludingAll))
+        .mapStyle(.ruta)
         .frame(height: 150)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
@@ -337,68 +335,60 @@ private struct Thread: View {
     @Environment(\.palette) private var palette
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Rectangle().fill(palette.hairline).frame(height: 0.5)
-            CommentsHeader(title: L10n.Comments.officialReplies, total: detail.responses.count)
-            if detail.responses.isEmpty {
-                Text(L10n.Consultations.noResponses)
-                    .font(PostMetrics.text)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, PostMetrics.inset * 2)
-                    .padding(.vertical, 28)
-            } else {
-                ForEach(Array(detail.responses.enumerated()), id: \.element.id) { index, response in
-                    Reply(response: response, municipality: detail.municipalityName, isLast: index == detail.responses.count - 1)
+        // No replies, no heading: the composer already says who can answer.
+        if !detail.responses.isEmpty {
+            VStack(alignment: .leading, spacing: 0) {
+                Rectangle().fill(palette.hairline).frame(height: 0.5)
+                HStack(spacing: 6) {
+                    Text(L10n.Comments.officialReplies)
+                    Text(verbatim: "\(detail.responses.count)").foregroundStyle(.secondary)
+                }
+                .font(.system(size: 15, weight: .semibold))
+                .padding(.horizontal, PostMetrics.inset)
+                .padding(.top, 18)
+                .padding(.bottom, 4)
+                .accessibilityAddTraits(.isHeader)
+                ForEach(detail.responses, id: \.id) { response in
+                    Reply(response: response)
                 }
             }
         }
     }
 }
 
-/// One official reply, laid out as a feed post. The line joins the
-/// ayuntamiento's replies into one thread, as Threads does for a chain.
+/// One official reply: the ayuntamiento's mark, its name with an "Oficial"
+/// badge (text, not colour) and the time, then the answer.
 private struct Reply: View {
     let response: ConsultationsDetailOutput.Response
-    let municipality: String
-    let isLast: Bool
     @Environment(\.palette) private var palette
 
     var body: some View {
-        HStack(alignment: .top, spacing: PostMetrics.gap) {
-            VStack(spacing: 6) {
-                GlyphDisc(symbol: "building.columns")
-                if !isLast {
-                    Capsule().fill(palette.hairline).frame(width: 2).frame(maxHeight: .infinity)
-                }
-            }
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(alignment: .top, spacing: 10) {
+            GlyphDisc(symbol: "building.columns", size: 32)
+            VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(response.author ?? L10n.Consultations.municipality)
-                        .font(PostMetrics.name)
+                        .font(.system(size: 13, weight: .bold))
                         .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
+                    Text(L10n.Comments.officialBadge)
+                        .font(.system(size: 11, weight: .semibold))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(palette.raised, in: Capsule())
                     Text(CompactTime.since(response.createdAt.date))
-                        .font(.caption)
+                        .font(.system(size: 13))
                         .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
                 }
-                Label(L10n.Comments.officialReply, systemImage: "checkmark.seal.fill")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(RutaBrand.iris)
-                    .accessibilityLabel("\(L10n.Comments.officialReply) · \(municipality)")
                 Text(response.body)
-                    .font(PostMetrics.text)
+                    .font(.callout)
                     .lineSpacing(2)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
-                StatusPill(status: response.statusAfterValue)
-                    .padding(.top, 6)
             }
-            .padding(.bottom, isLast ? 14 : 20)
         }
         .padding(.horizontal, PostMetrics.inset)
-        .padding(.top, 12)
+        .padding(.vertical, 12)
         .accessibilityElement(children: .combine)
     }
 }
@@ -435,7 +425,7 @@ private struct StaffReplyComposer: View {
                 ComposerModeMenu(replyingAsStaff: $replyingAsStaff, status: $status, statuses: state.replyStatuses)
                     .disabled(state.replying)
                 HStack(alignment: .bottom, spacing: 4) {
-                    TextField(L10n.Gestion.replyTitle, text: $text, axis: .vertical)
+                    TextField(L10n.Comments.replyPlaceholder, text: $text, axis: .vertical)
                         .font(.body)
                         .lineLimit(1...5)
                         .focused(focus)

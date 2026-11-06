@@ -58,15 +58,15 @@ struct SettingsRow: View {
                 .foregroundStyle(tint ?? palette.text)
             Spacer(minLength: 8)
             if let value {
-                Text(value).font(.system(size: 15)).foregroundStyle(palette.textTertiary).monospacedDigit()
+                Text(value).font(.system(size: 15)).foregroundStyle(palette.textSecondary).monospacedDigit()
             }
             if let count {
                 Text(verbatim: "\(count)")
                     .font(.system(size: 14, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(palette.background)
+                    .foregroundStyle(palette.text)
                     .padding(.horizontal, 9)
                     .frame(minWidth: 26, minHeight: 26)
-                    .background(palette.text, in: Capsule())
+                    .background(palette.fill, in: Capsule())
             }
             if chevron {
                 Image(systemName: "chevron.right")

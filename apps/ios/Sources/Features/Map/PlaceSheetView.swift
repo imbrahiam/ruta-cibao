@@ -23,7 +23,8 @@ struct PlaceSheetView: View {
     private var detail: PlacesDetailOutput? { sheet.detail }
 
     /// Opens tall enough for the whole photo; without one, just the essentials.
-    static func compactHeight(hasPhoto: Bool) -> CGFloat { hasPhoto ? 440 : 230 }
+    /// Without one, about 46% of the screen: header, actions, hours and two lines of description, nothing clipped.
+    static func compactHeight(hasPhoto: Bool, screen: CGFloat) -> CGFloat { hasPhoto ? 440 : max(320, (screen * 0.46).rounded()) }
 
     @Namespace private var zoom
     @State private var viewing = false
@@ -122,7 +123,9 @@ struct PlaceSheetView: View {
                                 .frame(maxWidth: .infinity, minHeight: 44)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: Capsule())
+                        // Dark: one step up the elevation ladder instead of glass, so the pill reads on the sheet.
+                        .background { if scheme == .dark { Capsule().fill(palette.fillPressed) } }
+                        .glassEffect(scheme == .dark ? .identity : .regular.interactive(), in: Capsule())
                     }
                 }
             }
@@ -172,7 +175,7 @@ struct PlaceSheetView: View {
             CategoryPinBadge(icon: place.icon, hex: place.color, size: 44)
             VStack(alignment: .leading, spacing: 2) {
                 Text(place.name)
-                    .font(.headline)
+                    .font(.title2.bold())
                     .foregroundStyle(.primary)
                     .lineLimit(2)
                     .accessibilityAddTraits(.isHeader)

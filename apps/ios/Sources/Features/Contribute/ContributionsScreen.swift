@@ -156,13 +156,27 @@ struct ContributionsScreen: View {
                 if state.signedIn {
                     SwiftUI.Section {
                         if section == .inbox, let inbox {
+                            if inbox.state.unread > 0 {
+                                HStack {
+                                    Spacer()
+                                    Button { inbox.viewModel.markRead(id: nil) } label: {
+                                        Text(L10n.Notifications.markAllRead)
+                                            .font(.system(size: 15, weight: .medium))
+                                            .frame(minHeight: 44)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .foregroundStyle(palette.text)
+                                }
+                                .padding(.horizontal, PostMetrics.inset)
+                            }
                             InboxList(model: inbox) { slug in path.append(ConsultationRoute(slug: slug)) }
                         } else {
                             PendingOutboxView(hidesWhenEmpty: true)
                             myContributions(model)
                         }
                     } header: {
-                        tabs.background(palette.background)
+                        tabs.background(Color(.systemBackground))
                     }
                 } else {
                     signedOut
@@ -196,25 +210,12 @@ struct ContributionsScreen: View {
 
     private var tabs: some View {
         let unread = Int(inbox?.state.unread ?? 0)
-        return HStack(spacing: 0) {
-            SegmentTabs(
-                options: [Section.mine, .inbox],
-                selected: section,
-                title: { $0 == .mine ? L10n.Contributions.mine : (unread > 0 ? L10n.Contributions.inboxCount(count: String(unread)) : L10n.Contributions.inbox) },
-                select: { section = $0 }
-            )
-            if section == .inbox, unread > 0 {
-                Button { inbox?.viewModel.markRead(id: nil) } label: {
-                    Image(systemName: "checkmark.circle")
-                        .font(.system(size: 20, weight: .regular))
-                        .frame(width: 44, height: 44)
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(palette.textSecondary)
-                .accessibilityLabel(L10n.Contributions.markAll)
-                .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5) }
-            }
-        }
+        return SegmentTabs(
+            options: [Section.mine, .inbox],
+            selected: section,
+            title: { $0 == .mine ? L10n.Contributions.mine : (unread > 0 ? L10n.Contributions.inboxCount(count: String(unread)) : L10n.Contributions.inbox) },
+            select: { section = $0 }
+        )
     }
 
     @ViewBuilder private func myContributions(_ model: ContributionsModel) -> some View {
@@ -243,31 +244,29 @@ struct ContributionsScreen: View {
     }
 }
 
-/// Full-colour action tiles, using the same gradient as contribution badges.
+/// The same tile as the traffic report types: a raised neutral fill, the
+/// category-coloured glyph in a 44 circle, the label inside.
 private struct ActionTiles: View {
     let start: (ContributeAction) -> Void
+    @Environment(\.palette) private var palette
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 10) {
             ForEach(ContributeAction.allCases) { action in
                 Button { start(action) } label: {
-                    VStack(spacing: 8) {
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .fill(action.tint)
-                            .frame(height: 56)
-                            .overlay {
-                                Image(systemName: action.symbol)
-                                    .font(.system(size: 22, weight: .semibold))
-                                    .foregroundStyle(.white)
-                                    .accessibilityHidden(true)
-                            }
+                    VStack(spacing: 10) {
+                        PinBadge(symbol: action.symbol, color: action.tint, size: 44)
+                            .accessibilityHidden(true)
                         Text(action.title)
-                            .font(.footnote.weight(.medium))
-                            .foregroundStyle(.primary)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(palette.text)
                             .multilineTextAlignment(.center)
-                            .lineLimit(2, reservesSpace: true)
+                            .lineLimit(2)
                     }
-                    .frame(maxWidth: .infinity)
-                    .contentShape(Rectangle())
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, minHeight: 112)
+                    .background(palette.raised, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
                 .buttonStyle(PressScale())
             }
@@ -347,9 +346,9 @@ private struct ContributionRow: View {
         case .cleared: L10n.Contributions.Status.cleared
         case .expired: L10n.Contributions.Status.expired
         case .removed: L10n.Contributions.Status.removed
-        case .open: L10n.Contributions.Status.open
+        case .open: item.kind == .consultation ? L10n.Consultations.StatusLabel.open : L10n.Contributions.Status.open
         case .inReview: L10n.Contributions.Status.in_review
-        case .answered: L10n.Contributions.Status.answered
+        case .answered: item.kind == .consultation ? L10n.Consultations.StatusLabel.answered : L10n.Contributions.Status.answered
         case .approved: L10n.Contributions.Status.approved
         }
     }
@@ -379,7 +378,7 @@ private struct InboxList: View {
         case .failed:
             ErrorStateView(error: state.error ?? .unknown) { model.viewModel.refresh() }.padding(.top, 24)
         case .empty:
-            EmptyState(symbol: "bell", title: L10n.Contributions.inboxEmpty, message: L10n.Contributions.inboxEmptyBody)
+            EmptyState(title: L10n.Notifications.empty)
                 .padding(.top, 40)
         case .ready:
             ForEach(state.items, id: \.id) { notice in

@@ -98,7 +98,9 @@ private struct Composer: View {
                             .onSubmit { focus = .body }
                             .onChange(of: title) { _, v in vm.updateTitle(value: v) }
                             .disabled(state.submitted)
-                            .frame(minHeight: PostMetrics.avatar, alignment: .leading)
+                            .padding(14)
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .background(palette.inset, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                         problem(.title, L10n.Consultations.Errors.title)
                     }
                 }
@@ -144,7 +146,7 @@ private struct Composer: View {
             .padding(.bottom, 8)
         }
         .safeAreaInset(edge: .bottom) {
-            SubmitBar(title: state.submitted ? L10n.Common.retry : L10n.Consultations.submit, busy: state.sending, enabled: !state.sending) { vm.send() }
+            SubmitBar(title: state.submitted ? L10n.Common.retry : L10n.Consultations.submit, busy: state.sending, enabled: !state.sending && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) { vm.send() }
         }
         .onAppear { focus = .title }
         #if DEBUG

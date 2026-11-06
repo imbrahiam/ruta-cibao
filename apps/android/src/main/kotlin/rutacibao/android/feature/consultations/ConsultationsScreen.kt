@@ -67,6 +67,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import rutacibao.android.ui.StatusPill
+import rutacibao.android.ui.parseCategoryColor
+import rutacibao.android.ui.categoryIcon
+import rutacibao.android.ui.RutaHighlight
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -166,13 +171,14 @@ private fun FeedHeader(filters: List<ConsultationStatus?>, selected: Consultatio
 }
 
 /**
- * X's header tabs: bare words, the current one in ink and bolder, the rest tertiary.
- * Weight changes with colour, so state is never colour alone.
+ * Pill chips, 36 tall inside a 48 hit area. The selected one is filled with the label colour
+ * and its text inverted, so state is never colour alone; a trailing fade says the row scrolls.
  */
 @Composable
 private fun StatusFilters(filters: List<ConsultationStatus?>, selected: ConsultationStatus?, onSelect: (ConsultationStatus?) -> Unit) {
     val description = stringResource(R.string.consultations_filter_status)
     val palette = LocalPalette.current
+    val background = MaterialTheme.colorScheme.background
     val listState = rememberLazyListState()
     val selectedIndex = filters.indexOf(selected).coerceAtLeast(0)
     LaunchedEffect(selectedIndex) {
@@ -186,7 +192,7 @@ private fun StatusFilters(filters: List<ConsultationStatus?>, selected: Consulta
         LazyRow(
             state = listState,
             contentPadding = PaddingValues(horizontal = PostInset),
-            horizontalArrangement = Arrangement.spacedBy(22.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.semantics { contentDescription = description },
         ) {
             items(filters, key = { it?.name ?: "all" }) { status ->
@@ -197,18 +203,32 @@ private fun StatusFilters(filters: List<ConsultationStatus?>, selected: Consulta
                         .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(status) }),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        status?.let { statusLabel(it) } ?: stringResource(R.string.consultations_all_tab),
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            fontSize = 16.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                        ),
-                        color = if (isSelected) palette.text else palette.textTertiary,
-                        maxLines = 1,
-                    )
+                    Box(
+                        Modifier
+                            .height(36.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) palette.text else Color.Transparent)
+                            .padding(horizontal = 14.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            status?.let { statusLabel(it) } ?: stringResource(R.string.consultations_all_tab),
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+                            color = if (isSelected) background else palette.textSecondary,
+                            maxLines = 1,
+                        )
+                    }
                 }
             }
         }
+        Box(
+            Modifier
+                .align(Alignment.CenterEnd)
+                .width(24.dp)
+                .height(48.dp)
+                .background(Brush.horizontalGradient(listOf(background.copy(alpha = 0f), background)))
+                .clearAndSetSemantics { },
+        )
         Hairline(Modifier.align(Alignment.BottomCenter))
     }
 }
@@ -221,12 +241,9 @@ private fun LoadingFeed() {
 
 @Composable
 private fun PostRow(item: Consultation, onOpen: () -> Unit, onToggleSupport: () -> Unit, onHidden: (String) -> Unit) {
-    val scheme = MaterialTheme.colorScheme
+    val palette = LocalPalette.current
     val time = relativeTimeText(item.createdAt)
-    val lineColor = scheme.outlineVariant
     var menuOpen by remember { androidx.compose.runtime.mutableStateOf(false) }
-    var columnTop by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-    var miniTop by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     var viewerStart by remember { androidx.compose.runtime.mutableStateOf<Int?>(null) }
     viewerStart?.let { PhotoViewer(item.photos.orEmpty(), it) { viewerStart = null } }
     if (menuOpen) {
@@ -238,118 +255,65 @@ private fun PostRow(item: Consultation, onOpen: () -> Unit, onToggleSupport: () 
             onDismiss = { menuOpen = false },
         )
     }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .onGloballyPositioned { columnTop = it.positionInRoot().y }
-            .drawBehind {
-                // Thread line: from under the avatar down to the small replier avatar when the ayuntamiento replied.
-                if (item.responseCount > 0 && miniTop > columnTop) {
-                    val x = (PostInset + PostAvatar / 2).toPx()
-                    drawLine(
-                        lineColor,
-                        Offset(x, (14.dp + PostAvatar + 6.dp).toPx()),
-                        Offset(x, miniTop - columnTop - 3.dp.toPx()),
-                        strokeWidth = 2.dp.toPx(),
-                        cap = StrokeCap.Round,
-                    )
-                }
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 6.dp)) {
+        Column(Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(start = PostInset)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(
+                    categoryIcon(item.categoryIcon),
+                    contentDescription = null,
+                    Modifier.size(20.dp),
+                    tint = parseCategoryColor(item.categoryColor, palette.textSecondary),
+                )
+                Text(
+                    item.categoryName,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
+                    color = palette.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Text("·", style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp), color = palette.textTertiary)
+                Text(time, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp), color = palette.textSecondary, maxLines = 1)
+                Spacer(Modifier.weight(1f))
+                StatusPill(item.statusValue, neutral = true)
+                Icon(
+                    Icons.Filled.MoreHoriz,
+                    contentDescription = stringResource(R.string.safety_ui_menu_label),
+                    Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .clickable(role = Role.Button) { menuOpen = true }
+                        .padding(14.dp),
+                    tint = palette.textTertiary,
+                )
             }
-            .padding(vertical = 14.dp),
-    ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onOpen)
-                .padding(horizontal = PostInset),
-            horizontalArrangement = Arrangement.spacedBy(PostGap),
-        ) {
-            CategoryAvatar(item.categoryIcon, item.categoryColor, PostAvatar)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        item.title,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Text(time, style = MaterialTheme.typography.bodyMedium, color = LocalPalette.current.textTertiary, maxLines = 1)
-                    Icon(
-                        Icons.Filled.MoreHoriz,
-                        contentDescription = stringResource(R.string.safety_ui_menu_label),
-                        Modifier
-                            .offset(x = 2.dp)
-                            .touchTarget(20.dp)
-                            .clickable(role = Role.Button) { menuOpen = true }
-                            .padding(14.dp),
-                        tint = LocalPalette.current.textTertiary,
-                    )
-                }
-            }
+            Text(
+                item.title,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(end = PostInset),
+            )
         }
         val photos = item.photos.orEmpty()
         if (photos.isNotEmpty()) {
-            PostPhotos(photos, onOpen = { viewerStart = it }, modifier = Modifier.padding(start = PostColumn, top = 10.dp))
+            PostPhotos(photos, onOpen = { viewerStart = it }, modifier = Modifier.padding(start = PostInset, top = 10.dp))
         }
-        ActionsRow(item, onOpen, onToggleSupport, Modifier.padding(start = PostColumn - 14.dp, end = PostInset))
-        // Pulled up into the 48dp targets' slack: the icons keep their touch area, the line sits close like iOS.
-        Row(Modifier.padding(horizontal = PostInset).offset(y = (-6).dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.width(PostAvatar), Alignment.Center) {
-                if (item.responseCount > 0) ReplierMini(Modifier.onGloballyPositioned { miniTop = it.positionInRoot().y })
-            }
-            Spacer(Modifier.width(PostGap))
-            PostCounts(item)
-        }
+        ActionsRow(item, onOpen, onToggleSupport, Modifier.padding(start = PostInset - 14.dp, end = PostInset - 14.dp))
     }
     Hairline()
 }
 
-/** The ayuntamiento's small avatar under the post's, where the thread line ends. */
-@Composable
-private fun ReplierMini(modifier: Modifier = Modifier) {
-    val iris = RutaBrand.iris
-    Box(
-        modifier
-            .size(20.dp)
-            .background(MaterialTheme.colorScheme.background, CircleShape)
-            .padding(1.5.dp)
-            .background(iris.copy(alpha = 0.18f), CircleShape),
-        Alignment.Center,
-    ) {
-        Icon(Icons.Filled.AccountBalance, contentDescription = null, Modifier.size(9.dp), tint = iris)
-    }
-}
-
-/** "En revisión · 1 respuesta · 9 apoyos": only the parts that say something. */
-@Composable
-private fun PostCounts(item: Consultation, modifier: Modifier = Modifier) {
-    val muted = LocalPalette.current.textTertiary
-    val status = item.statusValue
-    val replies = if (item.responseCount > 0) pluralStringResource(R.plurals.consultations_responses, item.responseCount.toInt(), item.responseCount.toInt()) else null
-    val supports = if (item.supportCount > 0) pluralStringResource(R.plurals.consultations_supports, item.supportCount.toInt(), item.supportCount.toInt()) else null
-    val statusText = if (status != ConsultationStatus.Open) statusLabel(status) else null
-    val ink = statusInk(status)
-    if (statusText == null && replies == null && supports == null) return
-    val text = buildAnnotatedString {
-        var first = true
-        fun sep() { if (!first) append(" · "); first = false }
-        statusText?.let { sep(); withStyle(SpanStyle(color = ink, fontWeight = FontWeight.Medium)) { append(it) } }
-        replies?.let { sep(); append(it) }
-        supports?.let { sep(); append(it) }
-    }
-    Text(text, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp), color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = modifier.padding(top = 2.dp))
-}
-
-/** Bare icons in 48dp targets, no counts beside them. */
+/** Heart with its count, the comment icon, then share at the far end. */
 @Composable
 private fun ActionsRow(item: Consultation, onReply: () -> Unit, onToggleSupport: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val ink = MaterialTheme.colorScheme.onSurface
     val shareLabel = stringResource(R.string.common_share)
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        SupportIcon(item.supported, onToggleSupport)
+        SupportIcon(item.supported, onToggleSupport, count = item.supportCount.toInt())
         IconTarget(Icons.Outlined.ChatBubbleOutline, stringResource(R.string.consultations_timeline), ink, onReply)
+        Spacer(Modifier.weight(1f))
         IconTarget(Icons.AutoMirrored.Outlined.Send, shareLabel, ink) { shareText(context, item.title, item.slug) }
     }
 }
@@ -374,10 +338,11 @@ internal fun IconTarget(icon: ImageVector, label: String, tint: Color, onClick: 
 }
 
 @Composable
-internal fun SupportIcon(supported: Boolean, onToggle: () -> Unit) {
+internal fun SupportIcon(supported: Boolean, onToggle: () -> Unit, count: Int = 0) {
     val haptics = LocalHapticFeedback.current
     val reduced = LocalReducedMotion.current
-    val ink = if (supported) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    // Same colour as iOS; filled vs outline carries the state.
+    val ink = if (supported) RutaHighlight.selection() else MaterialTheme.colorScheme.onSurface
     val scale = remember { Animatable(1f) }
     val first = remember { booleanArrayOf(true) }
     LaunchedEffect(supported) {
@@ -387,17 +352,19 @@ internal fun SupportIcon(supported: Boolean, onToggle: () -> Unit) {
             scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium))
         }
     }
-    val label = stringResource(if (supported) R.string.consultations_supported else R.string.consultations_support)
-    Box(
+    val label = if (count > 0) pluralStringResource(R.plurals.consultations_supports, count, count) else stringResource(if (supported) R.string.consultations_supported else R.string.consultations_support)
+    Row(
         Modifier
-            .size(48.dp)
-            .clip(CircleShape)
+            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .clip(RoundedCornerShape(24.dp))
             .toggleable(value = supported, role = Role.Checkbox, interactionSource = remember { MutableInteractionSource() }, indication = androidx.compose.material3.ripple()) {
                 haptics.performHapticFeedback(if (supported) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn)
                 onToggle()
             }
-            .semantics { contentDescription = label },
-        contentAlignment = Alignment.Center,
+            .semantics { contentDescription = label }
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Icon(
             if (supported) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
@@ -405,6 +372,9 @@ internal fun SupportIcon(supported: Boolean, onToggle: () -> Unit) {
             Modifier.size(20.dp).scale(scale.value),
             tint = ink,
         )
+        if (count > 0) {
+            Text(count.toString(), style = MaterialTheme.typography.bodyMedium, color = LocalPalette.current.textSecondary, modifier = Modifier.clearAndSetSemantics { })
+        }
     }
 }
 

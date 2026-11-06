@@ -80,11 +80,12 @@ struct RutaProminentStyle: PrimitiveButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         if tint == nil, !isEnabled {
-            // Clearly off, still legible: the accent washed out, the label in full ink.
+            // Clearly off, still legible: a neutral tonal fill and the secondary label colour,
+            // which keeps over 4.5:1 on `fill` in both schemes while reading as inactive.
             // A plain label, not a Button: the system dims disabled buttons again.
             configuration.label
-                .foregroundStyle(palette.text)
-                .background((RutaHighlight.enabled && RutaHighlight.primaryButtons ? RutaHighlight.solid : palette.accent).opacity(0.35), in: Capsule())
+                .foregroundStyle(palette.textSecondary)
+                .background(palette.fill, in: Capsule())
                 .accessibilityAddTraits(.isButton)
         } else if let tint {
             // Exactly the badge's fill (the colour's own gradient), so the

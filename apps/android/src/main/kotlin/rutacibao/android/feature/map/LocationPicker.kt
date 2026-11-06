@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
@@ -17,7 +16,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.Place
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -105,12 +103,7 @@ private fun PickerContent(start: LatLng?, onDismiss: () -> Unit, onPicked: (LatL
                     here?.let { UserDot(it) }
                 }
                 // The pin's tip marks the map's centre.
-                Icon(
-                    Icons.Filled.Place,
-                    contentDescription = null,
-                    modifier = Modifier.align(Alignment.Center).size(44.dp).offset(y = (-22).dp),
-                    tint = LocalPalette.current.text,
-                )
+                DropPin()
                 val locateLabel = stringResource(R.string.picker_locate)
                 Surface(
                     onClick = {

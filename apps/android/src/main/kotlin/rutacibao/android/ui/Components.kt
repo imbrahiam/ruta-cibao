@@ -1,6 +1,7 @@
 package rutacibao.android.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -123,8 +124,11 @@ fun statusInk(status: ConsultationStatus): Color {
 
 /** Each status carries its own glyph, so colour is never the only signal. */
 @Composable
-fun StatusPill(status: ConsultationStatus, modifier: Modifier = Modifier) {
-    val ink = if (status == ConsultationStatus.Open) LocalPalette.current.textSecondary else statusInk(status)
+fun StatusPill(status: ConsultationStatus, modifier: Modifier = Modifier, neutral: Boolean = false) {
+    val palette = LocalPalette.current
+    // Neutral: tonal fill and label colour; the glyph and the word still carry the state.
+    val ink = if (neutral) palette.text else if (status == ConsultationStatus.Open) palette.textSecondary else statusInk(status)
+    val fill = if (neutral) palette.raised(isSystemInDarkTheme()) else ink.copy(alpha = 0.1f)
     val glyph = when (status) {
         ConsultationStatus.Open -> Icons.Filled.Circle
         ConsultationStatus.InReview -> Icons.Filled.Schedule
@@ -133,7 +137,7 @@ fun StatusPill(status: ConsultationStatus, modifier: Modifier = Modifier) {
         ConsultationStatus.Rejected -> Icons.Filled.Cancel
     }
     Row(
-        modifier.clip(CircleShape).background(ink.copy(alpha = 0.1f)).padding(horizontal = 8.dp, vertical = 4.dp),
+        modifier.clip(CircleShape).background(fill).padding(horizontal = 8.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {

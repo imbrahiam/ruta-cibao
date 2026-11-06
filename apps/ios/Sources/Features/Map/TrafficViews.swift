@@ -64,8 +64,10 @@ struct TrafficMarker: View {
 struct TrafficSheetView: View {
     let notice: TrafficNotice
     let failure: UiError?
+    var onHeight: (CGFloat) -> Void = { _ in }
     let confirm: (TrafficVerdict) -> Void
     @Environment(\.palette) private var palette
+    @Environment(\.colorScheme) private var scheme
 
     /// Measured from the content, so the sheet is exactly as tall as what it says.
     @State private var contentHeight: CGFloat = 230
@@ -91,9 +93,9 @@ struct TrafficSheetView: View {
         }
         .padding(.horizontal, 20)
         .padding(.top, 20)
-        .padding(.bottom, 16)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0; onHeight($0) }
         .presentationDetents([.height(contentHeight)])
         .presentationBackgroundInteraction(.enabled(upThrough: .height(contentHeight)))
     }
@@ -142,11 +144,11 @@ struct TrafficSheetView: View {
                 Text(title).font(.headline)
                 Text("\(count)")
                     .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
             }
             .foregroundStyle(.primary)
             .frame(maxWidth: .infinity, minHeight: 48)
-            .background(chosen ? RutaHighlight.color.opacity(0.22) : Color.primary.opacity(0.1), in: shape)
+            .background(chosen ? RutaHighlight.color.opacity(0.22) : (scheme == .dark ? palette.fillPressed : Color.primary.opacity(0.1)), in: shape)
             .overlay { shape.strokeBorder(chosen ? RutaHighlight.color : .clear, lineWidth: 2) }
             .contentShape(shape)
         }

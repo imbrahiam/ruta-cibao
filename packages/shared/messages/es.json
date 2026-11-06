@@ -897,7 +897,9 @@
     "officialReplyFailed": "No se pudo enviar la respuesta. Tu texto sigue aquí.",
     "officialReplies": "Respuestas oficiales",
     "statusAfter": "Estado después de responder",
-    "officialReply": "Respuesta oficial"
+    "officialReply": "Respuesta oficial",
+    "officialBadge": "Oficial",
+    "replyPlaceholder": "Responder"
   },
   "consultations": {
     "status": {
@@ -1136,7 +1138,8 @@
     "signedOutTitle": "Entra a Ruta Cibao",
     "signedOutBody": "Guarda lugares, sigue tus consultas y recibe las respuestas del ayuntamiento. Solo necesitas tu celular o tu correo.",
     "signIn": "Entrar o crear cuenta",
-    "resident": "Residente verificado de {place}",
+    "resident": "Residente de {place}",
+    "residentVerified": "Residente verificado",
     "yours": "Lo tuyo",
     "profile": "Perfil",
     "saved": "Lugares guardados",

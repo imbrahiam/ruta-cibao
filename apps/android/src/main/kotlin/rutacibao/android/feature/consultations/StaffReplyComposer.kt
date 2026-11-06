@@ -88,12 +88,15 @@ fun ConsultationComposer(
         if (state.canRespond && official) {
             StaffReplyComposer(state, vm, text, { text = it }, status, { status = it }, official, { official = it })
         } else {
-            if (state.canRespond) {
-                Box(Modifier.padding(horizontal = PostInset)) {
-                    ComposerModeChip(official, status, state.replyStatuses, !busy, { official = it }, { status = it })
-                }
-            }
-            CommentComposer(comments, commentsVm, stringResource(R.string.comments_placeholder), stringResource(R.string.comments_sign_in_to_comment))
+            CommentComposer(
+                comments,
+                commentsVm,
+                stringResource(R.string.comments_placeholder),
+                stringResource(R.string.comments_sign_in_to_comment),
+                leading = if (state.canRespond) {
+                    { ComposerModeChip(official, status, state.replyStatuses, !busy, { official = it }, { status = it }) }
+                } else null,
+            )
         }
     }
 }
@@ -111,7 +114,7 @@ private fun ComposerModeChip(
     val palette = LocalPalette.current
     var open by rememberSaveable { mutableStateOf(false) }
     val who = stringResource(if (official) R.string.consultations_municipality else R.string.comments_participant_mode)
-    val label = if (official) who + " · " + stringResource(status.label()) else who
+    val label = if (official) who + "\n" + stringResource(status.label()) else who
     val description = stringResource(R.string.comments_composer_mode)
     Box {
         Row(
@@ -121,7 +124,7 @@ private fun ComposerModeChip(
                 .padding(start = 14.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 2)
             Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
@@ -156,7 +159,7 @@ private fun StaffReplyComposer(
     onOfficialChange: (Boolean) -> Unit,
 ) {
     val palette = LocalPalette.current
-    val replyLabel = stringResource(R.string.gestion_reply_title)
+    val replyLabel = stringResource(R.string.comments_reply_placeholder)
     Column(Modifier.padding(horizontal = PostInset).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             ComposerModeChip(official, status, state.replyStatuses, !state.replying, onOfficialChange, onStatusChange)

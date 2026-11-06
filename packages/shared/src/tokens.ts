@@ -152,8 +152,8 @@ export const THEMES = {
     map: {
       light: {
         ground: "#F4F3EF",
-        natural: "#F4F3EF",
-        park: "#E2EADD",
+        natural: "#E6EDDD",
+        park: "#DAE7D0",
         water: "#CFDDE3",
         waterLabel: "#5E7F8C",
         road: "#FFFFFF",
@@ -167,8 +167,8 @@ export const THEMES = {
       },
       dark: {
         ground: "#181816",
-        natural: "#181816",
-        park: "#1C241D",
+        natural: "#1B221C",
+        park: "#1F2B21",
         water: "#121A1D",
         waterLabel: "#4E636B",
         road: "#2A2A27",
@@ -227,8 +227,8 @@ export const THEMES = {
     map: {
       light: {
         ground: "#F3F3F3",
-        natural: "#F3F3F3",
-        park: "#E6EBE6",
+        natural: "#E6EDE3",
+        park: "#DCE8D8",
         water: "#D6DDE3",
         waterLabel: "#8A97A1",
         road: "#FFFFFF",
@@ -242,8 +242,8 @@ export const THEMES = {
       },
       dark: {
         ground: "#1B1B1B",
-        natural: "#1B1B1B",
-        park: "#1F241F",
+        natural: "#1C221D",
+        park: "#212C22",
         water: "#0E1418",
         waterLabel: "#4E5A62",
         road: "#2E2E2E",

@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -117,3 +118,9 @@ fun StaticPinMap(latitude: Double, longitude: Double, tint: Color, meters: Doubl
         }
     }
 }
+
+/**
+ * The M3 drag handle keeps its 48dp touch area; lifting the content 6dp puts the title 16dp under the handle bar
+ * (the bar sits 22dp above the area's bottom edge).
+ */
+internal fun Modifier.underDragHandle(): Modifier = this.offset(y = (-6).dp)

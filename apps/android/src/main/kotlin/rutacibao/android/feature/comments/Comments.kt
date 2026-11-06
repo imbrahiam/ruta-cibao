@@ -58,6 +58,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -86,7 +87,7 @@ fun LazyListScope.commentThread(state: CommentsUiState, vm: CommentsViewModel, e
     }
     items(state.items, key = { "comment:${it.id}" }) { comment ->
         CommentRow(comment, state.workingCommentId != null, vm)
-        Hairline(Modifier.padding(start = 68.dp, end = 16.dp))
+        Hairline(Modifier.padding(start = 58.dp, end = 16.dp))
     }
     item(key = "comments:footer") {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
@@ -138,13 +139,13 @@ private fun CommentRow(comment: Comment, working: Boolean, vm: CommentsViewModel
     var menu by remember(comment.id) { mutableStateOf(false) }
     var reporting by remember(comment.id) { mutableStateOf(false) }
     var deleting by remember(comment.id) { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ThreadAvatar(comment.author, comment.authorImage, Modifier.padding(top = 6.dp))
+    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        ThreadAvatar(comment.author, comment.authorImage, Modifier.padding(top = 8.dp), size = 32.dp)
         Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f).padding(top = 3.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(comment.author, style = MaterialTheme.typography.titleSmall)
-                    Text(relativeTimeText(comment.createdAt), style = MaterialTheme.typography.labelMedium, color = LocalPalette.current.textTertiary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(comment.author, style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Text(relativeTimeText(comment.createdAt), style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp), color = LocalPalette.current.textTertiary, maxLines = 1)
                 }
                 Box {
                     IconButton(onClick = { menu = true }, enabled = !working, modifier = Modifier.size(48.dp)) {
@@ -159,7 +160,7 @@ private fun CommentRow(comment: Comment, working: Boolean, vm: CommentsViewModel
                     }
                 }
             }
-            SelectionContainer { Text(comment.body, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(end = 8.dp, top = 2.dp)) }
+            SelectionContainer { Text(comment.body, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp), modifier = Modifier.padding(end = 8.dp)) }
         }
     }
     if (deleting) AlertDialog(
@@ -193,7 +194,14 @@ private fun CommentRow(comment: Comment, working: Boolean, vm: CommentsViewModel
 
 /** The caller owns the solid anchored surface and keyboard/system insets. */
 @Composable
-fun CommentComposer(state: CommentsUiState, vm: CommentsViewModel, placeholder: String, signInLabel: String) {
+fun CommentComposer(
+    state: CommentsUiState,
+    vm: CommentsViewModel,
+    placeholder: String,
+    signInLabel: String,
+    /** Replaces the avatar (staff's "who answers" chip), so the composer stays one row. */
+    leading: (@Composable () -> Unit)? = null,
+) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         if (!state.signedIn) {
             TextButton(onClick = vm::requestSignIn, modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp)) {
@@ -201,7 +209,7 @@ fun CommentComposer(state: CommentsUiState, vm: CommentsViewModel, placeholder: 
             }
         } else {
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ThreadAvatar(null, null, Modifier.padding(bottom = 8.dp), size = 32.dp)
+                if (leading != null) leading() else ThreadAvatar(null, null, Modifier.padding(bottom = 8.dp), size = 32.dp)
                 Box(Modifier.weight(1f).defaultMinSize(minHeight = 48.dp).clip(RoundedCornerShape(24.dp))
                     .background(LocalPalette.current.inset).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.CenterStart) {
                     BasicTextField(

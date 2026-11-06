@@ -30,8 +30,8 @@ object RutaHighlight {
 fun rutaButtonColors(): ButtonColors = ButtonDefaults.buttonColors(
     containerColor = RutaHighlight.solid,
     contentColor = RutaHighlight.onSolid,
-    disabledContainerColor = RutaHighlight.solid.copy(alpha = 0.35f),
-    disabledContentColor = MaterialTheme.colorScheme.onSurface,
+    disabledContainerColor = LocalPalette.current.fill,
+    disabledContentColor = LocalPalette.current.textSecondary,
 )
 
 @Composable

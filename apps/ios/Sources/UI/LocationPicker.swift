@@ -28,7 +28,7 @@ struct LocationPicker: View {
     var body: some View {
         NavigationStack {
             Map(position: $camera) { UserAnnotation() }
-                .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
+                .mapStyle(.ruta)
                 .mapControls { MapUserLocationButton() }
                 .tint(palette.locate)
                 .onMapCameraChange(frequency: .continuous) { center = $0.region.center; moving = true }
@@ -64,9 +64,16 @@ struct LocationPicker: View {
     }
 }
 
+extension MapStyle {
+    /// The one map look: Apple's standard basemap with parks and beaches kept.
+    static var ruta: MapStyle {
+        .standard(elevation: .flat, emphasis: .automatic, pointsOfInterest: .including([.park, .nationalPark, .beach]), showsTraffic: false)
+    }
+}
+
 /// Apple Maps' marked-location pin: a red head with a white dot on a short
 /// stem, and its shadow on the ground at the exact point.
-private struct DropPin: View {
+struct DropPin: View {
     let lifted: Bool
 
     var body: some View {

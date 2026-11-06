@@ -128,7 +128,7 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
             SubmitBar(
                 title = stringResource(if (state.submitted) R.string.common_retry else R.string.consultations_submit),
                 busy = state.sending,
-                enabled = true,
+                enabled = title.isNotBlank() && text.isNotBlank(),
                 onClick = vm::send,
             )
         },
@@ -152,6 +152,8 @@ fun NewConsultationScreen(onBack: () -> Unit, onOpened: (String) -> Unit) {
                         style = TextStyle(fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
                         enabled = !state.submitted,
                         modifier = Modifier.focusRequester(titleFocus),
+                        filled = true,
+                        minHeight = 48.dp,
                     )
                     Problem(NewConsultationUiState.Problem.Title in state.problems, stringResource(R.string.consultations_errors_title))
                 }
@@ -237,6 +239,7 @@ private fun PlainField(
     modifier: Modifier = Modifier,
     counter: Pair<Int, Int>? = null,
     filled: Boolean = counter != null,
+    minHeight: androidx.compose.ui.unit.Dp = 120.dp,
 ) {
     val palette = LocalPalette.current
     BasicTextField(
@@ -247,7 +250,7 @@ private fun PlainField(
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         modifier = modifier.fillMaxWidth(),
         decorationBox = { inner ->
-            Box(Modifier.fillMaxSize().then(if (filled) Modifier.clip(RoundedCornerShape(14.dp)).background(palette.inset).heightIn(min = 120.dp).padding(14.dp) else Modifier)) {
+            Box(Modifier.fillMaxSize().then(if (filled) Modifier.clip(RoundedCornerShape(14.dp)).background(palette.inset).heightIn(min = minHeight).padding(14.dp) else Modifier)) {
                 if (value.isEmpty()) Text(placeholder, style = style, color = palette.textTertiary)
                 inner()
                 if (counter != null && counter.first > 0 && counter.first < counter.second) {

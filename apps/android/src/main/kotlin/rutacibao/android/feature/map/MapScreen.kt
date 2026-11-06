@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.SideEffect
@@ -117,6 +118,16 @@ import rutacibao.presentation.map.MapUiState
 import rutacibao.presentation.map.MapViewModel
 import rutacibao.presentation.map.TrafficNotice
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 
 private val SheetPeek = 320.dp
 private val SheetPeekWithPhoto = 500.dp
@@ -208,11 +219,11 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
     }
 
     fun focus(latitude: Double, longitude: Double) {
-        // Zoom in, never out: a third of the current span, no closer than a block or two. Aim a little south so the pin clears the sheet.
+        // Zoom in, never out: a third of the current span, no closer than a block or two. The map's content padding keeps the pin clear of the sheet.
         val current = span.first
         val target = if (current <= ClosestSpan) current else maxOf(ClosestSpan, current / 3)
         val zoom = camera.position.zoom + (ln(current / target) / ln(2.0)).toFloat()
-        fly(CameraUpdateFactory.newLatLngZoom(LatLng(latitude - target * 0.18, longitude), zoom))
+        fly(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), zoom))
     }
 
     fun focus(place: MapPlace) = focus(place.latitude, place.longitude)
@@ -224,7 +235,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
         if (framed || state.all.isEmpty()) return@LaunchedEffect
         framed = true
         val town = Clustering.cluster(state.all, 0.05, 0.05).maxByOrNull { it.count } ?: return@LaunchedEffect
-        camera.move(CameraUpdateFactory.newLatLngZoom(LatLng(town.latitude, town.longitude), zoomForMeters(town.latitude, 3200.0, widthDp)))
+        camera.move(CameraUpdateFactory.newLatLngZoom(LatLng(town.latitude, town.longitude), zoomForMeters(town.latitude, 1500.0, widthDp)))
     }
     LaunchedEffect(camera.isMoving, camera.position, camera.projection != null) {
         if (!camera.isMoving) {
@@ -301,8 +312,12 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
     val named = span.second < 0.035
     val selectedPlace = state.sheet?.place?.id
     // Google Maps style: one place per cell, more as you zoom; the selection always stays.
-    val visible = remember(state.places, span, selectedPlace) {
-        Clustering.declutter(state.places, span.first / 10, span.second / 6, selectedPlace)
+    val thresholdPx = with(density) { ClusterDistance.toPx() }
+    val groups = remember(state.places, span, selectedPlace, camera.projection != null) {
+        val projection = camera.projection
+        if (projection == null) state.places.map { listOf(it) } else clusterPlaces(state.places, selectedPlace, thresholdPx) {
+            projection.toScreenLocation(LatLng(it.latitude, it.longitude)).let { p -> p.x.toFloat() to p.y.toFloat() }
+        }
     }
 
     val hasSheet = state.sheet != null || state.route != null || selectedTraffic != null
@@ -312,7 +327,14 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
 
     // A place with a photo opens tall enough to show it, like the iOS medium detent.
     var trafficHeight by remember { mutableStateOf(0.dp) }
-    val peek = if (selectedTraffic != null && trafficHeight > 0.dp) trafficHeight + 48.dp else if (state.sheet?.let { it.detail?.imageUrl ?: it.place.thumbnailUrl } != null) SheetPeekWithPhoto else SheetPeek
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // Place: about 46% of the screen plus the gesture bar, so header, actions, hours and two description lines fit.
+    val placePeek = maxOf(SheetPeek, screenHeight * 0.46f + navInset)
+    val peek = if (selectedTraffic != null && trafficHeight > 0.dp) trafficHeight + 42.dp else if (state.sheet?.let { it.detail?.imageUrl ?: it.place.thumbnailUrl } != null) SheetPeekWithPhoto else placePeek
+    var topChromeHeight by remember { mutableStateOf(0.dp) }
+    // Controls ride above the sheet and step aside once it is more than half the screen.
+    val controlsHidden = hasSheet && selectedTraffic == null && sheetState.targetValue == SheetValue.Expanded
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         modifier = modifier,
@@ -347,7 +369,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
                     zoomControlsEnabled = false, myLocationButtonEnabled = false, mapToolbarEnabled = false,
                     tiltGesturesEnabled = false, compassEnabled = true,
                 ),
-                contentPadding = PaddingValues(top = statusInset + 124.dp, bottom = if (hasSheet) 0.dp else clearance),
+                contentPadding = PaddingValues(top = if (topChromeHeight > 0.dp) topChromeHeight else statusInset + 124.dp, bottom = if (hasSheet) peek else clearance),
                 onMapClick = { vm.dismissSheet(); vm.dismissRoute(); vm.dismissTraffic() },
             ) {
                 state.traffic.forEach { notice ->
@@ -377,9 +399,24 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
                         ) { TrafficPin(notice, selected) }
                     }
                 }
-                visible.forEach { place ->
-                    androidx.compose.runtime.key(place.id) {
-                        PlaceMarker(place, named, selected = place.id == selectedId) { vm.select(place.id) }
+                groups.forEach { group ->
+                    if (group.size == 1) {
+                        val place = group.first()
+                        androidx.compose.runtime.key(place.id) {
+                            PlaceMarker(place, named, selected = place.id == selectedId) { vm.select(place.id) }
+                        }
+                    } else {
+                        androidx.compose.runtime.key("cluster:" + group.joinToString(",") { it.id }) {
+                            ClusterMarker(group) {
+                                val lats = group.map { it.latitude }
+                                val lngs = group.map { it.longitude }
+                                val tiny = lats.max() - lats.min() < 0.0008 && lngs.max() - lngs.min() < 0.0008
+                                fly(
+                                    if (tiny) CameraUpdateFactory.newLatLngZoom(LatLng(lats.average(), lngs.average()), maxOf(camera.position.zoom + 1.5f, 17f))
+                                    else CameraUpdateFactory.newLatLngBounds(LatLngBounds(LatLng(lats.min(), lngs.min()), LatLng(lats.max(), lngs.max())), with(density) { 64.dp.roundToPx() }),
+                                )
+                            }
+                        }
                     }
                 }
                 val strokeSelected = with(density) { 6.dp.toPx() }
@@ -415,19 +452,21 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
             }
 
             Column(
-                Modifier.fillMaxWidth().statusBarsPadding().padding(top = 8.dp),
+                Modifier.fillMaxWidth().onSizeChanged { topChromeHeight = with(density) { it.height.toDp() } + 8.dp }.statusBarsPadding().padding(top = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 SearchPill { searching = true }
                 CategoryChips(state.categories, state.selectedCategories, state.routes.isNotEmpty(), state.routesSelected, vm::toggleCategory, vm::toggleRoutes)
             }
 
-            MapControls(
-                satellite = satellite,
-                onToggleSatellite = { satellite = !satellite },
-                onLocate = ::locate,
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = if (hasSheet) peek + 16.dp else clearance + 16.dp),
-            )
+            if (!controlsHidden) {
+                MapControls(
+                    satellite = satellite,
+                    onToggleSatellite = { satellite = !satellite },
+                    onLocate = ::locate,
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = if (hasSheet) peek + 16.dp else clearance + 16.dp),
+                )
+            }
 
             when (state.phase) {
                 MapUiState.Phase.Loading -> if (state.all.isEmpty()) LoadingState(Modifier.align(Alignment.Center))
@@ -493,10 +532,26 @@ private fun CategoryChips(
 ) {
     val description = stringResource(R.string.map_filter_places)
     val routesColor = Color(0xFF2F9E44)
+    val listState = rememberLazyListState()
+    val fadeWidth = with(LocalDensity.current) { 24.dp.toPx() }
+    val canScroll = listState.canScrollForward
     LazyRow(
+        state = listState,
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.semantics { contentDescription = description },
+        modifier = Modifier
+            .semantics { contentDescription = description }
+            // Trailing 24dp fade: the row scrolls.
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+            .drawWithContent {
+                drawContent()
+                if (canScroll) {
+                    drawRect(
+                        Brush.horizontalGradient(listOf(Color.Black, Color.Transparent), startX = size.width - fadeWidth, endX = size.width),
+                        blendMode = BlendMode.DstIn,
+                    )
+                }
+            },
     ) {
         if (hasRoutes) {
             item(key = "routes") {
@@ -579,6 +634,55 @@ private fun MapControls(satellite: Boolean, onToggleSatellite: () -> Unit, onLoc
 }
 
 // ------------------------------------------------------------------ markers
+
+/** Places closer than this (bubble size, so bubbles never overlap) on screen collapse into one count bubble. */
+private val ClusterDistance = 44.dp
+
+/** Greedy screen-space grouping: the selection stays a single pin. Stable under panning (id order, not position). */
+private fun clusterPlaces(places: List<MapPlace>, keep: String?, threshold: Float, project: (MapPlace) -> Pair<Float, Float>): List<List<MapPlace>> {
+    val points = places.sortedBy { it.id }.map { it to project(it) }
+    val taken = BooleanArray(points.size)
+    val out = mutableListOf<List<MapPlace>>()
+    for (i in points.indices) {
+        if (taken[i]) continue
+        taken[i] = true
+        val (place, at) = points[i]
+        if (place.id == keep) { out += listOf(place); continue }
+        val group = mutableListOf(place)
+        for (j in i + 1 until points.size) {
+            if (taken[j] || points[j].first.id == keep) continue
+            val dx = points[j].second.first - at.first
+            val dy = points[j].second.second - at.second
+            if (dx * dx + dy * dy < threshold * threshold) { taken[j] = true; group += points[j].first }
+        }
+        out += group
+    }
+    return out
+}
+
+/** A neutral count bubble, at least 44dp wide; tapping zooms to its places. */
+@Composable
+private fun ClusterMarker(group: List<MapPlace>, onClick: () -> Unit) {
+    val centre = LatLng(group.map { it.latitude }.average(), group.map { it.longitude }.average())
+    val label = pluralStringResource(R.plurals.map_places_count, group.size, group.size)
+    val palette = LocalPalette.current
+    MarkerComposable(
+        group.size, palette.elevated,
+        state = rememberUpdatedMarkerState(centre),
+        anchor = Offset(0.5f, 0.5f),
+        zIndex = 1.5f,
+        onClick = { onClick(); true },
+    ) {
+        Box(
+            Modifier.defaultMinSize(minWidth = 44.dp, minHeight = 44.dp).clip(CircleShape).background(palette.elevated)
+                .border(1.5.dp, MaterialTheme.colorScheme.onSurface, CircleShape).padding(horizontal = 6.dp)
+                .clearAndSetSemantics { contentDescription = label },
+            Alignment.Center,
+        ) {
+            Text("${group.size}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
+        }
+    }
+}
 
 @Composable
 private fun PlaceMarker(place: MapPlace, named: Boolean, selected: Boolean, onClick: () -> Unit) {

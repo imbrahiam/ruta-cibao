@@ -50,6 +50,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -218,58 +219,50 @@ private fun OriginalPost(detail: ConsultationDetail, onSupport: () -> Unit) {
 
 @Composable
 private fun Thread(detail: ConsultationDetail) {
-    val palette = LocalPalette.current
+    // No replies, no heading: the composer already says who can answer.
+    if (detail.responses.isEmpty()) return
     Column {
         Hairline()
-        CommentsHeader(stringResource(R.string.comments_official_replies), detail.responses.size)
-        if (detail.responses.isEmpty()) {
-            Text(
-                stringResource(R.string.consultations_no_responses),
-                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
-                color = palette.textTertiary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = PostInset, vertical = 28.dp),
-            )
-        } else {
-            detail.responses.forEachIndexed { i, response ->
-                Reply(response, detail.municipalityName, isLast = i == detail.responses.lastIndex)
-            }
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = PostInset).padding(top = 18.dp, bottom = 4.dp).semantics { heading() },
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            val style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.comments_official_replies), style = style)
+            Text(detail.responses.size.toString(), style = style, color = LocalPalette.current.textTertiary)
         }
+        detail.responses.forEach { Reply(it) }
     }
 }
 
-/** One official reply, laid out as a feed post. The line joins replies into a thread. */
+/** One official reply: the ayuntamiento's mark, its name with an "Oficial" badge (text, not colour), the time, then the answer. */
 @Composable
-private fun Reply(response: ConsultationResponse, municipality: String, isLast: Boolean) {
+private fun Reply(response: ConsultationResponse) {
     val palette = LocalPalette.current
-    val iris = RutaBrand.iris
-    val line = palette.hairline
-    val who = "${stringResource(R.string.consultations_municipality)} · $municipality"
     Row(
-        Modifier
-            .fillMaxWidth()
-            .drawBehind {
-                if (!isLast) {
-                    val x = (PostInset + PostAvatar / 2).toPx()
-                    drawLine(line, Offset(x, (12.dp + PostAvatar + 6.dp).toPx()), Offset(x, size.height), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
-                }
-            }
-            .padding(horizontal = PostInset)
-            .padding(top = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(PostGap),
+        Modifier.fillMaxWidth().padding(horizontal = PostInset, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(PostAvatar).background(iris.copy(alpha = 0.14f), CircleShape), Alignment.Center) {
-            Icon(Icons.Filled.AccountBalance, contentDescription = null, Modifier.size(18.dp), tint = iris)
+        Box(Modifier.size(32.dp).background(palette.fill, CircleShape), Alignment.Center) {
+            Icon(Icons.Filled.AccountBalance, contentDescription = null, Modifier.size(16.dp), tint = palette.text)
         }
-        Column(Modifier.weight(1f).padding(bottom = if (isLast) 14.dp else 20.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(response.author ?: stringResource(R.string.consultations_municipality), style = MaterialTheme.typography.titleSmall)
-            Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(Icons.Filled.Verified, contentDescription = null, modifier = Modifier.padding(top = 2.dp).size(15.dp), tint = iris)
-                Text(who, style = MaterialTheme.typography.labelMedium, color = iris, modifier = Modifier.weight(1f))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    response.author ?: stringResource(R.string.consultations_municipality),
+                    style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Text(
+                    stringResource(R.string.comments_official_badge),
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold),
+                    modifier = Modifier.clip(CircleShape).background(palette.inset).padding(horizontal = 6.dp, vertical = 2.dp),
+                )
+                Text(relativeTimeText(response.createdAt), style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp), color = palette.textTertiary, maxLines = 1)
             }
-            Text(relativeTimeText(response.createdAt), style = MaterialTheme.typography.labelMedium, color = palette.textTertiary)
-            SelectionContainer { Text(response.body, style = MaterialTheme.typography.bodyLarge) }
-            StatusPill(response.statusAfterValue, Modifier.padding(top = 6.dp))
+            SelectionContainer { Text(response.body, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp)) }
         }
     }
 }

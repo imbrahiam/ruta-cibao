@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -107,7 +108,7 @@ fun PlaceSheet(
     }
     val hero = absoluteUrl(detail?.imageUrl) ?: absoluteUrl(place.thumbnailUrl)
     Column(
-        modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
+        modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 0.dp, bottom = 24.dp).underDragHandle(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -214,6 +215,7 @@ private fun OutlinedExperiencesButton(onClick: () -> Unit) {
 private fun ContactRows(contact: Contact) {
     val context = LocalContext.current
     val palette = LocalPalette.current
+    val pill = if (isSystemInDarkTheme()) palette.fillPressed else palette.fill
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         val pills = listOfNotNull(
             contact.phoneLink?.let { Triple(R.string.place_call, Icons.Filled.Call, it) },
@@ -223,7 +225,7 @@ private fun ContactRows(contact: Contact) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 pills.forEach { (label, icon, link) ->
                     Row(
-                        Modifier.weight(1f).heightIn(min = 48.dp).clip(CircleShape).background(palette.fill)
+                        Modifier.weight(1f).heightIn(min = 48.dp).clip(CircleShape).background(pill)
                             .clickable(role = Role.Button) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) },
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                         verticalAlignment = Alignment.CenterVertically,

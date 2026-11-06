@@ -53,6 +53,8 @@
     <string name="comments_official_replies">Respuestas oficiales</string>
     <string name="comments_status_after">Estado después de responder</string>
     <string name="comments_official_reply">Respuesta oficial</string>
+    <string name="comments_official_badge">Oficial</string>
+    <string name="comments_reply_placeholder">Responder</string>
     <string name="about_title">Acerca de</string>
     <string name="about_tagline">Descubre la provincia Santiago Rodríguez y participa en lo que pasa en ella.</string>
     <string name="about_version">Versión %1$s (%2$s)</string>
@@ -67,7 +69,8 @@
     <string name="account_signed_out_title">Entra a Ruta Cibao</string>
     <string name="account_signed_out_body">Guarda lugares, sigue tus consultas y recibe las respuestas del ayuntamiento. Solo necesitas tu celular o tu correo.</string>
     <string name="account_sign_in">Entrar o crear cuenta</string>
-    <string name="account_resident">Residente verificado de %1$s</string>
+    <string name="account_resident">Residente de %1$s</string>
+    <string name="account_resident_verified">Residente verificado</string>
     <string name="account_yours">Lo tuyo</string>
     <string name="account_profile">Perfil</string>
     <string name="account_saved">Lugares guardados</string>

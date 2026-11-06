@@ -79,21 +79,21 @@ private struct CommentRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: 10) {
-                AuthorAvatar(name: comment.author, image: comment.authorImage, size: 36)
+                AuthorAvatar(name: comment.author, image: comment.authorImage, size: 32)
                     .padding(.top, 4)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(comment.author)
-                            .font(PostMetrics.name)
+                            .font(.system(size: 13, weight: .semibold))
                             .fixedSize(horizontal: false, vertical: true)
                         Text(CompactTime.since(comment.createdAt.date))
-                            .font(.caption)
+                            .font(.system(size: 13))
                             .foregroundStyle(.secondary)
                         Spacer(minLength: 0)
                     }
-                    .frame(minHeight: 36, alignment: .leading)
+                    .frame(minHeight: 32, alignment: .leading)
                     Text(comment.body)
-                        .font(.body)
+                        .font(.callout)
                         .lineSpacing(2)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
@@ -102,7 +102,7 @@ private struct CommentRow: View {
             }
             .padding(.horizontal, PostMetrics.inset)
             .padding(.vertical, 12)
-            Divider().padding(.leading, PostMetrics.inset + 46)
+            Divider().padding(.leading, PostMetrics.inset + 42)
         }
     }
 
@@ -137,6 +137,8 @@ struct CommentComposer: View {
     let placeholder: String
     var focus: FocusState<Bool>.Binding
     var signInLabel: String = L10n.Comments.signInToComment
+    /// Replaces the avatar, e.g. staff's "who answers" chip, so the composer stays one row.
+    var leading: AnyView?
 
     @Environment(\.palette) private var palette
     @Environment(\.colorScheme) private var scheme
@@ -148,8 +150,12 @@ struct CommentComposer: View {
                 ThreadErrorNotice(message: L10n.Comments.sendFailed) { model.viewModel.send() }
             }
             HStack(alignment: .bottom, spacing: 10) {
-                ComposerAvatar()
-                    .padding(.bottom, 6)
+                if let leading, state.signedIn {
+                    leading
+                } else {
+                    ComposerAvatar()
+                        .padding(.bottom, 6)
+                }
                 if state.signedIn {
                     HStack(alignment: .bottom, spacing: 4) {
                         TextField(
@@ -224,7 +230,7 @@ struct ThreadComposerBar<Content: View>: View {
     var body: some View {
         VStack(spacing: 0, content: content)
             .frame(maxWidth: .infinity)
-            .background(palette.background)
+            .background(.bar)
             .overlay(alignment: .top) { Divider() }
     }
 }

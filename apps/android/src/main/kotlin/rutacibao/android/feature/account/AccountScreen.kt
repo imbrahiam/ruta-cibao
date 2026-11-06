@@ -23,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -122,10 +123,14 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
                 Header(state.me?.displayName, state.me?.image, state.me?.residencyVerified == true, state.municipalityName, state.me?.phoneNumber ?: state.me?.email) {
                     onOpen(AccountPage.Profile)
                 }
-                SectionTitle(stringResource(R.string.account_yours))
-                AccountShortcuts(state.saved.size, (state.passport?.total ?: 0).toInt(), onOpen)
+                GroupGap()
                 Group {
-                    state.staffPending?.let { pending ->
+                    NavRow(stringResource(R.string.account_saved), Icons.Filled.Bookmark, Color(0xFFFF9500), trailing = state.saved.size.toString(), onClick = { onOpen(AccountPage.Saved) })
+                    NavRow(stringResource(R.string.account_passport), Icons.Filled.Book, Color(0xFF30B0C7), trailing = (state.passport?.total ?: 0).toString(), onClick = { onOpen(AccountPage.Passport) })
+                }
+                state.staffPending?.let { pending ->
+                    GroupGap()
+                    Group {
                         NavRow(
                             stringResource(R.string.gestion_title),
                             Icons.Filled.Checklist,
@@ -135,20 +140,24 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
                             onClick = onOpenGestion,
                         )
                     }
+                }
+                GroupGap()
+                Group {
                     NavRow(stringResource(R.string.notification_settings_title), Icons.Filled.Notifications, Color(0xFFFF3B30), onClick = { onOpen(AccountPage.Notifications) })
                     NavRow(stringResource(R.string.offline_row_title), Icons.Filled.Download, Color(0xFF30A45A), onClick = { onOpen(AccountPage.Offline) })
                     if (rutacibao.android.platform.PushNotifications.capability != rutacibao.android.platform.PushNotifications.Capability.Available) {
                         Text(stringResource(R.string.notifications_push_unavailable), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))
                     }
                 }
+                GroupGap()
                 Group {
                     NavRow(stringResource(R.string.account_privacy), Icons.Filled.PanTool, Color(0xFF0A84FF), onClick = { onOpen(AccountPage.Privacy) })
                     NavRow(stringResource(R.string.account_about_app), Icons.Filled.Info, Color(0xFF8E8E93), onClick = { onOpen(AccountPage.About) })
                 }
+                GroupGap()
                 Group {
                     PlainRow(stringResource(R.string.account_sign_out), palette.text, Icons.AutoMirrored.Filled.Logout, chevron = false) { confirmSignOut = true }
-                    HorizontalDivider(Modifier.padding(start = 58.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-                    PlainRow(stringResource(R.string.account_deletion_row_title), palette.dangerInk, Icons.Filled.Delete, chevron = true) { onOpen(AccountPage.Deletion) }
+                    PlainRow(stringResource(R.string.account_deletion_row_title), palette.danger, Icons.Filled.Delete, chevron = true) { onOpen(AccountPage.Deletion) }
                 }
             }
         }
@@ -178,7 +187,7 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
 private fun Header(name: String?, image: String?, verified: Boolean, municipality: String?, contact: String?, onClick: () -> Unit) {
     val palette = LocalPalette.current
     Row(
-        Modifier.padding(horizontal = 24.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
+        Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
             .background(cardFill()).clickable(role = Role.Button, onClick = onClick).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -192,10 +201,10 @@ private fun Header(name: String?, image: String?, verified: Boolean, municipalit
                     maxLines = 2,
                     modifier = Modifier.weight(1f, fill = false).semantics { heading() },
                 )
-                if (verified) Icon(Icons.Filled.Verified, contentDescription = null, Modifier.size(18.dp), tint = RutaBrand.iris)
+                if (verified) Icon(Icons.Filled.Verified, contentDescription = stringResource(R.string.account_resident_verified), Modifier.size(18.dp), tint = RutaBrand.iris)
             }
             if (verified && municipality != null) {
-                Text(stringResource(R.string.account_resident, municipality), style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
+                Text(stringResource(R.string.account_resident, municipality), style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             } else if (contact != null) {
                 Text(contact, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
             }
@@ -205,51 +214,16 @@ private fun Header(name: String?, image: String?, verified: Boolean, municipalit
 }
 
 
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-        modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 28.dp, bottom = 12.dp).semantics { heading() },
-    )
-}
-
+/** Rows of one section, edge to edge: icons share the profile card's 16 dp gutter. */
 @Composable
 private fun Group(content: @Composable () -> Unit) {
-    Column(
-        Modifier
-            .padding(horizontal = 16.dp)
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp)),
-    ) { content() }
+    Column(Modifier.fillMaxWidth()) { content() }
 }
 
+/** The hairline between sections, as on iOS. */
 @Composable
-private fun AccountShortcuts(saved: Int, passport: Int, onOpen: (AccountPage) -> Unit) {
-    val content: @Composable (Modifier) -> Unit = { modifier ->
-        AccountShortcut(stringResource(R.string.account_saved), Icons.Filled.Bookmark, saved, modifier) { onOpen(AccountPage.Saved) }
-        AccountShortcut(stringResource(R.string.account_passport), Icons.Filled.Verified, passport, modifier) { onOpen(AccountPage.Passport) }
-    }
-    if (LocalConfiguration.current.fontScale > 1.3f) {
-        Column(Modifier.padding(horizontal = 24.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content(Modifier.fillMaxWidth()) }
-    } else {
-        Row(Modifier.padding(horizontal = 24.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) { content(Modifier.weight(1f)) }
-    }
-}
-
-@Composable
-private fun AccountShortcut(title: String, icon: ImageVector, count: Int, modifier: Modifier, onClick: () -> Unit) {
-    Column(
-        modifier.clip(RoundedCornerShape(20.dp)).background(cardFill())
-            .clickable(role = Role.Button, onClick = onClick).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Icon(icon, contentDescription = null, tint = RutaHighlight.selection())
-            Text(count.toString(), style = MaterialTheme.typography.titleMedium, color = LocalPalette.current.textSecondary)
-        }
-        Text(title, style = MaterialTheme.typography.titleSmall)
-    }
+private fun GroupGap() {
+    HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 /** A card on the page: the surface step in dark (as on iOS), so avatars and chips sit one step above it. */
@@ -264,6 +238,7 @@ private fun NavRow(
     color: Color?,
     count: Int? = null,
     value: String? = null,
+    trailing: String? = null,
     onClick: () -> Unit,
 ) {
     val palette = LocalPalette.current
@@ -287,14 +262,14 @@ private fun NavRow(
                 Text(
                     count.toString(),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.background,
+                    color = palette.text,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.defaultMinSize(minWidth = 28.dp, minHeight = 28.dp).background(MaterialTheme.colorScheme.onSurface, CircleShape).padding(horizontal = 8.dp, vertical = 4.dp),
+                    modifier = Modifier.defaultMinSize(minWidth = 28.dp, minHeight = 28.dp).background(palette.fill, CircleShape).padding(horizontal = 8.dp, vertical = 4.dp),
                 )
             }
+            if (trailing != null) Text(trailing, style = MaterialTheme.typography.bodyLarge, color = palette.textSecondary)
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = palette.textTertiary)
         }
-        HorizontalDivider(Modifier.padding(start = 58.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 

@@ -23,6 +23,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -104,7 +105,6 @@ import rutacibao.android.ui.PrimaryButton
 import rutacibao.android.ui.relativeTimeText
 import rutacibao.android.ui.raised
 import androidx.compose.foundation.isSystemInDarkTheme
-import rutacibao.android.ui.rutaButtonColors
 import rutacibao.api.generated.ReportsListItem
 import rutacibao.presentation.UiError
 import rutacibao.presentation.gestion.GestionUiState
@@ -214,7 +214,7 @@ private fun Content(
         GestionUiState.Phase.Failed -> ErrorState(state.error ?: UiError.Unknown, onRetry = vm::retry)
         GestionUiState.Phase.Empty, GestionUiState.Phase.Ready -> LazyColumn(
             Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = rutacibao.android.navigation.LocalTabBarClearance.current + 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             state.latestReport?.let { report ->
@@ -286,7 +286,7 @@ private fun ReportRow(report: ReportsListItem, loading: Boolean, unavailable: Bo
                 .fillMaxWidth()
                 .heightIn(min = 56.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(palette.raised(isSystemInDarkTheme()))
+                .background(if (isSystemInDarkTheme()) palette.surface else palette.inset)
                 .clickable(enabled = !loading, role = Role.Button, onClick = onOpen)
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -475,7 +475,7 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, act: (ReviewAction) -> U
             if (secondary.isNotEmpty()) {
                 var open by remember { mutableStateOf(false) }
                 Box {
-                    IconButton(onClick = { open = true }, enabled = !busy) {
+                    IconButton(onClick = { open = true }, enabled = !busy, modifier = Modifier.size(48.dp).background(palette.fill, CircleShape)) {
                         Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.safety_ui_menu_label))
                     }
                     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
@@ -498,7 +498,12 @@ private fun ReviewCard(item: ReviewItem, busy: Boolean, act: (ReviewAction) -> U
 private fun ActionButton(action: ReviewAction, busy: Boolean, act: (ReviewAction) -> Unit, primary: Boolean, modifier: Modifier) {
     val label = @Composable { Text(stringResource(actionLabel(action.labelKey)), fontWeight = FontWeight.SemiBold) }
     val size = modifier.heightIn(min = 48.dp)
-    if (primary) Button(onClick = { act(action) }, enabled = !busy, colors = rutaButtonColors(), modifier = size) { label() }
+    if (primary) Button(
+        onClick = { act(action) },
+        enabled = !busy,
+        colors = ButtonDefaults.buttonColors(containerColor = LocalPalette.current.fill, contentColor = LocalPalette.current.text, disabledContainerColor = LocalPalette.current.fill, disabledContentColor = LocalPalette.current.textSecondary),
+        modifier = size,
+    ) { label() }
     else OutlinedButton(onClick = { act(action) }, enabled = !busy, modifier = size) { label() }
 }
 

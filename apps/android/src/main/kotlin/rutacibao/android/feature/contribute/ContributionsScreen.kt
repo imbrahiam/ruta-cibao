@@ -47,6 +47,9 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import rutacibao.android.ui.inkOn
+import rutacibao.android.ui.raised
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -129,11 +132,24 @@ fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation:
             item { Spacer(Modifier.height(16.dp)) }
 
             if (state.signedIn) {
-                stickyHeader { SectionTabs(section, notices.unread, onMarkAll = { inbox.markRead(null) }) { section = it } }
+                stickyHeader { SectionTabs(section, notices.unread) { section = it } }
                 if (section == Section.Mine) item { rutacibao.android.feature.account.PendingContributions(hideWhenEmpty = true) }
                 item {
                     Column {
-                        if (section == Section.Mine) Mine(state, vm, onOpenConsultation) else Inbox(notices, inbox, onOpenHref)
+                        if (section == Section.Mine) Mine(state, vm, onOpenConsultation) else {
+                            if (notices.unread > 0) {
+                                Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.End) {
+                                    TextButton(onClick = { inbox.markRead(null) }, Modifier.heightIn(min = 48.dp)) {
+                                        Text(
+                                            stringResource(R.string.notifications_mark_all_read),
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                        )
+                                    }
+                                }
+                            }
+                            Inbox(notices, inbox, onOpenHref)
+                        }
                     }
                 }
             } else {
@@ -159,43 +175,36 @@ fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation:
 
 /** Mis aportes / Avisos, pinned while the list scrolls. The unread count is in the label, not just a colour. */
 @Composable
-private fun SectionTabs(selected: Section, unread: Int, onMarkAll: () -> Unit, onSelect: (Section) -> Unit) {
+private fun SectionTabs(selected: Section, unread: Int, onSelect: (Section) -> Unit) {
     val labels = listOf(
         Section.Mine to stringResource(R.string.contributions_mine),
         Section.Inbox to if (unread > 0) stringResource(R.string.contributions_inbox_count, unread.toString()) else stringResource(R.string.contributions_inbox),
     )
     val palette = LocalPalette.current
     Column(Modifier.background(MaterialTheme.colorScheme.background)) {
-    Row(Modifier.fillMaxWidth()) {
-    Row(Modifier.weight(1f).selectableGroup()) {
-        labels.forEach { (section, label) ->
-            val isSelected = section == selected
-            Box(
-                Modifier
-                    .weight(1f)
-                    .heightIn(min = 48.dp)
-                    .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(section) }),
-                Alignment.Center,
-            ) {
-                Text(
-                    label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (isSelected) MaterialTheme.colorScheme.onSurface else palette.textTertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (isSelected) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(2.dp).background(RutaHighlight.selection()))
+        Row(Modifier.fillMaxWidth().selectableGroup()) {
+            labels.forEach { (section, label) ->
+                val isSelected = section == selected
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp)
+                        .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(section) }),
+                    Alignment.Center,
+                ) {
+                    Text(
+                        label,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        color = if (isSelected) MaterialTheme.colorScheme.onSurface else palette.textTertiary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (isSelected) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(2.dp).background(RutaHighlight.selection()))
+                }
             }
         }
-    }
-    if (selected == Section.Inbox && unread > 0) {
-        IconButton(onClick = onMarkAll, Modifier.size(48.dp)) {
-            Icon(Icons.Filled.DoneAll, contentDescription = stringResource(R.string.contributions_mark_all), tint = palette.textSecondary)
-        }
-    }
-    }
-    Hairline()
+        Hairline()
     }
 }
 
@@ -205,12 +214,13 @@ private fun Inbox(state: InboxUiState, vm: InboxViewModel, open: (String) -> Uni
     when (state.phase) {
         InboxUiState.Phase.Loading -> Box(Modifier.fillMaxWidth().height(120.dp), Alignment.Center) { CircularProgressIndicator() }
         InboxUiState.Phase.Failed -> ErrorState(state.error ?: UiError.Unknown, onRetry = vm::refresh, modifier = Modifier.height(320.dp))
-        InboxUiState.Phase.Empty -> MessageState(
-            stringResource(R.string.contributions_inbox_empty),
-            stringResource(R.string.contributions_inbox_empty_body),
-            Modifier.height(320.dp),
-            icon = Icons.Filled.Notifications,
-        )
+        InboxUiState.Phase.Empty -> Box(Modifier.fillMaxWidth().padding(top = 48.dp), Alignment.Center) {
+            Text(
+                stringResource(R.string.notifications_empty),
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+            )
+        }
         InboxUiState.Phase.Ready -> {
             state.items.forEach { notice ->
                 NoticeRow(notice) {
@@ -266,9 +276,11 @@ private fun noticeLook(key: String): Pair<ImageVector, Color> = when {
     else -> Icons.Filled.Notifications to Color(0xFF8E8E93)
 }
 
-/** Three big tiles: icon and label, always both. */
+/** The same tile as the traffic report types: raised neutral fill, a 44 category-coloured glyph circle, the label inside. */
 @Composable
 private fun ActionTiles(start: (ContributeAction) -> Unit) {
+    val palette = LocalPalette.current
+    val dark = isSystemInDarkTheme()
     Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         listOf(
             Triple(ContributeAction.Consultation, Icons.Filled.ChatBubble to Indigo, R.string.contributions_example_case_title),
@@ -279,22 +291,23 @@ private fun ActionTiles(start: (ContributeAction) -> Unit) {
             Column(
                 Modifier
                     .weight(1f)
-                    .clickable(role = Role.Button) { start(action) },
+                    .height(112.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(palette.raised(dark))
+                    .clickable(role = Role.Button) { start(action) }
+                    .padding(horizontal = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
             ) {
-                Box(
-                    Modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(18.dp))
-                        .background(color),
-                    Alignment.Center,
-                ) {
-                    Icon(icon, contentDescription = null, Modifier.size(24.dp), tint = Color.White)
+                Box(Modifier.size(44.dp).background(color, CircleShape), Alignment.Center) {
+                    Icon(icon, contentDescription = null, Modifier.size(24.dp), tint = inkOn(color))
                 }
                 Text(
                     stringResource(label),
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, fontWeight = FontWeight.Medium),
+                    color = palette.text,
                     textAlign = TextAlign.Center,
-                    minLines = 2,
+                    maxLines = 2,
                 )
             }
         }
@@ -346,9 +359,11 @@ private fun ContributionRow(item: PlacesContributionsItem, opens: Boolean, onCli
         PlacesContributionsItem.Status.Cleared -> R.string.contributions_status_cleared
         PlacesContributionsItem.Status.Expired -> R.string.contributions_status_expired
         PlacesContributionsItem.Status.Removed -> R.string.contributions_status_removed
-        PlacesContributionsItem.Status.Open -> R.string.contributions_status_open
+        PlacesContributionsItem.Status.Open ->
+            if (item.kind == PlacesContributionsItem.Kind.Consultation) R.string.consultations_status_label_open else R.string.contributions_status_open
         PlacesContributionsItem.Status.InReview -> R.string.contributions_status_in_review
-        PlacesContributionsItem.Status.Answered -> R.string.contributions_status_answered
+        PlacesContributionsItem.Status.Answered ->
+            if (item.kind == PlacesContributionsItem.Kind.Consultation) R.string.consultations_status_label_answered else R.string.contributions_status_answered
         PlacesContributionsItem.Status.Approved -> R.string.contributions_status_approved
     }
     val statusInk = when (item.status) {

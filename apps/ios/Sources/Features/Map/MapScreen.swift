@@ -71,6 +71,12 @@ private struct MapContent: View {
     @State private var satellite = false
     @State private var cameraMode = Self.debugCamera
     @State private var debugTrafficDone = false
+    /// Map frame and the safe-area bottom outside it: the base for cluster distances and sheet insets.
+    @State private var mapSize: CGSize = .zero
+    @State private var safeBottom: CGFloat = 0
+    @State private var placeLarge = false
+    @State private var routeLarge = false
+    @State private var trafficHeight: CGFloat = 0
     @State private var navigator = RouteNavigator()
     @Environment(DeepLinks.self) private var links
     @Environment(AppChrome.self) private var chrome
@@ -104,20 +110,71 @@ private struct MapContent: View {
     /// The cell snaps to a power-of-two zoom step, so panning (which nudges the
     /// span a little each time) keeps the same grid and the same places; only
     /// a real zoom changes what shows.
-    private var visible: [MapPlace] {
-        let cell = pow(2, (log2(max(region.span.latitudeDelta, 0.0005) / 10)).rounded())
-        return Clustering.shared.declutter(
-            places: state.places,
-            cellLatitude: cell,
-            cellLongitude: cell * 1.6,
-            keep: state.sheet?.place.id
-        )
+    @MapContentBuilder private var placePins: some MapKit.MapContent {
+        let all = groups
+        ForEach(all.filter { $0.places.count == 1 }, id: \.id) { group in
+            Marker(group.places[0].name, systemImage: CategoryGlyph.symbol(group.places[0].icon), coordinate: group.places[0].coordinate)
+                .tint(CategoryGlyph.style(group.places[0].icon, hex: group.places[0].color).color)
+                .tag(group.places[0].id)
+        }
+        ForEach(all.filter { $0.places.count > 1 }, id: \.id) { group in
+            Annotation("", coordinate: group.center, anchor: .center) {
+                ClusterBubble(count: group.places.count) { zoom(to: group.places) }
+            }
+        }
+    }
+
+    /// Places under 44 pt apart on screen (the bubble size, so bubbles never overlap) collapse into one count bubble (the selection stays a pin).
+    /// Sorted by id so panning keeps the same groups; only a zoom changes them.
+    private var groups: [PlaceGroup] {
+        let keep = state.sheet?.place.id
+        guard mapSize.width > 0, region.span.latitudeDelta > 0, region.span.longitudeDelta > 0 else {
+            return state.places.map { PlaceGroup(places: [$0]) }
+        }
+        let sx = mapSize.width / region.span.longitudeDelta
+        let sy = mapSize.height / region.span.latitudeDelta
+        let points = state.places.sorted { $0.id < $1.id }.map { place in
+            (place, CGPoint(x: (place.longitude - region.center.longitude) * sx, y: -(place.latitude - region.center.latitude) * sy))
+        }
+        var taken = [Bool](repeating: false, count: points.count)
+        var out: [PlaceGroup] = []
+        for i in points.indices where !taken[i] {
+            taken[i] = true
+            let (place, at) = points[i]
+            var members = [place]
+            if place.id != keep {
+                for j in points.indices where j > i && !taken[j] && points[j].0.id != keep {
+                    let dx = points[j].1.x - at.x, dy = points[j].1.y - at.y
+                    if dx * dx + dy * dy < 44 * 44 { taken[j] = true; members.append(points[j].0) }
+                }
+            }
+            out.append(PlaceGroup(places: members))
+        }
+        return out
+    }
+
+    /// Height of the open sheet from the screen bottom, for the map's bottom inset and the controls.
+    private var sheetHeight: CGFloat {
+        if let sheet = state.sheet {
+            return PlaceSheetView.compactHeight(hasPhoto: sheet.place.thumbnailUrl != nil || sheet.detail?.imageUrl != nil, screen: mapSize.height)
+        }
+        // The detent is the content plus the home-indicator inset.
+        if state.selectedTraffic != nil { return trafficHeight + 34 }
+        if state.route != nil { return 300 }
+        return 0
+    }
+
+    private var sheetsClosed: Bool { state.sheet == nil && state.route == nil }
+
+    /// The capsule rides above the sheet and steps aside once it is past half the screen.
+    private var controlsHidden: Bool {
+        (state.sheet != nil && placeLarge) || (state.route != nil && routeLarge) || sheetHeight > mapSize.height * 0.5
     }
 
     /// The closest a tap will take you: a block or two, still readable.
     private static let closest: CLLocationDegrees = 0.0045
 
-    var body: some View {
+    private var mapBase: some View {
         Map(position: $camera, interactionModes: routing ? .all : [.pan, .zoom, .rotate], selection: selectionBinding) {
             // Routes under the pins: the line, then its start as a marker.
             ForEach(state.visibleRoutes, id: \.id) { route in
@@ -135,7 +192,8 @@ private struct MapContent: View {
                 MapPolyline(route.polyline)
                     .stroke(palette.locate, style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
             }
-            // Road reports over the routes, under the pins; never clustered with places.
+            placePins
+            // Road reports are safety information: never clustered, drawn after (above) places and clusters.
             ForEach(state.traffic, id: \.id) { notice in
                 if !notice.path.isEmpty {
                     MapPolyline(coordinates: notice.pathCoordinates)
@@ -146,11 +204,6 @@ private struct MapContent: View {
                 }
                 .tag(Self.trafficTag(notice.id))
             }
-            ForEach(visible, id: \.id) { place in
-                Marker(place.name, systemImage: CategoryGlyph.symbol(place.icon), coordinate: place.coordinate)
-                    .tint(CategoryGlyph.style(place.icon, hex: place.color).color)
-                    .tag(place.id)
-            }
             UserAnnotation()
         }
         // "You are here" in the system blue (status token), never the theme accent.
@@ -160,29 +213,20 @@ private struct MapContent: View {
         // only green and blue places show, so ours still carry the map.
         .mapStyle(satellite
             ? .hybrid(elevation: .flat, pointsOfInterest: .excludingAll, showsTraffic: false)
-            : .standard(elevation: .flat, emphasis: .automatic, pointsOfInterest: .including([.park, .nationalPark, .beach]), showsTraffic: false))
+            : .ruta)
         .mapControls {
             MapCompass()
             MapScaleView()
         }
+    }
+
+    private var mapLayer: some View {
+        mapBase
+        .onGeometryChange(for: CGSize.self) { $0.size } action: { mapSize = $0 }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { safeBottom = $0 }
         .overlay(alignment: .bottomTrailing) {
-            if !routing {
-            // Apple Maps' control stack: one glass capsule, the icons stacked.
-            VStack(spacing: 0) {
-                MapRoundButton(symbol: "camera.viewfinder", label: L10n.Map.camera, active: false) { cameraMode = true }
-                MapRoundButton(symbol: satellite ? "map.fill" : "globe.americas.fill", label: satellite ? L10n.MapLayers.standard : L10n.MapLayers.satellite, active: false) {
-                    withAnimation(.snappy) { satellite.toggle() }
-                }
-                LocateButton(active: camera.followsUserLocation) {
-                    if location.authorizationStatus == .notDetermined { location.requestWhenInUseAuthorization() }
-                    withAnimation(reduceMotion ? nil : .smooth(duration: 0.55)) {
-                        camera = .userLocation(fallback: camera)
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-            .glassEffect(.regular.interactive(), in: Capsule())
-            .padding(16)
+            if !routing && !controlsHidden {
+            controlStack.ignoresSafeArea(.container, edges: sheetHeight > 0 ? .bottom : [])
             }
         }
         .onMapCameraChange(frequency: .onEnd) { context in
@@ -212,6 +256,7 @@ private struct MapContent: View {
         .onAppear { vm.setMapVisible(visible: true) }
         .onDisappear { vm.setMapVisible(visible: false) }
         .safeAreaInset(edge: .top) { if !routing { topBar } }
+        .onChange(of: sheetsClosed) { _, _ in if state.sheet == nil { placeLarge = false }; if state.route == nil { routeLarge = false } }
         .overlay(alignment: .bottom) {
             if navigator.phase == .loading || navigator.phase == .preview || { if case .failed = navigator.phase { return true }; return false }() {
                 RoutePreviewCard(navigator: navigator)
@@ -260,9 +305,13 @@ private struct MapContent: View {
                     .padding(32)
             }
         }
+    }
+
+    var body: some View {
+        mapLayer
         .sheet(isPresented: sheetBinding, onDismiss: openPendingSearch) {
             if let sheet = state.sheet {
-                let compact = PresentationDetent.height(PlaceSheetView.compactHeight(hasPhoto: sheet.place.thumbnailUrl != nil || sheet.detail?.imageUrl != nil))
+                let compact = PresentationDetent.height(PlaceSheetView.compactHeight(hasPhoto: sheet.place.thumbnailUrl != nil || sheet.detail?.imageUrl != nil, screen: mapSize.height))
                 PlaceSheetView(
                     sheet: sheet,
                     save: { vm.toggleSaved() },
@@ -276,14 +325,14 @@ private struct MapContent: View {
                     submitReport: { vm.submitPlaceReport() },
                     closeReport: { vm.closePlaceReport() }
                 )
-                    .presentationDetents([compact, .large])
+                    .presentationDetents([compact, .large], selection: placeDetentBinding(compact))
                     .presentationBackgroundInteraction(.enabled(upThrough: compact))
                     .presentationDragIndicator(.visible)
             }
         }
         .sheet(isPresented: trafficSheetBinding, onDismiss: openPendingSearch) {
             if let notice = state.selectedTraffic {
-                TrafficSheetView(notice: notice, failure: state.trafficError) { vm.confirmTraffic(verdict: $0) }
+                TrafficSheetView(notice: notice, failure: state.trafficError, onHeight: { trafficHeight = $0 }) { vm.confirmTraffic(verdict: $0) }
                     .presentationDragIndicator(.visible)
             }
         }
@@ -298,7 +347,7 @@ private struct MapContent: View {
                 RouteSheetView(route: route) {
                     if let start = route.start { navigate(to: Destination(name: route.name, coordinate: start)) }
                 }
-                    .presentationDetents([.height(300), .large])
+                    .presentationDetents([.height(300), .large], selection: routeDetentBinding)
                     .presentationBackgroundInteraction(.enabled(upThrough: .height(300)))
                     .presentationDragIndicator(.visible)
             }
@@ -407,6 +456,14 @@ private struct MapContent: View {
         })
     }
 
+    private func placeDetentBinding(_ compact: PresentationDetent) -> Binding<PresentationDetent> {
+        Binding(get: { placeLarge ? .large : compact }, set: { placeLarge = $0 == .large })
+    }
+
+    private var routeDetentBinding: Binding<PresentationDetent> {
+        Binding(get: { routeLarge ? .large : .height(300) }, set: { routeLarge = $0 == .large })
+    }
+
     private var trafficSheetBinding: Binding<Bool> {
         Binding(get: { state.selectedTraffic != nil }, set: { if !$0 { vm.dismissTraffic() } })
     }
@@ -434,7 +491,7 @@ private struct MapContent: View {
         let town = Clustering.shared.cluster(places: places, cellLatitude: 0.05, cellLongitude: 0.05)
             .max { $0.count < $1.count }
         guard let town else { return Province.region }
-        return MKCoordinateRegion(center: town.coordinate, latitudinalMeters: 3200, longitudinalMeters: 3200)
+        return MKCoordinateRegion(center: town.coordinate, latitudinalMeters: 1500, longitudinalMeters: 1500)
     }
 
     /// Zoom toward a place: each tap gets closer (a third of the current span),
@@ -444,10 +501,48 @@ private struct MapContent: View {
     private func focus(latitude: Double, longitude: Double) {
         let current = region.span.latitudeDelta
         let span = current <= Self.closest ? current : max(Self.closest, current / 3)
+        // Aim a little south so the pin clears the sheet. (A bottom safe-area inset for the sheet made MapKit drop the selection and close the sheet.)
         let target = CLLocationCoordinate2D(latitude: latitude - span * 0.18, longitude: longitude)
         let ratio = region.span.longitudeDelta / max(region.span.latitudeDelta, 0.0001)
         withAnimation(reduceMotion ? nil : .smooth(duration: 0.55)) {
             camera = .region(MKCoordinateRegion(center: target, span: MKCoordinateSpan(latitudeDelta: span, longitudeDelta: span * ratio)))
+        }
+    }
+
+    /// Rides 16 above the open sheet's top edge.
+    private var controlStack: some View {
+        // Apple Maps' control stack: one glass capsule, the icons stacked.
+        VStack(spacing: 0) {
+            MapRoundButton(symbol: "camera.viewfinder", label: L10n.Map.camera, active: false) { cameraMode = true }
+            MapRoundButton(symbol: satellite ? "map.fill" : "globe.americas.fill", label: satellite ? L10n.MapLayers.standard : L10n.MapLayers.satellite, active: false) {
+                withAnimation(.snappy) { satellite.toggle() }
+            }
+            LocateButton(active: camera.followsUserLocation) {
+                if location.authorizationStatus == .notDetermined { location.requestWhenInUseAuthorization() }
+                withAnimation(reduceMotion ? nil : .smooth(duration: 0.55)) {
+                    camera = .userLocation(fallback: camera)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+        .glassEffect(.regular.interactive(), in: Capsule())
+        // Rides 16 above the open sheet's top edge.
+        .padding(.bottom, sheetHeight)
+        .padding(16)
+    }
+
+    /// Zoom to a cluster's places: their bounds with room around, never zooming out.
+    private func zoom(to places: [MapPlace]) {
+        let lats = places.map(\.latitude), lngs = places.map(\.longitude)
+        guard let minLat = lats.min(), let maxLat = lats.max(), let minLng = lngs.min(), let maxLng = lngs.max() else { return }
+        let ratio = region.span.longitudeDelta / max(region.span.latitudeDelta, 0.0001)
+        let latitudeDelta = min(max((maxLat - minLat) * 2.2, Self.closest), region.span.latitudeDelta)
+        let longitudeDelta = min(max((maxLng - minLng) * 2.2, Self.closest * ratio), region.span.longitudeDelta)
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.55)) {
+            camera = .region(MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLng + maxLng) / 2),
+                span: MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta)
+            ))
         }
     }
 
@@ -568,6 +663,40 @@ private struct LocateButton: View {
 
 // MARK: - Pins
 
+/// Places that sit under 44 pt apart on screen: one pin when alone, a count bubble otherwise.
+private struct PlaceGroup {
+    let places: [MapPlace]
+    var id: String { places.map(\.id).joined(separator: ",") }
+    var center: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(
+            latitude: places.map(\.latitude).reduce(0, +) / Double(places.count),
+            longitude: places.map(\.longitude).reduce(0, +) / Double(places.count)
+        )
+    }
+}
+
+/// A neutral count bubble, at least 44 pt; tapping zooms to its places.
+private struct ClusterBubble: View {
+    let count: Int
+    let action: () -> Void
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Button(action: action) {
+            Text("\(count)")
+                .font(.headline.monospacedDigit())
+                .foregroundStyle(palette.text)
+                .padding(.horizontal, 6)
+                .frame(minWidth: 44, minHeight: 44)
+                .background(palette.elevated, in: Capsule())
+                .overlay { Capsule().strokeBorder(palette.text, lineWidth: 1.5) }
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.Map.placesCount(count: count))
+    }
+}
+
 extension MapCluster {
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
 }
@@ -587,6 +716,7 @@ private struct CategoryChips: View {
     let toggleRoutes: () -> Void
     let select: (String) -> Void
     @Environment(\.palette) private var palette
+    @State private var canScrollForward = true
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -607,6 +737,17 @@ private struct CategoryChips: View {
         }
         // Chips cast a shadow over the map; don't clip it at the row's edge.
         .scrollClipDisabled()
+        .onScrollGeometryChange(for: Bool.self) { $0.contentOffset.x + $0.containerSize.width < $0.contentSize.width - 1 } action: { _, new in canScrollForward = new }
+        // Trailing 24 pt fade: the row scrolls. Taller than the row so the chips' shadows survive the mask.
+        .mask {
+            HStack(spacing: 0) {
+                Rectangle()
+                if canScrollForward {
+                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: 24)
+                }
+            }
+            .padding(.vertical, -24)
+        }
         .accessibilityLabel(L10n.Map.filterPlaces)
     }
 }

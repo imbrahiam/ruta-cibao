@@ -3,6 +3,7 @@ package rutacibao.android.feature.map
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,7 +99,7 @@ fun TrafficPin(notice: TrafficNotice, selected: Boolean) {
 fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVerdict) -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val palette = LocalPalette.current
     Column(
-        modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 24.dp),
+        modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 0.dp, bottom = 16.dp).underDragHandle(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -155,11 +156,13 @@ private fun Answer(title: String, count: Int, chosen: Boolean, enabled: Boolean,
     val palette = LocalPalette.current
     val shape = RoundedCornerShape(14.dp)
     val description = "$title, $count"
+    // One ladder step above the sheet in dark, with full-strength label text (4.5:1).
+    val rest = if (isSystemInDarkTheme()) palette.fillPressed else palette.fill
     Row(
         modifier
             .heightIn(min = 48.dp)
             .clip(shape)
-            .background(if (chosen) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f) else palette.fill)
+            .background(if (chosen) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f) else rest)
             .then(if (chosen) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, shape) else Modifier)
             .then(if (enabled) Modifier.clickable(role = Role.RadioButton, onClick = onClick) else Modifier)
             .semantics(mergeDescendants = true) { contentDescription = description; selected = chosen; role = Role.RadioButton }
@@ -169,6 +172,6 @@ private fun Answer(title: String, count: Int, chosen: Boolean, enabled: Boolean,
     ) {
         if (chosen) Icon(Icons.Filled.CheckCircle, contentDescription = null, Modifier.size(18.dp))
         Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-        Text("$count", style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
+        Text("$count", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
     }
 }

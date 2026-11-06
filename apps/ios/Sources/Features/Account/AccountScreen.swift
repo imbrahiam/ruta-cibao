@@ -138,26 +138,18 @@ private struct SignedInAccount: View {
                     .buttonStyle(.plain)
                     .padding(.horizontal, AccountMetrics.inset)
 
-                Text(L10n.Account.yours)
-                    .font(.headline)
-                    .accessibilityAddTraits(.isHeader)
-                    .padding(.horizontal, AccountMetrics.inset)
-                    .padding(.top, 28)
-                    .padding(.bottom, 12)
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) { shortcuts }
-                    VStack(spacing: 12) { shortcuts }
-                }
-                .padding(.horizontal, AccountMetrics.inset)
-                .padding(.bottom, staffPending == nil ? 20 : 4)
+                GroupDivider().padding(.top, 12)
+                shortcut(.saved, symbol: "bookmark.fill", title: L10n.Account.saved, count: state.saved.count, badge: .orange)
+                shortcut(.passport, symbol: "book.closed.fill", title: L10n.Account.passport, count: Int(state.passport?.total ?? 0), badge: .teal)
                 if let pending = staffPending {
+                    GroupDivider()
                     NavigationLink(value: AccountRoute.gestion) {
                         SettingsRow(symbol: "checklist", title: L10n.Gestion.title, badge: .indigo, count: pending)
                     }
                     .buttonStyle(.plain)
                     .accessibilityValue(L10n.Gestion.pending(count: pending))
-                    GroupDivider()
                 }
+                GroupDivider()
                 link(.notifications, "bell.fill", L10n.NotificationSettings.title, badge: .red)
                 link(.offline, "arrow.down.circle.fill", L10n.Offline.rowTitle, badge: .green)
                 GroupDivider()
@@ -168,7 +160,7 @@ private struct SignedInAccount: View {
                     SettingsRow(symbol: "rectangle.portrait.and.arrow.right", title: L10n.Account.signOut, chevron: false)
                 }
                 .buttonStyle(.plain)
-                link(.deletion, "trash", L10n.AccountDeletion.rowTitle, tint: palette.dangerInk)
+                link(.deletion, "trash", L10n.AccountDeletion.rowTitle, tint: palette.danger)
             }
             .padding(.bottom, 16)
         }
@@ -192,32 +184,9 @@ private struct SignedInAccount: View {
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder private var shortcuts: some View {
-        shortcut(.saved, symbol: "bookmark.fill", title: L10n.Account.saved, count: state.saved.count)
-        shortcut(.passport, symbol: "seal.fill", title: L10n.Account.passport, count: Int(state.passport?.total ?? 0))
-    }
-
-    private func shortcut(_ route: AccountRoute, symbol: String, title: String, count: Int) -> some View {
+    private func shortcut(_ route: AccountRoute, symbol: String, title: String, count: Int, badge: Color) -> some View {
         NavigationLink(value: route) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: symbol)
-                        .foregroundStyle(RutaHighlight.color)
-                        .accessibilityHidden(true)
-                    Spacer(minLength: 8)
-                    Text(verbatim: "\(count)")
-                        .monospacedDigit()
-                        .foregroundStyle(palette.textSecondary)
-                }
-                .font(.title3.weight(.semibold))
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(16)
-            .frame(minWidth: 140, maxWidth: .infinity, alignment: .leading)
-            .background(palette.raised, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-            .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            SettingsRow(symbol: symbol, title: title, value: "\(count)", badge: badge)
         }
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
@@ -235,13 +204,14 @@ private struct SignedInAccount: View {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.subheadline)
                             .foregroundStyle(RutaBrand.iris)
-                            .accessibilityHidden(true)
+                            .accessibilityLabel(L10n.Account.residentVerified)
                     }
                 }
                 if state.me?.residencyVerified == true, let place = state.municipalityName {
                     Text(L10n.Account.resident(place: place))
                         .font(.footnote)
                         .foregroundStyle(palette.textSecondary)
+                        .lineLimit(1)
                 }
             }
             Spacer(minLength: 0)

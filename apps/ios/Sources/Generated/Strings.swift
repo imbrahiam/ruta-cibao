@@ -118,6 +118,8 @@ enum L10n {
         static var officialReplies: String { String(localized: LocalizedStringResource("comments.officialReplies")) }
         static var statusAfter: String { String(localized: LocalizedStringResource("comments.statusAfter")) }
         static var officialReply: String { String(localized: LocalizedStringResource("comments.officialReply")) }
+        static var officialBadge: String { String(localized: LocalizedStringResource("comments.officialBadge")) }
+        static var replyPlaceholder: String { String(localized: LocalizedStringResource("comments.replyPlaceholder")) }
     }
 
     enum About {
@@ -147,6 +149,7 @@ enum L10n {
                 NSLocalizedString("account.resident", comment: ""), place
             )
         }
+        static var residentVerified: String { String(localized: LocalizedStringResource("account.residentVerified")) }
         static var yours: String { String(localized: LocalizedStringResource("account.yours")) }
         static var profile: String { String(localized: LocalizedStringResource("account.profile")) }
         static var saved: String { String(localized: LocalizedStringResource("account.saved")) }

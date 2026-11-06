@@ -37,6 +37,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material.icons.outlined.LocalOffer
 import androidx.compose.material.icons.outlined.LocationOn
@@ -73,6 +74,7 @@ import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.delay
 import rutacibao.android.R
 import rutacibao.android.feature.map.LocationPickerDialog
+import rutacibao.android.feature.map.DropPin
 import rutacibao.android.feature.map.StaticPinMap
 import rutacibao.android.ui.CategoryAvatar
 import rutacibao.android.ui.LocalAppGraph
@@ -153,7 +155,8 @@ fun TrafficReportScreen(onBack: () -> Unit, onSent: () -> Unit) {
                 value = detail,
                 onChange = { detail = it.take(280); vm.updateDescription(it) },
                 placeholder = stringResource(R.string.contribute_traffic_description),
-                minHeight = 120.dp,
+                minHeight = 48.dp,
+                maxLines = 4,
             )
 
             if (state.duplicate) {
@@ -194,9 +197,9 @@ fun SuggestPlaceScreen(onBack: () -> Unit, onSent: () -> Unit) {
     PushedScreen(
         title = stringResource(R.string.contribute_place_title),
         onBack = onBack,
-        bottomBar = { SubmitBar(stringResource(R.string.contribute_place_submit), state.sending, !state.sending, vm::send) },
+        bottomBar = { SubmitBar(stringResource(R.string.contribute_place_submit), state.sending, !state.sending && name.isNotBlank() && state.categoryId != null, vm::send) },
     ) { padding ->
-        FillingColumn(padding, spacing = 14.dp, growMin = 120.dp) {
+        FillingColumn(padding, spacing = 16.dp, growMin = 200.dp) {
             FieldBox(name, { name = it.take(100); vm.updateName(it) }, stringResource(R.string.contribute_place_name), bold = true)
             Problem(SuggestPlaceUiState.Problem.Name in state.problems, stringResource(R.string.contribute_place_errors_name))
 
@@ -204,8 +207,8 @@ fun SuggestPlaceScreen(onBack: () -> Unit, onSent: () -> Unit) {
                 about,
                 { about = it.take(600); vm.updateDescription(it) },
                 stringResource(R.string.contribute_place_description),
-                modifier = Modifier.grow(),
-                minHeight = 120.dp,
+                minLines = 3,
+                maxLines = 8,
                 counter = state.descriptionLength to 20,
             )
             Problem(SuggestPlaceUiState.Problem.Description in state.problems, stringResource(R.string.contribute_place_errors_description))
@@ -247,7 +250,7 @@ fun SuggestPlaceScreen(onBack: () -> Unit, onSent: () -> Unit) {
             }
             Problem(SuggestPlaceUiState.Problem.Category in state.problems, stringResource(R.string.contribute_place_errors_category))
 
-            LocationRow(state.latitude, state.longitude, label = stringResource(R.string.contribute_place_location)) { picking = true }
+            LocationRow(state.latitude, state.longitude, label = stringResource(R.string.contribute_place_location), modifier = Modifier.grow(), minHeight = 200.dp) { picking = true }
             Problem(SuggestPlaceUiState.Problem.Location in state.problems, stringResource(R.string.contribute_place_errors_location))
 
             FieldBox(address, { address = it.take(240); vm.updateAddress(it) }, stringResource(R.string.contribute_place_address))
@@ -286,7 +289,7 @@ internal fun SendError(error: UiError?) {
 @Composable
 internal fun Problem(show: Boolean, text: String) {
     if (!show) return
-    Row(Modifier.offset(y = (-6).dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.offset(y = (-8).dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Filled.ErrorOutline, contentDescription = null, Modifier.size(16.dp), tint = LocalPalette.current.dangerInk)
         Text(text, style = MaterialTheme.typography.labelMedium, color = LocalPalette.current.dangerInk)
     }
@@ -303,6 +306,7 @@ internal fun FieldBox(
     placeholder: String,
     bold: Boolean = false,
     minLines: Int = 1,
+    maxLines: Int? = null,
     modifier: Modifier = Modifier,
     minHeight: Dp = 52.dp,
     counter: Pair<Int, Int>? = null,
@@ -317,7 +321,7 @@ internal fun FieldBox(
         textStyle = style.copy(color = MaterialTheme.colorScheme.onSurface),
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         minLines = minLines,
-        maxLines = if (area) Int.MAX_VALUE else if (minLines > 1) minLines + 5 else 3,
+        maxLines = maxLines ?: if (area) Int.MAX_VALUE else if (minLines > 1) minLines + 5 else 3,
         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboardType),
         modifier = modifier.fillMaxWidth(),
         decorationBox = { inner ->
@@ -345,11 +349,13 @@ private const val CIBAO_LNG = -71.3418
 
 /** Where it is, always as a mini-map: around the province until a point is marked, then on it. Tapping opens the picker. */
 @Composable
-fun LocationRow(latitude: Double?, longitude: Double?, label: String, modifier: Modifier = Modifier.height(180.dp), pick: () -> Unit) {
+fun LocationRow(latitude: Double?, longitude: Double?, label: String, modifier: Modifier = Modifier.height(180.dp), minHeight: Dp = 180.dp, pick: () -> Unit) {
     val palette = LocalPalette.current
     val marked = latitude != null && longitude != null
-    Box(modifier.fillMaxWidth().heightIn(min = 180.dp).clip(RoundedCornerShape(16.dp))) {
-        StaticPinMap(latitude ?: CIBAO_LAT, longitude ?: CIBAO_LNG, palette.pin, if (marked) 500.0 else 3000.0, Modifier.fillMaxSize(), pin = marked)
+    Box(modifier.fillMaxWidth().heightIn(min = minHeight).clip(RoundedCornerShape(16.dp))) {
+        StaticPinMap(latitude ?: CIBAO_LAT, longitude ?: CIBAO_LNG, palette.pin, 1500.0, Modifier.fillMaxSize(), pin = false)
+        // A fixed pin on the centre: the reported point (the shadow sits on the centre).
+        DropPin()
         // Taps go to this layer, not the lite map underneath.
         Box(Modifier.fillMaxSize().clickable(onClickLabel = label, role = Role.Button, onClick = pick))
         Surface(

@@ -137,7 +137,7 @@ struct TrafficReportScreen: View {
                         grows: true
                     ) { picking = true }
 
-                    GrowField(text: $detail, placeholder: L10n.Contribute.Traffic.description, font: PostMetrics.text, grows: false)
+                    Field(text: $detail, placeholder: L10n.Contribute.Traffic.description, font: PostMetrics.text, lines: 1...4)
                         .onChange(of: detail) { _, v in vm.updateDescription(value: v) }
 
                     if state.duplicate {
@@ -217,12 +217,12 @@ struct SuggestPlaceScreen: View {
             }
         } else {
             FillingScroll {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 16) {
                     Field(text: $name, placeholder: L10n.Contribute.Place.name, font: PostMetrics.name)
                         .onChange(of: name) { _, v in vm.updateName(value: v) }
                     problem(state, .name, L10n.Contribute.Place.Errors.name)
 
-                    GrowField(text: $about, placeholder: L10n.Contribute.Place.description, font: PostMetrics.text, counter: (Int(state.descriptionLength), 20))
+                    GrowField(text: $about, placeholder: L10n.Contribute.Place.description, font: PostMetrics.text, lines: 3...8, counter: (Int(state.descriptionLength), 20))
                         .onChange(of: about) { _, v in vm.updateDescription(value: v) }
                     problem(state, .theDescription, L10n.Contribute.Place.Errors.description)
 
@@ -253,7 +253,7 @@ struct SuggestPlaceScreen: View {
                     }
                     problem(state, .category, L10n.Contribute.Place.Errors.category)
 
-                    LocationRow(latitude: state.latitude?.doubleValue, longitude: state.longitude?.doubleValue, required: true) { picking = true }
+                    LocationRow(latitude: state.latitude?.doubleValue, longitude: state.longitude?.doubleValue, required: true, grows: true, minHeight: 200) { picking = true }
                     problem(state, .location, L10n.Contribute.Place.Errors.location)
 
                     Field(text: $address, placeholder: L10n.Contribute.Place.address, font: PostMetrics.text)
@@ -274,7 +274,7 @@ struct SuggestPlaceScreen: View {
                 .padding(16)
             }
             .safeAreaInset(edge: .bottom) {
-                SubmitBar(title: L10n.Contribute.Place.submit, busy: state.sending, enabled: !state.sending) { vm.send() }
+                SubmitBar(title: L10n.Contribute.Place.submit, busy: state.sending, enabled: !state.sending && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && state.categoryId != nil) { vm.send() }
             }
             .sheet(isPresented: $picking) {
                 LocationPicker(start: Self.point(model.state)) { vm.setLocation(latitude: $0.latitude, longitude: $0.longitude) }
@@ -287,7 +287,7 @@ struct SuggestPlaceScreen: View {
             Label(text, systemImage: "exclamationmark.circle.fill")
                 .font(.footnote.weight(.medium))
                 .foregroundStyle(palette.dangerInk)
-                .padding(.top, -10)
+                .padding(.top, -8)
         }
     }
 }
@@ -320,6 +320,7 @@ struct LocationRow: View {
     let required: Bool
     /// Takes the free height (never under `height`) instead of staying fixed.
     var grows = false
+    var minHeight: CGFloat = 180
     let pick: () -> Void
     @Environment(\.palette) private var palette
 
@@ -333,18 +334,22 @@ struct LocationRow: View {
             Group {
                 if let latitude, let longitude {
                     let c = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
-                    Map(position: .constant(.region(MKCoordinateRegion(center: c, latitudinalMeters: 500, longitudinalMeters: 500))), interactionModes: []) {
-                        Marker("", coordinate: c).tint(.red)
-                    }
+                    Map(position: .constant(.region(MKCoordinateRegion(center: c, latitudinalMeters: 1500, longitudinalMeters: 1500))), interactionModes: [])
                 } else {
                     Map(initialPosition: .userLocation(fallback: .region(Self.fallback)), interactionModes: []) {
                         UserAnnotation()
                     }
                 }
             }
-            .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
+            .mapStyle(.ruta)
             .tint(palette.locate)
-            .frame(minHeight: 180, maxHeight: grows ? .infinity : 180)
+            .frame(minHeight: minHeight, maxHeight: grows ? .infinity : minHeight)
+            // A fixed pin on the centre: the reported point.
+            .overlay {
+                DropPin(lifted: false)
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+            }
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
@@ -392,6 +397,8 @@ struct GrowField: View {
     let font: Font
     var minHeight: CGFloat = 120
     var grows = true
+    /// Sized by its text instead (this many lines to start, growing).
+    var lines: ClosedRange<Int>?
     var counter: (count: Int, min: Int)?
     @Environment(\.palette) private var palette
     @FocusState private var focused: Bool
@@ -400,8 +407,9 @@ struct GrowField: View {
         TextField(text: $text, prompt: Text(placeholder).foregroundStyle(palette.textTertiary), axis: .vertical) { Text(placeholder) }
             .font(font)
             .focused($focused)
+            .lineLimit(lines ?? 1...Int.max)
             .padding(14)
-            .frame(maxWidth: .infinity, minHeight: minHeight, maxHeight: grows ? .infinity : minHeight, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: lines == nil ? minHeight : nil, maxHeight: lines == nil && grows ? .infinity : (lines == nil ? minHeight : nil), alignment: .topLeading)
             .background(palette.inset, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .onTapGesture { focused = true }

@@ -253,8 +253,8 @@ extension RutaPalette {
         case (.suave, .light):
             return RutaMapPalette(
                 ground: rgb(0xF4F3EF),
-                natural: rgb(0xF4F3EF),
-                park: rgb(0xE2EADD),
+                natural: rgb(0xE6EDDD),
+                park: rgb(0xDAE7D0),
                 water: rgb(0xCFDDE3),
                 waterLabel: rgb(0x5E7F8C),
                 road: rgb(0xFFFFFF),
@@ -269,8 +269,8 @@ extension RutaPalette {
         case (.suave, .dark):
             return RutaMapPalette(
                 ground: rgb(0x181816),
-                natural: rgb(0x181816),
-                park: rgb(0x1C241D),
+                natural: rgb(0x1B221C),
+                park: rgb(0x1F2B21),
                 water: rgb(0x121A1D),
                 waterLabel: rgb(0x4E636B),
                 road: rgb(0x2A2A27),
@@ -285,8 +285,8 @@ extension RutaPalette {
         case (.clasico, .light):
             return RutaMapPalette(
                 ground: rgb(0xF3F3F3),
-                natural: rgb(0xF3F3F3),
-                park: rgb(0xE6EBE6),
+                natural: rgb(0xE6EDE3),
+                park: rgb(0xDCE8D8),
                 water: rgb(0xD6DDE3),
                 waterLabel: rgb(0x8A97A1),
                 road: rgb(0xFFFFFF),
@@ -301,8 +301,8 @@ extension RutaPalette {
         case (.clasico, .dark):
             return RutaMapPalette(
                 ground: rgb(0x1B1B1B),
-                natural: rgb(0x1B1B1B),
-                park: rgb(0x1F241F),
+                natural: rgb(0x1C221D),
+                park: rgb(0x212C22),
                 water: rgb(0x0E1418),
                 waterLabel: rgb(0x4E5A62),
                 road: rgb(0x2E2E2E),

@@ -67,6 +67,8 @@ private struct ConsultationsFeed: View {
             }
         }
         .defaultScrollAnchor(DebugFlags.scrollToBottom ? .bottom : .top)
+        // The tab bar clearance is the safe area; 16 more so the last card ends above it.
+        .contentMargins(.bottom, 16, for: .scrollContent)
         // The system pull-to-refresh: its spinner, its haptic, its timing.
         .refreshable {
             vm.refresh()
@@ -130,19 +132,28 @@ private struct StatusFilter: View {
                 ForEach(Array(options.enumerated()), id: \.offset) { _, option in
                     let current = option == selected
                     Button { select(option) } label: {
+                        // 36 tall to the eye, 44 to the finger.
                         Text(option.map(ConsultationStatusText.label) ?? L10n.Consultations.allTab)
-                            .font(.subheadline.weight(current ? .bold : .semibold))
-                            .foregroundStyle(current ? Color.primary : Color.secondary)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(current ? palette.background : Color.secondary)
                             .padding(.horizontal, 14)
+                            .frame(height: 36)
+                            .background(current ? palette.text : .clear, in: Capsule())
                             .frame(minHeight: 44)
-                            .background(current ? palette.raised : .clear, in: Capsule())
-                            .contentShape(Capsule())
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityAddTraits(current ? .isSelected : [])
                 }
             }
             .padding(.horizontal, PostMetrics.inset)
+        }
+        .overlay(alignment: .trailing) {
+            // Tells the row it scrolls on.
+            LinearGradient(colors: [palette.background.opacity(0), palette.background], startPoint: .leading, endPoint: .trailing)
+                .frame(width: 24)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
         }
         .accessibilityLabel(L10n.Consultations.filterStatus)
         .sensoryFeedback(.selection, trigger: selected)
@@ -152,8 +163,8 @@ private struct StatusFilter: View {
 
 // MARK: - Post
 
-/// One case as a Threads post: avatar, name and time on one line, the text,
-/// optional media, bare action icons, then the counts in one quiet line.
+/// One case as a feed card: category, status and "…" on the first row, the
+/// title across the full width, optional media, then the action row.
 private struct ConsultationPost: View {
     let item: ConsultationsBrowseOutput.Item
     let open: () -> Void
@@ -163,24 +174,38 @@ private struct ConsultationPost: View {
 
     var body: some View {
         let photos = (item.photos ?? []).map(PostPhoto.init)
+        let glyph = CategoryGlyph.style(item.categoryIcon, hex: item.categoryColor)
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: PostMetrics.gap) {
-                CategoryPinBadge(icon: item.categoryIcon, hex: item.categoryColor, size: PostMetrics.avatar)
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(item.title)
-                            .font(PostMetrics.name)
-                            .lineSpacing(2)
-                            .lineLimit(3)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 8)
-                        Text(CompactTime.since(item.createdAt.date))
-                            .font(PostMetrics.text)
-                            .foregroundStyle(palette.textTertiary)
-                            .layoutPriority(1)
-                        MoreButton(action: more)
-                    }
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 6) {
+                    Image(systemName: glyph.symbol)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(glyph.color)
+                        .frame(width: 20, height: 20)
+                        .accessibilityHidden(true)
+                    Text(item.categoryName)
+                        .font(.footnote)
+                        .foregroundStyle(palette.textSecondary)
+                        .lineLimit(1)
+                    Text(verbatim: "·").font(.footnote).foregroundStyle(palette.textTertiary)
+                    Text(CompactTime.since(item.createdAt.date))
+                        .font(.footnote)
+                        .foregroundStyle(palette.textSecondary)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                    Spacer(minLength: 8)
+                    StatusPill(status: item.statusValue, neutral: true)
+                        .layoutPriority(2)
+                    MoreButton(action: more)
                 }
+                .padding(.trailing, -10)
+                Text(item.title)
+                    .font(.headline)
+                    .lineSpacing(2)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 2)
             }
             .padding(.horizontal, PostMetrics.inset)
             .contentShape(Rectangle())
@@ -190,41 +215,16 @@ private struct ConsultationPost: View {
             .accessibilityAction(.default, open)
 
             if !photos.isEmpty {
-                PostMedia(photos: photos, leadingInset: PostMetrics.column)
+                PostMedia(photos: photos, leadingInset: PostMetrics.inset)
                     .padding(.top, 10)
             }
 
-            PostActions(supported: item.supported, support: support, reply: open, shareURL: shareURL(item.slug), shareTitle: item.title)
-                .padding(.leading, PostMetrics.column - 11)
+            PostActions(supported: item.supported, support: support, reply: open, shareURL: shareURL(item.slug), shareTitle: item.title, supportCount: Int(item.supportCount))
+                .padding(.horizontal, PostMetrics.inset - 11)
                 .padding(.top, 4)
-
-            HStack(alignment: .center, spacing: 0) {
-                // Who replied, Threads-style: the ayuntamiento's mark under the thread line.
-                // Centred under the post avatar (avatar centre = inset + avatar / 2).
-                ZStack(alignment: .leading) {
-                    if item.responseCount > 0 { ReplierAvatar() }
-                }
-                .padding(.leading, PostMetrics.inset + PostMetrics.avatar / 2 - 10)
-                .frame(width: PostMetrics.column, alignment: .leading)
-                PostCounts(status: item.statusValue, responses: Int(item.responseCount), supports: Int(item.supportCount))
-                    .padding(.trailing, PostMetrics.inset)
-                Spacer(minLength: 0)
-            }
         }
-        .padding(.top, 14)
-        .padding(.bottom, 14)
-        .background(alignment: .topLeading) {
-            // The thread line runs from under the avatar to the counts when
-            // the ayuntamiento has replied, as in Threads.
-            if item.responseCount > 0 {
-                Capsule()
-                    .fill(palette.hairline)
-                    .frame(width: 2)
-                    .padding(.top, 14 + PostMetrics.avatar + 6)
-                    .padding(.bottom, 14 + 22)
-                    .padding(.leading, PostMetrics.inset + PostMetrics.avatar / 2 - 1)
-            }
-        }
+        .padding(.top, 8)
+        .padding(.bottom, 6)
         .overlay(alignment: .bottom) {
             Rectangle().fill(palette.hairline).frame(height: 0.5)
         }
@@ -265,17 +265,6 @@ struct MoreButton: View {
     }
 }
 
-/// The small avatar for who replied: always the ayuntamiento here.
-struct ReplierAvatar: View {
-    @Environment(\.palette) private var palette
-
-    var body: some View {
-        GlyphDisc(symbol: "building.columns", size: 20)
-            .overlay { Circle().strokeBorder(palette.background, lineWidth: 1.5) }
-            .accessibilityHidden(true)
-    }
-}
-
 /// The action row: thin outline SF Symbols. Support is a heart, filled in
 /// the app colour once you've given it.
 struct PostActions: View {
@@ -285,20 +274,34 @@ struct PostActions: View {
     let shareURL: URL
     let shareTitle: String
     var showsReply = true
+    /// Shown beside the heart when above zero; also its accessibility label.
+    var supportCount = 0
     @Environment(\.palette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(spacing: 0) {
             Button(action: support) {
-                Image(systemName: supported ? "heart.fill" : "heart")
-                    .foregroundStyle(supported ? RutaHighlight.support : palette.text)
-                    .symbolEffect(.bounce, value: reduceMotion ? false : supported)
-                    .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
-                    .postIcon()
+                HStack(spacing: 2) {
+                    Image(systemName: supported ? "heart.fill" : "heart")
+                        .foregroundStyle(supported ? RutaHighlight.support : palette.text)
+                        .symbolEffect(.bounce, value: reduceMotion ? false : supported)
+                        .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
+                        .font(.system(size: 19, weight: .light))
+                    if supportCount > 0 {
+                        Text(verbatim: "\(supportCount)")
+                            .font(.subheadline)
+                            .foregroundStyle(palette.textSecondary)
+                            .contentTransition(reduceMotion ? .identity : .numericText())
+                            .animation(reduceMotion ? nil : .snappy, value: supportCount)
+                    }
+                }
+                .frame(minWidth: 44, minHeight: 44)
+                .padding(.trailing, supportCount > 0 ? 6 : 0)
+                .contentShape(Rectangle())
             }
             .sensoryFeedback(.impact(weight: .light), trigger: supported)
-            .accessibilityLabel(supported ? L10n.Consultations.supported : L10n.Consultations.support)
+            .accessibilityLabel(supportCount > 0 ? L10n.Consultations.supports(count: supportCount) : (supported ? L10n.Consultations.supported : L10n.Consultations.support))
             .accessibilityAddTraits(supported ? .isSelected : [])
 
             if showsReply {
@@ -308,6 +311,7 @@ struct PostActions: View {
                 .accessibilityLabel(L10n.Consultations.timeline)
             }
 
+            if showsReply { Spacer(minLength: 0) }
             ShareLink(item: shareURL, subject: Text(shareTitle)) {
                 Image(systemName: "paperplane").postIcon()
             }
@@ -326,49 +330,13 @@ private extension View {
     }
 }
 
-/// "En revisión · 1 respuesta · 9 apoyos", showing only what says something:
-/// counts above zero, and the status once it has moved past "Recibida".
-/// The status is its word and its colour, never colour alone.
-struct PostCounts: View {
-    let status: ConsultationsBrowseInput.Status
-    let responses: Int
-    let supports: Int
-    @Environment(\.palette) private var palette
-
-    var body: some View {
-        let parts: [Text] = [
-            status == .open ? nil : Text(ConsultationStatusText.label(status)).foregroundStyle(statusInk),
-            responses > 0 ? Text(L10n.Consultations.responses(count: responses)) : nil,
-            supports > 0 ? Text(L10n.Consultations.supports(count: supports)) : nil,
-        ].compactMap { $0 }
-        if let first = parts.first {
-            parts.dropFirst().reduce(first) { $0 + Text(verbatim: " · ") + $1 }
-                .font(PostMetrics.text)
-                .foregroundStyle(palette.textTertiary)
-                .lineLimit(1)
-                .contentTransition(.numericText())
-                .animation(.snappy, value: supports)
-                .padding(.top, 2)
-        }
-    }
-
-    private var statusInk: Color {
-        switch status {
-        case .open: palette.textTertiary
-        case .inReview: palette.warningInk
-        case .answered, .resolved: palette.successInk
-        case .rejected: palette.dangerInk
-        }
-    }
-}
-
 /// Threads' terse age ("5 min", "3 h", "2 sem"), in the system's locale.
 enum CompactTime {
     private static let formatter: DateComponentsFormatter = {
         let f = DateComponentsFormatter()
-        f.unitsStyle = .abbreviated
+        f.unitsStyle = .short
         f.maximumUnitCount = 1
-        f.allowedUnits = [.minute, .hour, .day, .weekOfMonth, .year]
+        f.allowedUnits = [.minute, .hour, .day, .weekOfMonth, .month, .year]
         return f
     }()
 
@@ -384,6 +352,8 @@ extension KotlinInstant {
 
 struct StatusPill: View {
     let status: ConsultationsBrowseInput.Status
+    /// Neutral tonal fill and label colour; the icon and word still carry the state.
+    var neutral = false
     @Environment(\.palette) private var palette
 
     var body: some View {
@@ -392,11 +362,11 @@ struct StatusPill: View {
             Image(systemName: symbol).font(.caption2.weight(.bold))
             Text(ConsultationStatusText.label(status))
         }
-        .font(.caption.weight(.semibold))
-        .foregroundStyle(ink)
+        .font((neutral ? Font.footnote : .caption).weight(.semibold))
+        .foregroundStyle(neutral ? palette.text : ink)
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(ink.opacity(0.1), in: Capsule())
+        .background(neutral ? palette.raised : ink.opacity(0.1), in: Capsule())
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -421,7 +391,6 @@ struct SkeletonFeed: View {
         VStack(spacing: 0) {
             ForEach(0..<5, id: \.self) { _ in
                 HStack(alignment: .top, spacing: 12) {
-                    Circle().frame(width: 40, height: 40)
                     VStack(alignment: .leading, spacing: 8) {
                         Capsule().frame(width: 180, height: 12)
                         Capsule().frame(height: 12)
