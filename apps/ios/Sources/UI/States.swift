@@ -17,15 +17,13 @@ struct ErrorStateView: View {
             Text(offline ? L10n.Common.offlineBody : L10n.Common.errorBody)
         } actions: {
             Button(L10n.Common.retry, action: retry)
-                .buttonStyle(.glass)
+                .buttonStyle(RutaTonalStyle())
         }
     }
 }
 
 struct LoadingStateView: View {
     var body: some View {
-        ProgressView()
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .accessibilityLabel(L10n.Common.loading)
+        SkeletonFeed(count: 3)
     }
 }

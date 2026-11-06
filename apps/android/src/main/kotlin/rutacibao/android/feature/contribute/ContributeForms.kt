@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.Dp
 import rutacibao.android.ui.FillingColumn
 import rutacibao.android.ui.grow
-import rutacibao.android.ui.inkOn
 import rutacibao.android.ui.raised
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -136,7 +135,7 @@ fun TrafficReportScreen(onBack: () -> Unit, onSent: () -> Unit) {
                         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
                     ) {
                         Box(Modifier.size(48.dp).background(color, CircleShape), Alignment.Center) {
-                            Icon(categoryIcon(c.icon), contentDescription = null, Modifier.size(26.dp), tint = inkOn(color))
+                            Icon(categoryIcon(c.icon), contentDescription = null, Modifier.size(26.dp), tint = Color.White)
                         }
                         Text(
                             c.name,

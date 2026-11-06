@@ -80,12 +80,13 @@ fun PrimaryButton(
     /** A colour of its own (a place's category) in place of the app's; the label turns black or white, whichever reads better. */
     tint: Color? = null,
 ) {
-    val ink = tint?.let(::inkOn) ?: RutaHighlight.onSolid
+    val fill = tint?.let(::darkenForWhite)
+    val ink = if (tint != null) Color.White else LocalPalette.current.onAccent
     Button(
         onClick = { if (!busy) onClick() },
         enabled = enabled,
         shape = CircleShape,
-        colors = if (tint == null) rutaButtonColors() else ButtonDefaults.buttonColors(containerColor = tint, contentColor = ink),
+        colors = if (tint == null) rutaButtonColors() else ButtonDefaults.buttonColors(containerColor = fill!!, contentColor = ink),
         modifier = modifier.defaultMinSize(minHeight = height),
     ) {
         if (busy) {

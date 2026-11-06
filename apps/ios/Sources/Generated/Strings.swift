@@ -120,6 +120,11 @@ enum L10n {
         static var officialReply: String { String(localized: LocalizedStringResource("comments.officialReply")) }
         static var officialBadge: String { String(localized: LocalizedStringResource("comments.officialBadge")) }
         static var replyPlaceholder: String { String(localized: LocalizedStringResource("comments.replyPlaceholder")) }
+        static func replyingTo(name: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("comments.replyingTo", comment: ""), name
+            )
+        }
     }
 
     enum About {
@@ -152,6 +157,7 @@ enum L10n {
         static var residentVerified: String { String(localized: LocalizedStringResource("account.residentVerified")) }
         static var yours: String { String(localized: LocalizedStringResource("account.yours")) }
         static var profile: String { String(localized: LocalizedStringResource("account.profile")) }
+        static var editProfile: String { String(localized: LocalizedStringResource("account.editProfile")) }
         static var saved: String { String(localized: LocalizedStringResource("account.saved")) }
         static var passport: String { String(localized: LocalizedStringResource("account.passport")) }
         static func passportLede(count: Int) -> String {
@@ -977,8 +983,6 @@ enum L10n {
         static var hoursHelper: String { String(localized: LocalizedStringResource("place.hoursHelper")) }
         static var call: String { String(localized: LocalizedStringResource("place.call")) }
         static var stillThere: String { String(localized: LocalizedStringResource("place.stillThere")) }
-        static var stillThereBody: String { String(localized: LocalizedStringResource("place.stillThereBody")) }
-        static var answered: String { String(localized: LocalizedStringResource("place.answered")) }
         static var exists: String { String(localized: LocalizedStringResource("place.exists")) }
         static var gone: String { String(localized: LocalizedStringResource("place.gone")) }
         static var thanks: String { String(localized: LocalizedStringResource("place.thanks")) }

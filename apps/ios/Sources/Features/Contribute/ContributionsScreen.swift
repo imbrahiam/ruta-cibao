@@ -297,13 +297,10 @@ private struct ContributionRow: View {
         HStack(alignment: .top, spacing: PostMetrics.gap) {
             PinBadge(symbol: style.symbol, color: style.color, size: PostMetrics.avatar)
             VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(item.name).font(PostMetrics.name).lineLimit(2)
-                    Spacer(minLength: 8)
-                    Text(CompactTime.since(item.createdAt.date))
-                        .font(PostMetrics.text)
-                        .foregroundStyle(palette.textTertiary)
-                }
+                // Threads' activity line: bold name, grey age right after it.
+                (Text(item.name).font(PostMetrics.name.weight(.bold))
+                    + Text(verbatim: "  \(CompactTime.since(item.createdAt.date))").font(PostMetrics.text).foregroundStyle(palette.textTertiary))
+                    .lineLimit(2)
                 (Text(style.kind).foregroundStyle(palette.textTertiary)
                     + Text(verbatim: " · ").foregroundStyle(palette.textTertiary)
                     + Text(statusText).foregroundStyle(statusInk))
@@ -316,9 +313,10 @@ private struct ContributionRow: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, PostMetrics.inset)
-        .padding(.vertical, 12)
-        .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5) }
+        .padding(.vertical, 14)
+        .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5).padding(.leading, PostMetrics.column) }
         .accessibilityElement(children: .combine)
     }
 
@@ -378,7 +376,7 @@ private struct InboxList: View {
         case .failed:
             ErrorStateView(error: state.error ?? .unknown) { model.viewModel.refresh() }.padding(.top, 24)
         case .empty:
-            EmptyState(title: L10n.Notifications.empty)
+            EmptyState(symbol: "bell", title: L10n.Notifications.empty)
                 .padding(.top, 40)
         case .ready:
             ForEach(state.items, id: \.id) { notice in
@@ -403,22 +401,20 @@ private struct NoticeRow: View {
         let style = self.style
         HStack(alignment: .top, spacing: PostMetrics.gap) {
             PinBadge(symbol: style.symbol, color: style.color, size: PostMetrics.avatar)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(L10n.message(key: notice.messageKey, params: notice.params))
-                    .font(notice.unread ? PostMetrics.text.weight(.semibold) : PostMetrics.text)
-                    .lineLimit(2)
-                Text(CompactTime.since(notice.createdAt.date))
-                    .font(PostMetrics.text)
-                    .foregroundStyle(palette.textTertiary)
-            }
+            // Threads' activity line: the notice, then its age in grey on the same line.
+            (Text(L10n.message(key: notice.messageKey, params: notice.params))
+                .font(notice.unread ? PostMetrics.text.weight(.bold) : PostMetrics.text)
+                + Text(verbatim: "  \(CompactTime.since(notice.createdAt.date))").font(PostMetrics.text).foregroundStyle(palette.textTertiary))
+                .lineLimit(3)
+                .padding(.top, 1)
             Spacer(minLength: 0)
             if notice.unread {
-                Circle().fill(RutaHighlight.color).frame(width: 9, height: 9).padding(.top, 6).accessibilityHidden(true)
+                Circle().fill(palette.accent).frame(width: 9, height: 9).padding(.top, 6).accessibilityHidden(true)
             }
         }
         .padding(.horizontal, PostMetrics.inset)
-        .padding(.vertical, 12)
-        .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5) }
+        .padding(.vertical, 14)
+        .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5).padding(.leading, PostMetrics.column) }
         .accessibilityElement(children: .combine)
     }
 

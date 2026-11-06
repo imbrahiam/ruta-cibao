@@ -225,7 +225,7 @@ private fun ScopeChip(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     color: Color,
     selected: Boolean,
-    onColor: Color = if (color.luminance() > 0.5f) Color.Black else Color.White,
+    onColor: Color = Color.White,
     onClick: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme

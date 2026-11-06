@@ -16,6 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import rutacibao.android.ui.SkeletonFeed
 import rutacibao.android.ui.MessageState
 import rutacibao.presentation.contributions.InboxUiState
 import rutacibao.presentation.contributions.InboxViewModel
@@ -47,7 +48,6 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import rutacibao.android.ui.inkOn
 import rutacibao.android.ui.raised
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Text
@@ -212,7 +212,7 @@ private fun SectionTabs(selected: Section, unread: Int, onSelect: (Section) -> U
 private fun Inbox(state: InboxUiState, vm: InboxViewModel, open: (String) -> Unit) {
     val palette = LocalPalette.current
     when (state.phase) {
-        InboxUiState.Phase.Loading -> Box(Modifier.fillMaxWidth().height(120.dp), Alignment.Center) { CircularProgressIndicator() }
+        InboxUiState.Phase.Loading -> SkeletonFeed(count = 4)
         InboxUiState.Phase.Failed -> ErrorState(state.error ?: UiError.Unknown, onRetry = vm::refresh, modifier = Modifier.height(320.dp))
         InboxUiState.Phase.Empty -> Box(Modifier.fillMaxWidth().padding(top = 48.dp), Alignment.Center) {
             Text(
@@ -245,25 +245,30 @@ private fun NoticeRow(notice: Notice, onClick: () -> Unit) {
                 .fillMaxWidth()
                 .clickable(role = Role.Button, onClick = onClick)
                 .semantics(mergeDescendants = true) { if (notice.unread) stateDescription = unreadLabel }
-                .padding(horizontal = PostInset, vertical = 12.dp),
+                .padding(horizontal = PostInset, vertical = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(PostGap),
         ) {
             KindBadge(icon, color, PostAvatar)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                // Threads' activity line (mirrors iOS): the notice, then its age in grey on the same line.
                 Text(
-                    noticeMessage(context, notice.messageKey, notice.params),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (notice.unread) FontWeight.SemiBold else FontWeight.Normal,
-                    maxLines = 2,
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = if (notice.unread) FontWeight.Bold else FontWeight.Normal)) {
+                            append(noticeMessage(context, notice.messageKey, notice.params))
+                        }
+                        withStyle(SpanStyle(color = palette.textTertiary)) { append("  " + relativeTimeText(notice.createdAt)) }
+                    },
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(top = 1.dp),
                 )
-                Text(relativeTimeText(notice.createdAt), style = MaterialTheme.typography.bodyMedium, color = palette.textTertiary)
             }
             if (notice.unread) {
-                Box(Modifier.padding(top = 6.dp).size(9.dp).background(RutaHighlight.selection(), CircleShape).clearAndSetSemantics { })
+                Box(Modifier.padding(top = 6.dp).size(9.dp).background(palette.text, CircleShape).clearAndSetSemantics { })
             }
         }
-        Hairline()
+        Hairline(Modifier.padding(start = PostInset + PostAvatar + PostGap))
     }
 }
 
@@ -300,7 +305,7 @@ private fun ActionTiles(start: (ContributeAction) -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
             ) {
                 Box(Modifier.size(44.dp).background(color, CircleShape), Alignment.Center) {
-                    Icon(icon, contentDescription = null, Modifier.size(24.dp), tint = inkOn(color))
+                    Icon(icon, contentDescription = null, Modifier.size(24.dp), tint = Color.White)
                 }
                 Text(
                     stringResource(label),
@@ -320,7 +325,7 @@ private fun Mine(state: ContributionsUiState, vm: ContributionsViewModel, open: 
     // The tab above already says "Mis aportes"; a second heading would repeat it.
     Spacer(Modifier.height(8.dp))
     when (state.phase) {
-        ContributionsUiState.Phase.Loading -> Box(Modifier.fillMaxWidth().height(120.dp), Alignment.Center) { CircularProgressIndicator() }
+        ContributionsUiState.Phase.Loading -> SkeletonFeed(count = 4)
         ContributionsUiState.Phase.Failed -> ErrorState(state.error ?: UiError.Unknown, onRetry = vm::retry, modifier = Modifier.height(320.dp))
         ContributionsUiState.Phase.Empty -> Text(
             stringResource(R.string.contributions_empty),
@@ -378,15 +383,21 @@ private fun ContributionRow(item: PlacesContributionsItem, opens: Boolean, onCli
             Modifier
                 .fillMaxWidth()
                 .then(if (opens) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-                .padding(horizontal = PostInset, vertical = 12.dp),
+                .padding(horizontal = PostInset, vertical = 14.dp),
             horizontalArrangement = Arrangement.spacedBy(PostGap),
         ) {
             KindBadge(icon, color, PostAvatar)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(item.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    Text(relativeTimeText(item.createdAt), style = MaterialTheme.typography.bodyMedium, color = palette.textTertiary, maxLines = 1)
-                }
+                // Threads' activity line (mirrors iOS): bold name, grey age right after it.
+                Text(
+                    buildAnnotatedString {
+                        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(item.name) }
+                        withStyle(SpanStyle(color = palette.textTertiary)) { append("  " + relativeTimeText(item.createdAt)) }
+                    },
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 Text(
                     buildAnnotatedString {
                         append(stringResource(kindRes))
@@ -401,7 +412,7 @@ private fun ContributionRow(item: PlacesContributionsItem, opens: Boolean, onCli
                 }
             }
         }
-        Hairline()
+        Hairline(Modifier.padding(start = PostInset + PostAvatar + PostGap))
     }
 }
 

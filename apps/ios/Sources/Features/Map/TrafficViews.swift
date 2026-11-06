@@ -144,13 +144,11 @@ struct TrafficSheetView: View {
                 Text(title).font(.headline)
                 Text("\(count)")
                     .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(.primary)
             }
-            .foregroundStyle(.primary)
+            .foregroundStyle(chosen ? palette.onAccent : Color.primary)
             .frame(maxWidth: .infinity, minHeight: 48)
-            .background(chosen ? RutaHighlight.color.opacity(0.22) : (scheme == .dark ? palette.fillPressed : Color.primary.opacity(0.1)), in: shape)
-            .overlay { shape.strokeBorder(chosen ? RutaHighlight.color : .clear, lineWidth: 2) }
-            .contentShape(shape)
+            .background(chosen ? palette.accent : (scheme == .dark ? palette.fillPressed : Color.primary.opacity(0.1)), in: shape)
+                        .contentShape(shape)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(title), \(count)")

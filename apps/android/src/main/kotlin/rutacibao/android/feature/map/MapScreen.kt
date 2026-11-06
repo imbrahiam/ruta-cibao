@@ -106,7 +106,6 @@ import rutacibao.android.ui.ErrorState
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.LocalPalette
 import rutacibao.android.ui.LocalReducedMotion
-import rutacibao.android.ui.LoadingState
 import rutacibao.android.ui.MessageState
 import rutacibao.android.ui.categoryIcon
 import rutacibao.android.ui.parseCategoryColor
@@ -118,16 +117,12 @@ import rutacibao.presentation.map.MapUiState
 import rutacibao.presentation.map.MapViewModel
 import rutacibao.presentation.map.TrafficNotice
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 
 private val SheetPeek = 320.dp
 private val SheetPeekWithPhoto = 500.dp
@@ -311,13 +306,14 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
 
     val named = span.second < 0.035
     val selectedPlace = state.sheet?.place?.id
-    // Google Maps style: one place per cell, more as you zoom; the selection always stays.
-    val thresholdPx = with(density) { ClusterDistance.toPx() }
-    val groups = remember(state.places, span, selectedPlace, camera.projection != null) {
+    // Apple Maps style: where pins would overlap, only the higher-priority one shows until zoom separates them.
+    val pinGap = with(density) { PinGap.toPx() }
+    val labelWidth = with(density) { LabelRoom.toPx() }
+    val pins = remember(state.places, state.traffic, span, selectedPlace, camera.projection != null) {
         val projection = camera.projection
-        if (projection == null) state.places.map { listOf(it) } else clusterPlaces(state.places, selectedPlace, thresholdPx) {
-            projection.toScreenLocation(LatLng(it.latitude, it.longitude)).let { p -> p.x.toFloat() to p.y.toFloat() }
-        }
+        if (projection == null) state.places.map { it to true } else declutterPlaces(
+            state.places, selectedPlace, state.traffic.map { it.latitude to it.longitude }, pinGap, labelWidth,
+        ) { lat, lng -> projection.toScreenLocation(LatLng(lat, lng)).let { p -> p.x.toFloat() to p.y.toFloat() } }
     }
 
     val hasSheet = state.sheet != null || state.route != null || selectedTraffic != null
@@ -399,24 +395,9 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
                         ) { TrafficPin(notice, selected) }
                     }
                 }
-                groups.forEach { group ->
-                    if (group.size == 1) {
-                        val place = group.first()
-                        androidx.compose.runtime.key(place.id) {
-                            PlaceMarker(place, named, selected = place.id == selectedId) { vm.select(place.id) }
-                        }
-                    } else {
-                        androidx.compose.runtime.key("cluster:" + group.joinToString(",") { it.id }) {
-                            ClusterMarker(group) {
-                                val lats = group.map { it.latitude }
-                                val lngs = group.map { it.longitude }
-                                val tiny = lats.max() - lats.min() < 0.0008 && lngs.max() - lngs.min() < 0.0008
-                                fly(
-                                    if (tiny) CameraUpdateFactory.newLatLngZoom(LatLng(lats.average(), lngs.average()), maxOf(camera.position.zoom + 1.5f, 17f))
-                                    else CameraUpdateFactory.newLatLngBounds(LatLngBounds(LatLng(lats.min(), lngs.min()), LatLng(lats.max(), lngs.max())), with(density) { 64.dp.roundToPx() }),
-                                )
-                            }
-                        }
+                pins.forEach { (place, hasRoom) ->
+                    androidx.compose.runtime.key(place.id) {
+                        PlaceMarker(place, named && hasRoom, selected = place.id == selectedId) { vm.select(place.id) }
                     }
                 }
                 val strokeSelected = with(density) { 6.dp.toPx() }
@@ -469,7 +450,7 @@ private fun MapContent(vm: MapViewModel, state: MapUiState, modifier: Modifier) 
             }
 
             when (state.phase) {
-                MapUiState.Phase.Loading -> if (state.all.isEmpty()) LoadingState(Modifier.align(Alignment.Center))
+                MapUiState.Phase.Loading -> Unit // The map itself is the loading state; pins arrive when ready.
                 MapUiState.Phase.Failed -> Surface(
                     Modifier.align(Alignment.Center).padding(32.dp),
                     shape = RoundedCornerShape(24.dp),
@@ -572,7 +553,7 @@ private fun CategoryChips(
 /** 40dp chip in a 48dp target. Selected = filled + a check, so never colour alone. */
 @Composable
 private fun MapChip(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, color: Color, isSelected: Boolean, onClick: () -> Unit) {
-    val onColor = if (color.luminance() > 0.5f) Color.Black else Color.White
+    val onColor = Color.White
     Box(
         Modifier.height(48.dp).selectable(selected = isSelected, role = Role.RadioButton, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -635,53 +616,36 @@ private fun MapControls(satellite: Boolean, onToggleSatellite: () -> Unit, onLoc
 
 // ------------------------------------------------------------------ markers
 
-/** Places closer than this (bubble size, so bubbles never overlap) on screen collapse into one count bubble. */
-private val ClusterDistance = 44.dp
+/** Pins closer than this on screen overlap: the lower-priority one is hidden. */
+private val PinGap = 44.dp
 
-/** Greedy screen-space grouping: the selection stays a single pin. Stable under panning (id order, not position). */
-private fun clusterPlaces(places: List<MapPlace>, keep: String?, threshold: Float, project: (MapPlace) -> Pair<Float, Float>): List<List<MapPlace>> {
-    val points = places.sortedBy { it.id }.map { it to project(it) }
-    val taken = BooleanArray(points.size)
-    val out = mutableListOf<List<MapPlace>>()
-    for (i in points.indices) {
-        if (taken[i]) continue
-        taken[i] = true
-        val (place, at) = points[i]
-        if (place.id == keep) { out += listOf(place); continue }
-        val group = mutableListOf(place)
-        for (j in i + 1 until points.size) {
-            if (taken[j] || points[j].first.id == keep) continue
-            val dx = points[j].second.first - at.first
-            val dy = points[j].second.second - at.second
-            if (dx * dx + dy * dy < threshold * threshold) { taken[j] = true; group += points[j].first }
-        }
-        out += group
+/** Width a pin's name needs beside it; a pin with a visible neighbour inside this box goes unlabelled. */
+private val LabelRoom = 120.dp
+
+/**
+ * Greedy screen-space decluttering. Priority: the selection, then road reports (never hidden, they only
+ * claim space), then name. A fixed order, so panning keeps the same pins. The flag says whether the pin has room for its name.
+ */
+private fun declutterPlaces(
+    places: List<MapPlace>,
+    keep: String?,
+    traffic: List<Pair<Double, Double>>,
+    gap: Float,
+    labelWidth: Float,
+    project: (Double, Double) -> Pair<Float, Float>,
+): List<Pair<MapPlace, Boolean>> {
+    val taken = traffic.map { project(it.first, it.second) }.toMutableList()
+    val out = mutableListOf<Pair<MapPlace, Boolean>>()
+    val ordered = places.sortedWith(compareBy({ it.id != keep }, { it.name }, { it.id }))
+    for (place in ordered) {
+        val at = project(place.latitude, place.longitude)
+        val clear = taken.none { (at.first - it.first).let { dx -> dx * dx } + (at.second - it.second).let { dy -> dy * dy } < gap * gap }
+        if (place.id != keep && !clear) continue
+        val room = taken.none { kotlin.math.abs(at.first - it.first) < labelWidth && kotlin.math.abs(at.second - it.second) < gap }
+        taken += at
+        out += place to room
     }
     return out
-}
-
-/** A neutral count bubble, at least 44dp wide; tapping zooms to its places. */
-@Composable
-private fun ClusterMarker(group: List<MapPlace>, onClick: () -> Unit) {
-    val centre = LatLng(group.map { it.latitude }.average(), group.map { it.longitude }.average())
-    val label = pluralStringResource(R.plurals.map_places_count, group.size, group.size)
-    val palette = LocalPalette.current
-    MarkerComposable(
-        group.size, palette.elevated,
-        state = rememberUpdatedMarkerState(centre),
-        anchor = Offset(0.5f, 0.5f),
-        zIndex = 1.5f,
-        onClick = { onClick(); true },
-    ) {
-        Box(
-            Modifier.defaultMinSize(minWidth = 44.dp, minHeight = 44.dp).clip(CircleShape).background(palette.elevated)
-                .border(1.5.dp, MaterialTheme.colorScheme.onSurface, CircleShape).padding(horizontal = 6.dp)
-                .clearAndSetSemantics { contentDescription = label },
-            Alignment.Center,
-        ) {
-            Text("${group.size}", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onSurface)
-        }
-    }
 }
 
 @Composable

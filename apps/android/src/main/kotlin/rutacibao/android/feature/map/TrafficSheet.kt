@@ -151,27 +151,37 @@ fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVe
     }
 }
 
+/** The shared tonal answer button (traffic and "still there?"): chosen is filled with ink and an inverted label. */
 @Composable
-private fun Answer(title: String, count: Int, chosen: Boolean, enabled: Boolean, modifier: Modifier, onClick: () -> Unit) {
+internal fun Answer(
+    title: String,
+    count: Int?,
+    chosen: Boolean,
+    enabled: Boolean,
+    modifier: Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
+    onClick: () -> Unit,
+) {
     val palette = LocalPalette.current
     val shape = RoundedCornerShape(14.dp)
-    val description = "$title, $count"
+    val description = if (count != null) "$title, $count" else title
     // One ladder step above the sheet in dark, with full-strength label text (4.5:1).
     val rest = if (isSystemInDarkTheme()) palette.fillPressed else palette.fill
+    val content = if (chosen) palette.onAccent else MaterialTheme.colorScheme.onSurface
     Row(
         modifier
             .heightIn(min = 48.dp)
             .clip(shape)
-            .background(if (chosen) MaterialTheme.colorScheme.primary.copy(alpha = 0.22f) else rest)
-            .then(if (chosen) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, shape) else Modifier)
+            .background(if (chosen) palette.accent else rest)
             .then(if (enabled) Modifier.clickable(role = Role.RadioButton, onClick = onClick) else Modifier)
             .semantics(mergeDescendants = true) { contentDescription = description; selected = chosen; role = Role.RadioButton }
             .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (chosen) Icon(Icons.Filled.CheckCircle, contentDescription = null, Modifier.size(18.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
-        Text("$count", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+        if (icon != null) Icon(icon, contentDescription = null, Modifier.size(20.dp), tint = content)
+        else if (chosen) Icon(Icons.Filled.CheckCircle, contentDescription = null, Modifier.size(18.dp), tint = content)
+        Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center, color = content)
+        if (count != null) Text("$count", style = MaterialTheme.typography.bodyMedium, color = content)
     }
 }

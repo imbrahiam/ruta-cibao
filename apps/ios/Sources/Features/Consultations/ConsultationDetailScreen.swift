@@ -101,7 +101,7 @@ private struct DetailContent: View {
                                 focus: $composing
                             )
                         } else if let comments {
-                            CommentComposer(model: comments, placeholder: L10n.Comments.placeholder, focus: $composing, leading: state.canRespond ? AnyView(
+                            CommentComposer(model: comments, placeholder: L10n.Comments.placeholder, focus: $composing, replyingTo: detail.isMine ? nil : detail.openedBy, leading: state.canRespond ? AnyView(
                                 ComposerModeMenu(replyingAsStaff: $replyingAsStaff, status: $officialStatus, statuses: state.replyStatuses)
                                     .disabled(comments.state.sending)
                             ) : nil)
@@ -157,7 +157,6 @@ private struct OriginalPost: View {
     let detail: ConsultationsDetailOutput
     let support: () -> Void
     @Environment(\.palette) private var palette
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var menuOpen = false
 
     private let inset = PostMetrics.inset
@@ -169,10 +168,10 @@ private struct OriginalPost: View {
                 AuthorAvatar(name: author, image: detail.openedByImage, size: 44)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(author)
-                        .font(PostMetrics.name)
+                        .font(.body.weight(.bold))
                         .fixedSize(horizontal: false, vertical: true)
                     Text("\(detail.municipalityName) · \(CompactTime.since(detail.createdAt.date))")
-                        .font(PostMetrics.text)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -208,40 +207,24 @@ private struct OriginalPost: View {
                     .padding(.top, 12)
             }
 
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    actions
-                    Spacer(minLength: 0)
-                    StatusPill(status: detail.statusValue)
-                }
-                VStack(alignment: .leading, spacing: 8) {
-                    actions
-                    StatusPill(status: detail.statusValue)
-                        .padding(.leading, 11)
-                }
+            // X's stats bar: hairlines above and below, icons with bare counts.
+            Rectangle().fill(palette.hairline).frame(height: 0.5)
+                .padding(.horizontal, inset)
+                .padding(.top, 14)
+            HStack(spacing: 8) {
+                PostActions(supported: detail.supported, support: support, reply: {}, shareURL: shareURL(detail.slug), shareTitle: detail.title, showsReply: false, supportCount: Int(detail.supportCount))
+                Spacer(minLength: 0)
+                StatusPill(status: detail.statusValue)
             }
             .padding(.leading, inset - 11)
             .padding(.trailing, inset)
-            .padding(.top, 10)
-            .padding(.bottom, 6)
+            .padding(.vertical, 2)
+            Rectangle().fill(palette.hairline).frame(height: 0.5)
+                .padding(.horizontal, inset)
         }
         .padding(.top, 8)
         .sheet(isPresented: $menuOpen) {
             PostMenu(consultationId: detail.id, slug: detail.slug, title: detail.title) {}
-        }
-    }
-
-    private var actions: some View {
-        HStack(spacing: 4) {
-            PostActions(supported: detail.supported, support: support, reply: {}, shareURL: shareURL(detail.slug), shareTitle: detail.title, showsReply: false)
-            if detail.supportCount > 0 {
-                Text(L10n.Consultations.supports(count: Int(detail.supportCount)))
-                    .font(PostMetrics.text)
-                    .foregroundStyle(.secondary)
-                    .contentTransition(reduceMotion ? .identity : .numericText())
-                    .animation(reduceMotion ? nil : .snappy, value: detail.supportCount)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
         }
     }
 

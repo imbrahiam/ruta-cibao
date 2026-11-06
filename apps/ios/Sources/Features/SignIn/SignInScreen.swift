@@ -180,7 +180,7 @@ private struct EnterStep: View {
             } label: {
                 ZStack {
                     Text(L10n.SignIn.sendCode).opacity(state.busy ? 0 : 1)
-                    if state.busy { ProgressView().tint(RutaHighlight.onPrimary(palette)) }
+                    if state.busy { ProgressView().tint(palette.onAccent) }
                 }
                 .font(.headline)
                 .frame(maxWidth: .infinity, minHeight: 52)

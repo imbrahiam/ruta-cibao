@@ -117,7 +117,7 @@ struct TrafficReportScreen: View {
                                 }
                                 .padding(.horizontal, 8)
                                 .frame(maxWidth: .infinity, minHeight: 112)
-                                .background(palette.raised, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .background(palette.inset, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                                         .strokeBorder(selected ? palette.text : .clear, lineWidth: 2)
@@ -446,7 +446,7 @@ struct SubmitBar: View {
         Button(action: action) {
             ZStack {
                 Text(title).opacity(busy ? 0 : 1)
-                if busy { ProgressView().tint(RutaHighlight.onPrimary(palette)) }
+                if busy { ProgressView().tint(palette.onAccent) }
             }
             .font(.headline)
             .frame(maxWidth: .infinity, minHeight: 52)

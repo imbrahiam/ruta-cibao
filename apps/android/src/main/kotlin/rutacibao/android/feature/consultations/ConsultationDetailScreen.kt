@@ -38,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -151,12 +152,9 @@ private fun OriginalPost(detail: ConsultationDetail, onSupport: () -> Unit) {
         Row(Modifier.padding(start = PostInset, end = 2.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             ThreadAvatar(author, detail.openedByImage, size = PostAvatar)
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(author, style = MaterialTheme.typography.titleSmall)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(listOf(detail.municipalityName, relativeTimeText(detail.createdAt)).joinToString(" · "),
-                        style = MaterialTheme.typography.bodyMedium, color = palette.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                    StatusPill(detail.statusValue)
-                }
+                Text(author, style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold))
+                Text(listOf(detail.municipalityName, relativeTimeText(detail.createdAt)).joinToString(" · "),
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp), color = palette.textTertiary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Icon(
                 Icons.Filled.MoreHoriz,
@@ -193,25 +191,20 @@ private fun OriginalPost(detail: ConsultationDetail, onSupport: () -> Unit) {
                     .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
             )
         }
-        // Bare, 48dp actions. Counts and status wrap rather than competing for one clipped line.
-        FlowRow(
-            Modifier.fillMaxWidth().padding(start = PostInset - 14.dp, end = PostInset, top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            itemVerticalAlignment = Alignment.CenterVertically,
+        // X's stats bar (mirrors iOS): hairlines above and below, icons with bare counts, status trailing.
+        Hairline(Modifier.padding(horizontal = PostInset).padding(top = 14.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(start = PostInset - 14.dp, end = PostInset, top = 2.dp, bottom = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SupportIcon(detail.supported, onSupport)
-                if (detail.supportCount > 0) {
-                    val count = detail.supportCount.toInt()
-                    Text(pluralStringResource(R.plurals.consultations_supports, count, count),
-                        style = MaterialTheme.typography.bodyMedium, color = palette.textTertiary)
-                }
-                IconTarget(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.common_share), MaterialTheme.colorScheme.onSurface) {
-                    shareText(context, detail.title, detail.slug)
-                }
+            SupportIcon(detail.supported, onSupport, count = detail.supportCount.toInt())
+            IconTarget(Icons.AutoMirrored.Outlined.Send, stringResource(R.string.common_share), palette.textSecondary) {
+                shareText(context, detail.title, detail.slug)
             }
+            Spacer(Modifier.weight(1f))
+            StatusPill(detail.statusValue)
         }
+        Hairline(Modifier.padding(horizontal = PostInset))
     }
 }
 

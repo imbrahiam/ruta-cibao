@@ -93,6 +93,7 @@ fun ConsultationComposer(
                 commentsVm,
                 stringResource(R.string.comments_placeholder),
                 stringResource(R.string.comments_sign_in_to_comment),
+                replyingTo = state.detail?.let { if (it.isMine) null else it.openedBy },
                 leading = if (state.canRespond) {
                     { ComposerModeChip(official, status, state.replyStatuses, !busy, { official = it }, { status = it }) }
                 } else null,

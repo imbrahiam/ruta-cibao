@@ -55,6 +55,7 @@
     <string name="comments_official_reply">Respuesta oficial</string>
     <string name="comments_official_badge">Oficial</string>
     <string name="comments_reply_placeholder">Responder</string>
+    <string name="comments_replying_to">Respondiendo a %1$s</string>
     <string name="about_title">Acerca de</string>
     <string name="about_tagline">Descubre la provincia Santiago Rodríguez y participa en lo que pasa en ella.</string>
     <string name="about_version">Versión %1$s (%2$s)</string>
@@ -73,6 +74,7 @@
     <string name="account_resident_verified">Residente verificado</string>
     <string name="account_yours">Lo tuyo</string>
     <string name="account_profile">Perfil</string>
+    <string name="account_edit_profile">Editar perfil</string>
     <string name="account_saved">Lugares guardados</string>
     <string name="account_passport">Pasaporte turístico</string>
     <plurals name="account_passport_lede">
@@ -659,9 +661,7 @@
     <string name="place_hours_helper">Por ejemplo: lunes a sábado, 8:00 a 6:00</string>
     <string name="place_call">Llamar</string>
     <string name="place_still_there">¿Sigue existiendo?</string>
-    <string name="place_still_there_body">Ayuda a tus vecinos a saber si este lugar sigue aquí.</string>
-    <string name="place_answered">Gracias por responder. Puedes cambiar tu respuesta.</string>
-    <string name="place_exists">Sí, sigue aquí</string>
+    <string name="place_exists">Sigue aquí</string>
     <string name="place_gone">Ya no está</string>
     <string name="place_thanks">Gracias por confirmarlo</string>
     <string name="place_claim_title">¿Es tu negocio?</string>

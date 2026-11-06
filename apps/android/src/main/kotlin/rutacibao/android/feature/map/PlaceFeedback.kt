@@ -8,18 +8,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.Cancel
 import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.WifiOff
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
@@ -46,35 +45,27 @@ import rutacibao.presentation.map.PlaceReportState
 import rutacibao.presentation.map.PlaceSheet
 
 @Composable
-internal fun PlaceFeedback(sheet: PlaceSheet, onConfirm: (PlacesConfirmInput.Verdict) -> Unit, onReport: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+internal fun PlaceFeedback(sheet: PlaceSheet, onConfirm: (PlacesConfirmInput.Verdict) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val detail = sheet.detail
         if (sheet.cached) {
             Notice(Icons.Outlined.WifiOff, stringResource(R.string.common_offline), stringResource(R.string.offline_map_note), LocalPalette.current.textSecondary)
         } else if (detail != null && !detail.isMine) {
             Text(stringResource(R.string.place_still_there), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(if (detail.myVerdict == null) R.string.place_still_there_body else R.string.place_answered), style = MaterialTheme.typography.bodyMedium)
-            FilterChip(
-                selected = detail.myVerdict == PlacesDetailOutput.MyVerdict.Exists,
-                onClick = { onConfirm(PlacesConfirmInput.Verdict.Exists) },
-                enabled = !sheet.confirming,
-                label = { Text(stringResource(R.string.place_exists)) },
-                modifier = Modifier.heightIn(min = 48.dp),
-            )
-            FilterChip(
-                selected = detail.myVerdict == PlacesDetailOutput.MyVerdict.Gone,
-                onClick = { onConfirm(PlacesConfirmInput.Verdict.Gone) },
-                enabled = !sheet.confirming,
-                label = { Text(stringResource(R.string.place_gone)) },
-                modifier = Modifier.heightIn(min = 48.dp),
-            )
-            if (sheet.confirming) CircularProgressIndicator()
+            val exists = detail.myVerdict == PlacesDetailOutput.MyVerdict.Exists
+            val gone = detail.myVerdict == PlacesDetailOutput.MyVerdict.Gone
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Answer(
+                    stringResource(R.string.place_exists), null, exists, !sheet.confirming, Modifier.weight(1f),
+                    if (exists) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
+                ) { onConfirm(PlacesConfirmInput.Verdict.Exists) }
+                Answer(
+                    stringResource(R.string.place_gone), null, gone, !sheet.confirming, Modifier.weight(1f),
+                    if (gone) Icons.Filled.Cancel else Icons.Outlined.Cancel,
+                ) { onConfirm(PlacesConfirmInput.Verdict.Gone) }
+            }
         }
         sheet.feedbackError?.let { SendError(it) }
-        TextButton(onClick = onReport, modifier = Modifier.heightIn(min = 48.dp)) {
-            Icon(Icons.Outlined.Flag, contentDescription = null)
-            Text(stringResource(R.string.place_report), Modifier.padding(start = 8.dp))
-        }
     }
 }
 

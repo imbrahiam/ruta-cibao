@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Spacer
-import rutacibao.android.ui.RutaHighlight
 import rutacibao.android.ui.raised
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -67,7 +66,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.serialization.Serializable
 import rutacibao.android.R
 import rutacibao.android.feature.auth.SignInDialog
-import rutacibao.android.generated.RutaBrand
 import rutacibao.android.ui.BrandMark
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.LocalPalette
@@ -182,34 +180,42 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
     }
 }
 
-/** Name big, verified place, initials in iris (no title above it). */
+/**
+ * Threads' profile head (mirrors iOS): name and place on the left, the photo on the right,
+ * then one quiet full-width "Editar perfil" button. No card.
+ */
 @Composable
 private fun Header(name: String?, image: String?, verified: Boolean, municipality: String?, contact: String?, onClick: () -> Unit) {
     val palette = LocalPalette.current
-    Row(
-        Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
-            .background(cardFill()).clickable(role = Role.Button, onClick = onClick).padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    Column(
+        Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        ThreadAvatar(name, image, size = 64.dp)
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    name ?: " ",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 26.sp, lineHeight = 32.sp, fontWeight = FontWeight.Bold),
-                    maxLines = 2,
-                    modifier = Modifier.weight(1f, fill = false).semantics { heading() },
-                )
-                if (verified) Icon(Icons.Filled.Verified, contentDescription = stringResource(R.string.account_resident_verified), Modifier.size(18.dp), tint = RutaBrand.iris)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        name ?: " ",
+                        style = MaterialTheme.typography.headlineSmall.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
+                        maxLines = 2,
+                        modifier = Modifier.weight(1f, fill = false).semantics { heading() },
+                    )
+                    if (verified) Icon(Icons.Filled.Verified, contentDescription = stringResource(R.string.account_resident_verified), Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface)
+                }
+                if (verified && municipality != null) {
+                    Text(stringResource(R.string.account_resident, municipality), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp), color = palette.textSecondary, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                } else if (contact != null) {
+                    Text(contact, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp), color = palette.textSecondary)
+                }
             }
-            if (verified && municipality != null) {
-                Text(stringResource(R.string.account_resident, municipality), style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            } else if (contact != null) {
-                Text(contact, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
-            }
+            ThreadAvatar(name, image, size = 64.dp)
         }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = palette.textTertiary)
+        Box(
+            Modifier.fillMaxWidth().height(40.dp).clip(RoundedCornerShape(10.dp)).background(palette.inset),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(stringResource(R.string.account_edit_profile), style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold), color = palette.text)
+        }
     }
 }
 
@@ -226,9 +232,6 @@ private fun GroupGap() {
     HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 }
 
-/** A card on the page: the surface step in dark (as on iOS), so avatars and chips sit one step above it. */
-@Composable
-private fun cardFill(): Color = if (isSystemInDarkTheme()) LocalPalette.current.surface else LocalPalette.current.inset
 
 /** A row with a coloured rounded-square icon, its label always visible, and a chevron. */
 @Composable

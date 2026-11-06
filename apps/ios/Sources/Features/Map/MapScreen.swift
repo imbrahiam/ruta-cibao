@@ -71,7 +71,7 @@ private struct MapContent: View {
     @State private var satellite = false
     @State private var cameraMode = Self.debugCamera
     @State private var debugTrafficDone = false
-    /// Map frame and the safe-area bottom outside it: the base for cluster distances and sheet insets.
+    /// Map frame and the safe-area bottom outside it: the base for pin-overlap distances and sheet insets.
     @State private var mapSize: CGSize = .zero
     @State private var safeBottom: CGFloat = 0
     @State private var placeLarge = false
@@ -105,50 +105,39 @@ private struct MapContent: View {
     private var state: MapUiState { model.state }
     private var vm: MapViewModel { model.viewModel }
 
-    /// Google Maps-style: a few well-spaced places at first, more as you zoom.
-    /// About 6×10 cells on screen, one place per cell; the selection always stays.
-    /// The cell snaps to a power-of-two zoom step, so panning (which nudges the
-    /// span a little each time) keeps the same grid and the same places; only
-    /// a real zoom changes what shows.
+    /// Apple Maps-style decluttering: where pins would overlap (under 44 pt apart on
+    /// screen) only the higher-priority one shows until zoom separates them. The
+    /// selection comes first, road reports (never hidden) next, then places by name.
+    /// A fixed order, so panning keeps the same pins; only a zoom changes them.
     @MapContentBuilder private var placePins: some MapKit.MapContent {
-        let all = groups
-        ForEach(all.filter { $0.places.count == 1 }, id: \.id) { group in
-            Marker(group.places[0].name, systemImage: CategoryGlyph.symbol(group.places[0].icon), coordinate: group.places[0].coordinate)
-                .tint(CategoryGlyph.style(group.places[0].icon, hex: group.places[0].color).color)
-                .tag(group.places[0].id)
-        }
-        ForEach(all.filter { $0.places.count > 1 }, id: \.id) { group in
-            Annotation("", coordinate: group.center, anchor: .center) {
-                ClusterBubble(count: group.places.count) { zoom(to: group.places) }
-            }
+        ForEach(visiblePlaces, id: \.id) { place in
+            Marker(place.name, systemImage: CategoryGlyph.symbol(place.icon), coordinate: place.coordinate)
+                .tint(CategoryGlyph.style(place.icon, hex: place.color).color)
+                .tag(place.id)
         }
     }
 
-    /// Places under 44 pt apart on screen (the bubble size, so bubbles never overlap) collapse into one count bubble (the selection stays a pin).
-    /// Sorted by id so panning keeps the same groups; only a zoom changes them.
-    private var groups: [PlaceGroup] {
+    private var visiblePlaces: [MapPlace] {
         let keep = state.sheet?.place.id
-        guard mapSize.width > 0, region.span.latitudeDelta > 0, region.span.longitudeDelta > 0 else {
-            return state.places.map { PlaceGroup(places: [$0]) }
-        }
+        guard mapSize.width > 0, region.span.latitudeDelta > 0, region.span.longitudeDelta > 0 else { return state.places }
         let sx = mapSize.width / region.span.longitudeDelta
         let sy = mapSize.height / region.span.latitudeDelta
-        let points = state.places.sorted { $0.id < $1.id }.map { place in
-            (place, CGPoint(x: (place.longitude - region.center.longitude) * sx, y: -(place.latitude - region.center.latitude) * sy))
+        func point(_ latitude: Double, _ longitude: Double) -> CGPoint {
+            CGPoint(x: (longitude - region.center.longitude) * sx, y: -(latitude - region.center.latitude) * sy)
         }
-        var taken = [Bool](repeating: false, count: points.count)
-        var out: [PlaceGroup] = []
-        for i in points.indices where !taken[i] {
-            taken[i] = true
-            let (place, at) = points[i]
-            var members = [place]
-            if place.id != keep {
-                for j in points.indices where j > i && !taken[j] && points[j].0.id != keep {
-                    let dx = points[j].1.x - at.x, dy = points[j].1.y - at.y
-                    if dx * dx + dy * dy < 44 * 44 { taken[j] = true; members.append(points[j].0) }
-                }
+        var taken = state.traffic.map { point($0.coordinate.latitude, $0.coordinate.longitude) }
+        let ordered = state.places.sorted {
+            if ($0.id == keep) != ($1.id == keep) { return $0.id == keep }
+            return ($0.name, $0.id) < ($1.name, $1.id)
+        }
+        var out: [MapPlace] = []
+        for place in ordered {
+            let at = point(place.latitude, place.longitude)
+            let clear = !taken.contains { (at.x - $0.x) * (at.x - $0.x) + (at.y - $0.y) * (at.y - $0.y) < 44 * 44 }
+            if place.id == keep || clear {
+                taken.append(at)
+                out.append(place)
             }
-            out.append(PlaceGroup(places: members))
         }
         return out
     }
@@ -193,7 +182,7 @@ private struct MapContent: View {
                     .stroke(palette.locate, style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
             }
             placePins
-            // Road reports are safety information: never clustered, drawn after (above) places and clusters.
+            // Road reports are safety information: never hidden, drawn after (above) places.
             ForEach(state.traffic, id: \.id) { notice in
                 if !notice.path.isEmpty {
                     MapPolyline(coordinates: notice.pathCoordinates)
@@ -531,21 +520,6 @@ private struct MapContent: View {
         .padding(16)
     }
 
-    /// Zoom to a cluster's places: their bounds with room around, never zooming out.
-    private func zoom(to places: [MapPlace]) {
-        let lats = places.map(\.latitude), lngs = places.map(\.longitude)
-        guard let minLat = lats.min(), let maxLat = lats.max(), let minLng = lngs.min(), let maxLng = lngs.max() else { return }
-        let ratio = region.span.longitudeDelta / max(region.span.latitudeDelta, 0.0001)
-        let latitudeDelta = min(max((maxLat - minLat) * 2.2, Self.closest), region.span.latitudeDelta)
-        let longitudeDelta = min(max((maxLng - minLng) * 2.2, Self.closest * ratio), region.span.longitudeDelta)
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.55)) {
-            camera = .region(MKCoordinateRegion(
-                center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLng + maxLng) / 2),
-                span: MKCoordinateSpan(latitudeDelta: latitudeDelta, longitudeDelta: longitudeDelta)
-            ))
-        }
-    }
-
     private func startSearch() {
         if state.sheet != nil || state.route != nil || state.selectedTraffic != nil {
             searchAfterSheet = true
@@ -662,40 +636,6 @@ private struct LocateButton: View {
 }
 
 // MARK: - Pins
-
-/// Places that sit under 44 pt apart on screen: one pin when alone, a count bubble otherwise.
-private struct PlaceGroup {
-    let places: [MapPlace]
-    var id: String { places.map(\.id).joined(separator: ",") }
-    var center: CLLocationCoordinate2D {
-        CLLocationCoordinate2D(
-            latitude: places.map(\.latitude).reduce(0, +) / Double(places.count),
-            longitude: places.map(\.longitude).reduce(0, +) / Double(places.count)
-        )
-    }
-}
-
-/// A neutral count bubble, at least 44 pt; tapping zooms to its places.
-private struct ClusterBubble: View {
-    let count: Int
-    let action: () -> Void
-    @Environment(\.palette) private var palette
-
-    var body: some View {
-        Button(action: action) {
-            Text("\(count)")
-                .font(.headline.monospacedDigit())
-                .foregroundStyle(palette.text)
-                .padding(.horizontal, 6)
-                .frame(minWidth: 44, minHeight: 44)
-                .background(palette.elevated, in: Capsule())
-                .overlay { Capsule().strokeBorder(palette.text, lineWidth: 1.5) }
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(L10n.Map.placesCount(count: count))
-    }
-}
 
 extension MapCluster {
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }

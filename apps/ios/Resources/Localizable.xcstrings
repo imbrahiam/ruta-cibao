@@ -133,6 +133,17 @@
         }
       }
     },
+    "account.editProfile": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar perfil"
+          }
+        }
+      }
+    },
     "account.passport": {
       "extractionState": "manual",
       "localizations": {
@@ -1082,6 +1093,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Responder"
+          }
+        }
+      }
+    },
+    "comments.replyingTo": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respondiendo a %1$@"
           }
         }
       }
@@ -6704,17 +6726,6 @@
         }
       }
     },
-    "place.answered": {
-      "extractionState": "manual",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gracias por responder. Puedes cambiar tu respuesta."
-          }
-        }
-      }
-    },
     "place.businessEvidenceShort": {
       "extractionState": "manual",
       "localizations": {
@@ -6919,7 +6930,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sí, sigue aquí"
+            "value": "Sigue aquí"
           }
         }
       }
@@ -7261,17 +7272,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "¿Sigue existiendo?"
-          }
-        }
-      }
-    },
-    "place.stillThereBody": {
-      "extractionState": "manual",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ayuda a tus vecinos a saber si este lugar sigue aquí."
           }
         }
       }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -44,6 +45,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +73,7 @@ import coil3.compose.AsyncImage
 import rutacibao.android.R
 import rutacibao.android.feature.auth.SignInDialog
 import rutacibao.android.feature.map.absoluteUrl
+import rutacibao.android.ui.SkeletonFeed
 import rutacibao.android.ui.Hairline
 import rutacibao.android.ui.LocalAppGraph
 import rutacibao.android.ui.LocalPalette
@@ -87,15 +95,15 @@ fun LazyListScope.commentThread(state: CommentsUiState, vm: CommentsViewModel, e
     }
     items(state.items, key = { "comment:${it.id}" }) { comment ->
         CommentRow(comment, state.workingCommentId != null, vm)
-        Hairline(Modifier.padding(start = 58.dp, end = 16.dp))
+        Hairline()
+    }
+    if (state.loading) {
+        item(key = "comments:loading") { SkeletonFeed(count = if (state.items.isEmpty()) 3 else 1) }
     }
     item(key = "comments:footer") {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
             if (state.loading) {
-                Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                    val loading = stringResource(R.string.common_loading)
-                    CircularProgressIndicator(Modifier.size(24.dp).semantics { contentDescription = loading }, strokeWidth = 2.dp)
-                }
+                // The skeleton above stands in.
             } else if (state.loadError != null) {
                 CommentError(state.loadError!!, stringResource(R.string.common_error_body), vm::retryLoad)
             } else if (state.canLoadMore) {
@@ -139,15 +147,17 @@ private fun CommentRow(comment: Comment, working: Boolean, vm: CommentsViewModel
     var menu by remember(comment.id) { mutableStateOf(false) }
     var reporting by remember(comment.id) { mutableStateOf(false) }
     var deleting by remember(comment.id) { mutableStateOf(false) }
-    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        ThreadAvatar(comment.author, comment.authorImage, Modifier.padding(top = 8.dp), size = 32.dp)
+    // X's reply row (mirrors iOS): 40dp avatar, bold name and grey age on one line at the
+    // same size, the text under it, a full-width hairline below.
+    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 14.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        ThreadAvatar(comment.author, comment.authorImage, size = 40.dp)
         Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(comment.author, style = MaterialTheme.typography.titleSmall.copy(fontSize = 13.sp), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                    Text(relativeTimeText(comment.createdAt), style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp), color = LocalPalette.current.textTertiary, maxLines = 1)
+            Row(verticalAlignment = Alignment.Top) {
+                Row(Modifier.weight(1f).padding(top = 1.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(comment.author, style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    Text("· " + relativeTimeText(comment.createdAt), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp), color = LocalPalette.current.textTertiary, maxLines = 1)
                 }
-                Box {
+                Box(Modifier.offset(y = (-12).dp).height(24.dp), contentAlignment = Alignment.TopCenter) {
                     IconButton(onClick = { menu = true }, enabled = !working, modifier = Modifier.size(48.dp)) {
                         Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.comments_options), tint = LocalPalette.current.textTertiary)
                     }
@@ -160,7 +170,7 @@ private fun CommentRow(comment: Comment, working: Boolean, vm: CommentsViewModel
                     }
                 }
             }
-            SelectionContainer { Text(comment.body, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp), modifier = Modifier.padding(end = 8.dp)) }
+            SelectionContainer { Text(comment.body, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 22.sp), modifier = Modifier.padding(top = 3.dp, end = 12.dp)) }
         }
     }
     if (deleting) AlertDialog(
@@ -192,44 +202,84 @@ private fun CommentRow(comment: Comment, working: Boolean, vm: CommentsViewModel
     )
 }
 
-/** The caller owns the solid anchored surface and keyboard/system insets. */
+/**
+ * X's reply bar (mirrors iOS): a quiet grey pill at rest; focused or holding a draft it names
+ * who you answer and shows the send button. The caller owns the anchored surface and insets.
+ */
 @Composable
 fun CommentComposer(
     state: CommentsUiState,
     vm: CommentsViewModel,
     placeholder: String,
     signInLabel: String,
-    /** Replaces the avatar (staff's "who answers" chip), so the composer stays one row. */
+    /** Shown above the field while composing: "Respondiendo a …". */
+    replyingTo: String? = null,
+    /** Leads the field (staff's "who answers" chip), so the composer stays one row. */
     leading: (@Composable () -> Unit)? = null,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    var focused by remember { mutableStateOf(false) }
+    val expanded = focused || state.draft.isNotEmpty()
+    val palette = LocalPalette.current
+    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (!state.signedIn) {
-            TextButton(onClick = vm::requestSignIn, modifier = Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp)) {
-                Text(signInLabel)
+            Row(
+                Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp).clip(RoundedCornerShape(24.dp)).background(palette.inset)
+                    .clickable(onClick = vm::requestSignIn).padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(signInLabel, style = MaterialTheme.typography.bodyLarge, color = palette.textSecondary, modifier = Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = palette.textSecondary, modifier = Modifier.size(20.dp))
             }
         } else {
+            if (expanded && replyingTo != null) {
+                Text(
+                    stringResource(R.string.comments_replying_to, replyingTo),
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
+                    color = palette.textTertiary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = if (leading == null) 16.dp else 0.dp),
+                )
+            }
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (leading != null) leading() else ThreadAvatar(null, null, Modifier.padding(bottom = 8.dp), size = 32.dp)
-                Box(Modifier.weight(1f).defaultMinSize(minHeight = 48.dp).clip(RoundedCornerShape(24.dp))
-                    .background(LocalPalette.current.inset).padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.CenterStart) {
-                    BasicTextField(
-                        value = state.draft,
-                        onValueChange = vm::updateDraft,
-                        enabled = !state.sending,
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                        maxLines = 5,
-                        modifier = Modifier.fillMaxWidth().heightIn(max = 144.dp).semantics { contentDescription = placeholder },
-                        decorationBox = { inner ->
-                            if (state.draft.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = LocalPalette.current.textTertiary)
-                            inner()
-                        },
-                    )
-                }
-                FilledIconButton(onClick = vm::send, enabled = state.canSend, modifier = Modifier.size(48.dp)) {
-                    if (state.sending) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                    else Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.comments_send))
+                if (leading != null) leading()
+                Row(
+                    Modifier.weight(1f).defaultMinSize(minHeight = 48.dp).clip(RoundedCornerShape(24.dp)).background(palette.inset),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    Box(Modifier.weight(1f).padding(start = 16.dp, end = if (expanded) 4.dp else 16.dp, top = 13.dp, bottom = 13.dp), contentAlignment = Alignment.CenterStart) {
+                        BasicTextField(
+                            value = state.draft,
+                            onValueChange = vm::updateDraft,
+                            enabled = !state.sending,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+                            cursorBrush = SolidColor(palette.text),
+                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                            maxLines = 5,
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 144.dp).onFocusChanged { focused = it.isFocused }
+                                .semantics { contentDescription = placeholder },
+                            decorationBox = { inner ->
+                                if (state.draft.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = palette.textTertiary)
+                                inner()
+                            },
+                        )
+                    }
+                    if (expanded) {
+                        FilledIconButton(
+                            onClick = vm::send,
+                            enabled = state.canSend,
+                            modifier = Modifier.padding(4.dp).size(40.dp),
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = palette.accent,
+                                contentColor = palette.onAccent,
+                                disabledContainerColor = palette.accent.copy(alpha = 0.35f),
+                                disabledContentColor = palette.onAccent,
+                            ),
+                        ) {
+                            if (state.sending) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = palette.onAccent)
+                            else Icon(Icons.Filled.ArrowUpward, contentDescription = stringResource(R.string.comments_send), modifier = Modifier.size(20.dp))
+                        }
+                    }
                 }
             }
         }

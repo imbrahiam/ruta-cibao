@@ -1,6 +1,10 @@
 package rutacibao.android.feature.map
 
 import android.content.Intent
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -108,7 +112,7 @@ fun PlaceSheet(
     }
     val hero = absoluteUrl(detail?.imageUrl) ?: absoluteUrl(place.thumbnailUrl)
     Column(
-        modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 20.dp, end = 20.dp, top = 0.dp, bottom = 24.dp).underDragHandle(),
+        modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 24.dp).underDragHandle(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -168,26 +172,24 @@ fun PlaceSheet(
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
             }
         }
-        OutlinedExperiencesButton { experiences = true }
-        PlaceFeedback(sheet, onConfirm, onReport)
-        when (val b = sheet.business) {
-            is BusinessState.Listed -> if (b.canClaim) {
-                BusinessRow(Icons.Outlined.Storefront, stringResource(R.string.place_claim_title)) {
-                    if (onRequestClaim()) form = BusinessFormMode.Claim
+        Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        PlaceFeedback(sheet, onConfirm)
+        InfoList(
+            buildList {
+                add(InfoRow(Icons.AutoMirrored.Outlined.Chat, stringResource(R.string.comments_experiences)) { experiences = true })
+                when (val b = sheet.business) {
+                    is BusinessState.Listed -> if (b.canClaim) {
+                        add(InfoRow(Icons.Outlined.Storefront, stringResource(R.string.place_claim_title)) {
+                            if (onRequestClaim()) form = BusinessFormMode.Claim
+                        })
+                    }
+                    BusinessState.ClaimPending -> add(InfoRow(Icons.Outlined.HourglassTop, stringResource(R.string.place_claim_review), null))
+                    is BusinessState.Owned -> add(InfoRow(Icons.Outlined.Edit, stringResource(R.string.place_edit_business)) { form = BusinessFormMode.Edit })
+                    BusinessState.NotABusiness -> Unit
                 }
-            }
-            BusinessState.ClaimPending -> Row(
-                Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Outlined.HourglassTop, contentDescription = null, Modifier.size(18.dp), tint = palette.textSecondary)
-                Text(stringResource(R.string.place_claim_review), style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
-            }
-            is BusinessState.Owned -> BusinessRow(Icons.Outlined.Edit, stringResource(R.string.place_edit_business)) {
-                form = BusinessFormMode.Edit
-            }
-            BusinessState.NotABusiness -> Unit
+                add(InfoRow(Icons.Outlined.Flag, stringResource(R.string.place_report), onReport))
+            },
+        )
         }
         if (sheet.loading) {
             Box(Modifier.fillMaxWidth(), Alignment.Center) { CircularProgressIndicator(Modifier.size(28.dp)) }
@@ -202,20 +204,13 @@ fun PlaceSheet(
     }
 }
 
-@Composable
-private fun OutlinedExperiencesButton(onClick: () -> Unit) {
-    androidx.compose.material3.OutlinedButton(onClick, Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null)
-        Text(stringResource(R.string.comments_experiences), Modifier.padding(start = 10.dp))
-    }
-}
-
 /** Call and WhatsApp as pills, hours as one info row. Only what the business published. */
 @Composable
 private fun ContactRows(contact: Contact) {
     val context = LocalContext.current
     val palette = LocalPalette.current
-    val pill = if (isSystemInDarkTheme()) palette.fillPressed else palette.fill
+    // Threads' secondary button (mirrors iOS): flat grey, no border, bold label.
+    val pill = if (isSystemInDarkTheme()) palette.fillPressed else palette.inset
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         val pills = listOfNotNull(
             contact.phoneLink?.let { Triple(R.string.place_call, Icons.Filled.Call, it) },
@@ -231,7 +226,7 @@ private fun ContactRows(contact: Contact) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(icon, contentDescription = null, Modifier.size(18.dp))
-                        Text(stringResource(label), style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(label), style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold))
                     }
                 }
             }
@@ -245,17 +240,31 @@ private fun ContactRows(contact: Contact) {
     }
 }
 
-/** One quiet trailing row: claim it, or edit what you own. */
+private class InfoRow(val icon: androidx.compose.ui.graphics.vector.ImageVector, val label: String, val onClick: (() -> Unit)?)
+
+/** One grouped inset list: rounded container, hairline separators, 48dp rows, leading icon, trailing chevron. */
 @Composable
-private fun BusinessRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) {
+private fun InfoList(rows: List<InfoRow>) {
     val palette = LocalPalette.current
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = Role.Button, onClick = onClick),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = palette.textSecondary)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = palette.textSecondary)
+    val fill = if (isSystemInDarkTheme()) palette.fillPressed else palette.fill
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(fill)) {
+        rows.forEachIndexed { index, row ->
+            if (index > 0) HorizontalDivider(Modifier.padding(start = 52.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                    .then(if (row.onClick != null) Modifier.clickable(role = Role.Button, onClick = row.onClick) else Modifier)
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val ink = if (row.onClick != null) MaterialTheme.colorScheme.onSurface else palette.textSecondary
+                Icon(row.icon, contentDescription = null, Modifier.size(22.dp), tint = ink)
+                Text(row.label, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = ink)
+                if (row.onClick != null) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, Modifier.size(20.dp), tint = palette.textSecondary)
+                }
+            }
+        }
     }
 }
 

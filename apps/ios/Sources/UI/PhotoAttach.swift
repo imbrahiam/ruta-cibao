@@ -63,14 +63,14 @@ struct PhotoAttach: View {
                                 .lineLimit(1)
                                 .frame(maxWidth: .infinity, minHeight: 48)
                         }
-                        .buttonStyle(.glass)
+                        .buttonStyle(RutaTonalStyle())
                     }
                     PhotosPicker(selection: $library, maxSelectionCount: room, matching: .images, photoLibrary: .shared()) {
                         Label(L10n.Contribute.Photos.libraryShort, systemImage: "photo.on.rectangle")
                             .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity, minHeight: 48)
                     }
-                    .buttonStyle(.glass)
+                    .buttonStyle(RutaTonalStyle())
                     .accessibilityLabel(L10n.Contribute.Photos.library)
                 }
             }

@@ -44,7 +44,7 @@ struct CommentList: View {
             }
             if state.items.isEmpty {
                 if state.loading {
-                    ProgressView().frame(maxWidth: .infinity).padding(.vertical, 24)
+                    SkeletonFeed(count: 3)
                 } else if state.loadError == nil {
                     Text(empty)
                         .font(.subheadline)
@@ -60,7 +60,7 @@ struct CommentList: View {
                     .onAppear { if comment.id == state.items.last?.id { model.viewModel.loadMore() } }
             }
             if state.loading, !state.items.isEmpty {
-                ProgressView().frame(maxWidth: .infinity).padding(.vertical, 12)
+                SkeletonFeed(count: 1)
             }
         }
         .alert(L10n.Comments.reported, isPresented: Binding(
@@ -76,33 +76,36 @@ private struct CommentRow: View {
     let comment: CommentsListOutput.Item
     let model: CommentsModel
 
+    /// X's reply row: 40 pt avatar, bold name and grey age on one line at the
+    /// same size, the text under it, a full-width hairline below.
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 10) {
-                AuthorAvatar(name: comment.author, image: comment.authorImage, size: 32)
-                    .padding(.top, 4)
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+            HStack(alignment: .top, spacing: 12) {
+                AuthorAvatar(name: comment.author, image: comment.authorImage, size: 40)
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(comment.author)
-                            .font(.system(size: 13, weight: .semibold))
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(CompactTime.since(comment.createdAt.date))
-                            .font(.system(size: 13))
+                            .font(.subheadline.weight(.bold))
+                            .lineLimit(1)
+                        Text(verbatim: "· \(CompactTime.since(comment.createdAt.date))")
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .layoutPriority(1)
                         Spacer(minLength: 0)
                     }
-                    .frame(minHeight: 32, alignment: .leading)
+                    .padding(.trailing, 28)
                     Text(comment.body)
                         .font(.callout)
-                        .lineSpacing(2)
+                        .lineSpacing(3)
                         .textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                menu
             }
             .padding(.horizontal, PostMetrics.inset)
-            .padding(.vertical, 12)
-            Divider().padding(.leading, PostMetrics.inset + 42)
+            .padding(.vertical, 14)
+            .overlay(alignment: .topTrailing) { menu.padding(.top, 2).padding(.trailing, 4) }
+            Divider()
         }
     }
 
@@ -121,7 +124,7 @@ private struct CommentRow: View {
             }
         } label: {
             Image(systemName: "ellipsis")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
@@ -137,24 +140,35 @@ struct CommentComposer: View {
     let placeholder: String
     var focus: FocusState<Bool>.Binding
     var signInLabel: String = L10n.Comments.signInToComment
-    /// Replaces the avatar, e.g. staff's "who answers" chip, so the composer stays one row.
+    /// Shown above the field while composing: "Respondiendo a …".
+    var replyingTo: String?
+    /// Leads the field, e.g. staff's "who answers" chip, so the composer stays one row.
     var leading: AnyView?
 
     @Environment(\.palette) private var palette
-    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var state: CommentsUiState { model.state }
 
+    /// X's reply bar: a quiet grey pill at rest; focused (or holding a draft) it
+    /// names who you answer and shows the send button.
+    private var expanded: Bool { focus.wrappedValue || !state.draft.isEmpty }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             if state.sendError != nil {
                 ThreadErrorNotice(message: L10n.Comments.sendFailed) { model.viewModel.send() }
             }
-            HStack(alignment: .bottom, spacing: 10) {
+            if expanded, state.signedIn, let replyingTo {
+                Text(L10n.Comments.replyingTo(name: replyingTo))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .padding(.leading, leading == nil ? 16 : 0)
+                    .transition(.opacity)
+            }
+            HStack(alignment: .bottom, spacing: 8) {
                 if let leading, state.signedIn {
                     leading
-                } else {
-                    ComposerAvatar()
-                        .padding(.bottom, 6)
                 }
                 if state.signedIn {
                     HStack(alignment: .bottom, spacing: 4) {
@@ -168,16 +182,20 @@ struct CommentComposer: View {
                             .focused(focus)
                             .disabled(state.sending)
                             .padding(.leading, 16)
-                            .padding(.vertical, 12)
-                        ThreadSendButton(
-                            sending: state.sending,
-                            enabled: state.canSend,
-                            label: L10n.Comments.send,
-                            action: { model.viewModel.send() }
-                        )
-                        .padding(3)
+                            .padding(.trailing, expanded ? 0 : 16)
+                            .padding(.vertical, 11)
+                        if expanded {
+                            ThreadSendButton(
+                                sending: state.sending,
+                                enabled: state.canSend,
+                                label: L10n.Comments.send,
+                                action: { model.viewModel.send() }
+                            )
+                            .padding(3)
+                        }
                     }
-                    .background(palette.raised, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    .frame(minHeight: 44)
+                    .background(palette.inset, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                 } else {
                     Button { model.viewModel.requestSignIn() } label: {
                         HStack(spacing: 8) {
@@ -190,14 +208,14 @@ struct CommentComposer: View {
                         }
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 16)
-                        .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
-                        .padding(.vertical, 2)
-                        .background(palette.raised, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .background(palette.inset, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }
             }
         }
+        .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: expanded)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
     }
@@ -235,19 +253,6 @@ struct ThreadComposerBar<Content: View>: View {
     }
 }
 
-struct ComposerAvatar: View {
-    var official = false
-
-    var body: some View {
-        Image(systemName: official ? "building.columns.fill" : "person.fill")
-            .font(.system(size: 15, weight: .medium))
-            .foregroundStyle(.secondary)
-            .frame(width: 36, height: 36)
-            .background(Color.primary.opacity(0.07), in: Circle())
-            .accessibilityHidden(true)
-    }
-}
-
 struct ThreadSendButton: View {
     let sending: Bool
     let enabled: Bool
@@ -257,8 +262,8 @@ struct ThreadSendButton: View {
     @Environment(\.colorScheme) private var scheme
 
     /// Dark: a light disc with a dark arrow, so it reads on black.
-    private var disc: Color { scheme == .dark ? .white : RutaBrand.iris }
-    private var glyph: Color { scheme == .dark ? .black : .white }
+    private var disc: Color { palette.accent }
+    private var glyph: Color { palette.onAccent }
 
     var body: some View {
         Button(action: action) {
@@ -314,7 +319,7 @@ struct PlaceExperiencesView: View {
                     }
                     .padding(.bottom, 16)
                 } else {
-                    ProgressView().frame(maxWidth: .infinity).padding(.top, 24)
+                    SkeletonFeed(count: 3)
                 }
             }
             .scrollDismissesKeyboard(.interactively)

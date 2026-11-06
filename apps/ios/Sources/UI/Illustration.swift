@@ -40,11 +40,14 @@ struct EmptyState: View {
         VStack(spacing: 10) {
             if let art {
                 Illustration(art: art, size: size).padding(.bottom, 6)
-            } else if let symbol {
-                Image(systemName: symbol)
-                    .font(.system(size: 36, weight: .regular))
+            } else {
+                // Threads' empty inbox: the glyph in a soft grey disc.
+                Image(systemName: symbol ?? "tray")
+                    .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(palette.textTertiary)
-                    .padding(.bottom, 4)
+                    .frame(width: 56, height: 56)
+                    .background(palette.inset, in: Circle())
+                    .padding(.bottom, 6)
                     .accessibilityHidden(true)
             }
             Text(title)

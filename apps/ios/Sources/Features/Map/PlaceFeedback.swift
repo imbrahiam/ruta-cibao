@@ -5,6 +5,8 @@ struct PlaceFeedbackView: View {
     let sheet: PlaceSheet
     let confirm: (PlacesConfirmInput.Verdict) -> Void
     let requestReport: () -> Void
+    @Environment(\.palette) private var palette
+    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -13,24 +15,16 @@ struct PlaceFeedbackView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             } else if let detail = sheet.detail, !detail.isMine {
                 Text(L10n.Place.stillThere).font(.headline)
-                Text(detail.myVerdict == nil ? L10n.Place.stillThereBody : L10n.Place.answered)
-                    .font(.subheadline).foregroundStyle(.secondary)
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 12) { verdictButtons(detail) }
-                    VStack(alignment: .leading, spacing: 8) { verdictButtons(detail) }
+                HStack(spacing: 10) {
+                    verdictButton(chosen: detail.myVerdict == .exists, .exists, title: L10n.Place.exists, symbol: "checkmark.circle")
+                    verdictButton(chosen: detail.myVerdict == .gone, .gone, title: L10n.Place.gone, symbol: "xmark.circle")
                 }
                 .disabled(sheet.confirming)
-                if sheet.confirming { ProgressView() }
             }
             if let error = sheet.feedbackError {
                 Label(error == .offline ? L10n.Common.offlineBody : L10n.Common.errorBody, systemImage: "exclamationmark.circle")
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            Button(action: requestReport) {
-                Label(L10n.Place.report, systemImage: "flag")
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            }
-            .buttonStyle(.plain)
         }
         #if DEBUG
         // `SIMCTL_CHILD_RUTA_DEBUG_PLACE=exists|gone|report` answers "¿Sigue aquí?" or opens the report form once the sheet is loaded.
@@ -46,15 +40,20 @@ struct PlaceFeedbackView: View {
         #endif
     }
 
-    @ViewBuilder private func verdictButtons(_ detail: PlacesDetailOutput) -> some View {
-        Button { confirm(.exists) } label: {
-            Label(L10n.Place.exists, systemImage: detail.myVerdict == .exists ? "checkmark.circle.fill" : "checkmark.circle")
-                .frame(minHeight: 44)
+    /// The same tonal pair as the traffic sheet: the chosen one is filled with ink and an
+    /// inverted label, and shows the filled icon, so state never rests on colour alone.
+    private func verdictButton(chosen: Bool, _ verdict: PlacesConfirmInput.Verdict, title: String, symbol: String) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
+        return Button { confirm(verdict) } label: {
+            Label(title, systemImage: chosen ? "\(symbol).fill" : symbol)
+                .font(.headline)
+                .foregroundStyle(chosen ? palette.onAccent : Color.primary)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(chosen ? palette.accent : (scheme == .dark ? palette.fillPressed : Color.primary.opacity(0.1)), in: shape)
+                .contentShape(shape)
         }
-        Button { confirm(.gone) } label: {
-            Label(L10n.Place.gone, systemImage: detail.myVerdict == .gone ? "xmark.circle.fill" : "xmark.circle")
-                .frame(minHeight: 44)
-        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(chosen ? .isSelected : [])
     }
 }
 

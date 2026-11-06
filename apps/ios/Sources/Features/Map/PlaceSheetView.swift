@@ -61,14 +61,16 @@ struct PlaceSheetView: View {
                         .font(.subheadline)
                         .lineSpacing(3)
                 }
-                experiencesLink
-                businessRow
-                PlaceFeedbackView(sheet: sheet, confirm: confirm, requestReport: requestReport)
+                VStack(alignment: .leading, spacing: 24) {
+                    PlaceFeedbackView(sheet: sheet, confirm: confirm, requestReport: requestReport)
+                    infoList
+                }
+                .padding(.top, 8)
                 if sheet.loading {
                     ProgressView().frame(maxWidth: .infinity)
                 }
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 16)
             .padding(.top, 20)
             .padding(.bottom, 12)
         }
@@ -123,9 +125,8 @@ struct PlaceSheetView: View {
                                 .frame(maxWidth: .infinity, minHeight: 44)
                         }
                         .buttonStyle(.plain)
-                        // Dark: one step up the elevation ladder instead of glass, so the pill reads on the sheet.
-                        .background { if scheme == .dark { Capsule().fill(palette.fillPressed) } }
-                        .glassEffect(scheme == .dark ? .identity : .regular.interactive(), in: Capsule())
+                        // Threads' secondary button: a flat grey fill, no border, bold label.
+                        .background(scheme == .dark ? palette.fillPressed : palette.inset, in: Capsule())
                     }
                 }
             }
@@ -139,35 +140,57 @@ struct PlaceSheetView: View {
         }
     }
 
-    /// One quiet row: claim it, wait for the review, or edit what you own.
-    @ViewBuilder private var businessRow: some View {
-        switch onEnum(of: sheet.business) {
-        case .listed(let listed) where listed.canClaim:
-            businessButton(L10n.Place.claimTitle, symbol: "storefront") {
-                if requestClaim() { businessForm = .claim }
+    /// One grouped inset list: experiences, the business row when it applies, report.
+    private var infoList: some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        return VStack(spacing: 0) {
+            listRow(L10n.Comments.experiences, symbol: "text.bubble") { showingExperiences = true }
+            switch onEnum(of: sheet.business) {
+            case .listed(let listed) where listed.canClaim:
+                Divider().padding(.leading, 52)
+                listRow(L10n.Place.claimTitle, symbol: "storefront") {
+                    if requestClaim() { businessForm = .claim }
+                }
+            case .claimPending:
+                Divider().padding(.leading, 52)
+                listRow(L10n.Place.claimReview, symbol: "hourglass", action: nil)
+            case .owned:
+                Divider().padding(.leading, 52)
+                listRow(L10n.Place.editBusiness, symbol: "pencil") { businessForm = .edit }
+            default:
+                EmptyView()
             }
-        case .claimPending:
-            Label(L10n.Place.claimReview, systemImage: "hourglass")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .accessibilityElement(children: .combine)
-        case .owned:
-            businessButton(L10n.Place.editBusiness, symbol: "pencil") { businessForm = .edit }
-        default:
-            EmptyView()
+            Divider().padding(.leading, 52)
+            listRow(L10n.Place.report, symbol: "flag", action: requestReport)
         }
+        .background(scheme == .dark ? palette.fillPressed : Color.primary.opacity(0.06), in: shape)
+        .clipShape(shape)
     }
 
-    private func businessButton(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Label(title, systemImage: symbol)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .trailing)
-                .contentShape(Rectangle())
+    @ViewBuilder private func listRow(_ title: String, symbol: String, action: (() -> Void)?) -> some View {
+        let content = HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .medium))
+                .frame(width: 24)
+            Text(title)
+                .font(.body)
+                .multilineTextAlignment(.leading)
+            Spacer(minLength: 8)
+            if action != nil {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
         }
-        .buttonStyle(.plain)
+        .foregroundStyle(action == nil ? Color.secondary : Color.primary)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .contentShape(Rectangle())
+        if let action {
+            Button(action: action) { content }.buttonStyle(.plain)
+        } else {
+            content.accessibilityElement(children: .combine)
+        }
     }
 
     private var header: some View {
@@ -210,28 +233,6 @@ struct PlaceSheetView: View {
             .padding(.top, 2)
     }
 
-    private var experiencesLink: some View {
-        Button { showingExperiences = true } label: {
-            HStack(spacing: 10) {
-                Image(systemName: "text.bubble")
-                    .font(.system(size: 17, weight: .medium))
-                    .frame(width: 24)
-                Text(L10n.Comments.experiences)
-                    .font(.subheadline.weight(.semibold))
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 14)
-            .frame(minHeight: 56)
-            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
     @Environment(\.openURL) private var openURL
     private func open(_ url: URL?) { if let url { openURL(url) } }
 
@@ -261,9 +262,9 @@ struct PlaceSheetView: View {
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
-            .foregroundStyle(RutaProminentStyle.ink(on: categoryColor, scheme))
+            .foregroundStyle(.white)
             .buttonStyle(.plain)
-            .background(categoryColor.gradient, in: Capsule())
+            .background(RutaProminentStyle.fill(forWhiteOn: categoryColor, scheme), in: Capsule())
 
             Button(action: save) {
                 Image(systemName: sheet.saved ? "bookmark.fill" : "bookmark")

@@ -13,6 +13,7 @@ PLACE=${PLACE:-colmado-la-esquina-sabaneta}
 CASE=${CASE:-hoyos-en-el-camino-a-la-presa-demo}
 SETTLE=${SETTLE:-9}
 PLATFORMS=${PLATFORMS:-ios android} # e.g. PLATFORMS=android to redo one side
+MODES=${MODES:-light dark}           # e.g. MODES=dark
 mkdir -p "$OUT"
 # Reports expire, so pick whatever is live now. Seed one through the app if this comes back empty.
 TRAFFIC=${TRAFFIC:-$(curl -s "http://localhost:3000/api/traffic?west=-71.6&south=19.2&east=-71.1&north=19.6" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)}
@@ -42,6 +43,7 @@ spec() {
 
 ios() { # env url out
   xcrun simctl terminate "$IOS_ID" "$BUNDLE" >/dev/null 2>&1 || true
+  xcrun simctl ui "$IOS_ID" appearance "$mode" # re-assert: it has drifted back mid-run before
   local args=()
   for kv in $1; do args+=("SIMCTL_CHILD_$kv"); done
   env "${args[@]}" xcrun simctl launch "$IOS_ID" "$BUNDLE" >/dev/null
@@ -64,7 +66,7 @@ android() { # extras url out
   "$ADB" exec-out screencap -p > "$3"
 }
 
-for mode in light dark; do
+for mode in $MODES; do
   xcrun simctl ui "$IOS_ID" appearance "$mode"
   "$ADB" shell cmd uimode night "$([[ $mode == dark ]] && echo yes || echo no)" >/dev/null
   for s in "${SCREENS[@]}"; do

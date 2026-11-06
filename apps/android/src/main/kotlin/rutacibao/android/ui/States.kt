@@ -19,6 +19,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,9 +41,28 @@ import rutacibao.presentation.UiError
 
 @Composable
 fun LoadingState(modifier: Modifier = Modifier) {
+    SkeletonFeed(count = 3, modifier = modifier)
+}
+
+/**
+ * Threads' loading rows (mirrors iOS `SkeletonFeed`): a 40dp circle and three soft bars
+ * shaped like the content that's coming, instead of a spinner.
+ */
+@Composable
+fun SkeletonFeed(count: Int = 5, modifier: Modifier = Modifier) {
     val label = stringResource(R.string.common_loading)
-    Box(modifier.fillMaxSize().semantics { liveRegion = LiveRegionMode.Polite }, Alignment.Center) {
-        CircularProgressIndicator(Modifier.semantics { contentDescription = label })
+    val palette = LocalPalette.current
+    Column(modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite; contentDescription = label }) {
+        repeat(count) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 18.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Box(Modifier.size(40.dp).clip(CircleShape).shimmer(palette.inset, palette.fill))
+                Column(Modifier.weight(1f).padding(top = 2.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.width(120.dp).height(14.dp).clip(RoundedCornerShape(6.dp)).shimmer(palette.inset, palette.fill))
+                    Box(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(6.dp)).shimmer(palette.inset, palette.fill))
+                    Box(Modifier.width(200.dp).height(14.dp).clip(RoundedCornerShape(6.dp)).shimmer(palette.inset, palette.fill))
+                }
+            }
+        }
     }
 }
 

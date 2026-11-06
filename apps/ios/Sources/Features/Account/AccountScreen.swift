@@ -192,38 +192,42 @@ private struct SignedInAccount: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// Threads' profile head: name and place on the left, the photo on the
+    /// right, then one quiet full-width "Editar perfil" button. No card.
     private var header: some View {
-        HStack(spacing: 16) {
-            AuthorAvatar(name: state.me?.displayName ?? "", image: state.me?.image, size: 64)
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(state.me?.displayName ?? " ")
-                        .font(.title3.weight(.bold))
-                        .redacted(reason: state.me == nil ? .placeholder : [])
-                    if state.me?.residencyVerified == true {
-                        Image(systemName: "checkmark.seal.fill")
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 6) {
+                        Text(state.me?.displayName ?? " ")
+                            .font(.title2.weight(.bold))
+                            .lineLimit(2)
+                            .redacted(reason: state.me == nil ? .placeholder : [])
+                        if state.me?.residencyVerified == true {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+                                .accessibilityLabel(L10n.Account.residentVerified)
+                        }
+                    }
+                    if state.me?.residencyVerified == true, let place = state.municipalityName {
+                        Text(L10n.Account.resident(place: place))
                             .font(.subheadline)
-                            .foregroundStyle(RutaBrand.iris)
-                            .accessibilityLabel(L10n.Account.residentVerified)
+                            .foregroundStyle(palette.textSecondary)
+                            .lineLimit(1)
                     }
                 }
-                if state.me?.residencyVerified == true, let place = state.municipalityName {
-                    Text(L10n.Account.resident(place: place))
-                        .font(.footnote)
-                        .foregroundStyle(palette.textSecondary)
-                        .lineLimit(1)
-                }
+                Spacer(minLength: 0)
+                AuthorAvatar(name: state.me?.displayName ?? "", image: state.me?.image, size: 64)
             }
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(palette.textTertiary)
-                .accessibilityHidden(true)
+            Text(L10n.Account.editProfile)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(palette.text)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .background(palette.inset, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(palette.raised, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .contentShape(Rectangle())
     }
 
 

@@ -92,10 +92,7 @@ private struct ConsultationsFeed: View {
     @ViewBuilder private var content: some View {
         switch state.phase {
         case .loading:
-            ProgressView()
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 140)
+            SkeletonFeed()
         case .failed:
             ErrorStateView(error: state.error ?? .unknown) { vm.retry() }
                 .padding(.top, 80)
@@ -110,7 +107,7 @@ private struct ConsultationsFeed: View {
                     }
             }
             if state.loadingMore {
-                ProgressView().frame(maxWidth: .infinity).padding(24)
+                SkeletonFeed(count: 1)
             }
         }
     }
@@ -132,13 +129,15 @@ private struct StatusFilter: View {
                 ForEach(Array(options.enumerated()), id: \.offset) { _, option in
                     let current = option == selected
                     Button { select(option) } label: {
-                        // 36 tall to the eye, 44 to the finger.
+                        // Threads' chips: 36 tall to the eye, 44 to the finger; a hairline
+                        // outline at rest, a soft grey fill and bolder label when chosen.
                         Text(option.map(ConsultationStatusText.label) ?? L10n.Consultations.allTab)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(current ? palette.background : Color.secondary)
-                            .padding(.horizontal, 14)
+                            .font(.subheadline.weight(current ? .bold : .semibold))
+                            .foregroundStyle(palette.text)
+                            .padding(.horizontal, 16)
                             .frame(height: 36)
-                            .background(current ? palette.text : .clear, in: Capsule())
+                            .background(current ? palette.inset : .clear, in: Capsule())
+                            .overlay { Capsule().strokeBorder(palette.separator, lineWidth: 1) }
                             .frame(minHeight: 44)
                             .contentShape(Rectangle())
                     }
@@ -235,7 +234,7 @@ private struct ConsultationPost: View {
 /// carries the hierarchy. Column math in one place.
 enum PostMetrics {
     static let inset: CGFloat = 16
-    static let avatar: CGFloat = 36
+    static let avatar: CGFloat = 40
     static let gap: CGFloat = 12
     static var column: CGFloat { inset + avatar + gap }
     static let name = Font.subheadline.weight(.semibold)
@@ -284,10 +283,10 @@ struct PostActions: View {
             Button(action: support) {
                 HStack(spacing: 2) {
                     Image(systemName: supported ? "heart.fill" : "heart")
-                        .foregroundStyle(supported ? RutaHighlight.support : palette.text)
+                        .foregroundStyle(supported ? RutaHighlight.support : palette.textSecondary)
                         .symbolEffect(.bounce, value: reduceMotion ? false : supported)
                         .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
-                        .font(.system(size: 19, weight: .light))
+                        .font(.system(size: 19, weight: .regular))
                     if supportCount > 0 {
                         Text(verbatim: "\(supportCount)")
                             .font(.subheadline)
@@ -297,7 +296,7 @@ struct PostActions: View {
                     }
                 }
                 .frame(minWidth: 44, minHeight: 44)
-                .padding(.trailing, supportCount > 0 ? 6 : 0)
+                .padding(.trailing, supportCount > 0 ? 8 : 0)
                 .contentShape(Rectangle())
             }
             .sensoryFeedback(.impact(weight: .light), trigger: supported)
@@ -318,13 +317,13 @@ struct PostActions: View {
             .accessibilityLabel(L10n.Common.share)
         }
         .buttonStyle(.plain)
-        .foregroundStyle(palette.text)
+        .foregroundStyle(palette.textSecondary)
     }
 }
 
 private extension View {
     func postIcon() -> some View {
-        font(.system(size: 19, weight: .light))
+        font(.system(size: 19, weight: .regular))
             .frame(width: 44, height: 44)
             .contentShape(Rectangle())
     }
@@ -384,24 +383,30 @@ struct StatusPill: View {
 
 // MARK: - Skeleton
 
+/// Threads' loading rows: a 40 pt circle and three soft bars shaped like the
+/// content that's coming, instead of a spinner.
 struct SkeletonFeed: View {
+    var count = 5
     @Environment(\.palette) private var palette
 
     var body: some View {
         VStack(spacing: 0) {
-            ForEach(0..<5, id: \.self) { _ in
+            ForEach(0..<count, id: \.self) { _ in
                 HStack(alignment: .top, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Capsule().frame(width: 180, height: 12)
-                        Capsule().frame(height: 12)
-                        Capsule().frame(width: 220, height: 12)
-                        Capsule().frame(width: 120, height: 12).padding(.top, 6)
+                    Circle().frame(width: 40, height: 40)
+                    VStack(alignment: .leading, spacing: 10) {
+                        RoundedRectangle(cornerRadius: 6).frame(width: 120, height: 14)
+                        RoundedRectangle(cornerRadius: 6).frame(maxWidth: .infinity).frame(height: 14)
+                        RoundedRectangle(cornerRadius: 6).frame(width: 200, height: 14)
                     }
+                    .padding(.top, 2)
                 }
                 .foregroundStyle(palette.inset)
-                .padding(16)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 18)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .top)
         .shimmering()
         .accessibilityLabel(L10n.Common.loading)
     }

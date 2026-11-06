@@ -111,7 +111,7 @@ struct SegmentTabs<Value: Hashable>: View {
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .overlay(alignment: .bottom) {
                             if isSelected {
-                                Rectangle().fill(RutaHighlight.enabled ? RutaHighlight.color : palette.text).frame(height: 1.5)
+                                Rectangle().fill(palette.text).frame(height: 1.5)
                                     .matchedGeometryEffect(id: "underline", in: underline)
                             }
                         }

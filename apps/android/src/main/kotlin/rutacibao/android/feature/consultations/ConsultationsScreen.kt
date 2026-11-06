@@ -67,6 +67,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import rutacibao.android.ui.SkeletonFeed
 import rutacibao.android.ui.StatusPill
 import rutacibao.android.ui.parseCategoryColor
 import rutacibao.android.ui.categoryIcon
@@ -95,7 +96,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import rutacibao.android.R
 import rutacibao.android.feature.auth.SignInDialog
 import rutacibao.android.navigation.LocalTabBarClearance
-import rutacibao.android.ui.LoadingMark
 import rutacibao.android.ui.EmptyState
 import rutacibao.android.ui.ErrorState
 import rutacibao.android.ui.LocalAppGraph
@@ -143,7 +143,7 @@ fun ConsultationsScreen(onOpen: (String) -> Unit = {}) {
                         PostRow(item, onOpen = { onOpen(item.slug) }, onToggleSupport = { vm.toggleSupport(item.id) }, onHidden = vm::hiddenChanged)
                     }
                     if (state.loadingMore) {
-                        item { Box(Modifier.fillMaxWidth().padding(24.dp), Alignment.Center) { LoadingMark(28.dp, spinning = true) } }
+                        item { SkeletonFeed(count = 1) }
                     }
                 }
             }
@@ -171,8 +171,8 @@ private fun FeedHeader(filters: List<ConsultationStatus?>, selected: Consultatio
 }
 
 /**
- * Pill chips, 36 tall inside a 48 hit area. The selected one is filled with the label colour
- * and its text inverted, so state is never colour alone; a trailing fade says the row scrolls.
+ * Threads' chips (mirrors iOS), 36 tall inside a 48 hit area: a hairline outline at rest, a
+ * soft grey fill and bolder label when chosen; a trailing fade says the row scrolls.
  */
 @Composable
 private fun StatusFilters(filters: List<ConsultationStatus?>, selected: ConsultationStatus?, onSelect: (ConsultationStatus?) -> Unit) {
@@ -207,14 +207,15 @@ private fun StatusFilters(filters: List<ConsultationStatus?>, selected: Consulta
                         Modifier
                             .height(36.dp)
                             .clip(CircleShape)
-                            .background(if (isSelected) palette.text else Color.Transparent)
-                            .padding(horizontal = 14.dp),
+                            .background(if (isSelected) palette.inset else Color.Transparent)
+                            .border(1.dp, palette.separator, CircleShape)
+                            .padding(horizontal = 16.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             status?.let { statusLabel(it) } ?: stringResource(R.string.consultations_all_tab),
-                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
-                            color = if (isSelected) background else palette.textSecondary,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold),
+                            color = palette.text,
                             maxLines = 1,
                         )
                     }
@@ -235,8 +236,7 @@ private fun StatusFilters(filters: List<ConsultationStatus?>, selected: Consulta
 
 @Composable
 private fun LoadingFeed() {
-    val label = stringResource(R.string.common_loading)
-    Box(Modifier.fillMaxSize().semantics { contentDescription = label }, Alignment.Center) { LoadingMark(PullMark, spinning = true) }
+    SkeletonFeed()
 }
 
 @Composable
@@ -308,7 +308,8 @@ private fun PostRow(item: Consultation, onOpen: () -> Unit, onToggleSupport: () 
 @Composable
 private fun ActionsRow(item: Consultation, onReply: () -> Unit, onToggleSupport: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val ink = MaterialTheme.colorScheme.onSurface
+    // X's action row: every icon in the secondary grey; only a given heart turns red.
+    val ink = LocalPalette.current.textSecondary
     val shareLabel = stringResource(R.string.common_share)
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         SupportIcon(item.supported, onToggleSupport, count = item.supportCount.toInt())
@@ -341,8 +342,8 @@ internal fun IconTarget(icon: ImageVector, label: String, tint: Color, onClick: 
 internal fun SupportIcon(supported: Boolean, onToggle: () -> Unit, count: Int = 0) {
     val haptics = LocalHapticFeedback.current
     val reduced = LocalReducedMotion.current
-    // Same colour as iOS; filled vs outline carries the state.
-    val ink = if (supported) RutaHighlight.selection() else MaterialTheme.colorScheme.onSurface
+    // Red when you have supported, the secondary label colour otherwise; filled vs outline also carries the state.
+    val ink = if (supported) RutaHighlight.support() else LocalPalette.current.textSecondary
     val scale = remember { Animatable(1f) }
     val first = remember { booleanArrayOf(true) }
     LaunchedEffect(supported) {
@@ -380,11 +381,10 @@ internal fun SupportIcon(supported: Boolean, onToggle: () -> Unit, count: Int = 
 
 /** Column maths for the post layout, shared with the composer and the contributions rows. */
 val PostInset = 16.dp
-val PostAvatar = 36.dp
+val PostAvatar = 40.dp
 val PostGap = 12.dp
 val PostColumn = PostInset + PostAvatar + PostGap
 
-private val PullMark = 56.dp
 
 /**
  * A [visible]-sized slot whose hit area is the 48dp minimum: the node measures

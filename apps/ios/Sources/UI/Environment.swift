@@ -20,37 +20,15 @@ private struct RutaThemeModifier: ViewModifier {
     }
 }
 
-/// The app's own colour, kept to what Apple's guidance reserves an accent
-/// for: the one primary action on a screen, where you are (the selected tab
-/// and segment), what's on (switches) and what you've done (your support).
-/// Not on filters, tiles or the location arrow: several can be on at once,
-/// and the map's blue is the system's convention for "you".
-/// One place to change it; set `enabled = false` to fall back to plain ink
-/// and system green everywhere at once.
+/// The app chrome is neutral ink: black on light, white on dark. Switches are
+/// system green and the support heart is system red.
 enum RutaHighlight {
-    static let enabled = true
-    /// Trial: primary buttons ("Cómo llegar", submit…) in the app colour too,
-    /// instead of ink. Set to false to put them back to black/white.
-    static let primaryButtons = true
-
-    /// Iris, lifted in dark mode so it keeps its contrast on black.
-    static let color = Color(UIColor { traits in
-        traits.userInterfaceStyle == .dark
-            ? UIColor(red: 0xA5 / 255, green: 0x8E / 255, blue: 0xD8 / 255, alpha: 1)
-            : UIColor(red: 0x78 / 255, green: 0x60 / 255, blue: 0xA8 / 255, alpha: 1)
-    })
-
-    /// Primary buttons: solid iris in both modes, so white on it keeps its contrast.
-    static let solid = Color(red: 0x78 / 255, green: 0x60 / 255, blue: 0xA8 / 255)
-    /// Text and spinners on a primary button.
-    static func onPrimary(_ palette: RutaPalette) -> Color { enabled && primaryButtons ? .white : palette.onAccent }
-
     /// For a selected control whose plain alternative is the label colour.
-    static var selection: AnyShapeStyle { enabled ? AnyShapeStyle(color) : AnyShapeStyle(.primary) }
+    static var selection: AnyShapeStyle { AnyShapeStyle(.primary) }
     /// For a switch that's on.
-    static var toggle: Color { enabled ? color : Color(.systemGreen) }
+    static var toggle: Color { Color(.systemGreen) }
     /// For support you've given.
-    static var support: Color { enabled ? color : Color(.systemRed) }
+    static var support: Color { Color(.systemRed) }
 }
 
 /// Switches carry the highlight, never the accent: an "on" track tinted with
@@ -95,13 +73,31 @@ struct RutaProminentStyle: PrimitiveButtonStyle {
             }
             .buttonStyle(TintedCapsule(fill: tint))
         } else {
-            let branded = RutaHighlight.enabled && RutaHighlight.primaryButtons
             Button(role: configuration.role, action: configuration.trigger) {
-                configuration.label.foregroundStyle(RutaHighlight.onPrimary(palette))
+                configuration.label.foregroundStyle(palette.onAccent)
             }
             .buttonStyle(.glassProminent)
-            .tint(branded ? RutaHighlight.solid : palette.accent)
+            .tint(palette.accent)
         }
+    }
+
+    /// `color`, darkened in steps of the same hue until white text on it reaches 4.5:1.
+    static func fill(forWhiteOn color: Color, _ scheme: ColorScheme) -> Color {
+        let traits = UITraitCollection(userInterfaceStyle: scheme == .dark ? .dark : .light)
+        var h: CGFloat = 0, sat: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(color).resolvedColor(with: traits).getHue(&h, saturation: &sat, brightness: &b, alpha: &a)
+        func contrast(_ ui: UIColor) -> CGFloat {
+            var r: CGFloat = 0, g: CGFloat = 0, bl: CGFloat = 0, al: CGFloat = 0
+            ui.getRed(&r, green: &g, blue: &bl, alpha: &al)
+            func linear(_ c: CGFloat) -> CGFloat { c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4) }
+            return 1.05 / (0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(bl) + 0.05)
+        }
+        var ui = UIColor(hue: h, saturation: sat, brightness: b, alpha: 1)
+        while contrast(ui) < 4.5, b > 0.05 {
+            b -= 0.02
+            ui = UIColor(hue: h, saturation: sat, brightness: b, alpha: 1)
+        }
+        return Color(ui)
     }
 
     /// White, as the badge's glyph is, while it keeps WCAG's 3:1 for large
@@ -133,3 +129,20 @@ private struct TintedCapsule: ButtonStyle {
     }
 }
 
+
+/// Threads' secondary button: a flat grey capsule with an ink label, no glass or border.
+/// The same fill as the place sheet's Llamar/WhatsApp, one step up in dark.
+struct RutaTonalStyle: ButtonStyle {
+    @Environment(\.palette) private var palette
+    @Environment(\.colorScheme) private var scheme
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(palette.text)
+            .padding(.horizontal, 16)
+            .frame(minHeight: 44)
+            .background(scheme == .dark ? palette.fillPressed : palette.inset, in: Capsule())
+            .opacity(configuration.isPressed ? 0.7 : 1)
+            .contentShape(Capsule())
+    }
+}
