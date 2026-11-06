@@ -18,6 +18,10 @@
  * - `suave`: the warm paper and deep pine of the landing page.
  * - `clasico`: black and white, for those who want the map to do the talking.
  *
+ * Dark elevation ladder, each step lighter than the one under it:
+ * `background` < `surface` (cards, sheets) < `inset` = `elevated` (fields, chips,
+ * tonal buttons, avatars; menus and dialogs) < `fill` (separators, pressed, selected).
+ *
  * Contrast: text tokens pass WCAG AA (4.5:1) on `background`, `surface` and
  * `inset` in both schemes; `textTertiary` is the lightest text allowed for
  * captions. An accent keeps 4.5:1 against `onAccent` and 3:1 against
@@ -129,14 +133,14 @@ export const THEMES = {
     },
     dark: {
       paper: "#121211",
-      elevated: "#1C1C1A",
+      elevated: "#2A2A27",
       surface: "#1C1C1A",
-      inset: "#1A1A18",
-      fill: "#242421",
-      fillPressed: "#2E2E2B",
+      inset: "#2A2A27",
+      fill: "#363632",
+      fillPressed: "#42423D",
       ink: "#F3F2EE",
       textSecondary: "#B4B1A8",
-      textTertiary: "#98958C",
+      textTertiary: "#A19E95",
       textDisabled: "#57554F",
       accent: "#5FBF9A",
       accentPressed: "#7DD0B0",
@@ -203,15 +207,15 @@ export const THEMES = {
       glass: "rgba(255, 255, 255, 0.94)",
     },
     dark: {
-      paper: "#000000",
-      elevated: "#1C1C1C",
+      paper: "#101010",
+      elevated: "#2C2C2C",
       surface: "#1C1C1C",
-      inset: "#141414",
-      fill: "#2B2B2B",
-      fillPressed: "#363636",
+      inset: "#2C2C2C",
+      fill: "#383838",
+      fillPressed: "#444444",
       ink: "#FFFFFF",
       textSecondary: "#BDBDBD",
-      textTertiary: "#9A9A9A",
+      textTertiary: "#A3A3A3",
       textDisabled: "#5E5E5E",
       accent: "#FFFFFF",
       accentPressed: "#DDDDDD",
@@ -268,6 +272,13 @@ export function buildPalette(seed: Seed, scheme: "light" | "dark") {
     /** Things floating over the map or content: sheets, search bar, map buttons. */
     elevated: seed.elevated,
     surface: seed.surface,
+    /**
+     * A card on the canvas: the light inset grey, or in dark the surface step.
+     * Anything sitting on a card or a sheet (field, chip, tonal button, avatar)
+     * is `inset`, which is one step above `surface` in dark.
+     */
+    raised: scheme === "light" ? seed.inset : seed.surface,
+    /** Field, chip, tonal button: light grey on white, one step above `surface` in dark. */
     inset: seed.inset,
     fill: seed.fill,
     fillPressed: seed.fillPressed,

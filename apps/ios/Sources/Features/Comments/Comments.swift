@@ -171,7 +171,7 @@ struct CommentComposer: View {
                         )
                         .padding(3)
                     }
-                    .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    .background(palette.raised, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 } else {
                     Button { model.viewModel.requestSignIn() } label: {
                         HStack(spacing: 8) {
@@ -186,7 +186,7 @@ struct CommentComposer: View {
                         .padding(.horizontal, 16)
                         .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
                         .padding(.vertical, 2)
-                        .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        .background(palette.raised, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                     }
                     .buttonStyle(.plain)
                 }

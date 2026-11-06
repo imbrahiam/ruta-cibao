@@ -204,7 +204,7 @@ private struct ReportRow: View {
                 }
                 .padding(.horizontal, 16)
                 .frame(minHeight: 56)
-                .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .background(palette.raised, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
@@ -314,7 +314,7 @@ private struct ReviewCard: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(palette.raised, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .accessibilityElement(children: .contain)
     }
 

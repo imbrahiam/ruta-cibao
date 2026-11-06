@@ -117,7 +117,7 @@ struct TrafficReportScreen: View {
                                 }
                                 .padding(.horizontal, 8)
                                 .frame(maxWidth: .infinity, minHeight: 112)
-                                .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .background(palette.raised, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                                         .strokeBorder(selected ? palette.text : .clear, lineWidth: 2)

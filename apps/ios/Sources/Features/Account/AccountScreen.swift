@@ -216,7 +216,7 @@ private struct SignedInAccount: View {
             }
             .padding(16)
             .frame(minWidth: 140, maxWidth: .infinity, alignment: .leading)
-            .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .background(palette.raised, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -248,7 +248,7 @@ private struct SignedInAccount: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(palette.raised, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
@@ -502,7 +502,7 @@ private struct PageHeader: View {
                 .font(.system(size: 26, weight: .medium))
                 .foregroundStyle(.primary)
                 .frame(width: 56, height: 56)
-                .background(palette.raised(scheme), in: Circle())
+                .background(palette.raised, in: Circle())
                 .accessibilityHidden(true)
             Text(title)
                 .font(.largeTitle.weight(.bold))

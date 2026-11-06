@@ -10,7 +10,7 @@ struct GlyphDisc: View {
 
     var body: some View {
         Circle()
-            .fill(palette.raised(scheme))
+            .fill(palette.raised)
             .frame(width: size, height: size)
             .overlay {
                 Image(systemName: symbol)

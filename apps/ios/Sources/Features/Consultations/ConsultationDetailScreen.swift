@@ -330,7 +330,7 @@ private struct CategoryTag: View {
         .padding(.leading, 4)
         .padding(.trailing, 10)
         .frame(height: 28)
-        .background(palette.raised(scheme), in: Capsule())
+        .background(palette.raised, in: Capsule())
     }
 }
 
@@ -499,7 +499,7 @@ private struct StaffReplyComposer: View {
                     )
                     .padding(3)
                 }
-                .background(palette.raised(scheme), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                .background(palette.raised, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
             }
         }
         .padding(.horizontal, 12)

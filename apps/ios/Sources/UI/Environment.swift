@@ -132,8 +132,3 @@ private struct TintedCapsule: ButtonStyle {
     }
 }
 
-extension RutaPalette {
-    /// A neutral fill that lifts off the page in both schemes: the light
-    /// inset on white, the brighter fill on black (inset is near-black there).
-    func raised(_ scheme: ColorScheme) -> Color { scheme == .dark ? fill : inset }
-}
