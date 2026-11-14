@@ -90,8 +90,11 @@ sealed interface Route : NavKey {
     @Serializable data class Report(val id: String, val requestId: Long) : Route
 }
 
-/** Screens with their own bottom bar: the tab bar steps aside. */
-private fun NavKey?.isForm() = this is Route.NewConsultation || this is Route.TrafficReport || this is Route.SuggestPlace
+/** Screens with their own bottom bar or field: the tab bar steps aside. */
+private fun NavKey?.isForm() =
+    this is Route.NewConsultation || this is Route.TrafficReport || this is Route.SuggestPlace ||
+        // A thread ends in its reply field, which takes the tab bar's place.
+        this is Route.Consultation
 
 /**
  * `debugTab` / `debugCompose` are debug-build test hooks (intent extras read in MainActivity);
@@ -184,7 +187,8 @@ fun AppRoot(
     val barVisible = showBar && !chrome.hidden
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val statusInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val clearance = navInset + TabBarMetrics.Reserved
+    val tabBarStyle = rutacibao.android.ui.UiPrefs.tabBarStyle
+    val clearance = navInset + TabBarMetrics.reserved(tabBarStyle)
     // The map runs edge to edge under the status bar and the floating bar; every other screen sits clear of both.
     val padding = if (selected == Tab.Map) PaddingValues(0.dp) else PaddingValues(top = statusInset, bottom = if (barVisible) clearance else navInset)
     CompositionLocalProvider(LocalTabChrome provides chrome, LocalTabBarClearance provides clearance) {
@@ -202,7 +206,7 @@ fun AppRoot(
                 ),
                 entryProvider = entryProvider {
                     entry<Route.Home> { MapScreen(mapPlace, mapRoute, mapTraffic, mapRequest) }
-                    entry<Route.Consultations> { ConsultationsScreen(onOpen = { push(Route.Consultation(it)) }) }
+                    entry<Route.Consultations> { ConsultationsScreen(onOpen = { push(Route.Consultation(it)) }, onCompose = { push(Route.NewConsultation) }) }
                     entry<Route.Contributions> {
                         ContributionsScreen(
                             onStart = {
@@ -243,11 +247,20 @@ fun AppRoot(
             )
         }
         if (barVisible) {
-            RutaTabBar(
-                selected = selected,
-                onSelect = { tab -> if (tab == selected) stacks.getValue(tab).popToRoot() else selected = tab },
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navInset + TabBarMetrics.BottomGap),
-            )
+            val onSelect: (Tab) -> Unit = { tab -> if (tab == selected) stacks.getValue(tab).popToRoot() else selected = tab }
+            when (tabBarStyle) {
+                rutacibao.android.ui.TabBarStyle.Floating -> RutaTabBar(
+                    selected = selected,
+                    onSelect = onSelect,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = navInset + TabBarMetrics.BottomGap),
+                )
+                rutacibao.android.ui.TabBarStyle.Fixed -> FixedTabBar(
+                    selected = selected,
+                    onSelect = onSelect,
+                    bottomInset = navInset,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
     }
     }

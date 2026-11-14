@@ -83,7 +83,7 @@ struct DropPin: View {
                 .frame(width: lifted ? 14 : 10, height: 4)
             VStack(spacing: 0) {
                 Circle()
-                    .fill(Color(.systemRed).gradient)
+                    .fill(PinFill(color: Color(.systemRed)))
                     .frame(width: 30, height: 30)
                     .overlay { Circle().fill(.white).frame(width: 10, height: 10) }
                     .overlay { Circle().strokeBorder(.white, lineWidth: 2) }

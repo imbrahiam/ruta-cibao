@@ -345,7 +345,7 @@
     "title": "Mesa municipal",
     "intro": "Revisa aportes y da seguimiento a tu municipio.",
     "signIn": "Acceso del equipo municipal",
-    "signInBody": "Entra con el contacto asociado a tu cuenta autorizada. Iniciar sesión no concede autoridad municipal.",
+    "signInBody": "Entra con el teléfono o correo de tu cuenta autorizada.",
     "phone": "Teléfono",
     "email": "Correo",
     "contact": "Teléfono o correo",
@@ -762,6 +762,8 @@
       "resend": "Reenviar código",
       "resendIn": "Reenviar en {seconds} s",
       "phoneHint": "Número dominicano de 10 dígitos, por ejemplo 809 555 0100.",
+      "phonePlaceholder": "809 555 0100",
+      "emailPlaceholder": "nombre@ayuntamiento.gob.do",
       "emailHint": "El correo asociado a tu cuenta autorizada.",
       "codeHint": "Seis dígitos, válidos por diez minutos.",
       "phoneInvalid": "Escribe un número dominicano de 10 dígitos.",
@@ -876,7 +878,7 @@
   "comments": {
     "title": "Comentarios",
     "experiences": "Experiencias",
-    "placeholder": "Escribe un comentario",
+    "placeholder": "Publica tu respuesta",
     "experiencePlaceholder": "Cuenta cómo te fue",
     "share": "Comparte tu experiencia",
     "send": "Publicar",
@@ -900,7 +902,9 @@
     "officialReply": "Respuesta oficial",
     "officialBadge": "Oficial",
     "replyPlaceholder": "Responder",
-    "replyingTo": "Respondiendo a {name}"
+    "replyingTo": "Respondiendo a {name}",
+    "replies": "Respuestas",
+    "charactersLeft": "{count, plural, one {Queda # carácter} other {Quedan # caracteres}}"
   },
   "consultations": {
     "status": {
@@ -1154,7 +1158,8 @@
     "privacy": "Privacidad",
     "aboutApp": "Acerca de",
     "signOut": "Cerrar sesión",
-    "signedOut": "Sesión cerrada"
+    "signedOut": "Sesión cerrada",
+    "appearance": "Apariencia"
   },
   "appearance": {
     "title": "Apariencia",
@@ -1177,7 +1182,12 @@
     "gris": {
       "name": "Gris",
       "description": "Un mapa en grises; destacan las marcas y reportes."
-    }
+    },
+    "tabBar": "Barra de navegación",
+    "floating": "Flotante",
+    "floatingBody": "Sobre el contenido, con el nombre de cada sección.",
+    "fixed": "Fija",
+    "fixedBody": "Pegada abajo, de borde a borde, solo íconos."
   },
   "layout": {
     "mapPane": "Mapa",
@@ -1756,7 +1766,14 @@
     "notificationsTitle": "Entérate cuando te respondan",
     "notificationsBody": "Te avisamos cuando el ayuntamiento responda tus consultas y cuando haya algo en la vía cerca de ti.",
     "enableNotifications": "Activar notificaciones",
-    "notNow": "Ahora no"
+    "notNow": "Ahora no",
+    "welcomeTitle": "Te damos la bienvenida a Ruta Cibao",
+    "exploreTitle": "Explora",
+    "exploreBody": "Lugares, rutas y avisos de la vía cerca de ti.",
+    "askTitle": "Consulta",
+    "askBody": "Pregunta al ayuntamiento y sigue su respuesta.",
+    "contributeTitle": "Aporta",
+    "contributeBody": "Reporta la vía o sugiere un lugar."
   },
   "gestion": {
     "title": "Gestión",

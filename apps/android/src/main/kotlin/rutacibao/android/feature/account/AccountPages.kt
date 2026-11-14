@@ -84,6 +84,7 @@ fun AccountPageScreen(page: AccountPage, onBack: () -> Unit) {
         AccountPage.Saved -> SavedPlaces(state, onBack)
         AccountPage.Passport -> PassportStamps(state, onBack)
         AccountPage.Notifications -> NotificationSettings(state, vm, onBack)
+        AccountPage.Appearance -> AppearancePage(onBack)
         AccountPage.Privacy -> PrivacyPage(onBack)
         AccountPage.About -> AboutPage(onBack)
         AccountPage.Deletion -> DeletionPage(state, vm, onBack)

@@ -1,52 +1,92 @@
 /**
- * Regenerate the identity assets from the shared Encuentro geometry: the web
- * favicon SVG and Apple touch icon, and the iOS app icon (the same mark).
- * Run: bun run scripts/brand/generate-brand-assets.ts
+ * Install the identity into the apps. The artwork itself is built by
+ * `scripts/brand/export-logo.ts` into `brand/logo/`; this copies each export
+ * to where its platform expects it.
+ * Run: bun scripts/brand/export-logo.ts && bun scripts/brand/generate-brand-assets.ts
  */
-import { mkdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { BRAND_COLORS, MARK } from "@ruta/shared/brand";
-import sharp from "sharp";
 
-const WEB_OUT = path.join(import.meta.dirname, "../apps/web/src/app");
-const IOS_ICON = path.join(
-  import.meta.dirname,
-  "../apps/ios/Resources/Illustrations.xcassets/AppIcon.appiconset/icon-1024.png",
+const ROOT = path.join(import.meta.dirname, "../..");
+const LOGO = path.join(ROOT, "brand/logo");
+const IOS_ASSETS = path.join(ROOT, "apps/ios/Resources/Illustrations.xcassets");
+const ANDROID_RES = path.join(ROOT, "apps/android/src/main/res");
+const WEB_APP = path.join(ROOT, "apps/web/src/app");
+
+async function install(from: string, to: string) {
+  await mkdir(path.dirname(to), { recursive: true });
+  await copyFile(path.join(LOGO, from), to);
+  console.log(`wrote ${path.relative(ROOT, to)}`);
+}
+
+// iOS: the app icon with its dark and tinted appearances, and the mark as a
+// vector image set for the in-app BrandMark.
+const appIcon = path.join(IOS_ASSETS, "AppIcon.appiconset");
+await install("ios/AppIcon-1024.png", path.join(appIcon, "icon-1024.png"));
+await install(
+  "ios/AppIcon-1024-dark.png",
+  path.join(appIcon, "icon-1024-dark.png"),
 );
-const SIZE = MARK.viewBox;
-
-function mark(color: string, scale = 1) {
-  const offset = (SIZE * (1 - scale)) / 2;
-  return `<g transform="translate(${offset} ${offset}) scale(${scale})" fill="none"><path d="${MARK.curve}" stroke="${color}" stroke-width="${MARK.strokeWidth}" stroke-linecap="round"/><circle cx="${MARK.point.cx}" cy="${MARK.point.cy}" r="${MARK.point.r}" fill="${color}"/></g>`;
-}
-
-function canvas(body: string, background = "") {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SIZE} ${SIZE}"><title>Ruta Cibao</title>${background}${body}</svg>`;
-}
-
-const tile = `<rect width="${SIZE}" height="${SIZE}" fill="${BRAND_COLORS.iris}"/>`;
-
-await mkdir(WEB_OUT, { recursive: true });
-await sharp(Buffer.from(canvas(mark(BRAND_COLORS.white), tile)))
-  .resize(180, 180)
-  .png()
-  .toFile(path.join(WEB_OUT, "apple-icon.png"));
-console.log("wrote apps/web/src/app/apple-icon.png");
+await install(
+  "ios/AppIcon-1024-tinted.png",
+  path.join(appIcon, "icon-1024-tinted.png"),
+);
+const icon = (filename: string, luminosity?: "dark" | "tinted") => ({
+  ...(luminosity
+    ? { appearances: [{ appearance: "luminosity", value: luminosity }] }
+    : {}),
+  filename,
+  idiom: "universal",
+  platform: "ios",
+  size: "1024x1024",
+});
 await writeFile(
-  path.join(WEB_OUT, "icon.svg"),
-  canvas(
-    mark(BRAND_COLORS.white),
-    `<rect width="${SIZE}" height="${SIZE}" rx="56" fill="${BRAND_COLORS.iris}"/>`,
-  ),
+  path.join(appIcon, "Contents.json"),
+  `${JSON.stringify(
+    {
+      images: [
+        icon("icon-1024.png"),
+        icon("icon-1024-dark.png", "dark"),
+        icon("icon-1024-tinted.png", "tinted"),
+      ],
+      info: { author: "xcode", version: 1 },
+    },
+    null,
+    2,
+  )}\n`,
 );
-console.log("wrote apps/web/src/app/icon.svg");
+// The in-app mark, as a vector image set (green reads on light and dark).
+const brandMark = path.join(IOS_ASSETS, "BrandMark.imageset");
+await install("mark.svg", path.join(brandMark, "mark.svg"));
+await writeFile(
+  path.join(brandMark, "Contents.json"),
+  `${JSON.stringify(
+    {
+      images: [{ filename: "mark.svg", idiom: "universal" }],
+      info: { author: "xcode", version: 1 },
+      properties: { "preserves-vector-representation": true },
+    },
+    null,
+    2,
+  )}\n`,
+);
 
-// iOS masks the corners itself and rejects alpha: a full, opaque square,
-// the mark inset so the squircle mask never clips the dot.
-await sharp(Buffer.from(canvas(mark(BRAND_COLORS.white, 0.7), tile)))
-  .resize(1024, 1024)
-  .flatten({ background: BRAND_COLORS.iris })
-  .removeAlpha()
-  .png()
-  .toFile(IOS_ICON);
-console.log("wrote apps/ios/.../AppIcon.appiconset/icon-1024.png");
+// Android: adaptive icon layers, the themed (monochrome) layer and the
+// notification glyph. The background colour lives in values/app.xml.
+const drawable = path.join(ANDROID_RES, "drawable");
+await install(
+  "android/ic_launcher_foreground.xml",
+  path.join(drawable, "ic_launcher_foreground.xml"),
+);
+await install(
+  "android/ic_launcher_monochrome.xml",
+  path.join(drawable, "ic_launcher_monochrome.xml"),
+);
+await install(
+  "android/ic_notification.xml",
+  path.join(drawable, "ic_notification.xml"),
+);
+
+// Web: favicon and Apple touch icon (Next.js picks both up from app/).
+await install("web/icon.svg", path.join(WEB_APP, "icon.svg"));
+await install("web/apple-icon.png", path.join(WEB_APP, "apple-icon.png"));

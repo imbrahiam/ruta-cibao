@@ -30,7 +30,7 @@ struct PlaceFeedbackView: View {
         // `SIMCTL_CHILD_RUTA_DEBUG_PLACE=exists|gone|report` answers "¿Sigue aquí?" or opens the report form once the sheet is loaded.
         .task(id: sheet.detail?.id) {
             guard sheet.detail != nil, !sheet.cached else { return }
-            switch ProcessInfo.processInfo.environment["RUTA_DEBUG_PLACE"] {
+            switch DebugHook.value("RUTA_DEBUG_PLACE") {
             case "exists": if sheet.detail?.isMine == false { confirm(.exists) }
             case "gone": if sheet.detail?.isMine == false { confirm(.gone) }
             case "report": requestReport()
@@ -106,7 +106,7 @@ struct PlaceReportView: View {
             #if DEBUG
             // `SIMCTL_CHILD_RUTA_DEBUG_PLACE_SEND=1`: pick "closed", add details and send.
             .task {
-                guard ProcessInfo.processInfo.environment["RUTA_DEBUG_PLACE_SEND"] == "1" else { return }
+                guard DebugHook.value("RUTA_DEBUG_PLACE_SEND") == "1" else { return }
                 try? await Task.sleep(for: .seconds(1))
                 updateReason(.closed)
                 updateDetails("Ya no abre desde hace semanas, el local está vacío.")

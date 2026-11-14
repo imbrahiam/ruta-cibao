@@ -41,6 +41,11 @@ class MainActivity : ComponentActivity() {
         val debugCompose = if (BuildConfig.DEBUG) intent.getStringExtra("ruta_debug_compose") else null
         val debugSlug = if (BuildConfig.DEBUG) intent.getStringExtra("ruta_debug_slug") else null
         val debugStepUp = BuildConfig.DEBUG && intent.getStringExtra("ruta_debug_stepup") == "1"
+        rutacibao.android.ui.UiPrefs.init(this)
+        // Debug-only: `--es ruta_debug_tabbar fixed|floating` picks the bar for screenshot runs.
+        if (BuildConfig.DEBUG) intent.getStringExtra("ruta_debug_tabbar")?.let { value ->
+            rutacibao.android.ui.TabBarStyle.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }?.let(rutacibao.android.ui.UiPrefs::chooseTabBarStyle)
+        }
         setContent {
             val signedIn by graph.session.isSignedIn.collectAsStateWithLifecycle()
             val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {

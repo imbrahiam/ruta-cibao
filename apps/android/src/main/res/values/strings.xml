@@ -31,7 +31,7 @@
     <string name="notifications_content_removed">Retiramos un aporte tuyo tras revisar un reporte: %1$s</string>
     <string name="comments_title">Comentarios</string>
     <string name="comments_experiences">Experiencias</string>
-    <string name="comments_placeholder">Escribe un comentario</string>
+    <string name="comments_placeholder">Publica tu respuesta</string>
     <string name="comments_experience_placeholder">Cuenta cómo te fue</string>
     <string name="comments_share">Comparte tu experiencia</string>
     <string name="comments_send">Publicar</string>
@@ -56,6 +56,11 @@
     <string name="comments_official_badge">Oficial</string>
     <string name="comments_reply_placeholder">Responder</string>
     <string name="comments_replying_to">Respondiendo a %1$s</string>
+    <string name="comments_replies">Respuestas</string>
+    <plurals name="comments_characters_left">
+        <item quantity="one">Queda %1$d carácter</item>
+        <item quantity="other">Quedan %1$d caracteres</item>
+    </plurals>
     <string name="about_title">Acerca de</string>
     <string name="about_tagline">Descubre la provincia Santiago Rodríguez y participa en lo que pasa en ella.</string>
     <string name="about_version">Versión %1$s (%2$s)</string>
@@ -90,6 +95,7 @@
     <string name="account_about_app">Acerca de</string>
     <string name="account_sign_out">Cerrar sesión</string>
     <string name="account_signed_out">Sesión cerrada</string>
+    <string name="account_appearance">Apariencia</string>
     <string name="account_deletion_row_title">Eliminar mi cuenta</string>
     <string name="account_deletion_row_hint">Borra tu cuenta, tus fotos y tus aportes propios de forma permanente.</string>
     <string name="account_deletion_title">Eliminar cuenta</string>
@@ -136,6 +142,11 @@
     <string name="appearance_colores_description">Un mapa de colores suaves: parques verdes, agua azul.</string>
     <string name="appearance_gris_name">Gris</string>
     <string name="appearance_gris_description">Un mapa en grises; destacan las marcas y reportes.</string>
+    <string name="appearance_tab_bar">Barra de navegación</string>
+    <string name="appearance_floating">Flotante</string>
+    <string name="appearance_floating_body">Sobre el contenido, con el nombre de cada sección.</string>
+    <string name="appearance_fixed">Fija</string>
+    <string name="appearance_fixed_body">Pegada abajo, de borde a borde, solo íconos.</string>
     <string name="auth_default_display_name">Vecino</string>
     <string name="auth_email_otp_subject">Tu código de Ruta Cibao</string>
     <string name="auth_email_otp_body">Tu código para entrar a Ruta Cibao es %1$s. Vence en 10 minutos.</string>
@@ -626,6 +637,13 @@
     <string name="onboarding_notifications_body">Te avisamos cuando el ayuntamiento responda tus consultas y cuando haya algo en la vía cerca de ti.</string>
     <string name="onboarding_enable_notifications">Activar notificaciones</string>
     <string name="onboarding_not_now">Ahora no</string>
+    <string name="onboarding_welcome_title">Te damos la bienvenida a Ruta Cibao</string>
+    <string name="onboarding_explore_title">Explora</string>
+    <string name="onboarding_explore_body">Lugares, rutas y avisos de la vía cerca de ti.</string>
+    <string name="onboarding_ask_title">Consulta</string>
+    <string name="onboarding_ask_body">Pregunta al ayuntamiento y sigue su respuesta.</string>
+    <string name="onboarding_contribute_title">Aporta</string>
+    <string name="onboarding_contribute_body">Reporta la vía o sugiere un lugar.</string>
     <string name="permissions_location">Ruta Cibao usa tu ubicación para mostrarte lo que tienes cerca y ubicar tus reportes. Puedes elegir el lugar en el mapa sin compartirla.</string>
     <string name="permissions_camera">Ruta Cibao usa la cámara para que puedas añadir fotos a un lugar o a un reporte, y para mostrarte en ella los lugares que tienes cerca.</string>
     <string name="permissions_photos">Ruta Cibao abre tus fotos solo para que elijas las que quieres añadir.</string>

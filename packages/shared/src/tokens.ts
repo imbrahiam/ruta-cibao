@@ -58,6 +58,8 @@ export type Seed = {
   textTertiary: string;
   textDisabled: string;
   accent: string;
+  /** The accent as text or a glyph on paper: kept at 4.5:1 where `accent` is too light. */
+  accentInk: string;
   accentPressed: string;
   accentSoft: string;
   onAccent: string;
@@ -125,6 +127,7 @@ export const THEMES = {
       textTertiary: "#6F6C64",
       textDisabled: "#B5B2A9",
       accent: "#1F6B52",
+      accentInk: "#1F6B52",
       accentPressed: "#175A44",
       accentSoft: "rgba(31, 107, 82, 0.10)",
       onAccent: "#FFFFFF",
@@ -143,6 +146,7 @@ export const THEMES = {
       textTertiary: "#A19E95",
       textDisabled: "#57554F",
       accent: "#5FBF9A",
+      accentInk: "#5FBF9A",
       accentPressed: "#7DD0B0",
       accentSoft: "rgba(95, 191, 154, 0.14)",
       onAccent: "#121211",
@@ -183,46 +187,51 @@ export const THEMES = {
     },
   },
   /**
-   * Monochrome: a white canvas and ink accents, for those who want the map
-   * to do the talking. Inset surfaces are a neutral grey (no warm cast), so
-   * inputs and grouped rows read against the white and stay black-and-white.
+   * X's palette: a white canvas, near-black ink (#0F1419), slate secondary
+   * text, the pale blue-grey of its fields and rules. Actions take Link's
+   * green (#00D66F) with Link's near-black green on it, as the logo does.
+   * Dark is X's "Lights out": true black, #E7E9EA text, #2F3336 rules.
    */
   clasico: {
     light: {
       paper: "#FFFFFF",
       elevated: "#FFFFFF",
       surface: "#FFFFFF",
-      inset: "#F3F3F3",
-      fill: "#E8E8E8",
-      fillPressed: "#DCDCDC",
-      ink: "#000000",
-      textSecondary: "#545454",
-      textTertiary: "#6B6B6B",
-      textDisabled: "#AFAFAF",
-      accent: "#000000",
-      accentPressed: "#333333",
-      accentSoft: "rgba(0, 0, 0, 0.06)",
-      onAccent: "#FFFFFF",
-      hairline: "rgba(0, 0, 0, 0.08)",
+      inset: "#EFF3F4",
+      fill: "#E1E8ED",
+      fillPressed: "#CFD9DE",
+      ink: "#0F1419",
+      textSecondary: "#536471",
+      textTertiary: "#536471",
+      textDisabled: "#AAB8C2",
+      accent: "#00D66F",
+      // #00D66F is 1.9:1 on white; as text or a glyph it darkens to 4.7:1.
+      accentInk: "#00853F",
+      accentPressed: "#00C062",
+      accentSoft: "rgba(0, 214, 111, 0.12)",
+      // White fails on the green; Link sets its near-black green on it (10:1).
+      onAccent: "#011E0F",
+      hairline: "#EFF3F4",
       glass: "rgba(255, 255, 255, 0.94)",
     },
     dark: {
-      paper: "#101010",
-      elevated: "#2C2C2C",
-      surface: "#1C1C1C",
-      inset: "#2C2C2C",
-      fill: "#383838",
-      fillPressed: "#444444",
-      ink: "#FFFFFF",
-      textSecondary: "#BDBDBD",
-      textTertiary: "#A3A3A3",
-      textDisabled: "#5E5E5E",
-      accent: "#FFFFFF",
-      accentPressed: "#DDDDDD",
-      accentSoft: "rgba(255, 255, 255, 0.10)",
-      onAccent: "#000000",
-      hairline: "rgba(255, 255, 255, 0.10)",
-      glass: "rgba(28, 28, 28, 0.94)",
+      paper: "#000000",
+      elevated: "#16181C",
+      surface: "#16181C",
+      inset: "#202327",
+      fill: "#2F3336",
+      fillPressed: "#3E4144",
+      ink: "#E7E9EA",
+      textSecondary: "#71767B",
+      textTertiary: "#71767B",
+      textDisabled: "#3E4144",
+      accent: "#00D66F",
+      accentInk: "#00D66F",
+      accentPressed: "#00C062",
+      accentSoft: "rgba(0, 214, 111, 0.16)",
+      onAccent: "#011E0F",
+      hairline: "#2F3336",
+      glass: "rgba(0, 0, 0, 0.94)",
     },
     map: {
       light: {
@@ -290,13 +299,14 @@ export function buildPalette(seed: Seed, scheme: "light" | "dark") {
     textTertiary: seed.textTertiary,
     textDisabled: seed.textDisabled,
 
-    // Actions (primary buttons, selected chips, links, the tab bar) are ink on
-    // paper in every theme: colour on buttons and text reads as noise. The
-    // theme's own colour lives on the map, where it marks things.
-    accent: seed.ink,
-    accentPressed: seed.textSecondary,
-    accentSoft: seed.fill,
-    onAccent: seed.paper,
+    // Actions (primary buttons, the send button, links, "Respondiendo a")
+    // take the theme's colour, as X paints them blue. Tabs and selected
+    // chips stay ink (`RutaHighlight.selection`).
+    accent: seed.accent,
+    accentInk: seed.accentInk,
+    accentPressed: seed.accentPressed,
+    accentSoft: seed.accentSoft,
+    onAccent: seed.onAccent,
 
     /** The theme's colour: clusters and other app-drawn map marks. */
     pin: seed.accent,

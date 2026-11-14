@@ -50,7 +50,21 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -85,27 +99,26 @@ import rutacibao.presentation.comments.CommentSubject
 import rutacibao.presentation.comments.CommentsUiState
 import rutacibao.presentation.comments.CommentsViewModel
 
-/** Flat, real comments: no invented likes, nested replies or additional backend actions. */
-fun LazyListScope.commentThread(state: CommentsUiState, vm: CommentsViewModel, empty: String) {
-    if (state.items.isEmpty() && !state.loading && state.loadError == null) {
+/** Flat, real comments: no invented likes, nested replies or additional backend actions. [empty] is null when official replies already fill the thread. */
+fun LazyListScope.commentThread(state: CommentsUiState, vm: CommentsViewModel, empty: String?) {
+    if (empty != null && state.items.isEmpty() && !state.loading && state.loadError == null) {
         item(key = "comments:empty") {
-            Text(empty, style = MaterialTheme.typography.bodyMedium, color = LocalPalette.current.textTertiary,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 28.dp))
+            Text(empty, style = MaterialTheme.typography.bodyMedium, color = LocalPalette.current.textTertiary, textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 32.dp))
         }
     }
     items(state.items, key = { "comment:${it.id}" }) { comment ->
         CommentRow(comment, state.workingCommentId != null, vm)
-        Hairline()
     }
     if (state.loading) {
         item(key = "comments:loading") { SkeletonFeed(count = if (state.items.isEmpty()) 3 else 1) }
     }
     item(key = "comments:footer") {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
             if (state.loading) {
                 // The skeleton above stands in.
             } else if (state.loadError != null) {
-                CommentError(state.loadError!!, stringResource(R.string.common_error_body), vm::retryLoad)
+                ThreadLoadError(state.loadError!!, vm::retryLoad)
             } else if (state.canLoadMore) {
                 TextButton(onClick = vm::loadMore, modifier = Modifier.defaultMinSize(minHeight = 48.dp)) {
                     Text(stringResource(R.string.comments_more))
@@ -116,12 +129,68 @@ fun LazyListScope.commentThread(state: CommentsUiState, vm: CommentsViewModel, e
     }
 }
 
+/** The thread's heading in X's "Relevant" style: bold, grey (mirrors iOS). */
 @Composable
-fun CommentsHeader(title: String, total: Int) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 18.dp, bottom = 8.dp).semantics { heading() },
-        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f, fill = false))
-        if (total > 0) Text(total.toString(), style = MaterialTheme.typography.titleMedium, color = LocalPalette.current.textTertiary)
+fun CommentsHeader(title: String, @Suppress("UNUSED_PARAMETER") total: Int) {
+    Text(
+        title,
+        style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+        color = LocalPalette.current.textSecondary,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 16.dp, bottom = 8.dp).semantics { heading() },
+    )
+}
+
+/**
+ * X's reply row, shared by residents and the ayuntamiento (mirrors iOS): 40dp avatar, bold name,
+ * then in grey the handle slot ("Oficial" for the ayuntamiento, after X's blue seal) and the age;
+ * the text at 15sp under it; a rule.
+ */
+@Composable
+fun ReplyRow(
+    name: String,
+    age: String,
+    body: String,
+    avatar: @Composable () -> Unit,
+    official: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    val palette = LocalPalette.current
+    Column {
+        Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = if (trailing != null) 2.dp else 12.dp, top = 12.dp, bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            avatar()
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Row(Modifier.weight(1f).padding(top = 1.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(name, style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        if (official) {
+                            Icon(Icons.Filled.Verified, contentDescription = null, Modifier.size(16.dp), tint = palette.accentInk)
+                            Text(stringResource(R.string.comments_official_badge), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp), color = palette.textSecondary, maxLines = 1)
+                        }
+                        Text("· $age", style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp), color = palette.textSecondary, maxLines = 1)
+                    }
+                    trailing?.invoke()
+                }
+                SelectionContainer { Text(body, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 20.sp), modifier = Modifier.padding(top = 2.dp, end = if (trailing != null) 12.dp else 0.dp)) }
+            }
+        }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(palette.hairline))
+    }
+}
+
+/** X's "Uh oh, an error was encountered / Try again": centred, bold, one action. */
+@Composable
+private fun ThreadLoadError(error: UiError, retry: () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(top = 24.dp, bottom = 8.dp).semantics { liveRegion = LiveRegionMode.Polite },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            stringResource(if (error == UiError.Offline) R.string.common_offline else R.string.common_error_title),
+            style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+        )
+        TextButton(onClick = retry, modifier = Modifier.defaultMinSize(minHeight = 48.dp)) {
+            Text(stringResource(R.string.common_retry), color = LocalPalette.current.textSecondary)
+        }
     }
 }
 
@@ -147,32 +216,26 @@ private fun CommentRow(comment: Comment, working: Boolean, vm: CommentsViewModel
     var menu by remember(comment.id) { mutableStateOf(false) }
     var reporting by remember(comment.id) { mutableStateOf(false) }
     var deleting by remember(comment.id) { mutableStateOf(false) }
-    // X's reply row (mirrors iOS): 40dp avatar, bold name and grey age on one line at the
-    // same size, the text under it, a full-width hairline below.
-    Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 14.dp, bottom = 14.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        ThreadAvatar(comment.author, comment.authorImage, size = 40.dp)
-        Column(Modifier.weight(1f)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Row(Modifier.weight(1f).padding(top = 1.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(comment.author, style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                    Text("· " + relativeTimeText(comment.createdAt), style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp), color = LocalPalette.current.textTertiary, maxLines = 1)
+    ReplyRow(
+        name = comment.author,
+        age = relativeTimeText(comment.createdAt),
+        body = comment.body,
+        avatar = { ThreadAvatar(comment.author, comment.authorImage, size = 40.dp) },
+        trailing = {
+            Box(Modifier.offset(y = (-12).dp).height(24.dp), contentAlignment = Alignment.TopCenter) {
+                IconButton(onClick = { menu = true }, enabled = !working, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.comments_options), tint = LocalPalette.current.textTertiary)
                 }
-                Box(Modifier.offset(y = (-12).dp).height(24.dp), contentAlignment = Alignment.TopCenter) {
-                    IconButton(onClick = { menu = true }, enabled = !working, modifier = Modifier.size(48.dp)) {
-                        Icon(Icons.Filled.MoreHoriz, contentDescription = stringResource(R.string.comments_options), tint = LocalPalette.current.textTertiary)
-                    }
-                    DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(if (comment.isMine) R.string.comments_delete else R.string.comments_report)) },
-                            onClick = { menu = false; if (comment.isMine) deleting = true else reporting = true },
-                            modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-                        )
-                    }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(if (comment.isMine) R.string.comments_delete else R.string.comments_report)) },
+                        onClick = { menu = false; if (comment.isMine) deleting = true else reporting = true },
+                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                    )
                 }
             }
-            SelectionContainer { Text(comment.body, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 22.sp), modifier = Modifier.padding(top = 3.dp, end = 12.dp)) }
-        }
-    }
+        },
+    )
     if (deleting) AlertDialog(
         onDismissRequest = { deleting = false },
         title = { Text(stringResource(R.string.comments_delete)) },
@@ -202,9 +265,19 @@ private fun CommentRow(comment: Comment, working: Boolean, vm: CommentsViewModel
     )
 }
 
+/** One geometry for both composers (resident and staff). */
+val ComposerHeight = 40.dp
+
+/** The server's limits, so the ring fills where the server would refuse. */
+object CommentLimits {
+    const val COMMENT = 500
+    const val OFFICIAL_REPLY = 2_000
+}
+
 /**
- * X's reply bar (mirrors iOS): a quiet grey pill at rest; focused or holding a draft it names
- * who you answer and shows the send button. The caller owns the anchored surface and insets.
+ * X's reply bar (mirrors iOS). At rest: one grey pill. Writing: "Respondiendo a" with the name in
+ * blue above the pill, and under it X's toolbar: tools on the left (staff's mode), the character
+ * ring and the blue "Responder" pill on the right. The caller owns the anchored surface.
  */
 @Composable
 fun CommentComposer(
@@ -214,76 +287,194 @@ fun CommentComposer(
     signInLabel: String,
     /** Shown above the field while composing: "Respondiendo a …". */
     replyingTo: String? = null,
-    /** Leads the field (staff's "who answers" chip), so the composer stays one row. */
-    leading: (@Composable () -> Unit)? = null,
+    /** Staff's "who answers" menu, shown in the toolbar while writing. */
+    tools: (@Composable () -> Unit)? = null,
+    /** Lets the post's reply button jump straight into the field. */
+    focusRequester: FocusRequester? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
     val expanded = focused || state.draft.isNotEmpty()
     val palette = LocalPalette.current
-    Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    ComposerSurface(expanded = expanded && state.signedIn) {
+        state.sendError?.let { CommentError(it, stringResource(R.string.comments_send_failed), vm::send) }
         if (!state.signedIn) {
             Row(
-                Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp).clip(RoundedCornerShape(24.dp)).background(palette.inset)
-                    .clickable(onClick = vm::requestSignIn).padding(horizontal = 16.dp),
+                Modifier.fillMaxWidth().defaultMinSize(minHeight = ComposerHeight).clip(CircleShape)
+                    .clickable(onClick = vm::requestSignIn).padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(signInLabel, style = MaterialTheme.typography.bodyLarge, color = palette.textSecondary, modifier = Modifier.weight(1f))
+                Text(signInLabel, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp), color = palette.textSecondary, modifier = Modifier.weight(1f))
                 Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = palette.textSecondary, modifier = Modifier.size(20.dp))
             }
         } else {
-            if (expanded && replyingTo != null) {
-                Text(
-                    stringResource(R.string.comments_replying_to, replyingTo),
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                    color = palette.textTertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = if (leading == null) 16.dp else 0.dp),
+            if (expanded && replyingTo != null) ReplyingToLine(replyingTo)
+            ReplyField(
+                value = state.draft,
+                onValueChange = vm::updateDraft,
+                placeholder = placeholder,
+                sending = state.sending,
+                onFocusChange = { focused = it },
+                focusRequester = focusRequester,
+                inset = if (expanded) 4.dp else 12.dp,
+            )
+            if (expanded) {
+                ComposerToolbar(
+                    tools = tools,
+                    count = state.draft.length,
+                    limit = CommentLimits.COMMENT,
+                    canSend = state.canSend,
+                    sending = state.sending,
+                    onSend = vm::send,
                 )
             }
-            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (leading != null) leading()
-                Row(
-                    Modifier.weight(1f).defaultMinSize(minHeight = 48.dp).clip(RoundedCornerShape(24.dp)).background(palette.inset),
-                    verticalAlignment = Alignment.Bottom,
-                ) {
-                    Box(Modifier.weight(1f).padding(start = 16.dp, end = if (expanded) 4.dp else 16.dp, top = 13.dp, bottom = 13.dp), contentAlignment = Alignment.CenterStart) {
-                        BasicTextField(
-                            value = state.draft,
-                            onValueChange = vm::updateDraft,
-                            enabled = !state.sending,
-                            textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                            cursorBrush = SolidColor(palette.text),
-                            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                            maxLines = 5,
-                            modifier = Modifier.fillMaxWidth().heightIn(max = 144.dp).onFocusChanged { focused = it.isFocused }
-                                .semantics { contentDescription = placeholder },
-                            decorationBox = { inner ->
-                                if (state.draft.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = palette.textTertiary)
-                                inner()
-                            },
-                        )
-                    }
-                    if (expanded) {
-                        FilledIconButton(
-                            onClick = vm::send,
-                            enabled = state.canSend,
-                            modifier = Modifier.padding(4.dp).size(40.dp),
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = palette.accent,
-                                contentColor = palette.onAccent,
-                                disabledContainerColor = palette.accent.copy(alpha = 0.35f),
-                                disabledContentColor = palette.onAccent,
-                            ),
-                        ) {
-                            if (state.sending) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = palette.onAccent)
-                            else Icon(Icons.Filled.ArrowUpward, contentDescription = stringResource(R.string.comments_send), modifier = Modifier.size(20.dp))
-                        }
-                    }
-                }
-            }
         }
-        state.sendError?.let { CommentError(it, stringResource(R.string.comments_send_failed), vm::send) }
+    }
+}
+
+/** "Respondiendo a Franklin": grey, the name in X's blue. */
+@Composable
+fun ReplyingToLine(name: String) {
+    val palette = LocalPalette.current
+    val line = stringResource(R.string.comments_replying_to, name)
+    val at = line.lastIndexOf(name)
+    Text(
+        buildAnnotatedString {
+            withStyle(SpanStyle(color = palette.textSecondary)) { append(if (at >= 0) line.substring(0, at) else line) }
+            if (at >= 0) {
+                withStyle(SpanStyle(color = palette.accentInk)) { append(name) }
+                withStyle(SpanStyle(color = palette.textSecondary)) { append(line.substring(at + name.length)) }
+            }
+        },
+        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(start = 4.dp),
+    )
+}
+
+/**
+ * The composer floating over the thread, just above the tab bar (mirrors iOS's Liquid Glass
+ * capsule): the tab bar's own translucent surface, rule and shadow. At rest a 48dp capsule; while
+ * writing it grows into a card holding the context line, the field and the toolbar.
+ */
+@Composable
+fun ComposerSurface(expanded: Boolean, content: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    val palette = LocalPalette.current
+    androidx.compose.material3.Surface(
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = palette.glass,
+        shadowElevation = 10.dp,
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = if (expanded) 12.dp else 4.dp, vertical = if (expanded) 10.dp else 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            content = content,
+        )
+    }
+}
+
+/** The field inside the floating surface: 17sp text, grows to five lines. */
+@Composable
+fun ReplyField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    sending: Boolean,
+    onFocusChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    focusRequester: FocusRequester? = null,
+    /** 12dp in the capsule, 4dp in the open card (the card adds its own 12, lining up with the toolbar). */
+    inset: androidx.compose.ui.unit.Dp = 12.dp,
+) {
+    val palette = LocalPalette.current
+    Box(
+        modifier.fillMaxWidth().defaultMinSize(minHeight = ComposerHeight)
+            .padding(horizontal = inset, vertical = 9.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = !sending,
+            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface),
+            cursorBrush = SolidColor(palette.accentInk),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+            maxLines = 5,
+            modifier = Modifier.fillMaxWidth().heightIn(max = 144.dp)
+                .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+                .onFocusChanged { onFocusChange(it.isFocused) }
+                .semantics { contentDescription = placeholder },
+            decorationBox = { inner ->
+                if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp), color = palette.textSecondary)
+                inner()
+            },
+        )
+    }
+}
+
+/** X's composer toolbar (mirrors iOS): tools on the left in blue, the ring that fills toward the limit, the blue "Responder" pill. */
+@Composable
+fun ComposerToolbar(
+    tools: (@Composable () -> Unit)?,
+    count: Int,
+    limit: Int,
+    canSend: Boolean,
+    sending: Boolean,
+    onSend: () -> Unit,
+) {
+    val palette = LocalPalette.current
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        tools?.invoke()
+        Spacer(Modifier.weight(1f))
+        if (count > 0) CharacterRing(count, limit)
+        ReplyPill(canSend, sending, onSend)
+    }
+}
+
+/** X's "Reply" pill in the accent, its label in `onAccent`; half-strength until there is something to send. */
+@Composable
+fun ReplyPill(canSend: Boolean, sending: Boolean, onSend: () -> Unit) {
+    val palette = LocalPalette.current
+    val active = canSend && !sending
+    Box(
+        Modifier
+            .defaultMinSize(minHeight = 48.dp)
+            .clip(CircleShape)
+            .clickable(enabled = active, role = Role.Button, onClick = onSend),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier.clip(CircleShape).background(palette.accent.copy(alpha = if (canSend || sending) 1f else 0.5f))
+                .defaultMinSize(minHeight = 34.dp).padding(horizontal = 16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (sending) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = palette.onAccent)
+            else Text(stringResource(R.string.comments_reply_placeholder), style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold), color = palette.onAccent)
+        }
+    }
+}
+
+/** X's character ring (mirrors iOS): fills in blue; in the last 20 it shows what's left (amber), past the limit red. */
+@Composable
+fun CharacterRing(count: Int, limit: Int) {
+    val palette = LocalPalette.current
+    val left = limit - count
+    val near = left <= 20
+    val ink = when { left < 0 -> palette.danger; near -> palette.warning; else -> palette.accentInk }
+    val label = pluralStringResource(R.plurals.comments_characters_left, maxOf(0, left), maxOf(0, left))
+    val track = palette.fill
+    Box(
+        Modifier.size(if (near) 28.dp else 22.dp).clearAndSetSemantics { contentDescription = label }
+            .drawBehind {
+                val stroke = 2.dp.toPx()
+                drawArc(track, 0f, 360f, false, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                drawArc(ink, -90f, 360f * minOf(1f, count.toFloat() / limit), false, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        if (near) Text(left.toString(), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp), color = if (left < 0) palette.danger else palette.textSecondary)
     }
 }
 
@@ -334,10 +525,7 @@ fun PlaceExperiencesSheet(placeSlug: String, placeName: String, onDismiss: () ->
             LazyColumn(Modifier.weight(1f)) {
                 commentThread(state, vm, empty = empty)
             }
-            Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface)) {
-                Hairline()
-                CommentComposer(state, vm, stringResource(R.string.comments_experience_placeholder), stringResource(R.string.comments_sign_in_to_experience))
-            }
+            CommentComposer(state, vm, stringResource(R.string.comments_experience_placeholder), stringResource(R.string.comments_sign_in_to_experience))
         }
     }
     CommentDialogs(state, vm)

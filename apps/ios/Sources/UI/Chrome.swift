@@ -21,75 +21,6 @@ struct GlyphDisc: View {
     }
 }
 
-/// Threads' settings row: outline icon, label, optional value, chevron.
-struct SettingsRow: View {
-    let symbol: String
-    let title: String
-    var value: String? = nil
-    var tint: Color? = nil
-    var chevron = true
-    /// iOS Settings' icon: a white glyph on a rounded square of this colour.
-    var badge: Color? = nil
-    /// A number shown as text in a capsule (never colour alone).
-    var count: Int? = nil
-    /// Airbnb's menu gutter (24pt), wider than the feed's.
-    var inset: CGFloat = 24
-    @Environment(\.palette) private var palette
-
-    var body: some View {
-        HStack(spacing: 14) {
-            Group {
-                if let badge {
-                    Image(systemName: symbol)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 30, height: 30)
-                        .background(badge.gradient, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                } else {
-                    Image(systemName: symbol)
-                        .font(.system(size: 20, weight: .regular))
-                        .foregroundStyle(tint ?? palette.text)
-                        .frame(width: 30)
-                }
-            }
-            .accessibilityHidden(true)
-            Text(title)
-                .font(.system(size: 16))
-                .foregroundStyle(tint ?? palette.text)
-            Spacer(minLength: 8)
-            if let value {
-                Text(value).font(.system(size: 15)).foregroundStyle(palette.textSecondary).monospacedDigit()
-            }
-            if let count {
-                Text(verbatim: "\(count)")
-                    .font(.system(size: 14, weight: .semibold).monospacedDigit())
-                    .foregroundStyle(palette.text)
-                    .padding(.horizontal, 9)
-                    .frame(minWidth: 26, minHeight: 26)
-                    .background(palette.fill, in: Capsule())
-            }
-            if chevron {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(palette.textTertiary)
-                    .accessibilityHidden(true)
-            }
-        }
-        .padding(.horizontal, inset)
-        .frame(minHeight: 56)
-        .contentShape(Rectangle())
-    }
-}
-
-/// The hairline between groups of rows, inset to the rows' gutter.
-struct GroupDivider: View {
-    var inset: CGFloat = 24
-    @Environment(\.palette) private var palette
-    var body: some View {
-        Rectangle().fill(palette.hairline).frame(height: 0.5).padding(.horizontal, inset).padding(.vertical, 8)
-    }
-}
-
 /// Threads' profile tabs: equal widths, the current one in ink over a
 /// heavier underline, the rest grey. For a two- or three-way switch.
 struct SegmentTabs<Value: Hashable>: View {
@@ -105,16 +36,19 @@ struct SegmentTabs<Value: Hashable>: View {
             ForEach(options, id: \.self) { option in
                 let isSelected = option == selected
                 Button { select(option) } label: {
+                    // X's tab: bold when chosen, and a short rounded bar as wide
+                    // as the word, not the whole half.
                     Text(title(option))
-                        .font(.system(size: 15, weight: isSelected ? .semibold : .medium))
+                        .font(.system(size: 15, weight: isSelected ? .bold : .medium))
                         .foregroundStyle(isSelected ? palette.text : palette.textTertiary)
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .padding(.vertical, 14)
                         .overlay(alignment: .bottom) {
                             if isSelected {
-                                Rectangle().fill(palette.text).frame(height: 1.5)
+                                Capsule().fill(palette.accentInk).frame(height: 4)
                                     .matchedGeometryEffect(id: "underline", in: underline)
                             }
                         }
+                        .frame(maxWidth: .infinity, minHeight: 50)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -211,4 +145,21 @@ struct CenterWheel<Value: Hashable>: View {
         let before = (0..<index).reduce(CGFloat(0)) { $0 + (widths[$1] ?? 0) + spacing }
         return width / 2 - before - (widths[index] ?? 0) / 2
     }
+}
+
+/// Keeps a scrolling page at a comfortable reading width on wide windows (an
+/// unfolded phone, an iPad), centred; compact widths keep the system margins.
+private struct ReadableWidth: ViewModifier {
+    var limit: CGFloat
+    @State private var width: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .contentMargins(.horizontal, width > limit + 32 ? (width - limit) / 2 : nil, for: .scrollContent)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    }
+}
+
+extension View {
+    func readableWidth(_ limit: CGFloat = 640) -> some View { modifier(ReadableWidth(limit: limit)) }
 }

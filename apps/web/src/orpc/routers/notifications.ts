@@ -9,6 +9,7 @@ import {
   getNotificationPreferences,
   setNotificationPreferences,
 } from "@/modules/notifications/preferences";
+import { subjectCategories } from "@/modules/notifications/subjects";
 import { impl, member } from "../base";
 
 export const notificationsRouter = {
@@ -33,12 +34,15 @@ export const notificationsRouter = {
           ),
       ]);
 
+      const subjects = await subjectCategories(items.map((item) => item.href));
       return {
         items: items.map((item) => ({
           id: item.id,
           messageKey: item.messageKey,
           params: item.params,
           href: item.href,
+          categoryIcon: subjects.get(item.href ?? "")?.icon ?? null,
+          categoryColor: subjects.get(item.href ?? "")?.color ?? null,
           readAt: item.readAt?.toISOString() ?? null,
           createdAt: item.createdAt.toISOString(),
         })),

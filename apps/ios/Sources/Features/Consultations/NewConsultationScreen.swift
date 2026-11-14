@@ -146,7 +146,7 @@ private struct Composer: View {
             .padding(.bottom, 8)
         }
         .safeAreaInset(edge: .bottom) {
-            SubmitBar(title: state.submitted ? L10n.Common.retry : L10n.Consultations.submit, busy: state.sending, enabled: !state.sending && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) { vm.send() }
+            SubmitBar(title: state.error != nil ? L10n.Common.retry : L10n.Consultations.submit, busy: state.sending, enabled: !state.sending && !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) { vm.send() }
         }
         .onAppear { focus = .title }
         #if DEBUG

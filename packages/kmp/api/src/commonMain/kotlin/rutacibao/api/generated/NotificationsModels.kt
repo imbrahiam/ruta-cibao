@@ -31,6 +31,8 @@ public data class NotificationsListOutput(
         val messageKey: String,
         val params: Map<String, JsonElement>,
         val href: String? = null,
+        val categoryIcon: String? = null,
+        val categoryColor: String? = null,
         val readAt: Instant? = null,
         val createdAt: Instant,
     )

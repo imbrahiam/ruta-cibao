@@ -24,14 +24,23 @@ public data class Notice(
     val messageKey: String,
     /** Primitive params as text, ready for the platform formatter. */
     val params: Map<String, String>,
-    /** In-app target, e.g. `/consultas/<slug>`. */
+    /** In-app target, e.g. `/s/consultation/<slug>`. */
     val href: String?,
     val unread: Boolean,
     val createdAt: Instant,
+    /** The pin of what the notice is about (its category's glyph and colour), when it has one. */
+    val categoryIcon: String? = null,
+    val categoryColor: String? = null,
 ) {
-    /** The consultation this notice is about, when its link points at one. */
+    /** The consultation this notice is about, when its link points at one (canonical or legacy path). */
     val consultationSlug: String?
-        get() = href?.removePrefix("/consultas/")?.takeIf { href.startsWith("/consultas/") && it.isNotBlank() }
+        get() = CONSULTATION_PREFIXES.firstNotNullOfOrNull { prefix ->
+            href?.takeIf { it.startsWith(prefix) }?.removePrefix(prefix)?.takeIf { it.isNotBlank() && '/' !in it }
+        }
+
+    private companion object {
+        val CONSULTATION_PREFIXES = listOf("/s/consultation/", "/consultas/")
+    }
 }
 
 public data class InboxUiState(
@@ -76,6 +85,8 @@ public class InboxViewModel(private val api: RutaApi, private val session: Sessi
                         href = n.href,
                         unread = n.readAt == null,
                         createdAt = n.createdAt,
+                        categoryIcon = n.categoryIcon,
+                        categoryColor = n.categoryColor,
                     )
                 }
                 _state.update {

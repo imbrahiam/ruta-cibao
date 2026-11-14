@@ -7,6 +7,12 @@ export const notificationShape = z.object({
   messageKey: z.string(),
   params: z.record(z.string(), z.union([z.string(), z.number()])),
   href: z.string().nullable(),
+  /**
+   * The category of what the notice is about (resolved from `href`), so the
+   * row shows the same pin the map does. Null when it points at no category.
+   */
+  categoryIcon: z.string().nullable(),
+  categoryColor: z.string().nullable(),
   readAt: z.iso.datetime().nullable(),
   createdAt: z.iso.datetime(),
 });

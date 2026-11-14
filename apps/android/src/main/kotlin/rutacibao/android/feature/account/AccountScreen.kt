@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Book
@@ -75,7 +76,7 @@ import rutacibao.presentation.account.AccountViewModel
 
 /** Sub-screens of the account tab; the root pushes them on the tab's own stack. */
 @Serializable
-enum class AccountPage { Profile, Saved, Passport, Notifications, Privacy, About, Deletion, Offline }
+enum class AccountPage { Profile, Saved, Passport, Notifications, Appearance, Privacy, About, Deletion, Offline }
 
 @Composable
 fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
@@ -142,6 +143,7 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit) {
                 GroupGap()
                 Group {
                     NavRow(stringResource(R.string.notification_settings_title), Icons.Filled.Notifications, Color(0xFFFF3B30), onClick = { onOpen(AccountPage.Notifications) })
+                    NavRow(stringResource(R.string.account_appearance), Icons.Filled.Brush, Color(0xFF0A84FF), onClick = { onOpen(AccountPage.Appearance) })
                     NavRow(stringResource(R.string.offline_row_title), Icons.Filled.Download, Color(0xFF30A45A), onClick = { onOpen(AccountPage.Offline) })
                     if (rutacibao.android.platform.PushNotifications.capability != rutacibao.android.platform.PushNotifications.Capability.Available) {
                         Text(stringResource(R.string.notifications_push_unavailable), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(16.dp))

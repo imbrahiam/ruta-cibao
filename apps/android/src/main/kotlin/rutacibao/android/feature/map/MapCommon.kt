@@ -81,7 +81,7 @@ fun UserDot(position: LatLng) {
 fun PinGlyph(color: Color, icon: androidx.compose.ui.graphics.vector.ImageVector, selected: Boolean) {
     val size = if (selected) 44.dp else 32.dp
     Box(
-        Modifier.size(size).background(color, CircleShape).border(2.5.dp, Color.White, CircleShape),
+        Modifier.size(size).background(rutacibao.android.ui.pinBrush(color), CircleShape).border(2.5.dp, Color.White, CircleShape),
         Alignment.Center,
     ) {
         Icon(icon, contentDescription = null, Modifier.size(if (selected) 22.dp else 16.dp), tint = Color.White)
@@ -114,7 +114,7 @@ fun StaticPinMap(latitude: Double, longitude: Double, tint: Color, meters: Doubl
         ),
     ) {
         if (pin) MarkerComposable(state = rememberUpdatedMarkerState(position), anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f)) {
-            Box(Modifier.size(22.dp).background(tint, CircleShape).border(3.dp, Color.White, CircleShape))
+            Box(Modifier.size(22.dp).background(rutacibao.android.ui.pinBrush(tint), CircleShape).border(3.dp, Color.White, CircleShape))
         }
     }
 }

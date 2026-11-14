@@ -46,6 +46,7 @@ targets:
         CFBundleDevelopmentRegion: es
         UILaunchScreen:
           UIColorName: LaunchBackground
+          UIImageName: LaunchMark
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         RutaApiOrigin: $(RUTA_API_ORIGIN)

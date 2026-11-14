@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -42,7 +43,7 @@ import rutacibao.presentation.consultations.ConsultationStatus
 @Composable
 fun CategoryAvatar(icon: String, hex: String, size: Dp, modifier: Modifier = Modifier) {
     val color = parseCategoryColor(hex, MaterialTheme.colorScheme.onSurfaceVariant)
-    Box(modifier.size(size).background(Brush.verticalGradient(listOf(color.lighten(0.14f), color)), CircleShape), Alignment.Center) {
+    Box(modifier.size(size).background(pinBrush(color), CircleShape), Alignment.Center) {
         Icon(categoryIcon(icon), contentDescription = null, Modifier.size(size * 0.5f), tint = Color.White)
     }
 }
@@ -53,14 +54,24 @@ fun CategoryBadge(icon: String, hex: String, size: Dp, modifier: Modifier = Modi
     val color = parseCategoryColor(hex, MaterialTheme.colorScheme.onSurfaceVariant)
     val shape = RoundedCornerShape(size * 0.3f)
     Box(
-        modifier.size(size).clip(shape).background(Brush.verticalGradient(listOf(color.lighten(0.14f), color))),
+        modifier.size(size).clip(shape).background(pinBrush(color)),
         Alignment.Center,
     ) {
         Icon(categoryIcon(icon), contentDescription = null, Modifier.size(size * 0.5f), tint = Color.White)
     }
 }
 
-private fun Color.lighten(by: Float) = Color(red + (1 - red) * by, green + (1 - green) * by, blue + (1 - blue) * by, alpha)
+/**
+ * The map marker's fill (mirrors iOS `PinFill`, measured from MapKit's balloon): the colour's
+ * brightness lifted 14% at the top and dropped 14% at the bottom, top to bottom across the shape.
+ * Hue and saturation stay. Every pin and category badge uses it, on the map and off it.
+ */
+fun pinBrush(color: Color): Brush {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+    fun shade(factor: Float) = Color(android.graphics.Color.HSVToColor((color.alpha * 255).toInt(), floatArrayOf(hsv[0], hsv[1], (hsv[2] * factor).coerceIn(0f, 1f))))
+    return Brush.verticalGradient(listOf(shade(1.14f), shade(0.86f)))
+}
 
 @Composable
 fun Hairline(modifier: Modifier = Modifier) {

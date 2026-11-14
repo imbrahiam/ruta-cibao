@@ -166,6 +166,9 @@ The real dev server, as the README describes: `docker compose -f infra/docker-co
 with `LOCAL_DEMO_OTP`, and both are refused in production. Debug builds have test hooks for simulator
 screenshot runs, compiled out of Release:
 
+Every iOS hook below can also be passed as a launch argument (`-RUTA_DEBUG_TAB account`), for UI
+drivers that cannot set the environment; `DebugHook.value` reads both and returns nil in Release.
+
 - `SIMCTL_CHILD_RUTA_DEBUG_SESSION="better-auth.session_token=…"` seeds the session.
 - `SIMCTL_CHILD_RUTA_DEBUG_TAB=map|consultations|contributions|account` opens a tab.
 - `SIMCTL_CHILD_RUTA_DEBUG_SLUG=<slug>` opens a consultation; `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=search` opens map search;
@@ -207,6 +210,30 @@ Responder (opens the thread, where the staff composer is) and Ocultar caso. The 
 traffic and published-but-unanswered cases in its queue, so deciding on them changes the card instead
 of removing it.
 
+## iOS shell
+
+The tab bar is the system `TabView` bar (Liquid Glass; it becomes a side rail on wide iPhones by
+itself), with the brand green on the current tab and ink for everything inside a tab. Cuenta is a
+system inset-grouped list; Consultas has a large title with the filter as a bar menu and a compose
+button; Aportes switches Mis aportes / Avisos with a segmented control in the bar.
+
+First launch: the launch mark lifts away, then one welcome sheet (three lines, Continuar) whose
+button raises the location prompt. Notifications are asked at sign-in, not at first launch. Signing
+in from an action (a contribution tile, the compose button) carries on to that action afterwards.
+
+A read that comes back 401 while a session cookie was sent clears the local session
+(`Session.kt`), so an expired session shows the signed-out screens instead of per-screen errors.
+
+On a wide window (an unfolded phone, an iPad) scrolling pages keep a 640 pt reading width, centred
+(`readableWidth()` in `UI/Chrome.swift`), and the map's search field stays 420 pt wide at the leading
+edge. The trailing column those devices reserve for the clock, bar buttons and tab rail is the
+system's and cannot be drawn under.
+
+A consultation thread hides the tab bar (`AppChrome.conversation`) so the reply field sits at the
+bottom edge; Android does the same through `isForm()`. A search result opens only after the search
+sheet has dismissed: presenting the place sheet while search was still leaving with the keyboard up
+crashed UIKit's keyboard layout guide.
+
 ## Android and iOS parity
 
 Android follows iOS's look with Material parts: a floating capsule tab bar (`navigation/TabBar.kt`), the
@@ -214,6 +241,20 @@ map under the status bar with a stacked controls capsule (base-map toggle, locat
 chips, sheets with a close button and the category badge, "iris" (`ui/Highlight.kt`, mirrors iOS
 `RutaHighlight`) for primary buttons, the selected tab and switches. Not mirrored: the AR camera button
 and Liquid Glass blur (Compose has no live blur; the glass colour is 92% opaque).
+
+Consultas on Android opens a new consultation from a floating button (sign-in first when needed). A
+case waiting for review shows the review note instead of an empty thread, as on iOS. The road report
+starts at the last known location when permission was already granted.
+
+`KeystoreSecureStore` keeps values of 4 KB or more as one encrypted file each under
+`noBackupFilesDir/secure`, and small secrets in SharedPreferences. The offline copy is about 190
+chunks of 16 KB; with everything in SharedPreferences each chunk rewrote the whole XML and one
+download took over 30 s on the emulator (about 3 s now).
+
+Running beside another project that owns 3000/5432: start this stack on other ports and build the
+apps against them (`RUTA_API_ORIGIN=http://localhost:3100` for xcodebuild,
+`-Pruta.apiOrigin=http://10.0.2.2:3100` for Gradle). Photos are served from `localhost:9000`, so the
+emulator needs `adb reverse tcp:9000 tcp:9000` or the feed shows grey tiles.
 
 ## Category look on iOS
 

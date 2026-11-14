@@ -104,7 +104,7 @@ private fun serviceRes(service: RoutesBrowseOutput.Item.Service): Int = when (se
 fun RoutePin(route: EcoRoute, selected: Boolean) {
     val size = if (selected) 44.dp else 32.dp
     val shape = RoundedCornerShape(size * 0.32f)
-    Box(Modifier.size(size).background(route.tint, shape).border(2.5.dp, Color.White, shape), Alignment.Center) {
+    Box(Modifier.size(size).background(rutacibao.android.ui.pinBrush(route.tint), shape).border(2.5.dp, Color.White, shape), Alignment.Center) {
         Icon(route.symbol, contentDescription = null, Modifier.size(if (selected) 22.dp else 16.dp), tint = Color.White)
     }
 }

@@ -13,11 +13,11 @@ struct RutaCibaoApp: App {
         #if DEBUG
         // Test hook for simulator runs: `SIMCTL_CHILD_RUTA_DEBUG_SESSION="better-auth.session_token=…"`
         // seeds the session the dev server issued. Compiled out of Release builds.
-        if let cookie = ProcessInfo.processInfo.environment["RUTA_DEBUG_SESSION"], cookie.contains("=") {
+        if let cookie = DebugHook.value("RUTA_DEBUG_SESSION"), cookie.contains("=") {
             store.write(key: "rutacibao.session.cookies", value: cookie)
         }
         // `SIMCTL_CHILD_RUTA_DEBUG_OFFLINE=1` starts with every API call failing like a dropped connection.
-        if ProcessInfo.processInfo.environment["RUTA_DEBUG_OFFLINE"] == "1" { DebugNetwork.shared.offline = true }
+        if DebugHook.value("RUTA_DEBUG_OFFLINE") == "1" { DebugNetwork.shared.offline = true }
         #endif
         graph = createAppGraph(config: AppConfig.current, secureStore: store)
     }
@@ -25,6 +25,7 @@ struct RutaCibaoApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .launchVeil()
                 .environment(\.graph, graph)
                 .environment(delegate.links)
                 // Custom-scheme and universal links share the notification router.
@@ -47,14 +48,54 @@ struct RutaCibaoApp: App {
                 .task {
                     delegate.graph = graph
                     // Signed in: make sure this phone gets the account's notices.
+                    var launching = true
                     for await signedIn in graph.session.isSignedIn {
+                        // Ask at the moment of signing in, when there is something to be
+                        // notified about; never over the first screen of a launch.
+                        let justSignedIn = !launching
+                        launching = false
                         guard signedIn.boolValue else { continue }
-                        await PushPermission.registerIfAllowed(ask: false)
+                        await PushPermission.registerIfAllowed(ask: justSignedIn)
                         _ = try? await graph.push.resync()
                     }
                 }
         }
     }
+}
+
+/// The launch screen's mark, kept on screen for a beat and then lifted away,
+/// so the app opens from its own logo instead of cutting to the map.
+private struct LaunchVeil: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var lifted = false
+    @State private var gone = false
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if !gone {
+            ZStack {
+                Color("LaunchBackground")
+                Image("LaunchMark")
+                    .scaleEffect(lifted && !reduceMotion ? 1.35 : 1)
+            }
+            .ignoresSafeArea()
+            .opacity(lifted ? 0 : 1)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .task {
+                try? await Task.sleep(for: .milliseconds(350))
+                withAnimation(.easeOut(duration: 0.4)) { lifted = true }
+                // Out of the tree once lifted, so it costs nothing and VoiceOver never meets it.
+                try? await Task.sleep(for: .milliseconds(450))
+                gone = true
+            }
+            }
+        }
+    }
+}
+
+private extension View {
+    func launchVeil() -> some View { modifier(LaunchVeil()) }
 }
 
 extension AppConfig {

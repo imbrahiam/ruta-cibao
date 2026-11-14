@@ -43,7 +43,7 @@ struct TrafficMarker: View {
     var body: some View {
         let style = notice.style
         RoundedRectangle(cornerRadius: 10, style: .continuous)
-            .fill(style.color.gradient)
+            .fill(PinFill(color: style.color))
             .frame(width: 38, height: 38)
             .overlay {
                 Image(systemName: style.symbol)
@@ -103,7 +103,7 @@ struct TrafficSheetView: View {
     private var header: some View {
         HStack(alignment: .top, spacing: 12) {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(notice.style.color.gradient)
+                .fill(PinFill(color: notice.style.color))
                 .frame(width: 44, height: 44)
                 .overlay {
                     Image(systemName: notice.style.symbol)

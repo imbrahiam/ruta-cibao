@@ -87,7 +87,7 @@ fun TrafficPin(notice: TrafficNotice, selected: Boolean) {
     val shape = RoundedCornerShape(size * 0.28f)
     val label = stringResource(R.string.traffic_sheet_label, notice.categoryName)
     Box(
-        Modifier.size(size).background(notice.tint, shape).border(2.5.dp, Color.White, shape).clearAndSetSemantics { contentDescription = label },
+        Modifier.size(size).background(rutacibao.android.ui.pinBrush(notice.tint), shape).border(2.5.dp, Color.White, shape).clearAndSetSemantics { contentDescription = label },
         Alignment.Center,
     ) {
         Icon(categoryIcon(notice.icon), contentDescription = null, Modifier.size(if (selected) 24.dp else 20.dp), tint = Color.White)
@@ -103,7 +103,7 @@ fun TrafficSheet(notice: TrafficNotice, failure: UiError?, onConfirm: (TrafficVe
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).background(notice.tint, RoundedCornerShape(14.dp)), Alignment.Center) {
+            Box(Modifier.size(48.dp).background(rutacibao.android.ui.pinBrush(notice.tint), RoundedCornerShape(14.dp)), Alignment.Center) {
                 Icon(categoryIcon(notice.icon), contentDescription = null, Modifier.size(24.dp), tint = Color.White)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {

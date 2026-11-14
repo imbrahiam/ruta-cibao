@@ -18,7 +18,7 @@ final class GestionModel {
         viewModel = scope.gestion()
         state = viewModel.state.value
         #if DEBUG
-        if ProcessInfo.processInfo.environment["RUTA_DEBUG_STEPUP"] == "1" {
+        if DebugHook.value("RUTA_DEBUG_STEPUP") == "1" {
             debugStepUp = StepUpStateAsking(recovery: false, error: nil)
         }
         #endif

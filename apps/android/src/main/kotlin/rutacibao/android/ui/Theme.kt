@@ -29,7 +29,8 @@ fun RutaAppTheme(theme: RutaTheme = RutaTheme.Clasico, content: @Composable () -
         onPrimary = p.onAccent,
         primaryContainer = p.accentSoft,
         onPrimaryContainer = p.text,
-        secondaryContainer = p.accentSoft,
+        // Selected chips stay a neutral fill; the blue is for actions only (mirrors iOS).
+        secondaryContainer = p.fill,
         onSecondaryContainer = p.text,
         background = p.background,
         onBackground = p.text,

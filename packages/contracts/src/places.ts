@@ -150,6 +150,12 @@ export const contributionsOutput = z.array(
     ]),
     note: z.string().nullable(),
     /**
+     * The category of the thing itself (the case's, the place's, the traffic
+     * report's), so the row shows the same pin the map does.
+     */
+    categoryIcon: z.string(),
+    categoryColor: z.string(),
+    /**
      * Whether other people can see what was written: a case's publication, or
      * a traffic report's free text. Null where the notion does not apply.
      */

@@ -31,8 +31,8 @@ struct AccountScreen: View {
     /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_TAB=gestion` opens Cuenta with Gestión pushed.
     private static var initialPath: [AccountRoute] {
         #if DEBUG
-        if ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"] == "offline" { return [.offline] }
-        return ProcessInfo.processInfo.environment["RUTA_DEBUG_TAB"] == "gestion" ? [.gestion] : []
+        if DebugHook.value("RUTA_DEBUG_COMPOSE") == "offline" { return [.offline] }
+        return DebugHook.value("RUTA_DEBUG_TAB") == "gestion" ? [.gestion] : []
         #else
         []
         #endif
@@ -51,13 +51,13 @@ struct AccountScreen: View {
                     Color.clear
                 }
             }
-            .tabBarClearance()
+            
             .navigationTitle(L10n.Account.title)
             .toolbarVisibility(.hidden, for: .navigationBar)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(L10n.Account.title)
             .navigationDestination(for: AccountRoute.self) { route in
-                if let model { destination(route, model).tabBarClearance() }
+                if let model { destination(route, model) }
             }
         }
         .task {
@@ -123,47 +123,50 @@ private struct SignedOutAccount: View {
 private struct SignedInAccount: View {
     let model: AccountModel
     @Environment(\.palette) private var palette
-    @Environment(\.colorScheme) private var scheme
     @Environment(\.graph) private var graph
     @State private var confirmingSignOut = false
 
     private var state: AccountUiState { model.state }
     private var staffPending: Int? { state.staffPending.map { Int(truncating: $0) } }
 
+    /// The system's own settings list: the person on top, then grouped rows
+    /// with a coloured icon each. Nothing custom to learn.
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
+        List {
+            Section {
                 NavigationLink(value: AccountRoute.profile) { header }
-                    .padding(.top, 12)
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, AccountMetrics.inset)
-
-                GroupDivider().padding(.top, 12)
-                shortcut(.saved, symbol: "bookmark.fill", title: L10n.Account.saved, count: state.saved.count, badge: .orange)
-                shortcut(.passport, symbol: "book.closed.fill", title: L10n.Account.passport, count: Int(state.passport?.total ?? 0), badge: .teal)
-                if let pending = staffPending {
-                    GroupDivider()
-                    NavigationLink(value: AccountRoute.gestion) {
-                        SettingsRow(symbol: "checklist", title: L10n.Gestion.title, badge: .indigo, count: pending)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityValue(L10n.Gestion.pending(count: pending))
-                }
-                GroupDivider()
-                link(.notifications, "bell.fill", L10n.NotificationSettings.title, badge: .red)
-                link(.offline, "arrow.down.circle.fill", L10n.Offline.rowTitle, badge: .green)
-                GroupDivider()
-                link(.privacy, "hand.raised.fill", L10n.Account.privacy, badge: .blue)
-                link(.about, "info", L10n.Account.aboutApp, badge: .gray)
-                GroupDivider()
-                Button { confirmingSignOut = true } label: {
-                    SettingsRow(symbol: "rectangle.portrait.and.arrow.right", title: L10n.Account.signOut, chevron: false)
-                }
-                .buttonStyle(.plain)
-                link(.deletion, "trash", L10n.AccountDeletion.rowTitle, tint: palette.danger)
+                    .accessibilityHint(L10n.Account.editProfile)
             }
-            .padding(.bottom, 16)
+            Section {
+                row(.saved, "bookmark.fill", .orange, L10n.Account.saved, count: state.saved.count)
+                row(.passport, "book.closed.fill", .teal, L10n.Account.passport, count: Int(state.passport?.total ?? 0))
+            }
+            if let pending = staffPending {
+                Section {
+                    row(.gestion, "checklist", .indigo, L10n.Gestion.title, count: pending, badge: pending > 0)
+                        .accessibilityValue(L10n.Gestion.pending(count: pending))
+                }
+            }
+            Section {
+                row(.notifications, "bell.badge.fill", .red, L10n.NotificationSettings.title)
+                row(.offline, "arrow.down.circle.fill", .green, L10n.Offline.rowTitle)
+            }
+            Section {
+                row(.privacy, "hand.raised.fill", .blue, L10n.Account.privacy)
+                row(.about, "info", .gray, L10n.Account.aboutApp)
+            }
+            Section {
+                Button(L10n.Account.signOut) { confirmingSignOut = true }
+                    .foregroundStyle(palette.text)
+                NavigationLink(value: AccountRoute.deletion) {
+                    Text(L10n.AccountDeletion.rowTitle).foregroundStyle(palette.dangerInk)
+                }
+            }
         }
+        .readableWidth()
+        .listStyle(.insetGrouped)
+        .listSectionSpacing(.compact)
+        .contentMargins(.top, 8, for: .scrollContent)
         .refreshable { model.viewModel.refresh() }
         .confirmationDialog(L10n.Account.signOut, isPresented: $confirmingSignOut, titleVisibility: .hidden) {
             Button(L10n.Account.signOut, role: .destructive) {
@@ -177,60 +180,70 @@ private struct SignedInAccount: View {
         }
     }
 
-    private func link(_ route: AccountRoute, _ symbol: String, _ title: String, tint: Color? = nil, badge: Color? = nil) -> some View {
+    private func row(_ route: AccountRoute, _ symbol: String, _ color: Color, _ title: String, count: Int? = nil, badge: Bool = false) -> some View {
         NavigationLink(value: route) {
-            SettingsRow(symbol: symbol, title: title, tint: tint, badge: badge)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func shortcut(_ route: AccountRoute, symbol: String, title: String, count: Int, badge: Color) -> some View {
-        NavigationLink(value: route) {
-            SettingsRow(symbol: symbol, title: title, value: "\(count)", badge: badge)
-        }
-        .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
-    }
-
-    /// Threads' profile head: name and place on the left, the photo on the
-    /// right, then one quiet full-width "Editar perfil" button. No card.
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text(state.me?.displayName ?? " ")
-                            .font(.title2.weight(.bold))
-                            .lineLimit(2)
-                            .redacted(reason: state.me == nil ? .placeholder : [])
-                        if state.me?.residencyVerified == true {
-                            Image(systemName: "checkmark.seal.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.primary)
-                                .accessibilityLabel(L10n.Account.residentVerified)
-                        }
-                    }
-                    if state.me?.residencyVerified == true, let place = state.municipalityName {
-                        Text(L10n.Account.resident(place: place))
-                            .font(.subheadline)
-                            .foregroundStyle(palette.textSecondary)
-                            .lineLimit(1)
+            HStack(spacing: 12) {
+                SettingsIcon(symbol: symbol, color: color)
+                Text(title)
+                Spacer(minLength: 8)
+                if let count {
+                    if badge {
+                        Text(verbatim: "\(count)")
+                            .font(.subheadline.weight(.semibold).monospacedDigit())
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 8)
+                            .frame(minWidth: 24, minHeight: 24)
+                            .background(Color(.systemRed), in: Capsule())
+                    } else {
+                        Text(verbatim: "\(count)").foregroundStyle(.secondary).monospacedDigit()
                     }
                 }
-                Spacer(minLength: 0)
-                AuthorAvatar(name: state.me?.displayName ?? "", image: state.me?.image, size: 64)
             }
-            Text(L10n.Account.editProfile)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(palette.text)
-                .frame(maxWidth: .infinity, minHeight: 40)
-                .background(palette.inset, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
     }
 
+    /// Settings' top row: the photo, the name, one line under it.
+    private var header: some View {
+        HStack(spacing: 14) {
+            AuthorAvatar(name: state.me?.displayName ?? "", image: state.me?.image, size: 60)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 5) {
+                    Text(state.me?.displayName ?? "Nombre Apellido")
+                        .font(.title3.weight(.semibold))
+                        .lineLimit(1)
+                        .redacted(reason: state.me == nil ? .placeholder : [])
+                    if state.me?.residencyVerified == true {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.subheadline)
+                            .foregroundStyle(palette.accentInk)
+                            .accessibilityLabel(L10n.Account.residentVerified)
+                    }
+                }
+                if state.me?.residencyVerified == true, let place = state.municipalityName {
+                    Text(L10n.Account.resident(place: place))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
 
+/// iOS Settings' row icon: a white glyph on a rounded square of one colour.
+struct SettingsIcon: View {
+    let symbol: String
+    let color: Color
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 29, height: 29)
+            .background(PinFill(color: color), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .accessibilityHidden(true)
+    }
 }
 
 // MARK: - Profile
@@ -317,6 +330,7 @@ private struct SavedPlaces: View {
             }
             .buttonStyle(.plain)
         }
+        .readableWidth()
         .overlay {
             if items.isEmpty {
                 EmptyState(art: .colmado, title: L10n.Explore.savedEmpty, message: L10n.Explore.savedEmptyBody)
@@ -342,6 +356,7 @@ private struct PassportStamps: View {
                 }
             }
         }
+        .readableWidth()
         .overlay {
             if items.isEmpty {
                 EmptyState(symbol: "seal", title: L10n.Account.passportEmpty, message: L10n.Account.passportEmptyBody)
@@ -411,6 +426,7 @@ private struct PrivacyView: View {
             .padding(.top, 8)
             .padding(.bottom, 32)
         }
+        .readableWidth()
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -418,34 +434,33 @@ private struct PrivacyView: View {
 private struct AboutView: View {
     var body: some View {
         let info = Bundle.main.infoDictionary
-        ScrollView {
-            VStack(spacing: 28) {
-                VStack(spacing: 14) {
+        List {
+            Section {
+                VStack(spacing: 10) {
                     BrandMark(size: 72)
-                    Text(L10n.About.tagline)
-                        .font(.body)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, 24)
-
-                VStack(spacing: 0) {
-                    InfoRow(title: L10n.About.title, value: L10n.About.version(
+                    Text(verbatim: "Ruta Cibao").font(.title2.weight(.bold))
+                    Text(L10n.About.version(
                         version: info?["CFBundleShortVersionString"] as? String ?? "",
                         build: info?["CFBundleVersion"] as? String ?? ""
                     ))
-                    Divider()
-                    InfoRow(title: L10n.About.maps, value: L10n.About.mapsCreditNative)
-                }
-
-                Text(L10n.About.contest)
-                    .font(.footnote)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .listRowBackground(Color.clear)
+            } footer: {
+                Text(L10n.About.tagline)
+                    .frame(maxWidth: .infinity)
                     .multilineTextAlignment(.center)
             }
-            .padding(.horizontal, AccountMetrics.inset)
-            .padding(.bottom, 32)
+            Section {
+                LabeledContent(L10n.About.maps, value: L10n.About.mapsCreditNative)
+            } footer: {
+                Text(L10n.About.contest)
+            }
         }
+        .readableWidth()
         .navigationTitle(L10n.About.title)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -502,21 +517,6 @@ private struct InfoItem: View {
             }
         }
         .accessibilityElement(children: .combine)
-    }
-}
-
-private struct InfoRow: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(title)
-            Spacer(minLength: 16)
-            Text(value).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
-        }
-        .font(.subheadline)
-        .frame(minHeight: 52)
     }
 }
 

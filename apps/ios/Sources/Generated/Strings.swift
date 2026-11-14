@@ -125,6 +125,12 @@ enum L10n {
                 NSLocalizedString("comments.replyingTo", comment: ""), name
             )
         }
+        static var replies: String { String(localized: LocalizedStringResource("comments.replies")) }
+        static func charactersLeft(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("comments.charactersLeft", comment: ""), count
+            )
+        }
     }
 
     enum About {
@@ -173,6 +179,7 @@ enum L10n {
         static var aboutApp: String { String(localized: LocalizedStringResource("account.aboutApp")) }
         static var signOut: String { String(localized: LocalizedStringResource("account.signOut")) }
         static var signedOut: String { String(localized: LocalizedStringResource("account.signedOut")) }
+        static var appearance: String { String(localized: LocalizedStringResource("account.appearance")) }
     }
 
     enum AccountDeletion {
@@ -225,6 +232,11 @@ enum L10n {
         static var previewAction: String { String(localized: LocalizedStringResource("appearance.previewAction")) }
         static var mapTitle: String { String(localized: LocalizedStringResource("appearance.mapTitle")) }
         static var mapFootnote: String { String(localized: LocalizedStringResource("appearance.mapFootnote")) }
+        static var tabBar: String { String(localized: LocalizedStringResource("appearance.tabBar")) }
+        static var floating: String { String(localized: LocalizedStringResource("appearance.floating")) }
+        static var floatingBody: String { String(localized: LocalizedStringResource("appearance.floatingBody")) }
+        static var fixed: String { String(localized: LocalizedStringResource("appearance.fixed")) }
+        static var fixedBody: String { String(localized: LocalizedStringResource("appearance.fixedBody")) }
 
         enum Suave {
             static var name: String { String(localized: LocalizedStringResource("appearance.suave.name")) }
@@ -939,6 +951,13 @@ enum L10n {
         static var notificationsBody: String { String(localized: LocalizedStringResource("onboarding.notificationsBody")) }
         static var enableNotifications: String { String(localized: LocalizedStringResource("onboarding.enableNotifications")) }
         static var notNow: String { String(localized: LocalizedStringResource("onboarding.notNow")) }
+        static var welcomeTitle: String { String(localized: LocalizedStringResource("onboarding.welcomeTitle")) }
+        static var exploreTitle: String { String(localized: LocalizedStringResource("onboarding.exploreTitle")) }
+        static var exploreBody: String { String(localized: LocalizedStringResource("onboarding.exploreBody")) }
+        static var askTitle: String { String(localized: LocalizedStringResource("onboarding.askTitle")) }
+        static var askBody: String { String(localized: LocalizedStringResource("onboarding.askBody")) }
+        static var contributeTitle: String { String(localized: LocalizedStringResource("onboarding.contributeTitle")) }
+        static var contributeBody: String { String(localized: LocalizedStringResource("onboarding.contributeBody")) }
     }
 
     enum Permissions {

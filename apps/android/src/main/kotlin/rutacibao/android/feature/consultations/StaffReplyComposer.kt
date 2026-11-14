@@ -50,6 +50,17 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import rutacibao.android.R
 import rutacibao.android.feature.comments.CommentComposer
+import rutacibao.android.feature.comments.CommentLimits
+import rutacibao.android.feature.comments.ComposerToolbar
+import rutacibao.android.feature.comments.ReplyField
+import rutacibao.android.feature.comments.ComposerSurface
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.PersonOutline
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.sp
 import rutacibao.android.ui.Hairline
 import rutacibao.android.ui.LocalPalette
 import rutacibao.api.generated.ConsultationsRespondInput.StatusAfter
@@ -57,6 +68,17 @@ import rutacibao.presentation.comments.CommentsUiState
 import rutacibao.presentation.comments.CommentsViewModel
 import rutacibao.presentation.consultations.ConsultationDetailUiState
 import rutacibao.presentation.consultations.ConsultationDetailViewModel
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.ui.focus.focusRequester
+import rutacibao.android.feature.comments.ReplyPill
 
 private fun StatusAfter.label(): Int = when (this) {
     StatusAfter.InReview -> R.string.consultations_status_label_in_review
@@ -65,136 +87,254 @@ private fun StatusAfter.label(): Int = when (this) {
     StatusAfter.Rejected -> R.string.consultations_status_label_rejected
 }
 
-/** A solid bottom bar shared by participants and staff. Each mode keeps its own draft. */
+
+/**
+ * The composer under the thread (mirrors iOS): at rest one floating capsule over the tab bar;
+ * writing happens in its own full-screen reply view, so the keyboard never pushes the bar up.
+ * Each mode keeps its own draft; a sent reply closes the view, a failed one keeps it open.
+ */
 @Composable
 fun ConsultationComposer(
     state: ConsultationDetailUiState,
     vm: ConsultationDetailViewModel,
     comments: CommentsUiState,
     commentsVm: CommentsViewModel,
+    open: Boolean,
+    onOpenChange: (Boolean) -> Unit,
 ) {
-    var official by rememberSaveable(state.detail?.id) { mutableStateOf(false) }
+    var official by rememberSaveable(state.detail?.id) { mutableStateOf(true) }
     var text by rememberSaveable(state.detail?.id) { mutableStateOf("") }
     var status by rememberSaveable(state.detail?.id) { mutableStateOf(StatusAfter.Answered) }
-    val busy = state.replying || comments.sending
+    val asStaff = state.canRespond && official
+    val canReply = state.canRespond || comments.signedIn
     LaunchedEffect(state.replySent) {
         if (state.replySent) {
             text = ""
+            onOpenChange(false)
             vm.replySentHandled()
         }
     }
-    Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).imePadding()) {
-        Hairline()
-        if (state.canRespond && official) {
-            StaffReplyComposer(state, vm, text, { text = it }, status, { status = it }, official, { official = it })
-        } else {
-            CommentComposer(
-                comments,
-                commentsVm,
-                stringResource(R.string.comments_placeholder),
-                stringResource(R.string.comments_sign_in_to_comment),
-                replyingTo = state.detail?.let { if (it.isMine) null else it.openedBy },
-                leading = if (state.canRespond) {
-                    { ComposerModeChip(official, status, state.replyStatuses, !busy, { official = it }, { status = it }) }
-                } else null,
-            )
-        }
+    val wasSending = remember { booleanArrayOf(false) }
+    LaunchedEffect(comments.sending) {
+        if (wasSending[0] && !comments.sending && comments.sendError == null) onOpenChange(false)
+        wasSending[0] = comments.sending
+    }
+    Column(Modifier.fillMaxWidth()) {
+        ReplyCapsule(
+            label = stringResource(
+                when {
+                    !canReply -> R.string.comments_sign_in_to_comment
+                    asStaff -> R.string.comments_reply_placeholder
+                    else -> R.string.comments_placeholder
+                },
+            ),
+            signIn = !canReply,
+        ) { if (canReply) onOpenChange(true) else commentsVm.requestSignIn() }
+    }
+    val detail = state.detail
+    if (open && detail != null) {
+        ReplyDialog(
+            detail = detail,
+            state = state,
+            comments = comments,
+            asStaff = asStaff,
+            text = if (asStaff) text else comments.draft,
+            onTextChange = { if (asStaff) text = it else commentsVm.updateDraft(it) },
+            official = official,
+            onOfficialChange = { official = it },
+            status = status,
+            onStatusChange = { status = it },
+            onSend = { if (asStaff) vm.respond(text, status) else commentsVm.send() },
+            onClose = { onOpenChange(false) },
+        )
     }
 }
 
-/** One compact chip: who answers and the status the case is left in, in a single dropdown. */
+/** The resting composer: one floating capsule that opens the reply view (or asks to sign in, with an arrow). */
 @Composable
-private fun ComposerModeChip(
-    official: Boolean,
-    status: StatusAfter,
-    statuses: List<StatusAfter>,
-    enabled: Boolean,
-    onOfficialChange: (Boolean) -> Unit,
-    onStatusChange: (StatusAfter) -> Unit,
-) {
+private fun ReplyCapsule(label: String, signIn: Boolean, onClick: () -> Unit) {
     val palette = LocalPalette.current
-    var open by rememberSaveable { mutableStateOf(false) }
-    val who = stringResource(if (official) R.string.consultations_municipality else R.string.comments_participant_mode)
-    val label = if (official) who + "\n" + stringResource(status.label()) else who
-    val description = stringResource(R.string.comments_composer_mode)
-    Box {
+    ComposerSurface(expanded = false) {
         Row(
-            Modifier.defaultMinSize(minHeight = 48.dp).clip(RoundedCornerShape(24.dp)).background(palette.inset)
-                .clickable(enabled = enabled, role = Role.DropdownList) { open = true }
-                .semantics { contentDescription = description; stateDescription = label }
-                .padding(start = 14.dp, end = 6.dp),
+            Modifier.fillMaxWidth().defaultMinSize(minHeight = 40.dp).clip(CircleShape)
+                .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 2)
-            Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+            Text(label, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp), color = palette.textSecondary, maxLines = 1, modifier = Modifier.weight(1f))
+            if (signIn) Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = palette.textSecondary, modifier = Modifier.size(20.dp))
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            DropdownMenuItem(text = { Text(stringResource(R.string.comments_participant_mode)) },
-                onClick = { onOfficialChange(false); open = false }, modifier = Modifier.defaultMinSize(minHeight = 48.dp))
-            DropdownMenuItem(text = { Text(stringResource(R.string.consultations_municipality)) },
-                onClick = { onOfficialChange(true); open = false }, modifier = Modifier.defaultMinSize(minHeight = 48.dp))
-            if (official) {
-                HorizontalDivider()
-                statuses.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(stringResource(option.label()), fontWeight = if (option == status) FontWeight.Bold else FontWeight.Normal) },
-                        onClick = { onStatusChange(option); open = false },
-                        modifier = Modifier.defaultMinSize(minHeight = 48.dp),
-                    )
+    }
+}
+
+/**
+ * Writing a reply, as X and Threads do it (mirrors iOS's reply sheet): "Cancelar" and the accent
+ * "Responder" pill on top; the post with its author's photo and a thread line running down to
+ * yours; the field, focused; and above the keyboard the staff's tools and the character ring.
+ */
+@Composable
+private fun ReplyDialog(
+    detail: rutacibao.presentation.consultations.ConsultationDetail,
+    state: ConsultationDetailUiState,
+    comments: CommentsUiState,
+    asStaff: Boolean,
+    text: String,
+    onTextChange: (String) -> Unit,
+    official: Boolean,
+    onOfficialChange: (Boolean) -> Unit,
+    status: StatusAfter,
+    onStatusChange: (StatusAfter) -> Unit,
+    onSend: () -> Unit,
+    onClose: () -> Unit,
+) {
+    val palette = LocalPalette.current
+    val limit = if (asStaff) CommentLimits.OFFICIAL_REPLY else CommentLimits.COMMENT
+    val sending = if (asStaff) state.replying else comments.sending
+    val canSend = if (asStaff) text.isNotBlank() && text.length <= limit else comments.canSend
+    val author = detail.openedBy ?: if (detail.isMine) stringResource(R.string.consultations_you) else detail.categoryName
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    LaunchedEffect(official) { runCatching { focus.requestFocus() } }
+    androidx.compose.ui.window.Dialog(
+        onDismissRequest = onClose,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Column(Modifier.fillMaxSize().systemBarsPadding().imePadding()) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onClose, modifier = Modifier.defaultMinSize(minHeight = 48.dp)) {
+                        Text(stringResource(R.string.common_cancel), style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp), color = palette.text)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    ReplyPill(canSend, sending, onSend)
+                }
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
+                    // The post, and the thread line from its author down to you.
+                    Row(Modifier.height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            rutacibao.android.feature.comments.ThreadAvatar(author, detail.openedByImage, size = 40.dp)
+                            Box(Modifier.width(2.dp).weight(1f).clip(CircleShape).background(palette.fillPressed))
+                        }
+                        Column(Modifier.weight(1f).padding(bottom = 18.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                author + " · " + rutacibao.android.ui.relativeTimeText(detail.createdAt),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, fontWeight = FontWeight.Bold),
+                                maxLines = 1,
+                            )
+                            Text(detail.title, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold))
+                            Text(detail.body, style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp, lineHeight = 20.sp), maxLines = 4, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            val name = detail.openedBy
+                            if (!detail.isMine && name != null) {
+                                Box(Modifier.padding(top = 8.dp)) { rutacibao.android.feature.comments.ReplyingToLine(name) }
+                            }
+                        }
+                    }
+                    // You: who answers, and the field.
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Box(Modifier.size(40.dp).background(palette.fill, CircleShape), contentAlignment = Alignment.Center) {
+                            Icon(if (asStaff) Icons.Filled.AccountBalance else Icons.Filled.PersonOutline, contentDescription = null, Modifier.size(20.dp), tint = palette.text)
+                        }
+                        val placeholder = stringResource(if (asStaff) R.string.comments_reply_placeholder else R.string.comments_placeholder)
+                        androidx.compose.foundation.text.BasicTextField(
+                            value = text,
+                            onValueChange = onTextChange,
+                            enabled = !sending,
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp, color = MaterialTheme.colorScheme.onSurface),
+                            cursorBrush = androidx.compose.ui.graphics.SolidColor(palette.accentInk),
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences),
+                            modifier = Modifier.weight(1f).padding(top = 9.dp).focusRequester(focus).semantics { contentDescription = placeholder },
+                            decorationBox = { inner ->
+                                if (text.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyLarge.copy(fontSize = 17.sp), color = palette.textSecondary)
+                                inner()
+                            },
+                        )
+                    }
+                    ReplyErrors(state, comments, asStaff, onSend)
+                }
+                // Above the keyboard: the staff's tools and the ring.
+                Hairline()
+                Row(
+                    Modifier.fillMaxWidth().defaultMinSize(minHeight = 48.dp).padding(horizontal = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (state.canRespond) {
+                        ModeTool(official, !sending, onOfficialChange)
+                        if (asStaff) StatusTool(status, state.replyStatuses, !sending, onStatusChange)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    if (text.isNotEmpty()) rutacibao.android.feature.comments.CharacterRing(text.length, limit)
                 }
             }
         }
     }
 }
 
-/** Official status is visible in words and only in official mode; the input never overlays the thread. */
 @Composable
-private fun StaffReplyComposer(
-    state: ConsultationDetailUiState,
-    vm: ConsultationDetailViewModel,
-    text: String,
-    onTextChange: (String) -> Unit,
-    status: StatusAfter,
-    onStatusChange: (StatusAfter) -> Unit,
-    official: Boolean,
-    onOfficialChange: (Boolean) -> Unit,
-) {
+private fun ReplyErrors(state: ConsultationDetailUiState, comments: CommentsUiState, asStaff: Boolean, retry: () -> Unit) {
     val palette = LocalPalette.current
-    val replyLabel = stringResource(R.string.comments_reply_placeholder)
-    Column(Modifier.padding(horizontal = PostInset).padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ComposerModeChip(official, status, state.replyStatuses, !state.replying, onOfficialChange, onStatusChange)
-            Box(Modifier.weight(1f).defaultMinSize(minHeight = 48.dp).clip(RoundedCornerShape(24.dp)).background(palette.inset)
-                .padding(horizontal = 16.dp, vertical = 12.dp), contentAlignment = Alignment.CenterStart) {
-                BasicTextField(
-                    value = text,
-                    onValueChange = onTextChange,
-                    enabled = !state.replying,
-                    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                    maxLines = 5,
-                    modifier = Modifier.fillMaxWidth().heightIn(max = 144.dp).semantics { contentDescription = replyLabel },
-                    decorationBox = { inner ->
-                        if (text.isEmpty()) Text(replyLabel, style = MaterialTheme.typography.bodyLarge, color = palette.textTertiary)
-                        inner()
-                    },
-                )
-            }
-            FilledIconButton(onClick = { vm.respond(text, status) }, enabled = !state.replying && text.isNotBlank(), modifier = Modifier.size(48.dp)) {
-                if (state.replying) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
-                else Icon(Icons.AutoMirrored.Filled.Send, contentDescription = stringResource(R.string.gestion_reply_send))
-            }
+    val message = when {
+        asStaff && state.replyError == ConsultationDetailUiState.ReplyError.TooShort -> R.string.gestion_reply_too_short
+        asStaff && state.replyError != null -> R.string.comments_official_reply_failed
+        !asStaff && comments.sendError != null -> R.string.comments_send_failed
+        else -> null
+    } ?: return
+    Column(Modifier.padding(start = 48.dp, top = 8.dp).semantics { liveRegion = LiveRegionMode.Polite }) {
+        Text(stringResource(message), style = MaterialTheme.typography.bodyMedium, color = palette.dangerInk)
+        if (message != R.string.gestion_reply_too_short) {
+            TextButton(onClick = retry, modifier = Modifier.defaultMinSize(minHeight = 48.dp)) { Text(stringResource(R.string.common_retry)) }
         }
-        state.replyError?.let { error ->
-            Column(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) {
-                Text(stringResource(if (error == ConsultationDetailUiState.ReplyError.TooShort) R.string.gestion_reply_too_short else R.string.comments_official_reply_failed),
-                    style = MaterialTheme.typography.bodyMedium, color = palette.dangerInk)
-                if (error == ConsultationDetailUiState.ReplyError.Failed) {
-                    TextButton(onClick = { vm.respond(text, status) }, enabled = !state.replying, modifier = Modifier.defaultMinSize(minHeight = 48.dp)) {
-                        Text(stringResource(R.string.common_retry))
-                    }
-                }
+    }
+}
+
+/** A tool in X's composer toolbar: a blue glyph (a word only where the glyph can't say it) and a chevron. */
+@Composable
+private fun ToolLabel(icon: ImageVector, title: String?, enabled: Boolean, description: String, value: String, onClick: () -> Unit) {
+    val palette = LocalPalette.current
+    Row(
+        Modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp).clip(RoundedCornerShape(8.dp))
+            .clickable(enabled = enabled, role = Role.DropdownList, onClick = onClick)
+            .semantics(mergeDescendants = true) { contentDescription = description; stateDescription = value },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Icon(icon, contentDescription = null, Modifier.size(20.dp), tint = palette.accentInk)
+        if (title != null) Text(title, style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold), color = palette.accentInk, maxLines = 1)
+        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null, Modifier.size(16.dp), tint = palette.accentInk)
+    }
+}
+
+/** Who answers: a resident's comment or the ayuntamiento's official reply. */
+@Composable
+private fun ModeTool(official: Boolean, enabled: Boolean, onOfficialChange: (Boolean) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val who = stringResource(if (official) R.string.consultations_municipality else R.string.comments_participant_mode)
+    Box {
+        ToolLabel(if (official) Icons.Filled.AccountBalance else Icons.Filled.PersonOutline, null, enabled, stringResource(R.string.comments_composer_mode), who) { open = true }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(text = { Text(stringResource(R.string.comments_participant_mode)) },
+                leadingIcon = { Icon(Icons.Filled.PersonOutline, contentDescription = null) },
+                onClick = { onOfficialChange(false); open = false }, modifier = Modifier.defaultMinSize(minHeight = 48.dp))
+            DropdownMenuItem(text = { Text(stringResource(R.string.consultations_municipality)) },
+                leadingIcon = { Icon(Icons.Filled.AccountBalance, contentDescription = null) },
+                onClick = { onOfficialChange(true); open = false }, modifier = Modifier.defaultMinSize(minHeight = 48.dp))
+        }
+    }
+}
+
+/** The status the case is left in after the official reply. */
+@Composable
+private fun StatusTool(status: StatusAfter, statuses: List<StatusAfter>, enabled: Boolean, onStatusChange: (StatusAfter) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val value = stringResource(status.label())
+    Box {
+        ToolLabel(Icons.Outlined.Flag, value, enabled, stringResource(R.string.comments_status_after), value) { open = true }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            statuses.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(stringResource(option.label()), fontWeight = if (option == status) FontWeight.Bold else FontWeight.Normal) },
+                    onClick = { onStatusChange(option); open = false },
+                    modifier = Modifier.defaultMinSize(minHeight = 48.dp),
+                )
             }
         }
     }

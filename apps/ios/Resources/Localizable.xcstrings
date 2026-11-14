@@ -133,6 +133,17 @@
         }
       }
     },
+    "account.appearance": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apariencia"
+          }
+        }
+      }
+    },
     "account.editProfile": {
       "extractionState": "manual",
       "localizations": {
@@ -756,6 +767,50 @@
         }
       }
     },
+    "appearance.fixed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fija"
+          }
+        }
+      }
+    },
+    "appearance.fixedBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pegada abajo, de borde a borde, solo íconos."
+          }
+        }
+      }
+    },
+    "appearance.floating": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Flotante"
+          }
+        }
+      }
+    },
+    "appearance.floatingBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sobre el contenido, con el nombre de cada sección."
+          }
+        }
+      }
+    },
     "appearance.gris.description": {
       "extractionState": "manual",
       "localizations": {
@@ -844,6 +899,17 @@
         }
       }
     },
+    "appearance.tabBar": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Barra de navegación"
+          }
+        }
+      }
+    },
     "appearance.title": {
       "extractionState": "manual",
       "localizations": {
@@ -917,6 +983,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "No se pudo completar la acción."
+          }
+        }
+      }
+    },
+    "comments.charactersLeft": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Queda %1$lld carácter"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Quedan %1$lld caracteres"
+                }
+              }
+            }
           }
         }
       }
@@ -1081,7 +1170,18 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Escribe un comentario"
+            "value": "Publica tu respuesta"
+          }
+        }
+      }
+    },
+    "comments.replies": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respuestas"
           }
         }
       }
@@ -6528,6 +6628,50 @@
         }
       }
     },
+    "onboarding.askBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pregunta al ayuntamiento y sigue su respuesta."
+          }
+        }
+      }
+    },
+    "onboarding.askTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulta"
+          }
+        }
+      }
+    },
+    "onboarding.contributeBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reporta la vía o sugiere un lugar."
+          }
+        }
+      }
+    },
+    "onboarding.contributeTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aporta"
+          }
+        }
+      }
+    },
     "onboarding.enableNotifications": {
       "extractionState": "manual",
       "localizations": {
@@ -6535,6 +6679,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Activar notificaciones"
+          }
+        }
+      }
+    },
+    "onboarding.exploreBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lugares, rutas y avisos de la vía cerca de ti."
+          }
+        }
+      }
+    },
+    "onboarding.exploreTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explora"
           }
         }
       }
@@ -6590,6 +6756,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Entérate cuando te respondan"
+          }
+        }
+      }
+    },
+    "onboarding.welcomeTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te damos la bienvenida a Ruta Cibao"
           }
         }
       }

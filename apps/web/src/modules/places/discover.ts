@@ -90,9 +90,12 @@ export async function listContributions(userId: string) {
           slug: places.slug,
           status: places.status,
           note: places.reviewNote,
+          categoryIcon: categories.icon,
+          categoryColor: categories.color,
           createdAt: places.createdAt,
         })
         .from(places)
+        .innerJoin(categories, eq(categories.id, places.categoryId))
         .where(eq(places.createdByUserId, userId))
         .orderBy(desc(places.createdAt))
         .limit(100),
@@ -102,10 +105,13 @@ export async function listContributions(userId: string) {
           name: places.name,
           slug: places.slug,
           status: placeReports.status,
+          categoryIcon: categories.icon,
+          categoryColor: categories.color,
           createdAt: placeReports.createdAt,
         })
         .from(placeReports)
         .innerJoin(places, eq(places.id, placeReports.placeId))
+        .innerJoin(categories, eq(categories.id, places.categoryId))
         .where(eq(placeReports.reporterUserId, userId))
         .orderBy(desc(placeReports.createdAt))
         .limit(100),
@@ -115,10 +121,13 @@ export async function listContributions(userId: string) {
           name: places.name,
           slug: places.slug,
           status: placePhotos.status,
+          categoryIcon: categories.icon,
+          categoryColor: categories.color,
           createdAt: placePhotos.createdAt,
         })
         .from(placePhotos)
         .innerJoin(places, eq(places.id, placePhotos.placeId))
+        .innerJoin(categories, eq(categories.id, places.categoryId))
         .where(eq(placePhotos.uploadedByUserId, userId))
         .orderBy(desc(placePhotos.createdAt))
         .limit(100),
@@ -130,6 +139,8 @@ export async function listContributions(userId: string) {
           description: trafficReports.description,
           descriptionStatus: trafficReports.descriptionModerationStatus,
           note: trafficReports.reviewNote,
+          categoryIcon: categories.icon,
+          categoryColor: categories.color,
           createdAt: trafficReports.createdAt,
         })
         .from(trafficReports)
@@ -144,9 +155,12 @@ export async function listContributions(userId: string) {
           slug: consultations.slug,
           status: consultations.status,
           publication: consultations.publicationStatus,
+          categoryIcon: categories.icon,
+          categoryColor: categories.color,
           createdAt: consultations.createdAt,
         })
         .from(consultations)
+        .innerJoin(categories, eq(categories.id, consultations.categoryId))
         .where(eq(consultations.openedByUserId, userId))
         .orderBy(desc(consultations.createdAt))
         .limit(100),
@@ -157,10 +171,13 @@ export async function listContributions(userId: string) {
           slug: places.slug,
           status: businessClaims.status,
           note: businessClaims.reviewNote,
+          categoryIcon: categories.icon,
+          categoryColor: categories.color,
           createdAt: businessClaims.createdAt,
         })
         .from(businessClaims)
         .innerJoin(places, eq(places.id, businessClaims.placeId))
+        .innerJoin(categories, eq(categories.id, places.categoryId))
         .where(eq(businessClaims.claimantUserId, userId))
         .orderBy(desc(businessClaims.createdAt))
         .limit(100),

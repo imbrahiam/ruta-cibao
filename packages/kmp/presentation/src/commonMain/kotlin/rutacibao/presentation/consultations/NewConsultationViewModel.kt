@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 import rutacibao.api.generated.ConsultationsCategoriesItem
 import rutacibao.api.generated.ConsultationsOpenInput
 import rutacibao.api.generated.MunicipalitiesListItem
+import rutacibao.data.AccountRepository
 import rutacibao.data.ConsultationsRepository
 import rutacibao.data.DraftPhoto
 import rutacibao.data.Session
@@ -65,6 +66,7 @@ public data class NewConsultationUiState(
 public class NewConsultationViewModel(
     private val repository: ConsultationsRepository,
     private val session: Session,
+    private val account: AccountRepository,
 ) : ViewModel() {
     private val _state = MutableStateFlow(NewConsultationUiState())
     public val state: StateFlow<NewConsultationUiState> = _state.asStateFlow()
@@ -77,11 +79,14 @@ public class NewConsultationViewModel(
         viewModelScope.launch {
             runCatching { repository.categories() to repository.municipalities() }
                 .onSuccess { (categories, municipalities) ->
+                    // The form arrives with the person's own town chosen; they can still change it.
+                    val home = runCatching { account.me().municipalityId }.getOrNull()
+                        ?.takeIf { id -> municipalities.any { it.id == id } }
                     _state.update {
                         it.copy(
                             categories = categories,
                             municipalities = municipalities,
-                            municipalityId = it.municipalityId ?: municipalities.singleOrNull()?.id,
+                            municipalityId = it.municipalityId ?: home ?: municipalities.singleOrNull()?.id,
                         )
                     }
                 }

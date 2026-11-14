@@ -501,7 +501,8 @@ private fun ActionButton(action: ReviewAction, busy: Boolean, act: (ReviewAction
     if (primary) Button(
         onClick = { act(action) },
         enabled = !busy,
-        colors = ButtonDefaults.buttonColors(containerColor = LocalPalette.current.fill, contentColor = LocalPalette.current.text, disabledContainerColor = LocalPalette.current.fill, disabledContentColor = LocalPalette.current.textSecondary),
+        // The card's one decision in solid ink (mirrors iOS), so it reads first without spending the green on every row.
+        colors = ButtonDefaults.buttonColors(containerColor = LocalPalette.current.text, contentColor = LocalPalette.current.background, disabledContainerColor = LocalPalette.current.fill, disabledContentColor = LocalPalette.current.textSecondary),
         modifier = size,
     ) { label() }
     else OutlinedButton(onClick = { act(action) }, enabled = !busy, modifier = size) { label() }

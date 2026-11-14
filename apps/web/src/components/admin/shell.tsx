@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LogOut, ShieldAlert } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useTranslations } from "use-intl";
-import { Logo } from "@/components/brand/logo";
+import { Logo, RoadMark } from "@/components/brand/logo";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { orpc } from "@/lib/web/api";
@@ -13,7 +13,6 @@ import { ErrorPanel, InlineError } from "./error-panel";
 import { AdminPageTitleProvider } from "./page-frame";
 import { useResetAdminSession } from "./providers";
 import { AdminSignIn } from "./sign-in";
-import { ShellSkeleton } from "./skeletons";
 import { isStaffViewer, StaffProvider } from "./staff-context";
 import { AdminWorkspace } from "./workspace";
 
@@ -42,9 +41,19 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   if (me.isPending) {
     return (
-      <div role="status" aria-busy="true">
+      // The session check is a few hundred milliseconds: a drawn-out skeleton of a
+      // desk the visitor may not even be allowed into reads as a glitch. Stay quiet,
+      // and only if it drags on let the mark appear.
+      <div
+        role="status"
+        aria-busy="true"
+        className="grid min-h-dvh place-items-center"
+      >
         <span className="sr-only">{t("loading")}</span>
-        <ShellSkeleton />
+        <RoadMark
+          size={44}
+          className="animate-fade [animation-delay:600ms] [animation-duration:400ms]"
+        />
       </div>
     );
   }

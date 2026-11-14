@@ -26,6 +26,7 @@ final class ConsultationDetailModel {
 /// A case opened like a Threads post: the post in full, then the
 /// ayuntamiento's replies as a thread, oldest first.
 struct ConsultationDetailScreen: View {
+    @Environment(AppChrome.self) private var chrome: AppChrome?
     let slug: String
     @Environment(\.graph) private var graph
     @State private var model: ConsultationDetailModel?
@@ -40,6 +41,9 @@ struct ConsultationDetailScreen: View {
             }
         }
         .toolbarVisibility(.visible, for: .navigationBar)
+        // A conversation owns the bottom edge: the reply field sits where the tab bar was.
+        .onAppear { chrome?.conversation = true }
+        .onDisappear { chrome?.conversation = false }
         .navigationTitle(L10n.Consultations.postTitle)
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -59,12 +63,45 @@ private struct DetailContent: View {
     let model: ConsultationDetailModel
     let comments: CommentsModel?
     @Environment(\.palette) private var palette
-    @FocusState private var composing: Bool
     @State private var replyingAsStaff = true
     @State private var officialDraft = ""
     @State private var officialStatus: ConsultationsRespondInput.StatusAfter = .answered
+    @State private var menuOpen = false
+    @State private var replyOpen = false
     private var state: ConsultationDetailUiState { model.state }
     private var vm: ConsultationDetailViewModel { model.viewModel }
+    private var canReply: Bool { state.canRespond || comments?.state.signedIn == true }
+
+    /// The capsule and the post's reply button: the reply sheet, or sign-in first.
+    private func startReply() {
+        if canReply {
+            replyOpen = true
+        } else {
+            comments?.viewModel.requestSignIn()
+        }
+    }
+
+    private var capsuleLabel: String {
+        guard canReply else { return L10n.Comments.signInToComment }
+        return state.canRespond && replyingAsStaff ? L10n.Comments.replyPlaceholder : L10n.Comments.placeholder
+    }
+
+    /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_REPLY="texto"` opens the reply sheet with
+    /// that text typed (as an official reply when the viewer is staff), and
+    /// `RUTA_DEBUG_REPLY_SEND=1` sends it.
+    private func debugReply() {
+        #if DEBUG
+        guard let value = DebugHook.value("RUTA_DEBUG_REPLY"), !value.isEmpty else { return }
+        if state.canRespond { officialDraft = value } else { comments?.viewModel.updateDraft(value: value) }
+        replyOpen = true
+        if DebugHook.value("RUTA_DEBUG_REPLY_SEND") == "1", state.canRespond {
+            Task {
+                try? await Task.sleep(for: .milliseconds(1500))
+                vm.respond(body: value, statusAfter: officialStatus)
+            }
+        }
+        #endif
+    }
 
     var body: some View {
         switch state.phase {
@@ -78,44 +115,79 @@ private struct DetailContent: View {
             if let detail = state.detail {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        OriginalPost(detail: detail) { vm.toggleSupport() }
-                        Thread(detail: detail)
-                        if let comments {
-                            Rectangle().fill(palette.hairline).frame(height: 0.5)
-                            CommentsHeader(title: L10n.Comments.title, total: Int(comments.state.total))
-                            CommentList(model: comments, empty: L10n.Comments.empty)
+                        let replies = detail.responses.count + Int(comments?.state.total ?? 0)
+                        OriginalPost(detail: detail, replyCount: replies, support: { vm.toggleSupport() }, reply: { if detail.publicationStatus != .pending || state.canRespond { startReply() } })
+                        // One thread, as X shows it: the ayuntamiento's answers
+                        // pinned first, then the residents', all in the same row.
+                        if replies > 0 {
+                            CommentsHeader(title: L10n.Consultations.responses(count: replies), total: replies)
+                        }
+                        ForEach(detail.responses, id: \.id) { response in
+                            OfficialReply(response: response)
+                        }
+                        if detail.publicationStatus == .pending {
+                            // Only its author sees a case before review: say so, plainly.
+                            Label(L10n.Contribute.reviewNote, systemImage: "clock")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, PostMetrics.inset)
+                                .padding(.vertical, 16)
+                        } else if let comments {
+                            CommentList(model: comments, empty: detail.responses.isEmpty ? L10n.Comments.empty : nil)
                         }
                     }
                     .padding(.bottom, 16)
                 }
+                .readableWidth()
                 .defaultScrollAnchor(DebugFlags.scrollToBottom ? .bottom : .top)
-                .scrollDismissesKeyboard(.interactively)
+                // At rest a glass capsule over the tab bar; writing happens in
+                // its own sheet, so the keyboard never lifts the tab bar.
                 .safeAreaInset(edge: .bottom, spacing: 0) {
-                    ThreadComposerBar {
-                        if state.canRespond && replyingAsStaff {
-                            StaffReplyComposer(
-                                model: model,
-                                text: $officialDraft,
-                                status: $officialStatus,
-                                replyingAsStaff: $replyingAsStaff,
-                                focus: $composing
-                            )
-                        } else if let comments {
-                            CommentComposer(model: comments, placeholder: L10n.Comments.placeholder, focus: $composing, replyingTo: detail.isMine ? nil : detail.openedBy, leading: state.canRespond ? AnyView(
-                                ComposerModeMenu(replyingAsStaff: $replyingAsStaff, status: $officialStatus, statuses: state.replyStatuses)
-                                    .disabled(comments.state.sending)
-                            ) : nil)
+                    // Nothing to reply to until the case is published.
+                    if detail.publicationStatus != .pending || state.canRespond {
+                        ThreadComposerBar {
+                            ReplyCapsule(label: capsuleLabel, signIn: !canReply, action: startReply)
                         }
                     }
+                }
+                .sheet(isPresented: $replyOpen) {
+                    ReplySheet(
+                        detail: detail,
+                        model: model,
+                        comments: comments,
+                        replyingAsStaff: $replyingAsStaff,
+                        officialDraft: $officialDraft,
+                        officialStatus: $officialStatus
+                    )
+                }
+                // A comment that went through closes the sheet; a failed one keeps it open.
+                .onChange(of: comments?.state.sending ?? false) { was, now in
+                    if was, !now, comments?.state.sendError == nil { replyOpen = false }
+                }
+                .task { debugReply() }
+                // X's bar: a plain "•••" at the end, no glass behind it.
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button { menuOpen = true } label: {
+                            Image(systemName: "ellipsis").font(.system(size: 17, weight: .semibold))
+                        }
+                        .accessibilityLabel(L10n.SafetyUi.menuLabel)
+                    }
+                    .sharedBackgroundVisibility(.hidden)
+                }
+                .sheet(isPresented: $menuOpen) {
+                    PostMenu(consultationId: detail.id, slug: detail.slug, title: detail.title) {}
                 }
                 .onChange(of: state.replySent) { _, sent in
                     if sent {
                         officialDraft = ""
+                        replyOpen = false
                         vm.replySentHandled()
                     }
                 }
+                // While the reply sheet is up, it presents the step-up itself.
                 .sheet(isPresented: Binding(
-                    get: { if case .none = onEnum(of: state.stepUp) { false } else { true } },
+                    get: { if replyOpen { false } else if case .none = onEnum(of: state.stepUp) { false } else { true } },
                     set: { if !$0 { vm.dismissStepUp() } }
                 )) {
                     StepUpSheet(
@@ -150,47 +222,54 @@ private struct DetailContent: View {
 
 // MARK: - The post
 
-/// Threads' opened post: the person who opened it (photo, name, town) and
-/// "…"; the title and text at full width; the category as a small tag; media;
-/// then one hairline and a single row: support with its count, share, status.
+/// X's opened post, field for field: a 48 pt photo with the bold name over
+/// the grey handle (here the town) and, where X puts its label, the case's
+/// status; the text at 17 pt (title in bold); the category tag, media and map
+/// as X's bordered cards; the grey meta line (time · date · bold count); then
+/// X's action row spread across the width.
 private struct OriginalPost: View {
     let detail: ConsultationsDetailOutput
+    let replyCount: Int
     let support: () -> Void
+    let reply: () -> Void
     @Environment(\.palette) private var palette
-    @State private var menuOpen = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let inset = PostMetrics.inset
+    private let inset = XMetrics.inset
 
     var body: some View {
         let photos = (detail.photos ?? []).map(PostPhoto.init)
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 12) {
-                AuthorAvatar(name: author, image: detail.openedByImage, size: 44)
-                VStack(alignment: .leading, spacing: 1) {
+            HStack(alignment: .center, spacing: XMetrics.gap) {
+                AuthorAvatar(name: author, image: detail.openedByImage, size: 48)
+                VStack(alignment: .leading, spacing: 0) {
                     Text(author)
-                        .font(.body.weight(.bold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text("\(detail.municipalityName) · \(CompactTime.since(detail.createdAt.date))")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(palette.text)
+                        .lineLimit(1)
+                    Text(detail.municipalityName)
+                        .font(.system(size: 17))
+                        .foregroundStyle(palette.textSecondary)
+                        .lineLimit(1)
                 }
                 Spacer(minLength: 8)
-                MoreButton { menuOpen = true }
+                StatusPill(status: detail.statusValue)
             }
             .padding(.horizontal, inset)
 
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(detail.title)
-                    .font(.title3.weight(.semibold))
+                    .font(.system(size: 17, weight: .bold))
                     .accessibilityAddTraits(.isHeader)
                 Text(detail.body)
-                    .font(.body)
-                    .lineSpacing(3)
+                    .font(.system(size: 17))
+                    .lineSpacing(4)
                     .textSelection(.enabled)
             }
+            .foregroundStyle(palette.text)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, inset)
-            .padding(.top, 14)
+            .padding(.top, 12)
 
             CategoryTag(icon: detail.categoryIcon, hex: detail.categoryColor, name: detail.categoryName)
                 .padding(.horizontal, inset)
@@ -198,7 +277,7 @@ private struct OriginalPost: View {
 
             if !photos.isEmpty {
                 PostMedia(photos: photos, leadingInset: inset)
-                    .padding(.top, 14)
+                    .padding(.top, 12)
             }
 
             if let location = detail.location {
@@ -207,31 +286,81 @@ private struct OriginalPost: View {
                     .padding(.top, 12)
             }
 
-            // X's stats bar: hairlines above and below, icons with bare counts.
-            Rectangle().fill(palette.hairline).frame(height: 0.5)
+            // X's meta line: "5:20 p. m. · 11/6/26 · 8 apoyos", the count in bold ink.
+            (Text(detail.createdAt.date, format: .dateTime.hour().minute())
+                + Text(verbatim: " · ")
+                + Text(detail.createdAt.date, format: .dateTime.day().month(.defaultDigits).year(.twoDigits))
+                + Text(verbatim: " · ")
+                + CountText.make(L10n.Consultations.supports(count: Int(detail.supportCount)), count: Int(detail.supportCount), ink: palette.text))
+                .font(.system(size: 15))
+                .foregroundStyle(palette.textSecondary)
                 .padding(.horizontal, inset)
-                .padding(.top, 14)
-            HStack(spacing: 8) {
-                PostActions(supported: detail.supported, support: support, reply: {}, shareURL: shareURL(detail.slug), shareTitle: detail.title, showsReply: false, supportCount: Int(detail.supportCount))
+                .padding(.top, 16)
+
+            // Three actions, grouped at the start as Threads does (spread edge
+            // to edge like X's five they leave holes): support, reply, share.
+            HStack(spacing: 4) {
+                action(symbol: detail.supported ? "heart.fill" : "heart", count: Int(detail.supportCount),
+                       label: detail.supported ? L10n.Consultations.supported : L10n.Consultations.support,
+                       tint: detail.supported ? RutaHighlight.support : palette.textSecondary, action: support)
+                    .symbolEffect(.bounce, value: reduceMotion ? false : detail.supported)
+                    .sensoryFeedback(.impact(weight: .light), trigger: detail.supported)
+                    .accessibilityAddTraits(detail.supported ? .isSelected : [])
+                action(symbol: "bubble.left", count: replyCount, label: L10n.Comments.participantMode, tint: palette.textSecondary, action: reply)
+                ShareLink(item: shareURL(detail.slug), subject: Text(detail.title)) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 19))
+                        .foregroundStyle(palette.textSecondary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel(L10n.Common.share)
                 Spacer(minLength: 0)
-                StatusPill(status: detail.statusValue)
             }
-            .padding(.leading, inset - 11)
-            .padding(.trailing, inset)
-            .padding(.vertical, 2)
-            Rectangle().fill(palette.hairline).frame(height: 0.5)
-                .padding(.horizontal, inset)
+            .padding(.leading, inset - 10)
+            .padding(.trailing, inset - 12)
+            .padding(.top, 6)
         }
         .padding(.top, 8)
-        .sheet(isPresented: $menuOpen) {
-            PostMenu(consultationId: detail.id, slug: detail.slug, title: detail.title) {}
+    }
+
+    private func action(symbol: String, count: Int, label: String, tint: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Image(systemName: symbol)
+                    .font(.system(size: 19))
+                    .foregroundStyle(tint)
+                if count > 0 {
+                    Text(verbatim: "\(count)")
+                        .font(.system(size: 15))
+                        .foregroundStyle(palette.textSecondary)
+                        .contentTransition(reduceMotion ? .identity : .numericText())
+                }
+            }
+            .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+            .padding(.horizontal, 10)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityValue(count > 0 ? "\(count)" : "")
     }
 
     /// Who opened it; "you" for your own case; the category when unnamed.
     private var author: String {
         if detail.isMine { return L10n.Consultations.you }
         return detail.openedBy ?? detail.categoryName
+    }
+}
+
+/// X's "147K Views": the number in bold ink inside a plural phrase.
+enum CountText {
+    static func make(_ phrase: String, count: Int, ink: Color) -> Text {
+        let number = "\(count)"
+        guard count > 0, let range = phrase.range(of: number) else { return Text(phrase) }
+        return Text(phrase[..<range.lowerBound])
+            + Text(number).fontWeight(.bold).foregroundColor(ink)
+            + Text(phrase[range.upperBound...])
     }
 }
 
@@ -295,6 +424,7 @@ private struct LocationCard: View {
     let latitude: Double
     let longitude: Double
     let tint: Color
+    @Environment(\.palette) private var palette
 
     var body: some View {
         let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
@@ -305,7 +435,8 @@ private struct LocationCard: View {
         .frame(height: 150)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+            // X's card edge: one pale blue-grey pixel.
+            RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(palette.fillPressed, lineWidth: 1)
         }
         .accessibilityLabel(L10n.Consultations.location)
     }
@@ -313,139 +444,228 @@ private struct LocationCard: View {
 
 // MARK: - The thread
 
-private struct Thread: View {
-    let detail: ConsultationsDetailOutput
-    @Environment(\.palette) private var palette
-
-    var body: some View {
-        // No replies, no heading: the composer already says who can answer.
-        if !detail.responses.isEmpty {
-            VStack(alignment: .leading, spacing: 0) {
-                Rectangle().fill(palette.hairline).frame(height: 0.5)
-                HStack(spacing: 6) {
-                    Text(L10n.Comments.officialReplies)
-                    Text(verbatim: "\(detail.responses.count)").foregroundStyle(.secondary)
-                }
-                .font(.system(size: 15, weight: .semibold))
-                .padding(.horizontal, PostMetrics.inset)
-                .padding(.top, 18)
-                .padding(.bottom, 4)
-                .accessibilityAddTraits(.isHeader)
-                ForEach(detail.responses, id: \.id) { response in
-                    Reply(response: response)
-                }
-            }
-        }
-    }
-}
-
-/// One official reply: the ayuntamiento's mark, its name with an "Oficial"
-/// badge (text, not colour) and the time, then the answer.
-private struct Reply: View {
+/// One official reply in the shared row: the ayuntamiento's disc, its name
+/// with the "Oficial" badge, the age, then the answer.
+private struct OfficialReply: View {
     let response: ConsultationsDetailOutput.Response
-    @Environment(\.palette) private var palette
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            GlyphDisc(symbol: "building.columns", size: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(response.author ?? L10n.Consultations.municipality)
-                        .font(.system(size: 13, weight: .bold))
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(L10n.Comments.officialBadge)
-                        .font(.system(size: 11, weight: .semibold))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(palette.raised, in: Capsule())
-                    Text(CompactTime.since(response.createdAt.date))
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 0)
-                }
-                Text(response.body)
-                    .font(.callout)
-                    .lineSpacing(2)
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+        ReplyRow(
+            name: response.author ?? L10n.Consultations.municipality,
+            official: true,
+            date: response.createdAt.date,
+            text: response.body
+        ) {
+            GlyphDisc(symbol: "building.columns", size: XMetrics.avatar)
+        } trailing: {
+            EmptyView()
         }
-        .padding(.horizontal, PostMetrics.inset)
-        .padding(.vertical, 12)
         .accessibilityElement(children: .combine)
     }
 }
 
 // MARK: - Staff reply
 
-/// The composer for staff: the status the case is left in, then the public
-/// reply. It sits in the same bar as the comment composer.
-private struct StaffReplyComposer: View {
-    let model: ConsultationDetailModel
-    @Binding var text: String
-    @Binding var status: ConsultationsRespondInput.StatusAfter
-    @Binding var replyingAsStaff: Bool
-    var focus: FocusState<Bool>.Binding
+/// The resting composer: one Liquid Glass capsule above the tab bar that
+/// opens the reply sheet (or asks to sign in first, with an arrow).
+private struct ReplyCapsule: View {
+    let label: String
+    let signIn: Bool
+    let action: () -> Void
     @Environment(\.palette) private var palette
-    @Environment(\.colorScheme) private var scheme
-    private var state: ConsultationDetailUiState { model.state }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let error = state.replyError {
-                if error == .tooShort {
-                    Label(L10n.Gestion.replyTooShort, systemImage: "exclamationmark.circle")
-                        .font(.footnote)
-                        .foregroundStyle(palette.dangerInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    ThreadErrorNotice(message: L10n.Comments.officialReplyFailed) {
-                        model.viewModel.respond(body: text, statusAfter: status)
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Text(label)
+                    .font(.system(size: 17))
+                    .foregroundStyle(palette.textSecondary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                if signIn {
+                    Image(systemName: "arrow.right")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(palette.textSecondary)
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(maxWidth: .infinity, minHeight: ComposerMetrics.height)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .composerGlass(expanded: false)
+    }
+}
+
+/// Writing a reply, as X and Threads do it: its own sheet over the thread.
+/// "Cancelar" and the accent "Responder" pill on top; the post you answer
+/// with its author's photo and a thread line running down to yours; the
+/// field, focused; and above the keyboard, the staff's tools and the
+/// character ring. A sent reply closes it (the screen watches for that).
+private struct ReplySheet: View {
+    let detail: ConsultationsDetailOutput
+    let model: ConsultationDetailModel
+    let comments: CommentsModel?
+    @Binding var replyingAsStaff: Bool
+    @Binding var officialDraft: String
+    @Binding var officialStatus: ConsultationsRespondInput.StatusAfter
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.palette) private var palette
+    @FocusState private var focused: Bool
+
+    private var state: ConsultationDetailUiState { model.state }
+    private var asStaff: Bool { state.canRespond && replyingAsStaff }
+    private var text: Binding<String> {
+        asStaff ? $officialDraft : Binding(
+            get: { comments?.state.draft ?? "" },
+            set: { comments?.viewModel.updateDraft(value: $0) }
+        )
+    }
+    private var limit: Int { asStaff ? CommentLimits.officialReply : CommentLimits.comment }
+    private var sending: Bool { asStaff ? state.replying : (comments?.state.sending ?? false) }
+    private var canSend: Bool {
+        if asStaff {
+            let trimmed = officialDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+            return !trimmed.isEmpty && officialDraft.count <= limit
+        }
+        return comments?.state.canSend ?? false
+    }
+    private var author: String {
+        if detail.isMine { return L10n.Consultations.you }
+        return detail.openedBy ?? detail.categoryName
+    }
+
+    private func send() {
+        if asStaff {
+            model.viewModel.respond(body: officialDraft, statusAfter: officialStatus)
+        } else {
+            comments?.viewModel.send()
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    // The post, and the thread line from its author down to you.
+                    HStack(alignment: .top, spacing: XMetrics.gap) {
+                        VStack(spacing: 4) {
+                            AuthorAvatar(name: author, image: detail.openedByImage, size: XMetrics.avatar)
+                            Capsule().fill(palette.fillPressed).frame(width: 2).frame(maxHeight: .infinity)
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                Text(author).font(.system(size: 15, weight: .bold)).lineLimit(1)
+                                Text(verbatim: "· \(CompactTime.since(detail.createdAt.date))")
+                                    .font(.system(size: 15))
+                                    .foregroundStyle(palette.textSecondary)
+                                    .layoutPriority(1)
+                            }
+                            Text(detail.title)
+                                .font(.system(size: 15, weight: .semibold))
+                                .padding(.top, 2)
+                            Text(detail.body)
+                                .font(.system(size: 15))
+                                .lineSpacing(2)
+                                .lineLimit(4)
+                            if !detail.isMine, let name = detail.openedBy {
+                                ReplyingToLine(name: name)
+                                    .padding(.leading, -4)
+                                    .padding(.top, 10)
+                            }
+                        }
+                        .foregroundStyle(palette.text)
+                        .padding(.bottom, 18)
                     }
+                    .fixedSize(horizontal: false, vertical: true)
+
+                    // You: who answers, and the field.
+                    HStack(alignment: .top, spacing: XMetrics.gap) {
+                        GlyphDisc(symbol: asStaff ? "building.columns" : "person", size: XMetrics.avatar)
+                        TextField(
+                            text: text,
+                            prompt: Text(asStaff ? L10n.Comments.replyPlaceholder : L10n.Comments.placeholder)
+                                .foregroundStyle(palette.textSecondary),
+                            axis: .vertical
+                        ) { Text(L10n.Comments.placeholder) }
+                            .font(.system(size: 17))
+                            .lineLimit(3...)
+                            .focused($focused)
+                            .disabled(sending)
+                            .padding(.top, 9)
+                    }
+                    errors.padding(.leading, XMetrics.avatar + XMetrics.gap)
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
             }
-            HStack(alignment: .bottom, spacing: 8) {
-                ComposerModeMenu(replyingAsStaff: $replyingAsStaff, status: $status, statuses: state.replyStatuses)
-                    .disabled(state.replying)
-                HStack(alignment: .bottom, spacing: 4) {
-                    TextField(L10n.Comments.replyPlaceholder, text: $text, axis: .vertical)
-                        .font(.body)
-                        .lineLimit(1...5)
-                        .focused(focus)
-                        .disabled(state.replying)
-                        .padding(.leading, 16)
-                        .padding(.vertical, 12)
-                    ThreadSendButton(
-                        sending: state.replying,
-                        enabled: !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                        label: L10n.Gestion.replySend,
-                        action: { model.viewModel.respond(body: text, statusAfter: status) }
-                    )
-                    .padding(3)
+            .scrollDismissesKeyboard(.never)
+            // Above the keyboard: the staff's tools and the ring.
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                HStack(spacing: 10) {
+                    if state.canRespond {
+                        ComposerModeMenu(replyingAsStaff: $replyingAsStaff)
+                        if asStaff { StatusAfterMenu(status: $officialStatus, statuses: state.replyStatuses) }
+                    }
+                    Spacer(minLength: 0)
+                    let count = text.wrappedValue.count
+                    if count > 0 { CharacterRing(count: count, limit: limit) }
                 }
-                .background(palette.raised, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                .disabled(sending)
+                .padding(.horizontal, 16)
+                .frame(minHeight: 48)
+                .background(palette.background)
+                .overlay(alignment: .top) { Rectangle().fill(palette.fill).frame(height: 0.5) }
             }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(L10n.Common.cancel) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    ReplyButton(canSend: canSend, sending: sending, action: send)
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .background(palette.background)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .task { debugReply() }
+        .onAppear { focused = true }
+        // Switching who answers keeps the keyboard up.
+        .onChange(of: replyingAsStaff) { focused = true }
+        .presentationDragIndicator(.visible)
+        .sheet(isPresented: Binding(
+            get: { if case .none = onEnum(of: state.stepUp) { false } else { true } },
+            set: { if !$0 { model.viewModel.dismissStepUp() } }
+        )) {
+            StepUpSheet(
+                state: state.stepUp,
+                verify: { model.viewModel.verifyStepUp(code: $0) },
+                useRecovery: { model.viewModel.useRecoveryCode(recovery: $0) },
+                dismiss: { model.viewModel.dismissStepUp() }
+            )
+        }
     }
 
-    /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_REPLY="texto"` types the reply and sends it.
-    private func debugReply() {
-        #if DEBUG
-        guard let value = ProcessInfo.processInfo.environment["RUTA_DEBUG_REPLY"], !value.isEmpty else { return }
-        text = value
-        if ProcessInfo.processInfo.environment["RUTA_DEBUG_REPLY_SEND"] == "1" {
-            Task {
-                try? await Task.sleep(for: .milliseconds(1500))
-                model.viewModel.respond(body: value, statusAfter: status)
+    @ViewBuilder private var errors: some View {
+        if asStaff, let error = state.replyError {
+            if error == .tooShort {
+                Label(L10n.Gestion.replyTooShort, systemImage: "exclamationmark.circle")
+                    .font(.footnote)
+                    .foregroundStyle(palette.dangerInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 8)
+            } else {
+                ThreadErrorNotice(message: L10n.Comments.officialReplyFailed) { send() }
             }
+        } else if !asStaff, comments?.state.sendError != nil {
+            ThreadErrorNotice(message: L10n.Comments.sendFailed) { send() }
         }
-        #endif
     }
+}
 
-    fileprivate static func label(_ status: ConsultationsRespondInput.StatusAfter) -> String {
+/// The words for the status a case is left in after an official reply.
+private enum StatusAfterText {
+    static func label(_ status: ConsultationsRespondInput.StatusAfter) -> String {
         switch status {
         case .inReview: L10n.Consultations.StatusLabel.in_review
         case .answered: L10n.Consultations.StatusLabel.answered
@@ -455,13 +675,31 @@ private struct StaffReplyComposer: View {
     }
 }
 
+/// A tool in X's composer toolbar: a blue glyph and word, with a chevron
+/// because it opens a menu.
+private struct ToolLabel: View {
+    let symbol: String
+    /// X's tools are bare glyphs; a word only where the glyph can't say it.
+    var title: String?
+    @Environment(\.palette) private var palette
 
-/// One compact menu: who answers, and the status the case is left in.
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: symbol).font(.system(size: 18, weight: .medium))
+            if let title {
+                Text(title).font(.system(size: 15, weight: .semibold)).lineLimit(1).truncationMode(.tail)
+            }
+            Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold))
+        }
+        .foregroundStyle(palette.accentInk)
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+    }
+}
+
+/// Who answers: a resident's comment or the ayuntamiento's official reply.
 private struct ComposerModeMenu: View {
     @Binding var replyingAsStaff: Bool
-    @Binding var status: ConsultationsRespondInput.StatusAfter
-    let statuses: [ConsultationsRespondInput.StatusAfter]
-    @Environment(\.palette) private var palette
 
     var body: some View {
         Menu {
@@ -469,34 +707,32 @@ private struct ComposerModeMenu: View {
                 Label(L10n.Comments.participantMode, systemImage: "person").tag(false)
                 Label(L10n.Consultations.municipality, systemImage: "building.columns").tag(true)
             }
-            if replyingAsStaff {
-                Picker(L10n.Comments.statusAfter, selection: $status) {
-                    ForEach(statuses, id: \.self) { option in
-                        Text(StaffReplyComposer.label(option)).tag(option)
-                    }
-                }
-            }
         } label: {
-            HStack(spacing: 6) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(replyingAsStaff ? L10n.Consultations.municipality : L10n.Comments.participantMode)
-                        .fontWeight(.semibold)
-                    if replyingAsStaff {
-                        Text(StaffReplyComposer.label(status)).foregroundStyle(.secondary)
-                    }
-                }
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption2.weight(.semibold))
-            }
-            .font(.footnote)
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 12)
-            .frame(minHeight: 50)
-            .background(palette.raised, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-            .contentShape(Rectangle())
+            ToolLabel(symbol: replyingAsStaff ? "building.columns" : "person")
         }
         .buttonStyle(.plain)
         .accessibilityLabel(L10n.Comments.composerMode)
-        .accessibilityValue(replyingAsStaff ? "\(L10n.Consultations.municipality), \(StaffReplyComposer.label(status))" : L10n.Comments.participantMode)
+        .accessibilityValue(replyingAsStaff ? L10n.Consultations.municipality : L10n.Comments.participantMode)
+    }
+}
+
+/// The status the case is left in after the official reply.
+private struct StatusAfterMenu: View {
+    @Binding var status: ConsultationsRespondInput.StatusAfter
+    let statuses: [ConsultationsRespondInput.StatusAfter]
+
+    var body: some View {
+        Menu {
+            Picker(L10n.Comments.statusAfter, selection: $status) {
+                ForEach(statuses, id: \.self) { option in
+                    Text(StatusAfterText.label(option)).tag(option)
+                }
+            }
+        } label: {
+            ToolLabel(symbol: "flag", title: StatusAfterText.label(status))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(L10n.Comments.statusAfter)
+        .accessibilityValue(StatusAfterText.label(status))
     }
 }

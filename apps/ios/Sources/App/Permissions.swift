@@ -2,54 +2,46 @@ import CoreLocation
 import SwiftUI
 import UserNotifications
 
-/// First run: one sheet asks for what the app needs, each in context and one
-/// at a time (Apple Maps' pattern). Location first, then notifications; a
-/// step already answered is skipped. The system prompt only appears after
-/// the person taps "allow", so "Ahora no" never burns the one-time prompt.
+/// First run: one welcome sheet in the system's style (the mark, what the
+/// app does in three lines, Continuar). Continuar asks for location, the one
+/// permission the map needs. Notifications are asked at sign-in, when there
+/// is something to be notified about.
 @MainActor @Observable
 final class PermissionsPrimer: NSObject, CLLocationManagerDelegate {
-    enum Step { case location, notifications }
+    private static let seenKey = "ruta.welcomed"
 
-    private(set) var steps: [Step] = []
-    var current: Step? { steps.first }
+    private(set) var welcoming = false
 
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var waiting: CheckedContinuation<Void, Never>?
 
     func prepare() async {
         #if DEBUG
-        // Screenshot runs open a tab directly; they ask for the primer explicitly.
-        let env = ProcessInfo.processInfo.environment
-        if env["RUTA_DEBUG_TAB"] != nil, env["RUTA_DEBUG_COMPOSE"] != "primer" { return }
+        // Screenshot runs open a tab directly; they ask for the welcome explicitly.
+        if DebugHook.value("RUTA_DEBUG_COMPOSE") == "primer" { welcoming = true; return }
+        if DebugHook.value("RUTA_DEBUG_TAB") != nil { return }
         #endif
-        var needed: [Step] = []
-        if manager.authorizationStatus == .notDetermined { needed.append(.location) }
-        if await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .notDetermined {
-            needed.append(.notifications)
+        guard !UserDefaults.standard.bool(forKey: Self.seenKey) else { return }
+        // The map draws first; the welcome rises over it.
+        try? await Task.sleep(for: .milliseconds(900))
+        welcoming = true
+    }
+
+    /// Continuar: the system's location prompt, then the map.
+    func proceed() async {
+        if manager.authorizationStatus == .notDetermined {
+            manager.delegate = self
+            await withCheckedContinuation { continuation in
+                waiting = continuation
+                manager.requestWhenInUseAuthorization()
+            }
         }
-        steps = needed
+        dismiss()
     }
 
-    func allowLocation() async {
-        manager.delegate = self
-        await withCheckedContinuation { continuation in
-            waiting = continuation
-            manager.requestWhenInUseAuthorization()
-        }
-        advance()
-    }
-
-    func allowNotifications() async {
-        await PushPermission.registerIfAllowed(ask: true)
-        advance()
-    }
-
-    func skip() { advance() }
-
-    func dismiss() { steps = [] }
-
-    private func advance() {
-        if !steps.isEmpty { steps.removeFirst() }
+    func dismiss() {
+        UserDefaults.standard.set(true, forKey: Self.seenKey)
+        welcoming = false
     }
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -62,71 +54,83 @@ final class PermissionsPrimer: NSObject, CLLocationManagerDelegate {
     }
 }
 
-/// The primer's sheet: illustration, a bold line, one quiet paragraph, a
-/// full-width primary button and a glass "Ahora no" under it.
+/// The welcome sheet, laid out as the system's own ("Te damos la bienvenida
+/// a Mapas"): the mark, a bold title, three features, one button.
 struct PermissionsSheet: View {
     let primer: PermissionsPrimer
     @Environment(\.palette) private var palette
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var busy = false
+    @State private var shown = false
+
+    private var features: [(symbol: String, color: Color, title: String, body: String)] {
+        [
+            ("map.fill", .green, L10n.Onboarding.exploreTitle, L10n.Onboarding.exploreBody),
+            ("bubble.left.and.bubble.right.fill", .blue, L10n.Onboarding.askTitle, L10n.Onboarding.askBody),
+            ("plus.circle.fill", .orange, L10n.Onboarding.contributeTitle, L10n.Onboarding.contributeBody),
+        ]
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 24)
-            Group {
-                switch primer.current {
-                case .location:
-                    content(art: .colmado, title: L10n.Onboarding.locationTitle, body: L10n.Onboarding.locationBody)
-                case .notifications:
-                    content(art: .mailbox, title: L10n.Onboarding.notificationsTitle, body: L10n.Onboarding.notificationsBody)
-                case nil:
-                    Color.clear
-                }
-            }
-            .id(primer.current)
-            .transition(.asymmetric(insertion: .move(edge: .trailing).combined(with: .opacity), removal: .move(edge: .leading).combined(with: .opacity)))
-            Spacer(minLength: 24)
-            VStack(spacing: 12) {
-                Button {
-                    busy = true
-                    Task {
-                        if primer.current == .location { await primer.allowLocation() } else { await primer.allowNotifications() }
-                        busy = false
+            ScrollView {
+                VStack(spacing: 36) {
+                    VStack(spacing: 20) {
+                        BrandMark(size: 76)
+                        Text(L10n.Onboarding.welcomeTitle)
+                            .font(.title.weight(.bold))
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityAddTraits(.isHeader)
                     }
-                } label: {
-                    Text(primer.current == .location ? L10n.Onboarding.allowLocation : L10n.Onboarding.enableNotifications)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 54)
+                    VStack(alignment: .leading, spacing: 26) {
+                        ForEach(Array(features.enumerated()), id: \.offset) { index, feature in
+                            HStack(spacing: 16) {
+                                Image(systemName: feature.symbol)
+                                    .font(.system(size: 30))
+                                    .foregroundStyle(feature.color.gradient)
+                                    .frame(width: 44)
+                                    .accessibilityHidden(true)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(feature.title).font(.headline)
+                                    Text(feature.body)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                            .accessibilityElement(children: .combine)
+                            // Each line settles in after the one above it.
+                            .opacity(shown ? 1 : 0)
+                            .offset(y: shown ? 0 : 12)
+                            .animation(reduceMotion ? nil : .spring(duration: 0.5).delay(0.25 + Double(index) * 0.09), value: shown)
+                        }
+                    }
+                    .frame(maxWidth: 340, alignment: .leading)
                 }
-                .buttonStyle(RutaProminentStyle())
-                .disabled(busy)
-
-                Button { primer.skip() } label: {
-                    Text(L10n.Onboarding.notNow)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 54)
-                }
-                .buttonStyle(.glass)
-                .disabled(busy)
+                .padding(.top, 56)
+                .padding(.horizontal, 32)
+                .frame(maxWidth: .infinity)
             }
-        }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 12)
-        .animation(.snappy(duration: 0.35), value: primer.current)
-        .interactiveDismissDisabled(busy)
-    }
+            .scrollBounceBehavior(.basedOnSize)
 
-    private func content(art: Art, title: String, body: String) -> some View {
-        VStack(spacing: 14) {
-            Illustration(art: art, size: 230)
-            Text(title)
-                .font(.system(size: 28, weight: .bold))
-                .tracking(-0.4)
-                .multilineTextAlignment(.center)
-            Text(body)
-                .font(.body)
-                .foregroundStyle(palette.textSecondary)
-                .multilineTextAlignment(.center)
+            Button {
+                busy = true
+                Task {
+                    await primer.proceed()
+                    busy = false
+                }
+            } label: {
+                Text(L10n.Common.`continue`)
+                    .font(.headline)
+                    .frame(maxWidth: 420, minHeight: 54)
+            }
+            .buttonStyle(RutaProminentStyle())
+            .disabled(busy)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 12)
         }
-        .accessibilityElement(children: .combine)
+        .onAppear { shown = true }
+        .interactiveDismissDisabled(busy)
     }
 }

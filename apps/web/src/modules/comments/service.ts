@@ -52,6 +52,24 @@ async function publicSubject(
   return row ?? null;
 }
 
+async function ownsConsultation(
+  executor: Executor,
+  slug: string,
+  userId: string,
+): Promise<boolean> {
+  const [row] = await executor
+    .select({ id: consultations.id })
+    .from(consultations)
+    .where(
+      and(
+        eq(consultations.slug, slug),
+        eq(consultations.openedByUserId, userId),
+      ),
+    )
+    .limit(1);
+  return row !== undefined;
+}
+
 /**
  * Published comments, minus those by people the viewer blocked. A
  * consultation reads as a conversation (oldest first); experiences of a place
@@ -68,7 +86,18 @@ export async function listComments(
   },
 ) {
   const subject = await publicSubject(db, input.kind, input.ref);
-  if (!subject) throw new CommentError("not_found");
+  if (!subject) {
+    // An author can open their own case while it waits for review. Nobody can
+    // have commented on it yet, so its thread is empty, not missing.
+    if (
+      input.kind === "consultation" &&
+      viewer.kind === "member" &&
+      (await ownsConsultation(db, input.ref, viewer.userId))
+    ) {
+      return { items: [], total: 0 };
+    }
+    throw new CommentError("not_found");
+  }
 
   const filters = and(
     eq(comments.subjectKind, input.kind),

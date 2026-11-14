@@ -106,8 +106,16 @@ internal fun sessionPlugin(session: Session, config: AppConfig) = createClientPl
         (bound?.cookie ?: session.cookieHeader())?.let { request.headers.append(HttpHeaders.Cookie, it) }
     }
     onResponse { response ->
-        if (response.call.request.headers[HttpHeaders.Cookie] == session.cookieHeader()) {
+        val request = response.call.request
+        if (request.headers[HttpHeaders.Cookie] == session.cookieHeader()) {
             session.accept(response.headers.getAll(HttpHeaders.SetCookie).orEmpty())
+            // The server no longer knows this session (expired, revoked, another
+            // database): sign out here too, so screens show "sign in" instead of
+            // failing one by one. Only on reads: a rejected code is also a 401,
+            // and those are always POSTs.
+            if (response.status.value == 401 && request.method == io.ktor.http.HttpMethod.Get && session.identityToken() != null) {
+                session.clear()
+            }
         }
     }
 }

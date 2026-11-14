@@ -11,11 +11,13 @@ struct ConsultationsScreen: View {
     @State private var model: ConsultationsModel?
     @State private var path: [ConsultationRoute] = Self.debugPath
     @Environment(DeepLinks.self) private var links
+    @State private var composing = false
+    @State private var signingIn = false
 
     /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_SLUG=<slug>` opens a post (screenshot runs).
     private static var debugPath: [ConsultationRoute] {
         #if DEBUG
-        if let slug = ProcessInfo.processInfo.environment["RUTA_DEBUG_SLUG"], !slug.isEmpty { return [ConsultationRoute(slug: slug)] }
+        if let slug = DebugHook.value("RUTA_DEBUG_SLUG"), !slug.isEmpty { return [ConsultationRoute(slug: slug)] }
         #endif
         return []
     }
@@ -29,12 +31,29 @@ struct ConsultationsScreen: View {
                     SkeletonFeed()
                 }
             }
-            .tabBarClearance()
             .navigationTitle(L10n.Consultations.title)
-            // The tab bar already says where you are; the feed opens on content.
-            .toolbarVisibility(.hidden, for: .navigationBar)
+            .toolbar {
+                if let model {
+                    ToolbarItem(placement: .topBarTrailing) { StatusFilter(selected: model.state.status) { model.viewModel.selectStatus(status: $0) } }
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(L10n.Consultations.new, systemImage: "square.and.pencil") {
+                            if graph?.session.isSignedIn.value == true { composing = true } else { signingIn = true }
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $composing) {
+                NewConsultationScreen { slug in
+                    model?.viewModel.refresh()
+                    path.append(ConsultationRoute(slug: slug))
+                }
+            }
+            .fullScreenCover(isPresented: $signingIn, onDismiss: {
+                if graph?.session.isSignedIn.value == true { composing = true }
+            }) { SignInScreen() }
             .navigationDestination(for: ConsultationRoute.self) { route in
-                ConsultationDetailScreen(slug: route.slug).tabBarClearance()
+                ConsultationDetailScreen(slug: route.slug)
             }
         }
         .onChange(of: links.pending, initial: true) { _, target in
@@ -62,10 +81,10 @@ private struct ConsultationsFeed: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 0, pinnedViews: []) {
-                StatusFilter(selected: state.status) { vm.selectStatus(status: $0) }
                 content
             }
         }
+        .readableWidth()
         .defaultScrollAnchor(DebugFlags.scrollToBottom ? .bottom : .top)
         // The tab bar clearance is the safe area; 16 more so the last card ends above it.
         .contentMargins(.bottom, 16, for: .scrollContent)
@@ -115,48 +134,27 @@ private struct ConsultationsFeed: View {
 
 // MARK: - Filter
 
+/// The system's filter menu in the bar, as in Mail: one glyph, the options
+/// with a tick on the current one. The glyph fills while a filter is on.
 private struct StatusFilter: View {
     let selected: ConsultationsBrowseInput.Status?
     let select: (ConsultationsBrowseInput.Status?) -> Void
 
-    @Environment(\.palette) private var palette
-
-    private var options: [ConsultationsBrowseInput.Status?] { [nil] + ConsultationsBrowseInput.Status.allCases }
-
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
-                    let current = option == selected
-                    Button { select(option) } label: {
-                        // Threads' chips: 36 tall to the eye, 44 to the finger; a hairline
-                        // outline at rest, a soft grey fill and bolder label when chosen.
-                        Text(option.map(ConsultationStatusText.label) ?? L10n.Consultations.allTab)
-                            .font(.subheadline.weight(current ? .bold : .semibold))
-                            .foregroundStyle(palette.text)
-                            .padding(.horizontal, 16)
-                            .frame(height: 36)
-                            .background(current ? palette.inset : .clear, in: Capsule())
-                            .overlay { Capsule().strokeBorder(palette.separator, lineWidth: 1) }
-                            .frame(minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(current ? .isSelected : [])
+        Menu {
+            Picker(L10n.Consultations.filterStatus, selection: Binding(get: { selected }, set: { select($0) })) {
+                Text(L10n.Consultations.allTab).tag(ConsultationsBrowseInput.Status?.none)
+                ForEach(ConsultationsBrowseInput.Status.allCases, id: \.self) { status in
+                    Text(ConsultationStatusText.label(status)).tag(Optional(status))
                 }
             }
-            .padding(.horizontal, PostMetrics.inset)
-        }
-        .overlay(alignment: .trailing) {
-            // Tells the row it scrolls on.
-            LinearGradient(colors: [palette.background.opacity(0), palette.background], startPoint: .leading, endPoint: .trailing)
-                .frame(width: 24)
-                .allowsHitTesting(false)
-                .accessibilityHidden(true)
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease")
+                .symbolVariant(selected == nil ? .none : .circle.fill)
         }
         .accessibilityLabel(L10n.Consultations.filterStatus)
+        .accessibilityValue(selected.map(ConsultationStatusText.label) ?? L10n.Consultations.allTab)
         .sensoryFeedback(.selection, trigger: selected)
-        .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5) }
     }
 }
 
@@ -275,6 +273,11 @@ struct PostActions: View {
     var showsReply = true
     /// Shown beside the heart when above zero; also its accessibility label.
     var supportCount = 0
+    /// Shown beside the bubble when above zero, as Threads does.
+    var replyCount = 0
+    var replyLabel: String = L10n.Consultations.timeline
+    /// The feed pushes share to the far edge; the detail keeps it beside reply.
+    var spreads = true
     @Environment(\.palette) private var palette
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -305,12 +308,25 @@ struct PostActions: View {
 
             if showsReply {
                 Button(action: reply) {
-                    Image(systemName: "bubble").postIcon()
+                    HStack(spacing: 2) {
+                        Image(systemName: "bubble")
+                            .font(.system(size: 19, weight: .regular))
+                        if replyCount > 0 {
+                            Text(verbatim: "\(replyCount)")
+                                .font(.subheadline)
+                                .contentTransition(reduceMotion ? .identity : .numericText())
+                                .animation(reduceMotion ? nil : .snappy, value: replyCount)
+                        }
+                    }
+                    .frame(minWidth: 44, minHeight: 44)
+                    .padding(.trailing, replyCount > 0 ? 8 : 0)
+                    .contentShape(Rectangle())
                 }
-                .accessibilityLabel(L10n.Consultations.timeline)
+                .accessibilityLabel(replyLabel)
+                .accessibilityValue(replyCount > 0 ? "\(replyCount)" : "")
             }
 
-            if showsReply { Spacer(minLength: 0) }
+            if showsReply && spreads { Spacer(minLength: 0) }
             ShareLink(item: shareURL, subject: Text(shareTitle)) {
                 Image(systemName: "paperplane").postIcon()
             }
@@ -429,7 +445,7 @@ enum DebugFlags {
     /// `SIMCTL_CHILD_RUTA_DEBUG_SCROLL=bottom`: feeds open at their end, to check the tab bar clears it.
     static var scrollToBottom: Bool {
         #if DEBUG
-        ProcessInfo.processInfo.environment["RUTA_DEBUG_SCROLL"] == "bottom"
+        DebugHook.value("RUTA_DEBUG_SCROLL") == "bottom"
         #else
         false
         #endif

@@ -97,6 +97,8 @@ public data class PlacesContributionsItem(
     val status: PlacesContributionsItem.Status,
     val kind: PlacesContributionsItem.Kind,
     val note: String? = null,
+    val categoryIcon: String,
+    val categoryColor: String,
     val publication: PlacesContributionsItem.Publication? = null,
     val href: String? = null,
     val createdAt: Instant,

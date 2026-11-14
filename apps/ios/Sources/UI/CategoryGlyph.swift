@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// How a category looks on iOS: an SF Symbol and a system colour.
 ///
@@ -104,7 +105,7 @@ struct PinBadge: View {
 
     var body: some View {
         Circle()
-            .fill(color.gradient)
+            .fill(PinFill(color: color))
             .frame(width: size, height: size)
             .overlay {
                 Image(systemName: symbol)
@@ -112,5 +113,25 @@ struct PinBadge: View {
                     .foregroundStyle(.white)
             }
             .accessibilityHidden(true)
+    }
+}
+
+/// MapKit's marker fill, so every pin and badge off the map is shaded like the
+/// balloon on it: the colour's brightness lifted 14% at the top and dropped 14%
+/// at the bottom, top to bottom across the shape (measured from the system
+/// marker: mint #00C8B3 runs #00E3CB → #00AC9A). Hue and saturation stay.
+struct PinFill: ShapeStyle {
+    let color: Color
+
+    func resolve(in environment: EnvironmentValues) -> LinearGradient {
+        let traits = UITraitCollection(userInterfaceStyle: environment.colorScheme == .dark ? .dark : .light)
+        let base = UIColor(color).resolvedColor(with: traits)
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        guard base.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha) else {
+            return LinearGradient(colors: [color, color], startPoint: .top, endPoint: .bottom)
+        }
+        let top = Color(hue: hue, saturation: saturation, brightness: min(1, brightness * 1.14), opacity: alpha)
+        let bottom = Color(hue: hue, saturation: saturation, brightness: brightness * 0.86, opacity: alpha)
+        return LinearGradient(colors: [top, bottom], startPoint: .top, endPoint: .bottom)
     }
 }

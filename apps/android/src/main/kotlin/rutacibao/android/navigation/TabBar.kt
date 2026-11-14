@@ -29,6 +29,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import rutacibao.android.ui.LocalPalette
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import rutacibao.android.ui.Hairline
 import rutacibao.android.ui.RutaHighlight
 
 object TabBarMetrics {
@@ -38,6 +43,12 @@ object TabBarMetrics {
 
     /** What a screen under the bar reserves above the system navigation inset. */
     val Reserved = Height + BottomGap
+
+    /** X's fixed bar: 50dp of icons above the system navigation inset. */
+    val FixedHeight = 50.dp
+
+    fun reserved(style: rutacibao.android.ui.TabBarStyle) =
+        if (style == rutacibao.android.ui.TabBarStyle.Fixed) FixedHeight else Reserved
 }
 
 /** Screens can ask the tab bar to step aside (an open map sheet covers that edge). */
@@ -91,5 +102,35 @@ fun RutaTabBar(selected: Tab, onSelect: (Tab) -> Unit, modifier: Modifier = Modi
                 }
             }
         }
+    }
+}
+
+/**
+ * X's bottom bar (mirrors iOS): fixed to the edge, full width, a rule on top, the screen's own
+ * background down through the system navigation area, icons only. The selected tab is the filled
+ * icon; every icon stays ink, so the state is shape, never colour. TalkBack reads each name.
+ */
+@Composable
+fun FixedTabBar(selected: Tab, onSelect: (Tab) -> Unit, bottomInset: androidx.compose.ui.unit.Dp, modifier: Modifier = Modifier) {
+    val palette = LocalPalette.current
+    Column(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
+        Hairline()
+        Row(Modifier.fillMaxWidth().height(TabBarMetrics.FixedHeight), verticalAlignment = Alignment.CenterVertically) {
+            Tab.entries.forEach { tab ->
+                val isSelected = tab == selected
+                val label = stringResource(tab.label)
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(TabBarMetrics.FixedHeight)
+                        .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(tab) })
+                        .semantics { contentDescription = label },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(if (isSelected) tab.iconSelected else tab.icon, contentDescription = null, Modifier.size(26.dp), tint = palette.text)
+                }
+            }
+        }
+        Box(Modifier.fillMaxWidth().height(bottomInset))
     }
 }

@@ -39,6 +39,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.filled.Sync
+import rutacibao.android.ui.CategoryAvatar
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocationOn
@@ -61,6 +69,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -136,7 +147,7 @@ fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation:
                 if (section == Section.Mine) item { rutacibao.android.feature.account.PendingContributions(hideWhenEmpty = true) }
                 item {
                     Column {
-                        if (section == Section.Mine) Mine(state, vm, onOpenConsultation) else {
+                        if (section == Section.Mine) Mine(state, vm, onOpenConsultation, onOpenHref) else {
                             if (notices.unread > 0) {
                                 Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp), horizontalArrangement = Arrangement.End) {
                                     TextButton(onClick = { inbox.markRead(null) }, Modifier.heightIn(min = 48.dp)) {
@@ -188,19 +199,20 @@ private fun SectionTabs(selected: Section, unread: Int, onSelect: (Section) -> U
                 Box(
                     Modifier
                         .weight(1f)
-                        .heightIn(min = 48.dp)
+                        .heightIn(min = 52.dp)
                         .selectable(selected = isSelected, role = Role.Tab, onClick = { onSelect(section) }),
                     Alignment.Center,
                 ) {
                     Text(
                         label,
                         style = MaterialTheme.typography.titleSmall,
-                        fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         color = if (isSelected) MaterialTheme.colorScheme.onSurface else palette.textTertiary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    if (isSelected) Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(2.dp).background(RutaHighlight.selection()))
+                    // X's tab (mirrors iOS): bold when chosen, a short rounded bar as wide as the word.
+                    if (isSelected) Box(Modifier.align(Alignment.BottomCenter).width(labelWidth(label)).height(4.dp).clip(CircleShape).background(palette.accentInk))
                 }
             }
         }
@@ -232,53 +244,90 @@ private fun Inbox(state: InboxUiState, vm: InboxViewModel, open: (String) -> Uni
     }
 }
 
-/** One notice: unread shows a dot, heavier text and a spoken "Sin leer"; the target opens on tap. */
+/**
+ * One notice as an X notification row (mirrors iOS): the pin of what it is about with a badge for
+ * what happened, the sentence (bold while unread) and its age. Unread rows also sit on a faint fill
+ * and keep a dot and a spoken "Sin leer", so it never rests on weight alone.
+ */
 @Composable
 private fun NoticeRow(notice: Notice, onClick: () -> Unit) {
     val palette = LocalPalette.current
     val context = LocalContext.current
-    val (icon, color) = noticeLook(notice.messageKey)
+    val (event, eventFill) = noticeEvent(notice.messageKey)
     val unreadLabel = stringResource(R.string.notifications_unread)
-    Column {
+    Column(Modifier.background(if (notice.unread) palette.inset.copy(alpha = 0.6f) else Color.Transparent)) {
         Row(
             Modifier
                 .fillMaxWidth()
                 .clickable(role = Role.Button, onClick = onClick)
                 .semantics(mergeDescendants = true) { if (notice.unread) stateDescription = unreadLabel }
-                .padding(horizontal = PostInset, vertical = 14.dp),
+                .padding(horizontal = PostInset, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(PostGap),
         ) {
-            KindBadge(icon, color, PostAvatar)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                // Threads' activity line (mirrors iOS): the notice, then its age in grey on the same line.
-                Text(
-                    buildAnnotatedString {
-                        withStyle(SpanStyle(fontWeight = if (notice.unread) FontWeight.Bold else FontWeight.Normal)) {
-                            append(noticeMessage(context, notice.messageKey, notice.params))
-                        }
-                        withStyle(SpanStyle(color = palette.textTertiary)) { append("  " + relativeTimeText(notice.createdAt)) }
-                    },
-                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 1.dp),
-                )
+            val icon = notice.categoryIcon
+            val color = notice.categoryColor
+            if (icon != null && color != null) {
+                SubjectAvatar(icon, color, event, eventFill)
+            } else {
+                Box(Modifier.size(PostAvatar).background(palette.fill, CircleShape), Alignment.Center) {
+                    Icon(event, contentDescription = null, Modifier.size(18.dp), tint = palette.text)
+                }
             }
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(fontWeight = if (notice.unread) FontWeight.Bold else FontWeight.Normal)) {
+                        append(noticeMessage(context, notice.messageKey, notice.params))
+                    }
+                    withStyle(SpanStyle(color = palette.textTertiary)) { append(" · " + relativeTimeText(notice.createdAt)) }
+                },
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(top = 1.dp),
+            )
             if (notice.unread) {
-                Box(Modifier.padding(top = 6.dp).size(9.dp).background(palette.text, CircleShape).clearAndSetSemantics { })
+                Box(Modifier.padding(top = 7.dp).size(8.dp).background(palette.text, CircleShape).clearAndSetSemantics { })
             }
         }
-        Hairline(Modifier.padding(start = PostInset + PostAvatar + PostGap))
+        Hairline()
     }
 }
 
-private fun noticeLook(key: String): Pair<ImageVector, Color> = when {
-    "consultation" in key -> Icons.Filled.ChatBubble to Indigo
-    "traffic" in key -> Icons.Filled.Warning to Orange
-    "place" in key -> Icons.Filled.LocationOn to Green
-    "business" in key -> Icons.Filled.Storefront to Color(0xFFAF52DE)
-    "route" in key -> Icons.Filled.AltRoute to Green
-    else -> Icons.Filled.Notifications to Color(0xFF8E8E93)
+/** What happened: approvals in green, refusals and removals in red (the glyph's shape says it too), the rest in ink. */
+@Composable
+private fun noticeEvent(key: String): Pair<ImageVector, Color?> {
+    val palette = LocalPalette.current
+    return when (key.removePrefix("notifications.")) {
+        "consultationAnswered" -> Icons.Filled.AccountBalance to null
+        "consultationStatusChanged" -> Icons.Filled.Sync to null
+        "consultationPublished", "placeApproved", "businessClaimApproved", "routeReviewed" -> Icons.Filled.Check to palette.successInk
+        "placeRejected", "consultationHidden", "businessClaimRejected", "trafficRemoved", "trafficTextHidden", "contentRemoved" ->
+            Icons.Filled.Close to palette.dangerInk
+        "trafficNearby" -> Icons.Filled.Navigation to null
+        "reportReady" -> Icons.Filled.Description to null
+        else -> Icons.Filled.Notifications to null
+    }
+}
+
+/** Threads' activity avatar (mirrors iOS): the subject's own map pin, a small badge at its lower right for what happened. */
+@Composable
+private fun SubjectAvatar(icon: String, hex: String, badge: ImageVector, badgeFill: Color? = null) {
+    val palette = LocalPalette.current
+    Box(Modifier.size(PostAvatar)) {
+        CategoryAvatar(icon, hex, PostAvatar)
+        Box(
+            Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 5.dp, y = 5.dp)
+                .size(22.dp)
+                .background(MaterialTheme.colorScheme.background, CircleShape)
+                .padding(2.dp)
+                .background(badgeFill ?: palette.text, CircleShape),
+            Alignment.Center,
+        ) {
+            Icon(badge, contentDescription = null, Modifier.size(11.dp), tint = if (badgeFill == null) palette.background else Color.White)
+        }
+    }
 }
 
 /** The same tile as the traffic report types: raised neutral fill, a 44 category-coloured glyph circle, the label inside. */
@@ -304,7 +353,7 @@ private fun ActionTiles(start: (ContributeAction) -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
             ) {
-                Box(Modifier.size(44.dp).background(color, CircleShape), Alignment.Center) {
+                Box(Modifier.size(44.dp).background(rutacibao.android.ui.pinBrush(color), CircleShape), Alignment.Center) {
                     Icon(icon, contentDescription = null, Modifier.size(24.dp), tint = Color.White)
                 }
                 Text(
@@ -320,7 +369,7 @@ private fun ActionTiles(start: (ContributeAction) -> Unit) {
 }
 
 @Composable
-private fun Mine(state: ContributionsUiState, vm: ContributionsViewModel, open: (String) -> Unit) {
+private fun Mine(state: ContributionsUiState, vm: ContributionsViewModel, open: (String) -> Unit, openHref: (String) -> Unit) {
     val palette = LocalPalette.current
     // The tab above already says "Mis aportes"; a second heading would repeat it.
     Spacer(Modifier.height(8.dp))
@@ -334,23 +383,28 @@ private fun Mine(state: ContributionsUiState, vm: ContributionsViewModel, open: 
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
         )
         ContributionsUiState.Phase.Ready -> state.items.forEach { item ->
+            // A case opens here; a place or a live traffic report opens the map on it.
             val slug = state.slugFor(item)
-            ContributionRow(item, opens = slug != null, onClick = { slug?.let(open) })
+            val href = item.href
+            ContributionRow(item, opens = slug != null || href != null, onClick = { if (slug != null) open(slug) else href?.let(openHref) })
         }
     }
 }
 
-/** One contribution, in the post style: kind icon, name, kind and status word, time. */
+/**
+ * One contribution as an X row (mirrors iOS): the thing's own pin (the case's, the place's, the
+ * traffic report's category) with a small badge for what you did, then name · age, kind · status.
+ */
 @Composable
 private fun ContributionRow(item: PlacesContributionsItem, opens: Boolean, onClick: () -> Unit) {
     val palette = LocalPalette.current
-    val (icon, color, kindRes) = when (item.kind) {
-        PlacesContributionsItem.Kind.Place -> Triple(Icons.Filled.LocationOn, Green, R.string.contributions_kind_place)
-        PlacesContributionsItem.Kind.Report -> Triple(Icons.Filled.Flag, Orange, R.string.contributions_kind_report)
-        PlacesContributionsItem.Kind.Photo -> Triple(Icons.Filled.PhotoCamera, Color(0xFF0A84FF), R.string.contributions_kind_photo)
-        PlacesContributionsItem.Kind.Traffic -> Triple(Icons.Filled.Warning, Orange, R.string.contributions_kind_traffic)
-        PlacesContributionsItem.Kind.Consultation -> Triple(Icons.Filled.ChatBubble, Indigo, R.string.contributions_kind_consultation)
-        PlacesContributionsItem.Kind.Claim -> Triple(Icons.Filled.Storefront, Color(0xFFAF52DE), R.string.contributions_kind_claim)
+    val (badge, kindRes) = when (item.kind) {
+        PlacesContributionsItem.Kind.Place -> Icons.Filled.Add to R.string.contributions_kind_place
+        PlacesContributionsItem.Kind.Report -> Icons.Filled.Flag to R.string.contributions_kind_report
+        PlacesContributionsItem.Kind.Photo -> Icons.Filled.PhotoCamera to R.string.contributions_kind_photo
+        PlacesContributionsItem.Kind.Traffic -> Icons.Filled.Warning to R.string.contributions_kind_traffic
+        PlacesContributionsItem.Kind.Consultation -> Icons.Filled.ChatBubble to R.string.contributions_kind_consultation
+        PlacesContributionsItem.Kind.Claim -> Icons.Filled.Storefront to R.string.contributions_kind_claim
     }
     val statusRes = when (item.status) {
         PlacesContributionsItem.Status.Draft -> R.string.contributions_status_draft
@@ -383,28 +437,28 @@ private fun ContributionRow(item: PlacesContributionsItem, opens: Boolean, onCli
             Modifier
                 .fillMaxWidth()
                 .then(if (opens) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-                .padding(horizontal = PostInset, vertical = 14.dp),
+                .padding(horizontal = PostInset, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(PostGap),
         ) {
-            KindBadge(icon, color, PostAvatar)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                // Threads' activity line (mirrors iOS): bold name, grey age right after it.
+            SubjectAvatar(item.categoryIcon, item.categoryColor, badge)
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                // X's line: the bold name, then " · age", flowing on even when the name wraps.
                 Text(
                     buildAnnotatedString {
                         withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(item.name) }
-                        withStyle(SpanStyle(color = palette.textTertiary)) { append("  " + relativeTimeText(item.createdAt)) }
+                        withStyle(SpanStyle(color = palette.textTertiary)) { append(" · " + relativeTimeText(item.createdAt)) }
                     },
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
-                    maxLines = 2,
+                    maxLines = 3,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     buildAnnotatedString {
                         append(stringResource(kindRes))
                         append(" · ")
-                        withStyle(SpanStyle(color = statusInk)) { append(stringResource(statusRes)) }
+                        withStyle(SpanStyle(color = statusInk, fontWeight = FontWeight.Medium)) { append(stringResource(statusRes)) }
                     },
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
                     color = palette.textTertiary,
                 )
                 item.note?.takeIf { it.isNotBlank() }?.let {
@@ -412,17 +466,15 @@ private fun ContributionRow(item: PlacesContributionsItem, opens: Boolean, onCli
                 }
             }
         }
-        Hairline(Modifier.padding(start = PostInset + PostAvatar + PostGap))
+        Hairline()
     }
 }
 
-private fun kindGradient(color: Color) = Brush.linearGradient(listOf(color, Color(
-    red = color.red * 0.78f, green = color.green * 0.78f, blue = color.blue * 0.78f, alpha = 1f,
-)))
-
+/** The rendered width of a tab label, so X's indicator matches the word. */
 @Composable
-private fun KindBadge(icon: ImageVector, color: Color, size: androidx.compose.ui.unit.Dp) {
-    Box(Modifier.size(size).background(kindGradient(color), CircleShape), Alignment.Center) {
-        Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = Color.White)
-    }
+private fun labelWidth(label: String): androidx.compose.ui.unit.Dp {
+    val measurer = androidx.compose.ui.text.rememberTextMeasurer()
+    val style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+    val width = remember(label, style) { measurer.measure(label, style).size.width }
+    return with(androidx.compose.ui.platform.LocalDensity.current) { width.toDp() }
 }

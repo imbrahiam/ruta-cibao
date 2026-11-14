@@ -217,36 +217,3 @@ export function ReportDetailSkeleton() {
     </div>
   );
 }
-
-/** The staff shell while the session is checked: sidebar and page, unlabelled. */
-export function ShellSkeleton() {
-  return (
-    <div aria-hidden className="flex min-h-dvh">
-      <div className="hidden w-64 shrink-0 flex-col gap-6 border-r p-4 md:flex">
-        <div className="flex items-center gap-2.5 p-1.5">
-          <Skeleton className="size-7 rounded-lg" />
-          <Skeleton className="h-5 w-32" />
-        </div>
-        <div className="flex flex-col gap-1">
-          {REPEAT(9).map((row) => (
-            <Skeleton key={row} className="h-8 w-full" />
-          ))}
-        </div>
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-14 shrink-0 items-center px-4 sm:px-6 lg:px-10">
-          <Skeleton className="size-7 md:hidden" />
-        </div>
-        <div className="mx-auto flex w-full max-w-[1520px] flex-col gap-6 px-4 pt-2 pb-10 sm:px-6 lg:px-10">
-          <div className="space-y-1">
-            <div className="flex min-h-9 items-center">
-              <Skeleton className="h-8 w-48 sm:h-9" />
-            </div>
-            <Skeleton className="h-6 w-80 max-w-full" />
-          </div>
-          <Skeleton className="h-48 w-full rounded-(--radius-card)" />
-        </div>
-      </div>
-    </div>
-  );
-}

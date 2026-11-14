@@ -1,12 +1,9 @@
 import SwiftUI
 import UIKit
 
-/// Top-level tabs, in the same order as Android's navigation bar. Icon and
-/// label always visible, so the app is usable without training. Threads-style
-/// emphasis: only the selected tab in ink (filled symbol), the rest mid-grey
-/// (outlined). The system Liquid Glass bar renders every item filled in the
-/// label colour, so the bar is our own over a glass background; the
-/// TabView stays underneath so each tab keeps its navigation state.
+/// Top-level tabs, in the same order as Android's navigation bar. The bar is
+/// the system's: Liquid Glass, icon and label always visible, the selected tab
+/// filled and tinted. Each tab keeps its own navigation state.
 struct RootView: View {
     enum Tab: Hashable, CaseIterable { case map, consultations, contributions, account }
 
@@ -14,11 +11,12 @@ struct RootView: View {
     @State private var chrome = AppChrome()
     @State private var primer = PermissionsPrimer()
     @Environment(DeepLinks.self) private var links
+    @Environment(\.colorScheme) private var scheme
 
     /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_TAB=contributions` opens on a tab (screenshot runs).
     private static var initialTab: Tab {
         #if DEBUG
-        switch ProcessInfo.processInfo.environment["RUTA_DEBUG_TAB"] {
+        switch DebugHook.value("RUTA_DEBUG_TAB") {
         case "consultations": return .consultations
         case "contributions": return .contributions
         case "account", "gestion": return .account
@@ -31,23 +29,25 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            SwiftUI.Tab(value: Tab.map) { MapScreen().tabBarClearance().tabChrome() } label: { Text(Tab.map.title) }
-            SwiftUI.Tab(value: Tab.consultations) { ConsultationsScreen().tabChrome() } label: { Text(Tab.consultations.title) }
-            SwiftUI.Tab(value: Tab.contributions) { ContributionsScreen().tabChrome() } label: { Text(Tab.contributions.title) }
-            SwiftUI.Tab(value: Tab.account) { AccountScreen().tabChrome() } label: { Text(Tab.account.title) }
-        }
-        // The bar floats over content (glass), and every tab reserves its
-        // height so scroll views end above it, not under it.
-        .overlay(alignment: .bottom) {
-            if !chrome.immersive {
-                RutaTabBar(selection: $selection).transition(.move(edge: .bottom).combined(with: .opacity))
+            ForEach(Tab.allCases, id: \.self) { tab in
+                SwiftUI.Tab(tab.title, systemImage: tab.symbol, value: tab) {
+                    screen(tab)
+                        .rutaTheme()
+                        // Turn-by-turn navigation takes the whole screen.
+                        .toolbarVisibility(chrome.immersive || chrome.conversation ? .hidden : .automatic, for: .tabBar)
+                }
             }
         }
+        // The current tab carries the brand green; everything inside a tab is ink.
+        .tint(RutaPalette.palette(.clasico, scheme).accentInk)
+        .sensoryFeedback(.selection, trigger: selection)
         .animation(.snappy, value: chrome.immersive)
+        .animation(.snappy, value: chrome.conversation)
         .environment(chrome)
         .task { await primer.prepare() }
-        .sheet(isPresented: Binding(get: { primer.current != nil }, set: { if !$0 { primer.dismiss() } })) {
+        .sheet(isPresented: Binding(get: { primer.welcoming }, set: { if !$0 { primer.dismiss() } })) {
             PermissionsSheet(primer: primer)
+                .rutaTheme()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.hidden)
         }
@@ -61,17 +61,16 @@ struct RootView: View {
             case nil: break
             }
         }
-        .rutaTheme()
+        .environment(\.palette, RutaPalette.palette(.clasico, scheme))
     }
-}
 
-/// The tab bar's room, dropped while the screen is immersive (navigation),
-/// so its bottom card sits at the bottom edge.
-private struct TabBarClearance: ViewModifier {
-    @Environment(AppChrome.self) private var chrome
-
-    func body(content: Content) -> some View {
-        content.safeAreaPadding(.bottom, chrome.immersive ? 0 : RutaTabBar.height)
+    @ViewBuilder private func screen(_ tab: Tab) -> some View {
+        switch tab {
+        case .map: MapScreen()
+        case .consultations: ConsultationsScreen()
+        case .contributions: ContributionsScreen()
+        case .account: AccountScreen()
+        }
     }
 }
 
@@ -80,75 +79,20 @@ private struct TabBarClearance: ViewModifier {
 @Observable
 final class AppChrome {
     var immersive = false
+    /// A thread with a reply field is open: the field takes the tab bar's place.
+    var conversation = false
 }
 
-private extension View {
-    /// Hides the system bar for this tab; `RutaTabBar` replaces it.
-    func tabChrome() -> some View { toolbarVisibility(.hidden, for: .tabBar) }
-}
-
-extension View {
-    /// Room for the floating tab bar, so the last row scrolls clear of it.
-    /// Apply inside each tab's NavigationStack (root and every destination):
-    /// UIKit resets the safe area at the navigation container, so padding
-    /// outside the stack never reaches its scroll views.
-    func tabBarClearance() -> some View { modifier(TabBarClearance()) }
-}
-
-/// The app's tab bar, drawn like iOS 26's: every tab in the primary label
-/// colour (no greyed-out items), the selected one tinted, filled and set on a
-/// selection pill that slides between tabs. Glass capsule, like the system bar.
-struct RutaTabBar: View {
-    /// Taller than the system bar, and lower: it sits into the home-indicator
-    /// zone (16pt), as iOS 26's own floating bar does.
-    static let barHeight: CGFloat = 64
-    static let sink: CGFloat = 16
-    /// What every tab reserves so its last row clears the bar.
-    static let height: CGFloat = barHeight - sink + 12
-
-    @Binding var selection: RootView.Tab
-    @Namespace private var pill
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    var body: some View {
-        HStack(spacing: 0) {
-            ForEach(RootView.Tab.allCases, id: \.self) { tab in
-                let selected = tab == selection
-                Button {
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { selection = tab }
-                } label: {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.symbol)
-                            .symbolVariant(selected ? .fill : .none)
-                            .font(.system(size: 22, weight: .regular))
-                            .symbolEffect(.bounce.down, value: selected)
-                            .frame(height: 28)
-                        Text(tab.title)
-                            .font(.system(size: 11, weight: selected ? .semibold : .medium))
-                    }
-                    // Semantic styles, not fixed colours: on Liquid Glass they
-                    // adapt to what's behind the bar, as Apple recommends.
-                    .foregroundStyle(selected ? RutaHighlight.selection : AnyShapeStyle(.primary))
-                    .frame(maxWidth: .infinity, minHeight: Self.barHeight - 8)
-                    .background {
-                        if selected {
-                            Capsule()
-                                .fill(.primary.opacity(0.1))
-                                .matchedGeometryEffect(id: "pill", in: pill)
-                        }
-                    }
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
-                .sensoryFeedback(.selection, trigger: selected) { _, now in now }
-            }
-        }
-        .padding(.horizontal, 4)
-        .glassEffect(.regular, in: Capsule())
-        .padding(.horizontal, 16)
-        .padding(.bottom, -Self.sink)
+/// Test hooks for simulator runs, inert in Release. A value comes from the
+/// environment (`SIMCTL_CHILD_RUTA_DEBUG_TAB=map`) or from a launch argument
+/// (`-RUTA_DEBUG_TAB map`), which UI drivers can pass.
+enum DebugHook {
+    static func value(_ key: String) -> String? {
+        #if DEBUG
+        ProcessInfo.processInfo.environment[key] ?? UserDefaults.standard.string(forKey: key)
+        #else
+        nil
+        #endif
     }
 }
 
@@ -165,8 +109,8 @@ extension RootView.Tab {
     var symbol: String {
         switch self {
         case .map: "map"
-        case .consultations: "text.bubble"
-        case .contributions: "plus.square"
+        case .consultations: "bubble.left.and.bubble.right"
+        case .contributions: "plus.circle"
         case .account: "person"
         }
     }

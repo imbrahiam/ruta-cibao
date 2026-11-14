@@ -77,7 +77,7 @@ struct TrafficReportScreen: View {
             self.model = model
             #if DEBUG
             // `SIMCTL_CHILD_RUTA_DEBUG_FORM=send`: first kind, a point in Sabaneta, submit (offline-queue runs).
-            if ProcessInfo.processInfo.environment["RUTA_DEBUG_FORM"] == "send" {
+            if DebugHook.value("RUTA_DEBUG_FORM") == "send" {
                 Task { @MainActor in
                     while model.state.categories.isEmpty { try? await Task.sleep(for: .milliseconds(200)) }
                     model.viewModel.selectCategory(id: model.state.categories[0].id)
@@ -87,6 +87,11 @@ struct TrafficReportScreen: View {
                 }
             }
             #endif
+            // The report arrives with "here" marked; the person can still move the pin.
+            Task { @MainActor in
+                guard let here = await CurrentLocation.once(), model.state.latitude == nil else { return }
+                model.viewModel.setLocation(latitude: here.latitude, longitude: here.longitude)
+            }
             await model.observe()
         }
     }

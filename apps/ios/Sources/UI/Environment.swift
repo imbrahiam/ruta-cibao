@@ -15,7 +15,9 @@ private struct RutaThemeModifier: ViewModifier {
         let palette = RutaPalette.palette(theme, scheme)
         content
             .environment(\.palette, palette)
-            .tint(palette.accent)
+            // Chrome (back chevrons, menus, bar buttons) stays ink. The brand
+            // green is spent on the current tab, switches and primary actions.
+            .tint(palette.text)
             .toggleStyle(RutaSwitchStyle())
     }
 }

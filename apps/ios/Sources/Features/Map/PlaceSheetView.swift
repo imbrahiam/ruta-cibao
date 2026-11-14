@@ -90,7 +90,7 @@ struct PlaceSheetView: View {
         #if DEBUG
         // `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=claim|edit` opens the business form (screenshot runs).
         .onChange(of: sheet.business is BusinessStateListed || sheet.business is BusinessStateOwned, initial: true) { _, ready in
-            let hook = ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"]
+            let hook = DebugHook.value("RUTA_DEBUG_COMPOSE")
             guard ready, businessForm == nil else { return }
             if hook == "claim" { businessForm = .claim } else if hook == "edit" { businessForm = .edit }
         }

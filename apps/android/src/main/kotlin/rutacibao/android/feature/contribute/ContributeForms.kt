@@ -101,6 +101,14 @@ fun TrafficReportScreen(onBack: () -> Unit, onSent: () -> Unit) {
     val palette = LocalPalette.current
     var picking by rememberSaveable { mutableStateOf(false) }
     var detail by rememberSaveable { mutableStateOf("") }
+    // A road report is almost always about where you are standing: start there when the
+    // phone already knows (permission granted earlier), and leave the pin to be moved.
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(Unit) {
+        if (state.latitude == null) {
+            rutacibao.android.feature.map.lastKnownLocation(context)?.let { vm.setLocation(it.latitude, it.longitude) }
+        }
+    }
 
     if (state.sent) {
         DoneScreen(stringResource(if (state.queued) R.string.offline_queued_toast else R.string.contribute_traffic_sent), stringResource(if (state.queued) R.string.offline_queued_toast_body else R.string.contribute_traffic_sent_body)) { onSent(); onBack() }
@@ -134,7 +142,7 @@ fun TrafficReportScreen(onBack: () -> Unit, onSent: () -> Unit) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
                     ) {
-                        Box(Modifier.size(48.dp).background(color, CircleShape), Alignment.Center) {
+                        Box(Modifier.size(48.dp).background(rutacibao.android.ui.pinBrush(color), CircleShape), Alignment.Center) {
                             Icon(categoryIcon(c.icon), contentDescription = null, Modifier.size(26.dp), tint = Color.White)
                         }
                         Text(

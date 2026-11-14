@@ -62,6 +62,7 @@ private struct MapContent: View {
     @State private var linkedTraffic: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var searching = Self.debugSearch
+    @State private var afterSearch: (() -> Void)?
     @Namespace private var glass
     /// Search asked for while a place or route sheet was up: SwiftUI shows one
     /// sheet at a time, so that one closes first and search opens after.
@@ -85,7 +86,7 @@ private struct MapContent: View {
     /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=camera` opens camera mode.
     private static var debugCamera: Bool {
         #if DEBUG
-        return ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"] == "camera"
+        return DebugHook.value("RUTA_DEBUG_COMPOSE") == "camera"
         #else
         return false
         #endif
@@ -95,7 +96,7 @@ private struct MapContent: View {
     /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=search` opens search (screenshot runs).
     private static var debugSearch: Bool {
         #if DEBUG
-        return ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"] == "search"
+        return DebugHook.value("RUTA_DEBUG_COMPOSE") == "search"
         #else
         return false
         #endif
@@ -232,7 +233,7 @@ private struct MapContent: View {
         // `SIMCTL_CHILD_RUTA_DEBUG_TRAFFIC=select|still` opens the first road report that isn't yours,
         // and `still` also answers "Sigue ahí" (screenshot runs).
         .onChange(of: state.traffic.count, initial: true) { _, _ in
-            guard !debugTrafficDone, let hook = ProcessInfo.processInfo.environment["RUTA_DEBUG_TRAFFIC"],
+            guard !debugTrafficDone, let hook = DebugHook.value("RUTA_DEBUG_TRAFFIC"),
                   let notice = state.traffic.first(where: { !$0.isMine && $0.myVerdict == nil }) else { return }
             debugTrafficDone = true
             vm.selectTraffic(id: notice.id)
@@ -263,7 +264,7 @@ private struct MapContent: View {
             chrome.immersive = phase == .navigating || phase == .arrived
             #if DEBUG
             // `RUTA_DEBUG_COMPOSE=navigate`: start as soon as the route is ready.
-            if phase == .preview, ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"] == "navigate" { navigator.start() }
+            if phase == .preview, DebugHook.value("RUTA_DEBUG_COMPOSE") == "navigate" { navigator.start() }
             #endif
             if phase == .navigating, let here = navigator.location { follow(here) }
         }
@@ -341,20 +342,24 @@ private struct MapContent: View {
                     .presentationDragIndicator(.visible)
             }
         }
-        .sheet(isPresented: $searching) {
+        // A result opens once search has fully left: presenting the next sheet while this
+        // one is still dismissing with the keyboard up crashes UIKit's keyboard layout guide.
+        .sheet(isPresented: $searching, onDismiss: { afterSearch?(); afterSearch = nil }) {
             MapSearch(
                 places: state.all,
                 routes: state.routes,
                 categories: state.categories,
                 municipalities: state.municipalities,
                 pickPlace: { place in
+                    afterSearch = {
+                        focus(on: place)
+                        vm.select(placeId: place.id)
+                    }
                     searching = false
-                    focus(on: place)
-                    vm.select(placeId: place.id)
                 },
                 pickRoute: { route in
+                    afterSearch = { show(route) }
                     searching = false
-                    show(route)
                 }
             )
             .presentationDetents([.large])
@@ -372,7 +377,7 @@ private struct MapContent: View {
             framed = true
             #if DEBUG
             // `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=route`: plan a route on launch (screenshot runs).
-            if ["route", "navigate"].contains(ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"] ?? ""),
+            if ["route", "navigate"].contains(DebugHook.value("RUTA_DEBUG_COMPOSE") ?? ""),
                let target = state.all.first(where: { $0.name.contains("Monción") }) ?? state.all.last {
                 navigate(to: Destination(name: target.name, coordinate: target.coordinate))
             }
@@ -576,6 +581,9 @@ private struct MapContent: View {
                 }
                 .animation(reduceMotion ? nil : .snappy, value: state.filtering)
             }
+            // On a wide window the search stays a compact field at the leading edge.
+            .frame(maxWidth: 420)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
 
             CategoryChips(

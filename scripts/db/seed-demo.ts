@@ -20,6 +20,7 @@
  */
 
 import { createHash, randomUUID } from "node:crypto";
+import { appTargetHref } from "@ruta/shared/app-target";
 import { formatPhone } from "@ruta/shared/phone";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db, pool } from "@/db";
@@ -394,6 +395,7 @@ async function main() {
     .where(sql`${trafficReports.reportedByUserId} in ${ids}`);
 
   let trafficCount = 0;
+  let liveTrafficId: string | null = null;
 
   for (const [index, item] of TRAFFIC.entries()) {
     const reporter = ids[index % ids.length];
@@ -425,6 +427,7 @@ async function main() {
 
     if (!row) continue;
     trafficCount += 1;
+    if (!("cleared" in item && item.cleared)) liveTrafficId ??= row.id;
 
     // Neighbours agreeing, which is what puts faces on the report.
     for (let n = 0; n < item.confirmations; n += 1) {
@@ -608,7 +611,10 @@ async function main() {
         userId: reader,
         messageKey: "notifications.consultationAnswered",
         params: { title: CASES[0].title },
-        href: `/consultas/${slugFor(CASES[0].title)}`,
+        href: appTargetHref({
+          kind: "consultation",
+          ref: slugFor(CASES[0].title),
+        }),
         createdAt: ago(6),
       },
       {
@@ -616,7 +622,9 @@ async function main() {
         userId: reader,
         messageKey: "notifications.trafficNearby",
         params: { description: "Vía bloqueada: camión atravesado" },
-        href: "/mapa",
+        href: liveTrafficId
+          ? appTargetHref({ kind: "traffic", ref: liveTrafficId })
+          : null,
         createdAt: ago(2),
       },
       {
@@ -624,7 +632,7 @@ async function main() {
         userId: reader,
         messageKey: "notifications.placeApproved",
         params: { name: "Presa de Monción" },
-        href: "/mapa",
+        href: appTargetHref({ kind: "place", ref: "presa-de-moncion" }),
         readAt: ago(20),
         createdAt: ago(24),
       },

@@ -1,4 +1,5 @@
 import { BRAND_COLORS, MARK } from "@ruta/shared/brand";
+import Image from "next/image";
 import { cx } from "@/lib/web/cx";
 import styles from "./logo.module.css";
 
@@ -45,5 +46,27 @@ export function Logo({
       <LogoMark />
       <span className={styles.wordmark}>{label}</span>
     </span>
+  );
+}
+
+/** The road mark (green disc, ink road), as the native apps carry it. Decorative: name it beside it. */
+export function RoadMark({
+  size = 56,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <Image
+      src="/brand/mark.svg"
+      alt=""
+      aria-hidden
+      width={size}
+      height={size}
+      unoptimized
+      priority
+      className={className}
+    />
   );
 }

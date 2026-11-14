@@ -3,26 +3,66 @@ import SwiftUI
 
 struct OfflineScreen: View {
     @Environment(\.graph) private var graph
+    @State private var justUpdated = false
     @State private var state: OfflineUiState?
     @State private var query = ""
 
     var body: some View {
         List {
             Section {
+                // The state first, as one glance: an icon, a word, when it was saved.
+                let ready = state?.version != nil
+                VStack(spacing: 10) {
+                    Image(systemName: ready ? "checkmark.circle.fill" : "arrow.down.circle.fill")
+                        .font(.system(size: 52))
+                        .foregroundStyle(ready ? Color(.systemGreen) : Color(.tertiaryLabel))
+                        .contentTransition(.symbolEffect(.replace))
+                        .accessibilityHidden(true)
+                    Text(ready ? L10n.Offline.readyBadge : L10n.Offline.notDownloadedBadge)
+                        .font(.title3.weight(.semibold))
+                    if let saved = savedDate {
+                        Text("\(L10n.Offline.versionDate) \(saved.formatted(.relative(presentation: .named)))")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .accessibilityElement(children: .combine)
+            } footer: {
                 Text(L10n.Offline.lede)
-                Text(L10n.Offline.mapNote).font(.footnote).foregroundStyle(.secondary)
-                Text(state?.version == nil ? L10n.Offline.notDownloadedBadge : L10n.Offline.readyBadge).font(.headline)
-                if let date = state?.generatedAt { Text(L10n.Offline.savedCopyNotice(date: date)).font(.footnote) }
-                if state?.downloading == true { ProgressView(L10n.Offline.downloadingAction) }
-                Button(state?.version == nil ? L10n.Offline.downloadAction : L10n.Offline.updateAction) { graph?.offline.download() }
-                    .disabled(state?.downloading == true)
-                if let error = state?.error { Text(offlineMessage(error)).foregroundStyle(.red) }
+            }
+            Section {
+                Button { graph?.offline.download() } label: {
+                    HStack {
+                        Text(state?.downloading == true ? L10n.Offline.downloadingAction : (state?.version == nil ? L10n.Offline.downloadAction : L10n.Offline.updateAction))
+                        Spacer()
+                        if state?.downloading == true {
+                            ProgressView()
+                        } else if justUpdated {
+                            Image(systemName: "checkmark").fontWeight(.semibold).foregroundStyle(.green).transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                }
+                .disabled(state?.downloading == true)
+                // The snapshot's date can stay the same after an update, so the row itself confirms it ran.
+                .onChange(of: state?.downloading == true) { was, now in
+                    guard was, !now, state?.error == nil else { return }
+                    withAnimation(.snappy) { justUpdated = true }
+                    Task { try? await Task.sleep(for: .seconds(2.5)); withAnimation(.snappy) { justUpdated = false } }
+                }
+                .sensoryFeedback(.success, trigger: justUpdated) { _, now in now }
                 if state?.version != nil {
                     Button(L10n.Offline.removeAction, role: .destructive) { graph?.offline.removeSnapshot() }
-                    Text(L10n.Offline.removeHint).font(.footnote).foregroundStyle(.secondary)
+                }
+            } footer: {
+                if let error = state?.error {
+                    Text(offlineMessage(error)).foregroundStyle(.red)
                 }
             }
-            Section { PendingOutboxView() }
+            if state?.pending.isEmpty == false {
+                Section { PendingOutboxView() }
+            }
             if state?.version != nil, let offline = graph?.offline {
                 Section(L10n.Offline.placesRowTitle) {
                     ForEach(offline.cachedPlaces().filter { matches("\($0.name) \($0.category) \($0.municipality) \($0.description)") }, id: \.id) { place in
@@ -51,6 +91,7 @@ struct OfflineScreen: View {
                 }
             }
         }
+        .readableWidth()
         .searchable(text: $query, prompt: L10n.Search.placeholder)
         .navigationTitle(L10n.Offline.title)
         .task {
@@ -58,6 +99,14 @@ struct OfflineScreen: View {
             state = graph.offline.state.value
             for await next in graph.offline.state { state = next }
         }
+    }
+
+    /// The snapshot's ISO timestamp as a date, so it reads "ayer" or "hace 3 días".
+    private var savedDate: Date? {
+        guard let raw = state?.generatedAt else { return nil }
+        let precise = ISO8601DateFormatter()
+        precise.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return precise.date(from: raw) ?? ISO8601DateFormatter().date(from: raw)
     }
 
     private func matches(_ text: String) -> Bool { query.isEmpty || text.localizedStandardContains(query) }

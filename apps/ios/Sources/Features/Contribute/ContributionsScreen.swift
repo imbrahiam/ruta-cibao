@@ -68,7 +68,7 @@ struct ContributionsScreen: View {
     @Environment(DeepLinks.self) private var links
     @State private var section: Section = {
         #if DEBUG
-        ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"] == "inbox" ? .inbox : .mine
+        DebugHook.value("RUTA_DEBUG_COMPOSE") == "inbox" ? .inbox : .mine
         #else
         .mine
         #endif
@@ -76,17 +76,20 @@ struct ContributionsScreen: View {
     @State private var path: [ConsultationRoute] = []
 
     private enum Section: Hashable { case mine, inbox }
+    private var unread: Int { Int(inbox?.state.unread ?? 0) }
     @State private var composing: ContributeAction? = Self.debugComposing
 
     /// Debug-only: `SIMCTL_CHILD_RUTA_DEBUG_COMPOSE=traffic` opens a form at launch (screenshot runs).
     private static var debugComposing: ContributeAction? {
         #if DEBUG
-        ProcessInfo.processInfo.environment["RUTA_DEBUG_COMPOSE"].flatMap(ContributeAction.init(rawValue:))
+        DebugHook.value("RUTA_DEBUG_COMPOSE").flatMap(ContributeAction.init(rawValue:))
         #else
         nil
         #endif
     }
     @State private var signingIn = false
+    /// What the person tapped before being asked to sign in.
+    @State private var wanted: ContributeAction?
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -97,12 +100,30 @@ struct ContributionsScreen: View {
                     Color.clear
                 }
             }
-            .tabBarClearance()
             .navigationTitle(L10n.Contributions.title)
-            .toolbarVisibility(.hidden, for: .navigationBar)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if model?.state.signedIn == true {
+                    // The system's segmented control in the bar, as in Phone or Calendar.
+                    ToolbarItem(placement: .principal) {
+                        Picker(L10n.Contributions.title, selection: $section) {
+                            Text(L10n.Contributions.mine).tag(Section.mine)
+                            Text(unread > 0 ? L10n.Contributions.inboxCount(count: String(unread)) : L10n.Contributions.inbox).tag(Section.inbox)
+                        }
+                        .pickerStyle(.segmented)
+                        .fixedSize()
+                    }
+                    if section == .inbox, unread > 0 {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(L10n.Notifications.markAllRead, systemImage: "checkmark") { inbox?.viewModel.markRead(id: nil) }
+                        }
+                    }
+                }
+            }
+            .sensoryFeedback(.selection, trigger: section)
             .accessibilityElement(children: .contain)
             .accessibilityLabel(L10n.Contributions.title)
-            .navigationDestination(for: ConsultationRoute.self) { ConsultationDetailScreen(slug: $0.slug).tabBarClearance() }
+            .navigationDestination(for: ConsultationRoute.self) { ConsultationDetailScreen(slug: $0.slug) }
         }
         .task {
             guard let graph else { return }
@@ -129,7 +150,11 @@ struct ContributionsScreen: View {
                 SuggestPlaceScreen { model?.viewModel.refresh() }
             }
         }
-        .fullScreenCover(isPresented: $signingIn) { SignInScreen() }
+        // Signed in to do something: carry on with it instead of making them tap again.
+        .fullScreenCover(isPresented: $signingIn, onDismiss: {
+            if let action = wanted, model?.state.signedIn == true { composing = action }
+            wanted = nil
+        }) { SignInScreen() }
         .onChange(of: links.pending, initial: true) { _, target in
             guard target == .contributions else { return }
             path = []
@@ -145,45 +170,27 @@ struct ContributionsScreen: View {
     @ViewBuilder private func content(_ model: ContributionsModel) -> some View {
         let state = model.state
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+            LazyVStack(alignment: .leading, spacing: 0) {
                 ActionTiles { action in
-                    if state.signedIn { composing = action } else { signingIn = true }
+                    if state.signedIn { composing = action } else { wanted = action; signingIn = true }
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 12)
 
-                if state.signedIn {
-                    SwiftUI.Section {
-                        if section == .inbox, let inbox {
-                            if inbox.state.unread > 0 {
-                                HStack {
-                                    Spacer()
-                                    Button { inbox.viewModel.markRead(id: nil) } label: {
-                                        Text(L10n.Notifications.markAllRead)
-                                            .font(.system(size: 15, weight: .medium))
-                                            .frame(minHeight: 44)
-                                            .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(.plain)
-                                    .foregroundStyle(palette.text)
-                                }
-                                .padding(.horizontal, PostMetrics.inset)
-                            }
-                            InboxList(model: inbox) { slug in path.append(ConsultationRoute(slug: slug)) }
-                        } else {
-                            PendingOutboxView(hidesWhenEmpty: true)
-                            myContributions(model)
-                        }
-                    } header: {
-                        tabs.background(Color(.systemBackground))
-                    }
-                } else {
+                if !state.signedIn {
                     signedOut
+                } else if section == .inbox, let inbox {
+                    InboxList(model: inbox) { slug in path.append(ConsultationRoute(slug: slug)) }
+                } else {
+                    PendingOutboxView(hidesWhenEmpty: true)
+                    myContributions(model)
                 }
             }
             .padding(.bottom, 24)
+            .animation(.snappy(duration: 0.25), value: section)
         }
+        .readableWidth()
         .refreshable {
             model.viewModel.refresh()
             inbox?.viewModel.refresh()
@@ -191,31 +198,15 @@ struct ContributionsScreen: View {
     }
 
     private var signedOut: some View {
-        VStack(spacing: 14) {
-            Text(L10n.Contributions.signedOutTitle)
-                .font(.title3.weight(.bold))
-                .multilineTextAlignment(.center)
-            Text(L10n.Contributions.signedOutBody)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        ContentUnavailableView {
+            Label(L10n.Contributions.signedOutTitle, systemImage: "square.stack")
+        } actions: {
             Button { signingIn = true } label: {
-                Text(L10n.Contributions.signIn).font(.headline).frame(maxWidth: .infinity, minHeight: 50)
+                Text(L10n.Contributions.signIn).font(.headline).padding(.horizontal, 28).frame(minHeight: 50)
             }
             .buttonStyle(RutaProminentStyle())
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 36)
-    }
-
-    private var tabs: some View {
-        let unread = Int(inbox?.state.unread ?? 0)
-        return SegmentTabs(
-            options: [Section.mine, .inbox],
-            selected: section,
-            title: { $0 == .mine ? L10n.Contributions.mine : (unread > 0 ? L10n.Contributions.inboxCount(count: String(unread)) : L10n.Contributions.inbox) },
-            select: { section = $0 }
-        )
+        .padding(.top, 48)
     }
 
     @ViewBuilder private func myContributions(_ model: ContributionsModel) -> some View {
@@ -233,6 +224,12 @@ struct ContributionsScreen: View {
             ForEach(state.items, id: \.id) { item in
                 if let slug = state.slugFor(item: item) {
                     Button { path.append(ConsultationRoute(slug: slug)) } label: {
+                        ContributionRow(item: item, opens: true)
+                    }
+                    .buttonStyle(.plain)
+                } else if let href = item.href {
+                    // A place or a live traffic report: the map opens on it.
+                    Button { links.open(href) } label: {
                         ContributionRow(item: item, opens: true)
                     }
                     .buttonStyle(.plain)
@@ -286,48 +283,53 @@ struct PressScale: ButtonStyle {
     }
 }
 
-/// One contribution, in the post style: kind icon, name, status word, time.
+/// One contribution as an X row: the thing's own pin (the case's, the
+/// place's, the traffic report's category) with a small badge for what you
+/// did, the bold name and its age on one line, then kind and status.
 private struct ContributionRow: View {
     let item: PlacesContributionsItem
     let opens: Bool
     @Environment(\.palette) private var palette
 
     var body: some View {
-        let style = kindStyle
         HStack(alignment: .top, spacing: PostMetrics.gap) {
-            PinBadge(symbol: style.symbol, color: style.color, size: PostMetrics.avatar)
-            VStack(alignment: .leading, spacing: 3) {
-                // Threads' activity line: bold name, grey age right after it.
-                (Text(item.name).font(PostMetrics.name.weight(.bold))
-                    + Text(verbatim: "  \(CompactTime.since(item.createdAt.date))").font(PostMetrics.text).foregroundStyle(palette.textTertiary))
-                    .lineLimit(2)
-                (Text(style.kind).foregroundStyle(palette.textTertiary)
+            SubjectAvatar(icon: item.categoryIcon, hex: item.categoryColor, badge: kindStyle.badge)
+            VStack(alignment: .leading, spacing: 2) {
+                // The age flows on after the name, as X writes it, even when the name wraps.
+                (Text(item.name).font(.subheadline.weight(.bold)).foregroundStyle(palette.text)
+                    + Text(verbatim: " · \(CompactTime.since(item.createdAt.date))").font(.subheadline).foregroundStyle(palette.textTertiary))
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                (Text(kindStyle.kind).foregroundStyle(palette.textTertiary)
                     + Text(verbatim: " · ").foregroundStyle(palette.textTertiary)
-                    + Text(statusText).foregroundStyle(statusInk))
-                    .font(PostMetrics.text)
+                    + Text(statusText).foregroundStyle(statusInk).fontWeight(.medium))
+                    .font(.subheadline)
                 if let note = item.note, !note.isEmpty {
                     Text(note)
-                        .font(PostMetrics.text)
+                        .font(.subheadline)
                         .foregroundStyle(palette.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 2)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, PostMetrics.inset)
-        .padding(.vertical, 14)
-        .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5).padding(.leading, PostMetrics.column) }
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) { RowSeparator() }
+        .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
 
-    private var kindStyle: (symbol: String, color: Color, kind: String) {
+    /// What you did, as the badge's glyph and the word beside the status.
+    private var kindStyle: (badge: String, kind: String) {
         switch item.kind {
-        case .place: ("mappin.and.ellipse", .green, L10n.Contributions.Kind.place)
-        case .report: ("flag", .orange, L10n.Contributions.Kind.report)
-        case .photo: ("camera", .blue, L10n.Contributions.Kind.photo)
-        case .traffic: ("exclamationmark.triangle", .orange, L10n.Contributions.Kind.traffic)
-        case .consultation: ("text.bubble", .blue, L10n.Contributions.Kind.consultation)
-        case .claim: ("storefront", .purple, L10n.Contributions.Kind.claim)
+        case .place: ("plus", L10n.Contributions.Kind.place)
+        case .report: ("flag.fill", L10n.Contributions.Kind.report)
+        case .photo: ("camera.fill", L10n.Contributions.Kind.photo)
+        case .traffic: ("exclamationmark.triangle.fill", L10n.Contributions.Kind.traffic)
+        case .consultation: ("text.bubble.fill", L10n.Contributions.Kind.consultation)
+        case .claim: ("storefront.fill", L10n.Contributions.Kind.claim)
         }
     }
 
@@ -367,6 +369,7 @@ private struct InboxList: View {
     let model: InboxModel
     let open: (String) -> Void
     @Environment(\.palette) private var palette
+    @Environment(DeepLinks.self) private var links
 
     var body: some View {
         let state = model.state
@@ -382,7 +385,11 @@ private struct InboxList: View {
             ForEach(state.items, id: \.id) { notice in
                 Button {
                     model.viewModel.markRead(id: notice.id)
-                    if let slug = notice.consultationSlug { open(slug) }
+                    if let slug = notice.consultationSlug {
+                        open(slug)
+                    } else if let href = notice.href {
+                        links.open(href)
+                    }
                 } label: {
                     NoticeRow(notice: notice)
                         .contentShape(Rectangle())
@@ -393,39 +400,91 @@ private struct InboxList: View {
     }
 }
 
+/// One notice as an X notification row: the pin of what it is about with a
+/// badge for what happened, the sentence (bold while unread) and its age.
+/// Unread rows also sit on a faint fill and keep a dot, so it never rests on
+/// weight alone.
 private struct NoticeRow: View {
     let notice: Notice
     @Environment(\.palette) private var palette
 
     var body: some View {
-        let style = self.style
+        let event = self.event
         HStack(alignment: .top, spacing: PostMetrics.gap) {
-            PinBadge(symbol: style.symbol, color: style.color, size: PostMetrics.avatar)
-            // Threads' activity line: the notice, then its age in grey on the same line.
+            if let icon = notice.categoryIcon, let hex = notice.categoryColor {
+                SubjectAvatar(icon: icon, hex: hex, badge: event.symbol, badgeFill: event.fill)
+            } else {
+                GlyphDisc(symbol: event.symbol, size: PostMetrics.avatar)
+            }
             (Text(L10n.message(key: notice.messageKey, params: notice.params))
-                .font(notice.unread ? PostMetrics.text.weight(.bold) : PostMetrics.text)
-                + Text(verbatim: "  \(CompactTime.since(notice.createdAt.date))").font(PostMetrics.text).foregroundStyle(palette.textTertiary))
+                .font(notice.unread ? .subheadline.weight(.bold) : .subheadline)
+                .foregroundStyle(palette.text)
+                + Text(verbatim: " · \(CompactTime.since(notice.createdAt.date))")
+                .font(.subheadline)
+                .foregroundStyle(palette.textTertiary))
                 .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 1)
             Spacer(minLength: 0)
             if notice.unread {
-                Circle().fill(palette.accent).frame(width: 9, height: 9).padding(.top, 6).accessibilityHidden(true)
+                Circle().fill(palette.accentInk).frame(width: 9, height: 9).padding(.top, 6).accessibilityHidden(true)
             }
         }
         .padding(.horizontal, PostMetrics.inset)
-        .padding(.vertical, 14)
-        .overlay(alignment: .bottom) { Rectangle().fill(palette.hairline).frame(height: 0.5).padding(.leading, PostMetrics.column) }
+        .padding(.vertical, 12)
+        .overlay(alignment: .bottom) { RowSeparator() }
         .accessibilityElement(children: .combine)
+        .accessibilityValue(notice.unread ? L10n.Notifications.unread : "")
     }
 
-    private var style: (symbol: String, color: Color) {
-        let key = notice.messageKey
-        if key.contains("consultation") { return ("text.bubble", .blue) }
-        if key.contains("traffic") { return ("exclamationmark.triangle", .orange) }
-        if key.contains("place") { return ("mappin.and.ellipse", .green) }
-        if key.contains("business") { return ("storefront", .purple) }
-        if key.contains("route") { return ("figure.hiking", .green) }
-        return ("bell.fill", .gray)
+    /// What happened: approvals in green, refusals and removals in red (the
+    /// glyph's shape says it too), everything else in ink.
+    private var event: (symbol: String, fill: Color?) {
+        switch notice.messageKey.replacingOccurrences(of: "notifications.", with: "") {
+        case "consultationAnswered": ("building.columns.fill", nil)
+        case "consultationStatusChanged": ("arrow.triangle.2.circlepath", nil)
+        case "consultationPublished", "placeApproved", "businessClaimApproved", "routeReviewed":
+            ("checkmark", palette.successInk)
+        case "placeRejected", "consultationHidden", "businessClaimRejected", "trafficRemoved", "trafficTextHidden", "contentRemoved":
+            ("xmark", palette.dangerInk)
+        case "trafficNearby": ("location.fill", nil)
+        case "reportReady": ("doc.text.fill", nil)
+        default: ("bell.fill", nil)
+        }
+    }
+}
+
+/// A list row's hairline, starting where the text starts (past the avatar),
+/// as the system's list separators do.
+struct RowSeparator: View {
+    var body: some View {
+        Rectangle().fill(Color(.separator)).frame(height: 1 / 3)
+            .padding(.leading, PostMetrics.inset + PostMetrics.avatar + PostMetrics.gap)
+    }
+}
+
+/// Threads' activity avatar: the subject's own map pin, with a small badge at
+/// its lower right for what happened to it.
+struct SubjectAvatar: View {
+    let icon: String
+    let hex: String
+    let badge: String
+    var badgeFill: Color?
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        CategoryPinBadge(icon: icon, hex: hex, size: PostMetrics.avatar)
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: badge)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(badgeFill == nil ? palette.background : .white)
+                    .frame(width: 18, height: 18)
+                    .background(badgeFill ?? palette.text, in: Circle())
+                    .padding(2)
+                    .background(.background, in: Circle())
+                    .offset(x: 5, y: 5)
+            }
+            .accessibilityHidden(true)
     }
 }
 

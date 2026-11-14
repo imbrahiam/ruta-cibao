@@ -60,6 +60,7 @@ private struct Content: View {
             }
             .padding(.bottom, 16)
         }
+        .readableWidth()
         .refreshable {
             vm.refresh()
             try? await Task.sleep(for: .milliseconds(150))
@@ -94,6 +95,7 @@ private struct Content: View {
             )
         }
         .navigationTitle(L10n.Gestion.title)
+        .navigationSubtitle(state.phase == .ready ? "\(state.filter?.title ?? L10n.Gestion.all) · \(shownCount)" : "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if state.phase == .ready { ToolbarItem(placement: .topBarTrailing) { filterMenu } }
@@ -107,6 +109,10 @@ private struct Content: View {
         .task { debugDrive() }
     }
 
+    private var shownCount: Int {
+        Int(state.filter.flatMap { kind in state.filters.first { $0.kind == kind }?.count } ?? state.total)
+    }
+
     /// The queue filter as a system menu in the bar: no row of chips under the title.
     private var filterMenu: some View {
         Menu {
@@ -117,13 +123,11 @@ private struct Content: View {
                 }
             }
         } label: {
-            let count = state.filter.flatMap { kind in state.filters.first { $0.kind == kind }?.count } ?? state.total
-            HStack(spacing: 6) {
-                Image(systemName: "line.3.horizontal.decrease")
-                Text(verbatim: "\(state.filter?.title ?? L10n.Gestion.all) · \(count)")
-            }
-            .accessibilityElement(children: .combine)
+            Image(systemName: "line.3.horizontal.decrease")
+                .symbolVariant(state.filter == nil ? .none : .circle.fill)
         }
+        .accessibilityLabel(L10n.Gestion.all)
+        .accessibilityValue(state.filter?.title ?? L10n.Gestion.all)
     }
 
     private var cards: some View {
@@ -349,20 +353,21 @@ private struct ReviewCard: View {
                         .padding(.horizontal, 20)
                         .frame(minHeight: 48)
                 }
-                .buttonStyle(TonalCapsuleStyle())
+                .buttonStyle(InkCapsuleStyle())
             }
         }
     }
 }
 
-/// A neutral tonal capsule: one step above the card, the label in the primary ink.
-private struct TonalCapsuleStyle: ButtonStyle {
+/// The card's one decision: a solid ink capsule, so it reads first among nine cards
+/// without spending the brand green on every row.
+private struct InkCapsuleStyle: ButtonStyle {
     @Environment(\.palette) private var palette
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(palette.text)
-            .background(palette.fill, in: Capsule())
+            .foregroundStyle(palette.background)
+            .background(palette.text, in: Capsule())
             .opacity(configuration.isPressed ? 0.7 : 1)
             .contentShape(Capsule())
     }

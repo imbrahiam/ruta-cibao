@@ -44,6 +44,9 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -114,13 +117,20 @@ import rutacibao.presentation.consultations.ConsultationsViewModel
 import rutacibao.presentation.consultations.statusValue
 
 @Composable
-fun ConsultationsScreen(onOpen: (String) -> Unit = {}) {
+fun ConsultationsScreen(onOpen: (String) -> Unit = {}, onCompose: () -> Unit = {}) {
     val graph = LocalAppGraph.current
     val vm: ConsultationsViewModel = viewModel { graph.viewModels.consultations() }
     val state by vm.state.collectAsStateWithLifecycle()
     val screenName = stringResource(R.string.consultations_title)
     val pull = rememberPullToRefreshState()
+    val signedIn by graph.session.isSignedIn.collectAsStateWithLifecycle()
+    // Wanting to write while signed out: sign in first, then straight into the form.
+    var composeAfterSignIn by remember { mutableStateOf(false) }
+    LaunchedEffect(signedIn, composeAfterSignIn) {
+        if (signedIn && composeAfterSignIn) { composeAfterSignIn = false; onCompose() }
+    }
 
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize().semantics { paneTitle = screenName }) {
         when (state.phase) {
             Phase.Ready -> PullToRefreshBox(
@@ -160,8 +170,18 @@ fun ConsultationsScreen(onOpen: (String) -> Unit = {}) {
             }
         }
     }
+        // The feed's one action, where the thumb rests: open a consultation.
+        FloatingActionButton(
+            onClick = { if (signedIn) onCompose() else composeAfterSignIn = true },
+            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            shape = CircleShape,
+            containerColor = MaterialTheme.colorScheme.onBackground,
+            contentColor = MaterialTheme.colorScheme.background,
+        ) { Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.consultations_new)) }
+    }
 
     if (state.signInRequested) SignInDialog(onDismiss = vm::signInHandled)
+    if (composeAfterSignIn && !signedIn) SignInDialog(onDismiss = { composeAfterSignIn = false })
 }
 
 /** The status chips; scrolls away with the list. */
