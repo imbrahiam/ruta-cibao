@@ -18,12 +18,12 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import rutacibao.android.navigation.AppRoot
-import rutacibao.android.navigation.LinkRequest
+import rutacibao.android.app.AppRoot
+import rutacibao.android.app.LinkRequest
 import rutacibao.android.platform.PushNotifications
-import rutacibao.android.ui.LocalAppGraph
-import rutacibao.android.ui.LocalRootOwner
-import rutacibao.android.ui.RutaAppTheme
+import rutacibao.android.design.LocalAppGraph
+import rutacibao.android.design.LocalRootOwner
+import rutacibao.android.design.RutaTheme
 import rutacibao.data.AppTarget
 
 class MainActivity : ComponentActivity() {
@@ -41,11 +41,6 @@ class MainActivity : ComponentActivity() {
         val debugCompose = if (BuildConfig.DEBUG) intent.getStringExtra("ruta_debug_compose") else null
         val debugSlug = if (BuildConfig.DEBUG) intent.getStringExtra("ruta_debug_slug") else null
         val debugStepUp = BuildConfig.DEBUG && intent.getStringExtra("ruta_debug_stepup") == "1"
-        rutacibao.android.ui.UiPrefs.init(this)
-        // Debug-only: `--es ruta_debug_tabbar fixed|floating` picks the bar for screenshot runs.
-        if (BuildConfig.DEBUG) intent.getStringExtra("ruta_debug_tabbar")?.let { value ->
-            rutacibao.android.ui.TabBarStyle.entries.firstOrNull { it.name.equals(value, ignoreCase = true) }?.let(rutacibao.android.ui.UiPrefs::chooseTabBarStyle)
-        }
         setContent {
             val signedIn by graph.session.isSignedIn.collectAsStateWithLifecycle()
             val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -61,7 +56,7 @@ class MainActivity : ComponentActivity() {
                 } else PushNotifications.sync(application as RutaApplication)
             }
             CompositionLocalProvider(LocalAppGraph provides graph, LocalRootOwner provides this) {
-                RutaAppTheme {
+                RutaTheme {
                     AppRoot(debugTab, debugCompose, debugSlug, debugStepUp, pendingLink) { request ->
                         if (pendingLink?.id == request.id) pendingLink = null
                     }

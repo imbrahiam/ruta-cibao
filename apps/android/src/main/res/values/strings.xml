@@ -71,6 +71,9 @@
     <string name="about_maps_credit_native">Mapas de Apple · lugares © OpenStreetMap</string>
     <string name="about_source">Código fuente</string>
     <string name="about_contest">Proyecto para TechEmprende SR Conecta 2026.</string>
+    <string name="about_town_sabaneta">Sabaneta</string>
+    <string name="about_town_moncion">Monción</string>
+    <string name="about_town_almacigos">Villa Los Almácigos</string>
     <string name="account_title">Cuenta</string>
     <string name="account_signed_out_title">Entra a Ruta Cibao</string>
     <string name="account_signed_out_body">Guarda lugares, sigue tus consultas y recibe las respuestas del ayuntamiento. Solo necesitas tu celular o tu correo.</string>
@@ -631,13 +634,13 @@
     <string name="offline_outbox_errors_unauthenticated">Inicia sesión de nuevo para enviar este aporte.</string>
     <string name="offline_outbox_errors_generic">El servidor rechazó este envío. Revísalo o descártalo.</string>
     <string name="onboarding_location_title">Lo que tienes cerca</string>
-    <string name="onboarding_location_body">Con tu ubicación te mostramos los lugares, rutas y avisos de la provincia que están cerca de ti, y cómo llegar.</string>
+    <string name="onboarding_location_body">Para mostrarte lo que está cerca y cómo llegar.</string>
     <string name="onboarding_allow_location">Permitir ubicación</string>
     <string name="onboarding_notifications_title">Entérate cuando te respondan</string>
-    <string name="onboarding_notifications_body">Te avisamos cuando el ayuntamiento responda tus consultas y cuando haya algo en la vía cerca de ti.</string>
+    <string name="onboarding_notifications_body">Cuando el ayuntamiento responda o haya algo en la vía.</string>
     <string name="onboarding_enable_notifications">Activar notificaciones</string>
     <string name="onboarding_not_now">Ahora no</string>
-    <string name="onboarding_welcome_title">Te damos la bienvenida a Ruta Cibao</string>
+    <string name="onboarding_welcome_title">Tu provincia, en un mapa.</string>
     <string name="onboarding_explore_title">Explora</string>
     <string name="onboarding_explore_body">Lugares, rutas y avisos de la vía cerca de ti.</string>
     <string name="onboarding_ask_title">Consulta</string>

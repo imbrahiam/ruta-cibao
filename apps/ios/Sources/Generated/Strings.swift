@@ -148,6 +148,12 @@ enum L10n {
         static var mapsCreditNative: String { String(localized: LocalizedStringResource("about.mapsCreditNative")) }
         static var source: String { String(localized: LocalizedStringResource("about.source")) }
         static var contest: String { String(localized: LocalizedStringResource("about.contest")) }
+
+        enum Town {
+            static var sabaneta: String { String(localized: LocalizedStringResource("about.town.sabaneta")) }
+            static var moncion: String { String(localized: LocalizedStringResource("about.town.moncion")) }
+            static var almacigos: String { String(localized: LocalizedStringResource("about.town.almacigos")) }
+        }
     }
 
     enum Account {

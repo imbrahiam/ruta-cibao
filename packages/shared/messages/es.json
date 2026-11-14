@@ -1267,7 +1267,12 @@
     "mapsCredit": "© Mapbox © OpenStreetMap",
     "mapsCreditNative": "Mapas de Apple · lugares © OpenStreetMap",
     "source": "Código fuente",
-    "contest": "Proyecto para TechEmprende SR Conecta 2026."
+    "contest": "Proyecto para TechEmprende SR Conecta 2026.",
+    "town": {
+      "sabaneta": "Sabaneta",
+      "moncion": "Monción",
+      "almacigos": "Villa Los Almácigos"
+    }
   },
   "traffic": {
     "severity": {
@@ -1761,13 +1766,13 @@
   },
   "onboarding": {
     "locationTitle": "Lo que tienes cerca",
-    "locationBody": "Con tu ubicación te mostramos los lugares, rutas y avisos de la provincia que están cerca de ti, y cómo llegar.",
+    "locationBody": "Para mostrarte lo que está cerca y cómo llegar.",
     "allowLocation": "Permitir ubicación",
     "notificationsTitle": "Entérate cuando te respondan",
-    "notificationsBody": "Te avisamos cuando el ayuntamiento responda tus consultas y cuando haya algo en la vía cerca de ti.",
+    "notificationsBody": "Cuando el ayuntamiento responda o haya algo en la vía.",
     "enableNotifications": "Activar notificaciones",
     "notNow": "Ahora no",
-    "welcomeTitle": "Te damos la bienvenida a Ruta Cibao",
+    "welcomeTitle": "Tu provincia, en un mapa.",
     "exploreTitle": "Explora",
     "exploreBody": "Lugares, rutas y avisos de la vía cerca de ti.",
     "askTitle": "Consulta",

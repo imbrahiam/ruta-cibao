@@ -100,6 +100,39 @@
         }
       }
     },
+    "about.town.almacigos": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Villa Los Almácigos"
+          }
+        }
+      }
+    },
+    "about.town.moncion": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monción"
+          }
+        }
+      }
+    },
+    "about.town.sabaneta": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sabaneta"
+          }
+        }
+      }
+    },
     "about.version": {
       "extractionState": "manual",
       "localizations": {
@@ -6711,7 +6744,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Con tu ubicación te mostramos los lugares, rutas y avisos de la provincia que están cerca de ti, y cómo llegar."
+            "value": "Para mostrarte lo que está cerca y cómo llegar."
           }
         }
       }
@@ -6744,7 +6777,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Te avisamos cuando el ayuntamiento responda tus consultas y cuando haya algo en la vía cerca de ti."
+            "value": "Cuando el ayuntamiento responda o haya algo en la vía."
           }
         }
       }
@@ -6766,7 +6799,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Te damos la bienvenida a Ruta Cibao"
+            "value": "Tu provincia, en un mapa."
           }
         }
       }

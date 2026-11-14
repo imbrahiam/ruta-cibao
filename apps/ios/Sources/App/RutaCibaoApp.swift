@@ -24,7 +24,7 @@ struct RutaCibaoApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            Shell()
                 .launchVeil()
                 .environment(\.graph, graph)
                 .environment(delegate.links)
