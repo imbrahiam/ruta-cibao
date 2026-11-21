@@ -185,9 +185,10 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
 
       {/* What to read on the left; where the place is, as a supporting
           preview, on the right once the pane is wide enough. */}
-      <div className="@container flex flex-col gap-6">
-        {/* The statement wraps to give the map a real share of the width. */}
-        <div className="grid gap-6 @lg:grid-cols-[minmax(0,1fr)_minmax(14rem,42%)] @lg:items-start">
+      <div className="@container flex flex-col gap-5">
+        {/* The statement keeps to the left, well apart from the map, which
+            is a short strip: the whole claim fits the pane without scrolling. */}
+        <div className="grid gap-6 @lg:grid-cols-[minmax(0,1fr)_minmax(14rem,38%)] @lg:items-start @lg:gap-x-12">
           <div className="flex min-w-0 flex-col gap-5">
             <ClaimSection id={`${id}-statement`} title={q("claimStatement")}>
               <div className="max-w-prose text-[15px] [overflow-wrap:anywhere] whitespace-pre-line">
@@ -201,7 +202,7 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
               {mapItem && place.data ? (
                 <MapPreview
                   className="max-w-none"
-                  mapClassName="aspect-[4/3]"
+                  mapClassName="aspect-auto h-32"
                   facts={false}
                   item={mapItem}
                   label={q("claimMapAlt", { name: claim.placeName })}

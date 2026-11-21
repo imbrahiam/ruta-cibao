@@ -24,6 +24,30 @@ import { cn } from "@/lib/utils";
 import { itemDomId, useItemFrame } from "../map/item-frame";
 import { MediaViewer } from "../media-viewer";
 
+/**
+ * A short fact as a pill: a state in its colour, or a plain one (the town, a
+ * length) on the muted surface. Facts read as chips, not as a sentence of
+ * words strung together with dots.
+ */
+export function Chip({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs font-medium whitespace-nowrap [&>svg]:size-3.5 [&>svg]:shrink-0",
+        className ?? "bg-muted text-foreground/80",
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 /** Rows pass their facts in a fragment; `MetaList` needs them one by one. */
 function facts(node: ReactNode): ReactNode[] {
   return Children.toArray(node).flatMap((child) =>
@@ -96,15 +120,20 @@ export function ItemRow({
       <div className="flex min-w-0 gap-3">
         {lead}
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <h2
-              id={titleId}
-              title={typeof title === "string" ? title : undefined}
-              className="line-clamp-2 text-[15px] leading-snug font-medium break-words"
-            >
-              {title}
-            </h2>
-            {badge}
+          {/* The way out (`aside`) shares the title's line, so everything
+              below, the decision included, runs to the card's right edge. */}
+          <div className="flex items-start gap-3">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+              <h2
+                id={titleId}
+                title={typeof title === "string" ? title : undefined}
+                className="line-clamp-2 text-[15px] leading-snug font-medium break-words"
+              >
+                {title}
+              </h2>
+              {badge}
+            </div>
+            {aside ? <div className="-my-1 shrink-0">{aside}</div> : null}
           </div>
           <MetaList>{facts(meta)}</MetaList>
           {summary ? (
@@ -146,7 +175,6 @@ export function ItemRow({
             )}
           </div>
         </div>
-        {aside ? <div className="shrink-0">{aside}</div> : null}
       </div>
       {detail ? (
         <div className={cn("@container/item flex min-w-0 flex-col gap-3")}>

@@ -16,7 +16,7 @@ import { trafficMapItem } from "../map/queue-items";
 import { useMapCopy } from "../map/use-map-copy";
 import { StatusIndicator } from "../status-indicator";
 import { DecisionBar } from "./decision-bar";
-import { ItemRow, useWhen } from "./item-parts";
+import { Chip, ItemRow, useWhen } from "./item-parts";
 import { PersonAvatar } from "./person-avatar";
 import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
@@ -31,25 +31,6 @@ const SEVERITY_TONE = {
   partial: "bg-amber-500/12 text-amber-800 dark:text-amber-300",
   minor: "bg-sky-500/10 text-sky-800 dark:text-sky-300",
 } as const;
-
-function Chip({
-  className,
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <span
-      className={cn(
-        "inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs font-medium whitespace-nowrap [&>svg]:size-3.5 [&>svg]:shrink-0",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
 
 /**
  * What the report costs a driver, how far and where, as chips: the severity in

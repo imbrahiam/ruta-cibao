@@ -145,6 +145,8 @@ export async function pendingReports(
       municipalityId: municipalities.id,
       municipalityName: municipalities.name,
       reportedBy: memberProfiles.displayName,
+      reportedByImage: user.image,
+      reporterResidentVerified: residentVerified,
       total,
     })
     .from(placeReports)
@@ -154,6 +156,7 @@ export async function pendingReports(
       memberProfiles,
       eq(memberProfiles.userId, placeReports.reporterUserId),
     )
+    .leftJoin(user, eq(user.id, placeReports.reporterUserId))
     .where(
       and(
         eq(placeReports.status, "pending"),
@@ -166,18 +169,24 @@ export async function pendingReports(
 
   return page(
     rows,
-    rows.map((row) => ({
-      id: row.id,
-      reason: row.reason,
-      details: row.details,
-      createdAt: row.createdAt.toISOString(),
-      placeId: row.placeId,
-      placeName: row.placeName,
-      placeSlug: row.placeSlug,
-      municipalityId: row.municipalityId,
-      municipalityName: row.municipalityName,
-      reportedBy: row.reportedBy,
-    })),
+    await Promise.all(
+      rows.map(async (row) => ({
+        id: row.id,
+        reason: row.reason,
+        details: row.details,
+        createdAt: row.createdAt.toISOString(),
+        placeId: row.placeId,
+        placeName: row.placeName,
+        placeSlug: row.placeSlug,
+        municipalityId: row.municipalityId,
+        municipalityName: row.municipalityName,
+        reportedBy: row.reportedBy,
+        reportedByImage: row.reportedByImage
+          ? await mediaUrl(row.reportedByImage, 96)
+          : null,
+        reporterResidentVerified: row.reporterResidentVerified,
+      })),
+    ),
   );
 }
 

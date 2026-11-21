@@ -573,6 +573,12 @@
                           },
                           "reportedBy": {
                             "type": ["string", "null"]
+                          },
+                          "reportedByImage": {
+                            "type": ["string", "null"]
+                          },
+                          "reporterResidentVerified": {
+                            "type": "boolean"
                           }
                         },
                         "required": [
@@ -585,7 +591,9 @@
                           "placeSlug",
                           "municipalityId",
                           "municipalityName",
-                          "reportedBy"
+                          "reportedBy",
+                          "reportedByImage",
+                          "reporterResidentVerified"
                         ],
                         "additionalProperties": false
                       }

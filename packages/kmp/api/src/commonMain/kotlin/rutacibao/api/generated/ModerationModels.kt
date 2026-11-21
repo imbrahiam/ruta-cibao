@@ -94,6 +94,8 @@ public data class ModerationQueueOutput(
         val municipalityId: String,
         val municipalityName: String,
         val reportedBy: String? = null,
+        val reportedByImage: String? = null,
+        val reporterResidentVerified: Boolean,
     ) {
         @Serializable
         public enum class Reason {

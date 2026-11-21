@@ -223,7 +223,7 @@ export function CaseList() {
         ref={region}
         style={fill}
         data-scroll-root
-        className="scroll-fade-y min-h-0 lg:-mb-(--desk-bleed) lg:h-(--desk-fill) lg:min-h-96 lg:-mx-3 lg:overflow-y-auto lg:px-3 lg:pb-(--desk-bleed)"
+        className="scroll-fade-y min-h-0 lg:-mb-(--desk-bleed) lg:h-(--desk-fill) lg:min-h-96 lg:-mx-3 lg:overflow-y-auto lg:px-3 lg:pb-(--desk-bleed) lg:[--fade-inset-end:var(--desk-bleed)]"
       >
         {list.isError && !list.data ? (
           <ErrorPanel error={list.error} onRetry={() => list.refetch()} />

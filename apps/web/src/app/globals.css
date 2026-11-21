@@ -630,10 +630,13 @@
   animation-fill-mode: both;
   animation-timeline: scroll(self block);
   /* Each fade is as tall as what is hidden beyond its edge, up to
-     --fade-size: none at the start of the content, and none at its end. */
+     --fade-size: none at the start of the content, and none at its end.
+     `--fade-inset-end` is bottom padding with nothing in it (a scroller that
+     runs to the window's edge): reaching it counts as the end. */
   animation-range:
     0 var(--fade-size),
-    calc(100% - var(--fade-size)) 100%;
+    calc(100% - var(--fade-size) - var(--fade-inset-end, 0px))
+    calc(100% - var(--fade-inset-end, 0px));
 }
 
 @keyframes reveal-fade-start {
