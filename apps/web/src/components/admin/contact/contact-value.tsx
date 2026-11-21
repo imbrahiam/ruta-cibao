@@ -1,6 +1,6 @@
 "use client";
 
-import { formatPhone, normalizePhone } from "@ruta/shared/phone";
+import { formatPhoneInput, normalizePhone } from "@ruta/shared/phone";
 import { ChevronDown, Copy, Mail, Phone } from "lucide-react";
 import { useRef } from "react";
 import { useTranslations } from "use-intl";
@@ -28,7 +28,7 @@ const ITEM = "pointer-coarse:min-h-11";
 /**
  * A phone, WhatsApp or email value that does something: a quiet button that
  * opens a menu of the actions staff actually take (call, message, copy).
- * Numbers are shown the way they are written here (`809-555-0101`) and
+ * Numbers are shown the way they are written here (`(809) 555-0101`) and
  * linked in E.164; a value that is not a Dominican number only offers copy.
  */
 export function ContactValue({
@@ -49,7 +49,7 @@ export function ContactValue({
   const byPointer = useRef(false);
 
   const e164 = kind === "email" ? null : normalizePhone(value);
-  const display = e164 ? formatPhone(e164) : value;
+  const display = e164 ? formatPhoneInput(e164) : value;
   const Icon =
     kind === "email" ? Mail : kind === "whatsapp" ? WhatsAppMark : Phone;
 
