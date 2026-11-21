@@ -9,14 +9,14 @@
   --line: #e4e2da;
   --accent: #2a2a27;
   --on-accent: #fff;
-  --accent-soft: #ddd5ee;
+  --accent-soft: #b7e2d2;
   --font-display: var(--font-inter), sans-serif;
   --public-action-height: 44px;
   --public-action-padding: 11px 18px;
   --public-action-font-size: 14px;
   --public-action-line-height: 20px;
-  --public-glow-center: #d9d1f080;
-  --public-glow-edge: #e8e2f44d;
+  --public-glow-center: #a5e2cc80;
+  --public-glow-edge: #ccece04d;
   min-height: 100vh;
   background: var(--paper);
   color: var(--ink);
@@ -75,7 +75,7 @@
   bottom: 5px;
   left: 12px;
   height: 8px;
-  background: #b8a6cf;
+  background: #7eb9a4;
   mask: url("/brand/brush.svg") center / 100% 100% no-repeat;
   content: "";
   clip-path: inset(0 100% 0 0);

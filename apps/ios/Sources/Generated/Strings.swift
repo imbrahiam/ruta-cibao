@@ -131,6 +131,7 @@ enum L10n {
                 NSLocalizedString("comments.charactersLeft", comment: ""), count
             )
         }
+        static var replyTitle: String { String(localized: LocalizedStringResource("comments.replyTitle")) }
     }
 
     enum About {
@@ -372,6 +373,7 @@ enum L10n {
         static var opened: String { String(localized: LocalizedStringResource("consultations.opened")) }
         static var openedBody: String { String(localized: LocalizedStringResource("consultations.openedBody")) }
         static var mismatch: String { String(localized: LocalizedStringResource("consultations.mismatch")) }
+        static var more: String { String(localized: LocalizedStringResource("consultations.more")) }
 
         enum Status {
             static var `open`: String { String(localized: LocalizedStringResource("consultations.status.open")) }
@@ -622,6 +624,9 @@ enum L10n {
                 NSLocalizedString("directions.arrival", comment: ""), time
             )
         }
+        static var locationErrorTitle: String { String(localized: LocalizedStringResource("directions.locationErrorTitle")) }
+        static var locationErrorBody: String { String(localized: LocalizedStringResource("directions.locationErrorBody")) }
+        static var openSettings: String { String(localized: LocalizedStringResource("directions.openSettings")) }
     }
 
     enum Errors {
@@ -675,6 +680,7 @@ enum L10n {
                 NSLocalizedString("explore.duration.minutes", comment: ""), minutes
             )
         }
+        static var savedExplore: String { String(localized: LocalizedStringResource("explore.savedExplore")) }
 
         enum Difficulty {
             static var easy: String { String(localized: LocalizedStringResource("explore.difficulty.easy")) }
@@ -709,6 +715,7 @@ enum L10n {
         static var replyStatus: String { String(localized: LocalizedStringResource("gestion.replyStatus")) }
         static var replySend: String { String(localized: LocalizedStringResource("gestion.replySend")) }
         static var replyTooShort: String { String(localized: LocalizedStringResource("gestion.replyTooShort")) }
+        static var staffOnly: String { String(localized: LocalizedStringResource("gestion.staffOnly")) }
 
         enum Kind {
             static var place: String { String(localized: LocalizedStringResource("gestion.kind.place")) }
@@ -786,6 +793,11 @@ enum L10n {
         static var trafficGone: String { String(localized: LocalizedStringResource("map.trafficGone")) }
         static var basemapUnavailable: String { String(localized: LocalizedStringResource("map.basemapUnavailable")) }
         static var basemapUnavailableBody: String { String(localized: LocalizedStringResource("map.basemapUnavailableBody")) }
+        static func routesCount(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("map.routesCount", comment: ""), count
+            )
+        }
     }
 
     enum MapLayers {
@@ -1008,6 +1020,7 @@ enum L10n {
         static var hoursHelper: String { String(localized: LocalizedStringResource("place.hoursHelper")) }
         static var call: String { String(localized: LocalizedStringResource("place.call")) }
         static var stillThere: String { String(localized: LocalizedStringResource("place.stillThere")) }
+        static var verify: String { String(localized: LocalizedStringResource("place.verify")) }
         static var exists: String { String(localized: LocalizedStringResource("place.exists")) }
         static var gone: String { String(localized: LocalizedStringResource("place.gone")) }
         static var thanks: String { String(localized: LocalizedStringResource("place.thanks")) }
@@ -1130,6 +1143,83 @@ enum L10n {
         static var municipalityHelper: String { String(localized: LocalizedStringResource("profile.municipalityHelper")) }
         static var saved: String { String(localized: LocalizedStringResource("profile.saved")) }
         static var skip: String { String(localized: LocalizedStringResource("profile.skip")) }
+    }
+
+    enum Reports {
+        static var title: String { String(localized: LocalizedStringResource("reports.title")) }
+        static var intro: String { String(localized: LocalizedStringResource("reports.intro")) }
+        static var loading: String { String(localized: LocalizedStringResource("reports.loading")) }
+        static var empty: String { String(localized: LocalizedStringResource("reports.empty")) }
+        static var emptyHint: String { String(localized: LocalizedStringResource("reports.emptyHint")) }
+        static func week(start: String, end: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reports.week", comment: ""), start, end
+            )
+        }
+        static func generatedAt(date: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reports.generatedAt", comment: ""), date
+            )
+        }
+        static var `open`: String { String(localized: LocalizedStringResource("reports.open")) }
+        static var back: String { String(localized: LocalizedStringResource("reports.back")) }
+        static var notFound: String { String(localized: LocalizedStringResource("reports.notFound")) }
+        static var pending: String { String(localized: LocalizedStringResource("reports.pending")) }
+        static var failed: String { String(localized: LocalizedStringResource("reports.failed")) }
+        static var unreadable: String { String(localized: LocalizedStringResource("reports.unreadable")) }
+        static var downloadPdf: String { String(localized: LocalizedStringResource("reports.downloadPdf")) }
+        static var preparingPdf: String { String(localized: LocalizedStringResource("reports.preparingPdf")) }
+        static var pdfQueued: String { String(localized: LocalizedStringResource("reports.pdfQueued")) }
+        static var pdfFailed: String { String(localized: LocalizedStringResource("reports.pdfFailed")) }
+        static var print: String { String(localized: LocalizedStringResource("reports.print")) }
+        static var noActivity: String { String(localized: LocalizedStringResource("reports.noActivity")) }
+        static var eyebrow: String { String(localized: LocalizedStringResource("reports.eyebrow")) }
+        static var forbidden: String { String(localized: LocalizedStringResource("reports.forbidden")) }
+        static var preparePdf: String { String(localized: LocalizedStringResource("reports.preparePdf")) }
+
+        enum Sections {
+            static var places: String { String(localized: LocalizedStringResource("reports.sections.places")) }
+            static var routes: String { String(localized: LocalizedStringResource("reports.sections.routes")) }
+            static var traffic: String { String(localized: LocalizedStringResource("reports.sections.traffic")) }
+            static var consultations: String { String(localized: LocalizedStringResource("reports.sections.consultations")) }
+            static var businesses: String { String(localized: LocalizedStringResource("reports.sections.businesses")) }
+            static var people: String { String(localized: LocalizedStringResource("reports.sections.people")) }
+            static var topCategories: String { String(localized: LocalizedStringResource("reports.sections.topCategories")) }
+        }
+
+        enum Metrics {
+            static var routesSubmitted: String { String(localized: LocalizedStringResource("reports.metrics.routesSubmitted")) }
+            static var routesPublished: String { String(localized: LocalizedStringResource("reports.metrics.routesPublished")) }
+            static var placesSubmitted: String { String(localized: LocalizedStringResource("reports.metrics.placesSubmitted")) }
+            static var placesPublished: String { String(localized: LocalizedStringResource("reports.metrics.placesPublished")) }
+            static var placesRejected: String { String(localized: LocalizedStringResource("reports.metrics.placesRejected")) }
+            static var placesTotal: String { String(localized: LocalizedStringResource("reports.metrics.placesTotal")) }
+            static var trafficReported: String { String(localized: LocalizedStringResource("reports.metrics.trafficReported")) }
+            static var trafficCleared: String { String(localized: LocalizedStringResource("reports.metrics.trafficCleared")) }
+            static var trafficExpired: String { String(localized: LocalizedStringResource("reports.metrics.trafficExpired")) }
+            static var trafficRemoved: String { String(localized: LocalizedStringResource("reports.metrics.trafficRemoved")) }
+            static var consultationsOpened: String { String(localized: LocalizedStringResource("reports.metrics.consultationsOpened")) }
+            static var consultationsAnswered: String { String(localized: LocalizedStringResource("reports.metrics.consultationsAnswered")) }
+            static var consultationsResolved: String { String(localized: LocalizedStringResource("reports.metrics.consultationsResolved")) }
+            static var consultationsStillOpen: String { String(localized: LocalizedStringResource("reports.metrics.consultationsStillOpen")) }
+            static var medianResponse: String { String(localized: LocalizedStringResource("reports.metrics.medianResponse")) }
+            static func medianResponseHours(hours: String) -> String {
+                String.localizedStringWithFormat(
+                    NSLocalizedString("reports.metrics.medianResponseHours", comment: ""), hours
+                )
+            }
+            static var medianResponseNone: String { String(localized: LocalizedStringResource("reports.metrics.medianResponseNone")) }
+            static var businessesClaimed: String { String(localized: LocalizedStringResource("reports.metrics.businessesClaimed")) }
+            static var businessesApproved: String { String(localized: LocalizedStringResource("reports.metrics.businessesApproved")) }
+            static var peopleVerified: String { String(localized: LocalizedStringResource("reports.metrics.peopleVerified")) }
+            static var peopleContributors: String { String(localized: LocalizedStringResource("reports.metrics.peopleContributors")) }
+        }
+
+        enum Statuses {
+            static var pending: String { String(localized: LocalizedStringResource("reports.statuses.pending")) }
+            static var ready: String { String(localized: LocalizedStringResource("reports.statuses.ready")) }
+            static var failed: String { String(localized: LocalizedStringResource("reports.statuses.failed")) }
+        }
     }
 
     enum Routes {
@@ -1338,8 +1428,19 @@ enum L10n {
         static var ask: String { String(localized: LocalizedStringResource("traffic.ask")) }
         static var still: String { String(localized: LocalizedStringResource("traffic.still")) }
         static var gone: String { String(localized: LocalizedStringResource("traffic.gone")) }
-        static var stillShort: String { String(localized: LocalizedStringResource("traffic.stillShort")) }
-        static var goneShort: String { String(localized: LocalizedStringResource("traffic.goneShort")) }
+        static var askBlocked: String { String(localized: LocalizedStringResource("traffic.askBlocked")) }
+        static var stillBlocked: String { String(localized: LocalizedStringResource("traffic.stillBlocked")) }
+        static var goneBlocked: String { String(localized: LocalizedStringResource("traffic.goneBlocked")) }
+        static func stillBlockedVoices(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("traffic.stillBlockedVoices", comment: ""), count
+            )
+        }
+        static func goneBlockedVoices(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("traffic.goneBlockedVoices", comment: ""), count
+            )
+        }
         static var yourAnswer: String { String(localized: LocalizedStringResource("traffic.yourAnswer")) }
         static func sheetLabel(category: String) -> String {
             String.localizedStringWithFormat(

@@ -6,8 +6,9 @@ typealias EcoRoute = RoutesBrowseOutput.Item
 
 extension MapPlace {
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
-    /// The admin colour folded onto the palette, so the map shares the app's colours.
-    var tint: Color { Tint.of(hex: color).solid }
+    /// The admin colour folded onto the map's family of tones.
+    var tone: PinTone { .of(hex: color) }
+    var tint: Color { tone.color }
 }
 
 extension EcoRoute {
@@ -17,7 +18,16 @@ extension EcoRoute {
 
 extension TrafficNotice {
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
-    var tint: Color { severity == .blocking ? .danger : .warning }
+    var tone: PinTone { severity == .blocking ? .blocked : .caution }
+    var tint: Color { tone.color }
+}
+
+private extension MKPolyline {
+    var path: [GeoPoint] {
+        var points = [CLLocationCoordinate2D](repeating: kCLLocationCoordinate2DInvalid, count: pointCount)
+        getCoordinates(&points, range: NSRange(location: 0, length: pointCount))
+        return points.map(GeoPoint.init)
+    }
 }
 
 /// The province on one map: places, eco routes and what is happening on the road.
@@ -32,17 +42,34 @@ struct MapScreen: View {
 private struct MapBody: View {
     let model: Screen<MapViewModel, MapUiState>
     @Environment(DeepLinks.self) private var links
+    @Environment(AppChrome.self) private var chrome: AppChrome?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var camera: MapCameraPosition = .region(MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: 19.4772, longitude: -71.3414), latitudinalMeters: 2600, longitudinalMeters: 2600))
-    @State private var region: MKCoordinateRegion?
+    @State private var camera = CameraRequest(move: .region(center: GeoPoint(CLLocationCoordinate2D(latitude: 19.4772, longitude: -71.3414)), latitudeSpan: 0.024, longitudeSpan: 0.024))
+    @State private var viewport: Viewport?
     @State private var mapHeight: CGFloat = 700
-    @State private var satellite = false
-    /// The system marker in hand, keyed like `selectionKey`. MapKit owns the tap and the lift.
+    @State private var mapWidth: CGFloat = 400
+    /// What MapKit keeps clear at the map's bottom (the tab bar and home indicator): the
+    /// region it is given is centred in the space above it.
+    @State private var mapBottomInset: CGFloat = 0
+    /// Where the header ends and where the map starts, on screen: the map runs under the status
+    /// bar and the header, so what it must keep clear is the distance between the two.
+    @State private var headerBottom: CGFloat = 0
+    @State private var mapTop: CGFloat = 0
+    private var headerHeight: CGFloat { max(headerBottom - mapTop, 0) }
+    @State private var following = false
+    /// The pin in hand, keyed like `selectionKey`.
     @State private var picked: String?
     @State private var searching = DebugHook.value("RUTA_DEBUG_COMPOSE") == "search"
     @State private var afterSearch: (() -> Void)?
     @State private var navigator = RouteNavigator()
     @State private var framed = false
+    /// The trip card's room at the map's bottom while previewing a route, so MapKit keeps its
+    /// logo and legal link in view above the card.
+    private var cardInset: CGFloat { routing && !guiding ? CGFloat(Self.previewCover) : 0 }
+    /// Where the map stood before a route took it over, so ending the route gives it back.
+    @State private var beforeRoute: Viewport?
+    /// The pin a route leads to: while routing it is the only pin on the map, so the way reads clearly.
+    @State private var routeTarget: String?
     @State private var location = CLLocationManager()
 
     private var state: MapUiState { model.state }
@@ -52,9 +79,36 @@ private struct MapBody: View {
 
     /// Pins that would sit on top of each other give way until the zoom separates them.
     private var places: [MapPlace] {
-        guard let region else { return state.places }
-        let cell = region.span.latitudeDelta * 46 / Double(max(mapHeight, 1))
-        return Clustering.shared.declutter(places: state.places, cellLatitude: cell, cellLongitude: cell, keep: state.sheet?.place.id)
+        guard let viewport else { return state.places }
+        let perPoint = viewport.latitudeSpan / Double(max(mapHeight, 1))
+        let cell = perPoint * 46
+        let gridded = Clustering.shared.declutter(places: state.places, cellLatitude: cell, cellLongitude: cell, keep: state.sheet?.place.id)
+        // Road notices are live and few: they always show, and places give way around them.
+        let notices = state.traffic.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        return spaced(gridded, around: notices, perPoint: perPoint, keep: state.sheet?.place.id)
+    }
+
+    /// The grid leaves neighbours that straddle a cell edge almost touching, so a second
+    /// pass keeps a marker's footprint (a balloon about 40 × 48 pt) free around each pin and
+    /// around the fixed points given (road notices).
+    private func spaced(_ places: [MapPlace], around fixed: [CLLocationCoordinate2D], perPoint: Double, keep: String?) -> [MapPlace] {
+        guard perPoint > 0 else { return places }
+        let ordered = places.sorted { ($0.id == keep ? 0 : 1) < ($1.id == keep ? 0 : 1) }
+        var taken = fixed
+        var kept: [MapPlace] = []
+        for place in ordered {
+            let scale = cos(place.latitude * .pi / 180)
+            let clear = place.id == keep || taken.allSatisfy { other in
+                let dx = (place.longitude - other.longitude) * scale / perPoint / 40
+                let dy = (place.latitude - other.latitude) / perPoint / 48
+                return dx * dx + dy * dy >= 1
+            }
+            if clear {
+                kept.append(place)
+                taken.append(place.coordinate)
+            }
+        }
+        return kept
     }
 
     var body: some View {
@@ -62,7 +116,7 @@ private struct MapBody: View {
             .overlay(alignment: .top) { if !routing { topBar.transition(.move(edge: .top).combined(with: .opacity)) } }
             .overlay(alignment: .bottomTrailing) { if !routing { controls.transition(.opacity) } }
             .overlay(alignment: .bottom) {
-                if routing, !guiding { RoutePreview(navigator: navigator).transition(.move(edge: .bottom).combined(with: .opacity)) }
+                if routing, !guiding { RoutePreview(navigator: navigator).hidesTabBar().transition(.move(edge: .bottom).combined(with: .opacity)) }
             }
             .overlay { if guiding { Guidance(navigator: navigator).hidesTabBar().transition(.opacity) } }
             .overlay {
@@ -82,7 +136,9 @@ private struct MapBody: View {
                 MapSearch(places: state.all, routes: state.routes, municipalities: state.municipalities, categories: state.categories,
                           pickCategory: { category in afterSearch = { vm.clearFilters(); vm.toggleCategory(id: category.id) }; searching = false },
                           pickPlace: { place in afterSearch = { vm.select(placeId: place.id) }; searching = false },
-                          pickRoute: { route in afterSearch = { vm.selectRoute(id: route.id) }; searching = false })
+                          pickRoute: { route in afterSearch = { vm.selectRoute(id: route.id) }; searching = false },
+                          pickRoutes: { afterSearch = { vm.clearFilters(); vm.toggleRoutes() }; searching = false },
+                          suggest: { afterSearch = { chrome?.requested = .place }; searching = false })
             }
             .fullScreenCover(isPresented: Binding(get: { state.signInRequested }, set: { if !$0 { vm.signInHandled() } })) { SignInScreen() }
             .onAppear { vm.setMapVisible(visible: true) }
@@ -91,7 +147,7 @@ private struct MapBody: View {
                 // Open where the person is when the phone already knows; otherwise on the town centre.
                 guard !framed, state.sheet == nil, let here = await CurrentLocation.once(timeout: .seconds(2)) else { return }
                 framed = true
-                if !selected { camera = .region(MKCoordinateRegion(center: here, latitudinalMeters: 2200, longitudinalMeters: 2200)) }
+                if !selected { look(.region(center: GeoPoint(here), latitudeSpan: 0.02, longitudeSpan: 0.02), animated: false) }
             }
             .onChange(of: selectionKey) { _, key in
                 if picked != (key.isEmpty ? nil : key) { picked = key.isEmpty ? nil : key }
@@ -118,127 +174,149 @@ private struct MapBody: View {
             }
             .onChange(of: navigator.route) { _, route in
                 guard let route, navigator.phase != .navigating else { return }
-                let rect = route.polyline.boundingMapRect
-                let pad = max(rect.size.width, rect.size.height) * 0.35
-                withAnimation(reduceMotion ? nil : .smooth(duration: 0.6)) {
-                    camera = .rect(rect.insetBy(dx: -pad, dy: -pad * 1.6).offsetBy(dx: 0, dy: pad * 0.6))
-                }
+                // The whole way, above the trip card (the header is away while routing).
+                frame(route.polyline.path.map(\.coordinate), cover: Self.previewCover)
+            }
+            // Ending a route (or turn-by-turn) puts the map back where it was, with its pins,
+            // instead of leaving it on a street-level close-up.
+            .onChange(of: navigator.phase) { old, phase in
+                guard phase == .idle, old != .idle, let before = beforeRoute else { return }
+                beforeRoute = nil
+                look(.region(center: GeoPoint(CLLocationCoordinate2D(latitude: (before.north + before.south) / 2, longitude: (before.east + before.west) / 2)),
+                             latitudeSpan: before.latitudeSpan, longitudeSpan: before.east - before.west))
+            }
+            // Showing only the routes brings them into view: they run outside the towns, so
+            // the filter would otherwise leave an empty map.
+            .onChange(of: state.routesSelected) { _, on in
+                guard on, !selected else { return }
+                frame(state.routes.flatMap(\.coordinates))
+            }
+            // Closing a route's sheet under the Rutas filter frames every route again.
+            .onChange(of: selected) { _, now in
+                guard !now, !routing, beforeRoute == nil, state.routesSelected else { return }
+                frame(state.routes.flatMap(\.coordinates))
             }
             .onChange(of: navigator.location) { _, here in
                 guard navigator.phase == .navigating, let here else { return }
-                withAnimation(.linear(duration: 0.9)) {
-                    camera = .camera(MapCamera(centerCoordinate: here.coordinate, distance: navigator.mode == .drive ? 700 : 320, heading: navigator.course, pitch: 55))
-                }
+                look(.follow(center: GeoPoint(here.coordinate), distance: navigator.mode == .drive ? 700 : 320, heading: navigator.course), animated: true)
             }
     }
 
     // MARK: Map
 
     private var map: some View {
-        Map(position: $camera, selection: $picked) {
-            ForEach(places, id: \.id) { place in
-                Marker(place.name, systemImage: Glyph.symbol(place.icon, filled: true), coordinate: place.coordinate)
-                    .tint(place.tint)
-                    .tag("p" + place.id)
-            }
-            ForEach(state.traffic, id: \.id) { notice in
-                if notice.path.count > 1 {
-                    MapPolyline(coordinates: notice.path.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) })
-                        .stroke(notice.tint, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                }
-                Marker(notice.categoryName, systemImage: Glyph.symbol(notice.icon, filled: true), coordinate: notice.coordinate)
-                    .tint(notice.tint)
-                    .tag("t" + notice.id)
-            }
-            ForEach(state.visibleRoutes, id: \.id) { route in
-                MapPolyline(coordinates: route.coordinates)
-                    .stroke(Color.success, style: StrokeStyle(lineWidth: state.route?.id == route.id ? 6 : 4, lineCap: .round, lineJoin: .round))
-                if let start = route.start {
-                    Marker(route.name, systemImage: "figure.hiking", coordinate: start)
-                        .tint(Color.success)
-                        .tag("r" + route.id)
-                }
-            }
-            if let route = navigator.route {
-                MapPolyline(route.polyline).stroke(Color.ink, style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
-            }
-            UserAnnotation()
-        }
-        .mapStyle(satellite ? .hybrid(elevation: .flat, pointsOfInterest: .excludingAll) : .standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
-        .mapControls { MapCompass() }
-        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { mapHeight = $0 }
-        .onMapCameraChange(frequency: .onEnd) { context in
-            region = context.region
-            let box = context.region
-            vm.onViewportChanged(
-                west: box.center.longitude - box.span.longitudeDelta / 2, south: box.center.latitude - box.span.latitudeDelta / 2,
-                east: box.center.longitude + box.span.longitudeDelta / 2, north: box.center.latitude + box.span.latitudeDelta / 2
-            )
-        }
+        AppleMap(
+            pins: pins, lines: lines, selected: picked, camera: camera,
+            topInset: routing ? statusInset : headerHeight, bottomInset: cardInset,
+            onPick: { picked = $0 },
+            onMove: { box in
+                viewport = box
+                vm.onViewportChanged(west: box.west, south: box.south, east: box.east, north: box.north)
+            },
+            onFollowing: { following = $0 }
+        )
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { mapHeight = $0.height; mapWidth = $0.width; mapTop = $0.minY }
+        .onGeometryChange(for: CGFloat.self) { $0.safeAreaInsets.bottom } action: { mapBottomInset = $0 }
         .ignoresSafeArea(edges: .top)
+        .accessibilityLabel(L10n.Tabs.map)
+    }
+
+    private var pins: [MapPin] {
+        guard !routing else { return allPins.filter { $0.key == routeTarget } }
+        return allPins
+    }
+
+    /// The status bar's height: with the header away while routing, the map keeps clear of it.
+    private var statusInset: CGFloat {
+        (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.keyWindow?.safeAreaInsets.top ?? 59
+    }
+
+    private var allPins: [MapPin] {
+        places.map { MapPin(key: "p" + $0.id, latitude: $0.latitude, longitude: $0.longitude, title: $0.name, symbol: Glyph.symbol($0.icon, filled: true), tone: $0.tone) }
+            + state.traffic.map { MapPin(key: "t" + $0.id, latitude: $0.latitude, longitude: $0.longitude, title: $0.categoryName, symbol: Glyph.symbol($0.icon, filled: true), tone: $0.tone) }
+            + state.visibleRoutes.compactMap { route in
+                route.start.map { MapPin(key: "r" + route.id, latitude: $0.latitude, longitude: $0.longitude, title: route.name, symbol: "figure.hiking", tone: .trail) }
+            }
+    }
+
+    private var lines: [MapLine] {
+        state.traffic.filter { $0.path.count > 1 }.map { notice in
+            MapLine(id: "t" + notice.id, path: notice.path.map { GeoPoint(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) }, color: notice.tone.css, width: 5)
+        }
+            + state.visibleRoutes.map { MapLine(id: "r" + $0.id, path: $0.coordinates.map(GeoPoint.init), color: PinTone.trail.css, width: state.route?.id == $0.id ? 6 : 4) }
+            + (navigator.route.map { [MapLine(id: "way", path: $0.polyline.path, color: PinTone.pine.css, width: 7)] } ?? [])
+    }
+
+    private func look(_ move: CameraRequest.Move, animated: Bool = true) {
+        camera = CameraRequest(id: camera.id + 1, move: move, animated: animated && !reduceMotion)
     }
 
     // MARK: Chrome
 
+    /// The header over the map: the search and adding to the map on one row, the kinds to filter
+    /// by under it.
     private var topBar: some View {
-        VStack(spacing: 10) {
-            Button { searching = true } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "magnifyingglass").font(.system(size: 16))
-                    Text(L10n.Map.searchPlaceholder).type(.body, .ink2)
-                    Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Button { searching = true } label: {
+                    HStack(spacing: 10) {
+                        Text(L10n.Map.searchPlaceholder).type(.body, .ink3).lineLimit(1)
+                        Spacer(minLength: 0)
+                        Image(systemName: "magnifyingglass").font(.system(size: 15, weight: .semibold)).foregroundStyle(Color.onInk)
+                            .frame(width: 38, height: 38).background(Color.brand, in: Circle())
+                    }
+                    .padding(.leading, 18)
+                    .padding(.trailing, 5)
+                    .frame(height: 48)
+                    .background(Color.paper, in: Capsule())
+                    .contentShape(Capsule())
                 }
-                .foregroundStyle(Color.ink)
-                .padding(.horizontal, 18)
-                .frame(height: 52)
-                .glassEffect(.regular.interactive(), in: Capsule())
+                .buttonStyle(Pressable(scale: 0.98))
+                .accessibilityLabel(L10n.Map.searchLabel)
+                ContributeButton()
             }
-            .buttonStyle(Pressable(scale: 0.98))
-            .accessibilityLabel(L10n.Map.searchLabel)
-            .frame(maxWidth: 440)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, Metrics.gutter)
 
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    if state.filtering {
-                        Button { withAnimation(Motion.quick) { vm.clearFilters() } } label: {
-                            Image(systemName: "xmark").font(.system(size: 13, weight: .medium)).foregroundStyle(Color.onInk)
-                                .frame(width: 38, height: 38).glassEffect(.regular.tint(Color.action).interactive(), in: Circle())
-                        }
-                        .buttonStyle(Pressable())
-                        .accessibilityLabel(L10n.Map.clearFilters)
-                        .transition(.scale.combined(with: .opacity))
+            // With something in hand the filters step aside and give the map their room.
+            if !selected { HeaderFilters {
+                if state.filtering {
+                    Button { withAnimation(Motion.quick) { vm.clearFilters() } } label: {
+                        Image(systemName: "xmark").font(.system(size: 12, weight: .bold)).foregroundStyle(Color.brandDeep)
+                            .frame(width: 34, height: 34).background(Color.onInk, in: Circle()).frame(minHeight: 44)
                     }
-                    if !state.routes.isEmpty {
-                        Chip(title: L10n.Map.routes, symbol: "figure.hiking", selected: state.routesSelected, glass: true) { vm.toggleRoutes() }
-                    }
-                    ForEach(state.categories, id: \.id) { category in
-                        Chip(title: category.name, symbol: Glyph.symbol(category.icon), selected: state.selectedCategories.contains(category.id), glass: true) { vm.toggleCategory(id: category.id) }
-                    }
+                    .buttonStyle(Pressable())
+                    .accessibilityLabel(L10n.Map.clearFilters)
+                    .transition(.scale.combined(with: .opacity))
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 4)
+                if !state.routes.isEmpty {
+                    Chip(title: L10n.Map.routes, symbol: "figure.hiking", selected: state.routesSelected, onBrand: true) { vm.toggleRoutes() }
+                }
+                ForEach(state.categories, id: \.id) { category in
+                    Chip(title: category.name, symbol: Glyph.symbol(category.icon), selected: state.selectedCategories.contains(category.id), onBrand: true) { vm.toggleCategory(id: category.id) }
+                }
             }
-            .scrollIndicators(.hidden)
             .accessibilityLabel(L10n.Map.filterPlaces)
             .animation(Motion.quick, value: state.filtering)
+                .transition(.opacity)
+            }
         }
-        .padding(.top, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
+        .animation(reduceMotion ? nil : Motion.quick, value: selected)
+        .brandHeader()
+        // The map's top inset keeps the full header height while the filters step aside for a
+        // selection: shrinking it would shift the map in one unanimated step before the camera
+        // glides, which reads as a jump.
+        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { if !selected { headerBottom = $0 } }
     }
 
     private var controls: some View {
-        VStack(spacing: 10) {
-            IconButton(symbol: satellite ? "map" : "globe.americas", label: satellite ? L10n.MapLayers.standard : L10n.MapLayers.satellite, floating: true) {
-                withAnimation(Motion.quick) { satellite.toggle() }
-            }
-            IconButton(symbol: camera.followsUserLocation ? "location.fill" : "location", label: L10n.Map.locate, floating: true) {
-                if location.authorizationStatus == .notDetermined { location.requestWhenInUseAuthorization() }
-                withAnimation(reduceMotion ? nil : .smooth(duration: 0.55)) { camera = .userLocation(fallback: camera) }
-            }
+        IconButton(symbol: following ? "location.fill" : "location", label: L10n.Map.locate, floating: true) {
+            if location.authorizationStatus == .notDetermined { location.requestWhenInUseAuthorization() }
+            look(.user)
         }
         .padding(16)
-        .sensoryFeedback(.impact(weight: .light), trigger: satellite)
     }
 
     // MARK: Selection and camera
@@ -273,25 +351,53 @@ private struct MapBody: View {
         }
     }
 
+    /// How much of the map's bottom the resting sheet covers, in points.
+    private static let sheetCover: Double = 420
+    /// How much the route preview's trip card covers.
+    private static let previewCover: Double = 250
+
+    /// Points between the middle of the region MapKit centres (inside its safe area) and the
+    /// middle of the map left uncovered by the header and, when `covered`, the sheet.
+    private func lift(covered: Bool) -> Double { lift(cover: covered ? Self.sheetCover : 0) }
+
+    private func lift(cover: Double) -> Double { (cover - Double(mapBottomInset + cardInset)) / 2 }
+
+    /// Glide so the point sits midway between the header and the resting sheet's top edge.
     private func focus(_ point: CLLocationCoordinate2D) {
-        let span = min(region?.span.latitudeDelta ?? 0.02, 0.012)
-        let center = CLLocationCoordinate2D(latitude: point.latitude - span * 0.22, longitude: point.longitude)
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.5)) {
-            camera = .region(MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: span, longitudeDelta: span)))
-        }
+        let span = min(viewport?.latitudeSpan ?? 0.02, 0.012)
+        // A square span is fitted to the map's width (the narrow side), so one point there is
+        // span × cos(latitude) / width degrees of latitude.
+        let perPoint = span * cos(point.latitude * .pi / 180) / Double(max(mapWidth, 1))
+        let center = CLLocationCoordinate2D(latitude: point.latitude - lift(covered: true) * perPoint, longitude: point.longitude)
+        look(.region(center: GeoPoint(center), latitudeSpan: span, longitudeSpan: span))
     }
 
+    /// Fit the points into the map left uncovered: below the header, above the resting sheet
+    /// when `lower`, with room at the edges for a pin standing on its point and its name.
     private func frame(_ points: [CLLocationCoordinate2D], lower: Bool = false) {
+        frame(points, cover: lower ? Self.sheetCover : nil)
+    }
+
+    /// `cover` is how much of the map's bottom a sheet or card hides; nil leaves only the tab bar.
+    private func frame(_ points: [CLLocationCoordinate2D], cover: Double?) {
         let lats = points.map(\.latitude), lngs = points.map(\.longitude)
         guard let minLat = lats.min(), let maxLat = lats.max(), let minLng = lngs.min(), let maxLng = lngs.max() else { return }
-        let latSpan = max(0.008, (maxLat - minLat) * (lower ? 2.2 : 1.25)), lngSpan = max(0.008, (maxLng - minLng) * 1.25)
-        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2 - (lower ? latSpan * 0.2 : 0), longitude: (minLng + maxLng) / 2)
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.6)) {
-            camera = .region(MKCoordinateRegion(center: center, span: MKCoordinateSpan(latitudeDelta: latSpan, longitudeDelta: lngSpan)))
-        }
+        let header = Double(routing ? statusInset : headerHeight)
+        let scale = cos((minLat + maxLat) / 2 * .pi / 180)
+        let safeHeight = max(Double(mapHeight) - header - Double(mapBottomInset + cardInset), 1), width = Double(max(mapWidth, 1))
+        let open = Double(mapHeight) - header - (cover ?? Double(mapBottomInset))
+        // Room at the sides for a pin's name, which runs wider than the pin.
+        let usableHeight = max(open - 2 * 56, 80), usableWidth = max(width - 2 * 72, 80)
+        // Degrees of latitude per point: whichever side is tighter decides, never closer than
+        // about a town block.
+        let perPoint = max((maxLat - minLat) / usableHeight, (maxLng - minLng) * scale / usableWidth, 0.004 / safeHeight)
+        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2 - lift(cover: cover ?? 0) * perPoint, longitude: (minLng + maxLng) / 2)
+        look(.region(center: GeoPoint(center), latitudeSpan: perPoint * safeHeight, longitudeSpan: perPoint * width / scale))
     }
 
     private func navigate(_ destination: Destination) {
+        if beforeRoute == nil { beforeRoute = viewport }
+        routeTarget = picked
         dismissSelection()
         Task { await navigator.plan(to: destination) }
     }

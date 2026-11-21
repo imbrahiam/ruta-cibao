@@ -1,3 +1,4 @@
+import type { CategoryIconName } from "@ruta/contracts";
 import {
   Bed,
   BedDouble,
@@ -32,6 +33,7 @@ import {
   Trash2,
   Trees,
   TriangleAlert,
+  Trophy,
   Utensils,
   Waves,
   Wheat,
@@ -41,10 +43,11 @@ import {
 
 /**
  * Category icons are data: staff pick one in the categories desk and it is
- * stored by its Lucide name. Same set as the phone app's
- * `apps/mobile/src/ui/icon.tsx`; an unknown name falls back to a pin.
+ * stored by its Lucide name. Keyed by the contract's `categoryIconNames`, so
+ * a name added there and not drawn here fails the type check; an unknown
+ * stored name falls back to a pin.
  */
-const CATEGORY_ICONS: Record<string, LucideIcon> = {
+export const CATEGORY_ICONS: Record<CategoryIconName, LucideIcon> = {
   bed: Bed,
   "bed-double": BedDouble,
   bike: Bike,
@@ -77,6 +80,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   "trash-2": Trash2,
   trees: Trees,
   "triangle-alert": TriangleAlert,
+  trophy: Trophy,
   utensils: Utensils,
   waves: Waves,
   wheat: Wheat,
@@ -85,5 +89,5 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
 };
 
 export function categoryIcon(name: string | null | undefined): LucideIcon {
-  return (name && CATEGORY_ICONS[name]) || MapPin;
+  return (name && CATEGORY_ICONS[name as CategoryIconName]) || MapPin;
 }

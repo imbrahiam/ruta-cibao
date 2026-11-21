@@ -66,6 +66,7 @@ local.properties
 apps/ios/*.xcodeproj
 apps/ios/DerivedData/
 apps/ios/DerivedData-device/
+apps/ios/DerivedDataDevice/
 xcuserdata/
 
 # editor language servers (machine-specific paths)

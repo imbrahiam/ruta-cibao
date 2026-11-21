@@ -502,6 +502,7 @@ export async function liveTrafficReports(
       municipalityId: municipalities.id,
       municipalityName: municipalities.name,
       reportedBy: memberProfiles.displayName,
+      reportedByImage: user.image,
       reporterResidentVerified: residentVerified,
     })
     .from(trafficReports)
@@ -514,6 +515,7 @@ export async function liveTrafficReports(
       memberProfiles,
       eq(memberProfiles.userId, trafficReports.reportedByUserId),
     )
+    .leftJoin(user, eq(user.id, trafficReports.reportedByUserId))
     .where(
       and(
         eq(trafficReports.status, "active"),
@@ -530,33 +532,38 @@ export async function liveTrafficReports(
     )
     .limit(input.limit);
 
-  return rows.map((row) => {
-    // Stored as PostGIS orders it (x is longitude); handed out as the client
-    // speaks it. Same shape as the public traffic read.
-    const path =
-      row.path && row.path.length > 1
-        ? row.path.map((point) => ({ lng: point.x, lat: point.y }))
-        : null;
-    return {
-      id: row.id,
-      description: row.description,
-      descriptionModerationStatus: row.descriptionModerationStatus,
-      lng: row.location.x,
-      lat: row.location.y,
-      path,
-      lengthMeters: path ? Math.round(pathLength(path)) : null,
-      severity: row.severity,
-      createdAt: row.createdAt.toISOString(),
-      expiresAt: row.expiresAt.toISOString(),
-      categoryName: row.categoryName,
-      categoryIcon: row.categoryIcon,
-      categoryColor: row.categoryColor,
-      municipalityId: row.municipalityId,
-      municipalityName: row.municipalityName,
-      reportedBy: row.reportedBy,
-      reporterResidentVerified: row.reporterResidentVerified,
-    };
-  });
+  return Promise.all(
+    rows.map(async (row) => {
+      // Stored as PostGIS orders it (x is longitude); handed out as the client
+      // speaks it. Same shape as the public traffic read.
+      const path =
+        row.path && row.path.length > 1
+          ? row.path.map((point) => ({ lng: point.x, lat: point.y }))
+          : null;
+      return {
+        id: row.id,
+        description: row.description,
+        descriptionModerationStatus: row.descriptionModerationStatus,
+        lng: row.location.x,
+        lat: row.location.y,
+        path,
+        lengthMeters: path ? Math.round(pathLength(path)) : null,
+        severity: row.severity,
+        createdAt: row.createdAt.toISOString(),
+        expiresAt: row.expiresAt.toISOString(),
+        categoryName: row.categoryName,
+        categoryIcon: row.categoryIcon,
+        categoryColor: row.categoryColor,
+        municipalityId: row.municipalityId,
+        municipalityName: row.municipalityName,
+        reportedBy: row.reportedBy,
+        reportedByImage: row.reportedByImage
+          ? await mediaUrl(row.reportedByImage, 96)
+          : null,
+        reporterResidentVerified: row.reporterResidentVerified,
+      };
+    }),
+  );
 }
 
 /**

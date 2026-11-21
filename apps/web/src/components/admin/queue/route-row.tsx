@@ -48,9 +48,12 @@ export function RouteRow({ route }: { route: EcoRoute }) {
       }
       byline={when("receivedAt", route.createdAt)}
       detail={
-        <>
+        // The map and the facts sit side by side when the row is wide enough
+        // (not the window: beside the queue map the row is a narrow column).
+        <div className="grid gap-5 @2xl/item:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] @2xl/item:items-start">
           {start ? (
             <MapPreview
+              className="max-w-none"
               item={mapItem}
               label={map.routeAlt(route)}
               title={route.name}
@@ -77,7 +80,7 @@ export function RouteRow({ route }: { route: EcoRoute }) {
                 : null}
             </Fact>
           </Facts>
-        </>
+        </div>
       }
       decision={
         <DecisionBar

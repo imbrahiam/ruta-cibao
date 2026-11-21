@@ -18,9 +18,12 @@ import { ErrorPanel, errorMessageKey } from "./error-panel";
 export function QueryState<T>({
   query,
   skeleton,
+  errorTitle,
   children,
 }: {
   query: UseQueryResult<T, Error>;
+  /** Names what failed to load ("No pudimos cargar los lugares pendientes"). */
+  errorTitle?: string;
   /** Shaped exactly like the loaded content: same rows, columns, heights. */
   skeleton: ReactNode;
   children: (data: T) => ReactNode;
@@ -30,7 +33,13 @@ export function QueryState<T>({
 
   if (query.data === undefined) {
     if (query.isError) {
-      return <ErrorPanel error={query.error} onRetry={() => query.refetch()} />;
+      return (
+        <ErrorPanel
+          title={errorTitle}
+          error={query.error}
+          onRetry={() => query.refetch()}
+        />
+      );
     }
     return (
       <div role="status" aria-busy="true">

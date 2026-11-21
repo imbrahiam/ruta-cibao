@@ -5,13 +5,11 @@ import { createContext, type ReactNode, useContext } from "react";
 /**
  * How a desk's rows behave when they sit beside a map.
  *
- * Rows read it without knowing about maps: `stacked` folds their three
- * columns into one so they fit a side panel, and `selectedId` / `onSelect`
- * tie a row to its marker. Outside the map view there is no frame and rows
- * render as they always have.
+ * Rows read it without knowing about maps: `selectedId` / `onSelect` tie a
+ * row to its marker. Outside the map view there is no frame and rows render
+ * as they always have.
  */
 export type ItemFrame = {
-  stacked: boolean;
   selectedId: string | null;
   onSelect: (id: string) => void;
 };

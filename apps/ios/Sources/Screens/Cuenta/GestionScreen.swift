@@ -29,40 +29,42 @@ private struct Desk: View {
     var body: some View {
         Page(title: L10n.Gestion.title) {
             if let report = state.latestReport {
-                Button {
-                    downloadFailed = false
-                    vm.openReport()
+                NavigationLink {
+                    WeeklyReportPage(report: report, preparing: state.pdf == .loading, unavailable: state.pdf == .unavailable || downloadFailed) {
+                        downloadFailed = false
+                        vm.openReport()
+                    }
+                    // The PDF opens over the report, where it was asked for.
+                    .quickLookPreview($preview)
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: "doc.text").font(.system(size: 18, weight: .light)).foregroundStyle(Color.onInk)
+                        Image(systemName: "chart.bar.doc.horizontal").font(.system(size: 18, weight: .light)).foregroundStyle(Color.onInk)
                             .frame(width: 44, height: 44).background(Color.action, in: Circle())
                         VStack(alignment: .leading, spacing: 2) {
                             Text(L10n.Gestion.weekly).type(.bodyStrong)
                             Text("\(report.municipalityName) · \(period(report))").type(.callout, .ink3)
-                            if state.pdf == .unavailable || downloadFailed { Text(L10n.Gestion.weeklyUnavailable).type(.caption, .danger) }
                         }
                         Spacer(minLength: 8)
-                        if state.pdf == .loading { ProgressView() } else {
-                            Image(systemName: "arrow.up.right").font(.system(size: 13, weight: .medium)).foregroundStyle(Color.ink3)
-                        }
+                        Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.ink4)
                     }
                     .padding(14)
                     .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
                 }
                 .buttonStyle(Pressable(scale: 0.99))
-                .disabled(state.pdf == .loading)
             }
 
             ScrollView(.horizontal) {
                 HStack(spacing: 8) {
-                    Chip(title: "\(L10n.Gestion.all) · \(state.total)", selected: state.filter == nil) { vm.select(kind: nil) }
+                    Chip(title: L10n.Gestion.all, selected: state.filter == nil, badge: Int(state.total)) { vm.select(kind: nil) }
                     ForEach(state.filters, id: \.kind) { entry in
-                        Chip(title: "\(catalogue(entry.kind.labelKey)) · \(entry.count)", selected: state.filter == entry.kind) { vm.select(kind: entry.kind) }
+                        Chip(title: catalogue(entry.kind.labelKey), selected: state.filter == entry.kind, badge: Int(entry.count)) { vm.select(kind: entry.kind) }
                     }
                 }
                 .padding(.horizontal, Metrics.gutter)
             }
             .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            .edgeFade()
             .padding(.horizontal, -Metrics.gutter)
 
             switch state.phase {
@@ -83,7 +85,6 @@ private struct Desk: View {
         }
         .animation(Motion.settle, value: state.visibleItems.map(\.id))
         .refreshable { vm.refresh() }
-        .quickLookPreview($preview)
         .task(id: state.pdfUrl) {
             guard let raw = state.pdfUrl, let url = URL(string: raw) else { return }
             do { preview = try await download(url, report: state.latestReport) } catch { downloadFailed = true }
@@ -132,12 +133,20 @@ private struct Desk: View {
     }
 }
 
+/// An icon and its words with little room between them, for metadata lines.
+private struct Tight: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 5) { configuration.icon.font(.system(size: 12)); configuration.title }
+    }
+}
+
 /// One thing to decide: what it is, what it says, and the buttons its state allows.
 private struct ReviewCard: View {
     let item: ReviewItem
     let busy: Bool
     let act: (ReviewAction) -> Void
 
+    private var kindSymbol: String { item.kind == .placeReport ? "pencil.and.list.clipboard" : Glyph.symbol(item.kind.icon) }
     private var primary: ReviewAction? { item.actions.first { $0.emphasis == .primary } }
     private var secondary: [ReviewAction] { item.actions.filter { $0.emphasis == .secondary } }
     private var photos: [String] {
@@ -145,38 +154,51 @@ private struct ReviewCard: View {
         return item.imageUrl.map { [$0] } ?? []
     }
 
+    /// Read in corners: what it is and when across the top, the case in the middle, where it is
+    /// and what to do with it across the foot.
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: Glyph.symbol(item.kind.icon)).font(.system(size: 12))
-                Text("\(catalogue(item.kind.labelKey)) · \(item.municipality) · \(CompactTime.since(item.createdAt.date))")
-                Spacer(minLength: 4)
-                if let key = item.stateKey { StatusTag(text: catalogue(key), color: .warning) }
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label(catalogue(item.kind.labelKey), systemImage: kindSymbol)
+                    .labelStyle(Tight())
+                    .type(.caption, .ink2)
+                if let key = item.stateKey { StatusTag(text: catalogue(key), color: .warning, solid: true) }
+                Spacer(minLength: 8)
+                Text(CompactTime.since(item.createdAt.date)).type(.caption, .ink3)
             }
-            .type(.caption, .ink3)
 
-            Text(item.title).type(.heading)
-            if let snippet = item.snippet, !snippet.isEmpty { Text(snippet).type(.body, .ink2).lineSpacing(2) }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title).type(.heading).fixedSize(horizontal: false, vertical: true)
+                if let snippet = item.snippet, !snippet.isEmpty { Text(snippet).type(.body, .ink2).lineSpacing(2) }
+            }
             if !photos.isEmpty {
-                PhotoStrip(urls: photos, height: 150).padding(.horizontal, -(Metrics.gutter + 16))
+                // The strip runs to the card's edges and keeps the card's padding at both ends.
+                PhotoStrip(urls: photos, height: 132, inset: 16, corner: 12).padding(.horizontal, -16)
             }
 
             HStack(spacing: 8) {
-                Spacer(minLength: 0)
+                Label(item.municipality, systemImage: Glyph.location).labelStyle(Tight()).type(.caption, .ink3).lineLimit(1)
+                Spacer(minLength: 8)
                 if busy { ProgressView().padding(.trailing, 6) }
+                // The way out is quiet text; the one main decision keeps the filled pill.
                 ForEach(secondary, id: \.labelKey) { action in
-                    Button(catalogue(action.labelKey)) { act(action) }.buttonStyle(.pill(.outline, compact: true, fill: false))
+                    Button(catalogue(action.labelKey)) { act(action) }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.ink2)
+                        .padding(.horizontal, 10)
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                        .buttonStyle(Pressable())
                 }
                 if let primary {
                     Button(catalogue(primary.labelKey)) { act(primary) }.buttonStyle(.pill(.ink, compact: true, fill: false))
                 }
             }
             .disabled(busy)
-            .padding(.top, 4)
         }
         .padding(16)
-        .background(Color.card, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+        .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
         .opacity(busy ? 0.6 : 1)
     }
 }

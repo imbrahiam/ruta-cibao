@@ -74,7 +74,7 @@ export function QueueSkeleton({
 }) {
   return (
     <AdminTableCard>
-      <ul className="divide-y">
+      <ul className="flex flex-col gap-1">
         {REPEAT(rows).map((row) => (
           <ItemSkeleton key={row} detail={detail} />
         ))}
@@ -128,7 +128,7 @@ export function TableRowsSkeleton({
 function TextSectionSkeleton({ lines }: { lines: number }) {
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex min-h-8 items-center border-b pb-2">
+      <div className="flex min-h-8 items-center">
         <Skeleton className="h-4 w-32" />
       </div>
       <div className="flex flex-col gap-2">
@@ -165,7 +165,7 @@ export function CaseDetailSkeleton() {
           <TextSectionSkeleton lines={4} />
           <TextSectionSkeleton lines={3} />
           <section className="flex flex-col gap-3">
-            <div className="flex min-h-8 items-center border-b pb-2">
+            <div className="flex min-h-8 items-center">
               <Skeleton className="h-4 w-28" />
             </div>
             <Skeleton className="h-32 w-full rounded-(--radius-field)" />
@@ -202,7 +202,7 @@ export function ReportDetailSkeleton() {
       <div className="grid gap-x-12 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
         {REPEAT(6).map((block) => (
           <AdminSection key={block} className="gap-0">
-            <div className="flex min-h-8 items-center border-b pb-2">
+            <div className="flex min-h-8 items-center">
               <Skeleton className="h-4 w-28" />
             </div>
             {REPEAT(block % 3 === 2 ? 5 : 4).map((row) => (

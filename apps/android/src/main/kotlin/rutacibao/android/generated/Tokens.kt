@@ -324,7 +324,7 @@ fun rutaMapPalette(theme: RutaTheme, dark: Boolean): RutaMapPalette =
 
 /** Brand colours that do not change with the theme. */
 object RutaBrand {
-    val iris = Color(0xFF7860A8)
+    val pine = Color(0xFF28594A)
     val white = Color(0xFFFFFFFF)
     val ink = Color(0xFF2A2A27)
     val paper = Color(0xFFFAFAF7)

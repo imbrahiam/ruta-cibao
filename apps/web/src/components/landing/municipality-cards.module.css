@@ -18,10 +18,10 @@
   border-radius: 18px;
   background: #fff;
 }
-.lavender {
-  --wash: #eeeaf3;
-  --accent: #8c7a9d;
-  --path: #b3a3c2;
+.pine {
+  --wash: #e2eeea;
+  --accent: #65887b;
+  --path: #8ab1a3;
 }
 .butter {
   --wash: #f4efd9;
@@ -149,18 +149,18 @@
   font-weight: 600;
   letter-spacing: 0.06em;
 }
-.lavender .sheet {
+.pine .sheet {
   transform: rotate(5deg);
 }
-.lavender .backing {
+.pine .backing {
   transform: rotate(-6deg);
 }
-.lavender .pin {
+.pine .pin {
   top: 73px;
   left: 43%;
   transform: rotate(7deg);
 }
-.lavender .ticket {
+.pine .ticket {
   right: 18px;
   bottom: 23px;
   transform: rotate(-9deg);
@@ -248,7 +248,7 @@
     inset: 26px 12px 19px;
   }
   .pin,
-  .lavender .pin,
+  .pine .pin,
   .butter .pin {
     top: 57px;
     left: calc(50% - 19px);
@@ -259,7 +259,7 @@
     width: 21px;
   }
   .ticket,
-  .lavender .ticket {
+  .pine .ticket {
     right: 9px;
     bottom: 17px;
     width: 48px;

@@ -53,8 +53,11 @@ export function PlaceRow({ place }: { place: PendingPlace }) {
         </>
       }
       detail={
-        <>
+        // The map and the facts sit side by side when the row is wide enough
+        // (not the window: beside the queue map the row is a narrow column).
+        <div className="grid gap-5 @2xl/item:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] @2xl/item:items-start">
           <MapPreview
+            className="max-w-none"
             item={mapItem}
             label={map.placeAlt(place)}
             title={place.name}
@@ -70,7 +73,7 @@ export function PlaceRow({ place }: { place: PendingPlace }) {
               {place.description}
             </Fact>
           </Facts>
-        </>
+        </div>
       }
       decision={
         <DecisionBar

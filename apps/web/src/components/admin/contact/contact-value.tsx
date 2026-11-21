@@ -1,19 +1,19 @@
 "use client";
 
 import { formatPhone, normalizePhone } from "@ruta/shared/phone";
-import { ChevronDown, Copy, Mail, MessageCircle, Phone } from "lucide-react";
+import { ChevronDown, Copy, Mail, Phone } from "lucide-react";
+import { useRef } from "react";
 import { useTranslations } from "use-intl";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useOutcome } from "../outcome";
 import { useCopy } from "./use-copy";
+import { WhatsAppMark } from "./whatsapp-mark";
 
 /**
  * What the number is used for. It only decides the order and the icon: a
@@ -43,11 +43,15 @@ export function ContactValue({
   const t = useTranslations("admin.contactActions");
   const announce = useOutcome();
   const copy = useCopy();
+  // Opened with a pointer: on close the menu does not hand focus back to the
+  // trigger, which Safari would then draw a ring around. A keyboard user still
+  // gets focus (and its ring) back where they were.
+  const byPointer = useRef(false);
 
   const e164 = kind === "email" ? null : normalizePhone(value);
   const display = e164 ? formatPhone(e164) : value;
   const Icon =
-    kind === "email" ? Mail : kind === "whatsapp" ? MessageCircle : Phone;
+    kind === "email" ? Mail : kind === "whatsapp" ? WhatsAppMark : Phone;
 
   const call = e164 ? (
     <DropdownMenuItem key="call" asChild className={ITEM}>
@@ -64,7 +68,7 @@ export function ContactValue({
         target="_blank"
         rel="noopener noreferrer"
       >
-        <MessageCircle aria-hidden />
+        <WhatsAppMark />
         {t("whatsapp")}
         <span className="sr-only">{t("newTab")}</span>
       </a>
@@ -97,9 +101,15 @@ export function ContactValue({
       <DropdownMenuTrigger asChild>
         <button
           type="button"
+          onPointerDown={() => {
+            byPointer.current = true;
+          }}
+          onKeyDown={() => {
+            byPointer.current = false;
+          }}
           aria-label={t("open", { value: display })}
           className={cn(
-            "text-foreground hover:bg-accent data-[state=open]:bg-accent focus-visible:ring-ring/50 -mx-2 inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-(--radius-field) px-2 text-sm tabular-nums outline-none focus-visible:ring-[3px] pointer-coarse:min-h-11",
+            "text-foreground hover:bg-accent data-[state=open]:bg-accent focus-visible:ring-ring/60 -mx-2 inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-(--radius-field) px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-inset pointer-coarse:min-h-11",
             className,
           )}
         >
@@ -111,12 +121,15 @@ export function ContactValue({
           />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
-        <DropdownMenuLabel className="tabular-nums">
-          {display}
-        </DropdownMenuLabel>
+      {/* The trigger already shows the value: the menu is only its actions, with
+          no repeated header and no rule between them. */}
+      <DropdownMenuContent
+        align="start"
+        onCloseAutoFocus={(event) => {
+          if (byPointer.current) event.preventDefault();
+        }}
+      >
         {actions}
-        {actions ? <DropdownMenuSeparator /> : null}
         <DropdownMenuItem className={ITEM} onSelect={onCopy}>
           <Copy aria-hidden />
           {t(kind === "email" ? "copyEmail" : "copyNumber")}

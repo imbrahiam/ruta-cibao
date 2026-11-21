@@ -7,24 +7,37 @@ struct SelectionSheet: View {
     let model: Screen<MapViewModel, MapUiState>
     let close: () -> Void
     let directions: (Destination) -> Void
-    @State private var detent: PresentationDetent = .height(360)
-    /// The resting height follows what the panel holds, so a short place leaves no empty paper.
-    @State private var fit: CGFloat = 360
-    private var rest: PresentationDetent { .height(fit) }
+    @State private var detent: PresentationDetent
 
-    private func rest(at height: CGFloat) {
-        let next = min(max(height, 180), 400)
-        guard abs(next - fit) > 1 else { return }
-        let resting = detent != .large
-        fit = next
-        if resting { detent = .height(next) }
+    init(model: Screen<MapViewModel, MapUiState>, close: @escaping () -> Void, directions: @escaping (Destination) -> Void) {
+        self.model = model
+        self.close = close
+        self.directions = directions
+        _detent = State(initialValue: Self.resting(for: model.state.selection))
     }
+
+    /// The resting height, settled before the sheet appears: a presented sheet ignores later
+    /// height changes, so it can't follow content that loads in. For a place it holds the
+    /// header, the way there, the street, the picture and the check row, with air below.
+    private static func resting(for selection: RutaKit.MapSelection) -> PresentationDetent {
+        switch onEnum(of: selection) {
+        case .place(let place):
+            // A name past about twenty letters wraps to a second line at title size.
+            .height(place.sheet.place.name.count > 20 ? 424 : 392)
+        // A road notice: its title, a line of text, what neighbours said and the
+        // two answers. Longer text is a drag away.
+        case .traffic: .height(316)
+        default: .height(360)
+        }
+    }
+
+    private var rest: PresentationDetent { Self.resting(for: model.state.selection) }
 
     var body: some View {
         Group {
             switch onEnum(of: model.state.selection) {
             case .none: Color.clear
-            case .place(let place): PlacePanel(sheet: place.sheet, vm: model.vm, close: close, directions: directions, fit: rest(at:))
+            case .place(let place): PlacePanel(sheet: place.sheet, vm: model.vm, close: close, directions: directions)
             case .route(let route): RoutePanel(route: route.route, close: close, directions: directions)
             case .traffic:
                 if let notice = model.state.selectedTraffic { TrafficPanel(notice: notice, vm: model.vm, close: close) }
@@ -48,22 +61,32 @@ private struct PanelHeader: View {
     var verified: String?
     let close: () -> Void
 
-    private var heading: Text {
-        guard verified != nil else { return Text(title) }
-        return Text(title) + Text(" ") + Text(Image(systemName: "checkmark.seal.fill")).font(.system(size: 17)).foregroundStyle(Color.iris)
-    }
-
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            Image(systemName: symbol).font(.system(size: 19, weight: .medium)).foregroundStyle(.white)
-                .frame(width: 46, height: 46).background(tint, in: Circle())
+            Image(systemName: symbol).font(.system(size: 16, weight: .medium)).foregroundStyle(.white)
+                .frame(width: 40, height: 40).background(tint, in: Circle())
+                // Verified is a seal stuck on the disc's corner, like a stamp on a postcard.
+                .overlay(alignment: .bottomTrailing) {
+                    if verified != nil {
+                        Image(systemName: "checkmark.seal.fill")
+                            .font(.system(size: 16))
+                            .foregroundStyle(Color.onInk, Color.brand)
+                            .symbolRenderingMode(.palette)
+                            .background(Circle().fill(Color.paper).padding(-2))
+                            .offset(x: 5, y: 5)
+                            .accessibilityHidden(true)
+                    }
+                }
             VStack(alignment: .leading, spacing: 2) {
-                heading.type(.title).fixedSize(horizontal: false, vertical: true)
+                Text(title).type(.title).fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel(verified.map { "\(title), \($0)" } ?? title)
                 Text(subtitle).type(.callout, .ink3)
             }
             Spacer(minLength: 8)
-            IconButton(symbol: "xmark", label: L10n.Common.close, action: close)
+            // A smaller disc gives the name the width; the target is still 44 points.
+            IconButton(symbol: "xmark", label: L10n.Common.close, glass: true, compact: true, action: close)
+                .padding(.trailing, -6)
+                .padding(.top, -4)
         }
     }
 }
@@ -75,8 +98,9 @@ private struct PlacePanel: View {
     let vm: MapViewModel
     let close: () -> Void
     let directions: (Destination) -> Void
-    var fit: (CGFloat) -> Void = { _ in }
     @Environment(\.openURL) private var openURL
+    @State private var verifying = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var place: MapPlace { sheet.place }
     private var contact: Contact? {
@@ -90,14 +114,18 @@ private struct PlacePanel: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
+                // The resting sheet holds this block (see `SelectionSheet.resting`): who it is,
+                // how to get there, its street, its picture and the check row.
+                VStack(alignment: .leading, spacing: 16) {
                 PanelHeader(tint: place.tint, symbol: Glyph.symbol(place.icon, filled: true), title: place.name,
                             subtitle: [place.categoryName, sheet.detail?.municipality.name].compactMap { $0 }.joined(separator: " · "),
-                            verified: sheet.detail.flatMap { $0.trust.state == .established && !sheet.cached ? L10n.Place.Trust.established : nil }, close: close)
+                            verified: sheet.detail.flatMap { $0.trust.state == .established ? L10n.Place.Trust.established : nil }, close: close)
 
                 HStack(spacing: 10) {
                     Button { directions(Destination(name: place.name, coordinate: place.coordinate)) } label: {
                         Label(L10n.Place.directions, systemImage: "arrow.triangle.turn.up.right.diamond")
                     }
+                    // The same colour as the place's disc above it: one thing, not two.
                     .buttonStyle(.ink)
                     IconButton(symbol: sheet.saved ? "bookmark.fill" : "bookmark", label: sheet.saved ? L10n.Place.savedLabel : L10n.Place.save) { vm.toggleSaved() }
                         .symbolEffect(.bounce, value: sheet.saved)
@@ -109,8 +137,25 @@ private struct PlacePanel: View {
                     .accessibilityLabel(L10n.Common.share)
                 }
 
+                // Where it is comes before what it looks like: the street is what you read
+                // to find it, so it sits with the way there, in the first glance.
+                if let address = sheet.detail?.address {
+                    info(Glyph.location, fullAddress(address, in: sheet.detail?.municipality.name ?? ""))
+                }
+
                 if let url = sheet.detail?.imageUrl ?? place.thumbnailUrl {
-                    RemoteImage(url: url).frame(height: 190).clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+                    RemoteImage(url: url).frame(height: 150).clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous)).opensPhotos([url])
+                } else if !sheet.loading || sheet.detail != nil {
+                    // No photo yet: a close look at its street fills the slot with
+                    // something useful instead of leaving a white gap.
+                    PlaceStreet(coordinate: place.coordinate, tint: place.tint, symbol: Glyph.symbol(place.icon, filled: true))
+                }
+
+                // Checking the place sits right under its picture, as one closed row that
+                // ends the resting sheet; the answers open in place.
+                if let detail = sheet.detail, !detail.isMine, sheet.report == nil {
+                    verification(detail)
+                }
                 }
 
                 if sheet.loading && sheet.detail == nil {
@@ -119,11 +164,8 @@ private struct PlacePanel: View {
                     if !sheet.cached, detail.trust.state != .established { trust(detail.trust.state) }
                     if let text = detail.description_, !text.isEmpty { Text(text).type(.body, .ink2).lineSpacing(3) }
 
-                    if detail.address != nil || contact != nil {
-                        VStack(alignment: .leading, spacing: 12) {
-                            if let address = detail.address { info("mappin.and.ellipse", address) }
-                            if let hours = contact?.hours { info("clock", hours) }
-                        }
+                    if contact != nil {
+                        if let hours = contact?.hours { info("clock", hours) }
                         let phone = contact?.phoneLink.flatMap(URL.init(string:)), whatsapp = contact?.whatsappLink.flatMap(URL.init(string:))
                         if phone != nil || whatsapp != nil {
                             HStack(spacing: 8) {
@@ -140,28 +182,16 @@ private struct PlacePanel: View {
                     if let report = sheet.report {
                         ReportPlace(report: report, vm: vm)
                     } else if !detail.isMine {
-                        // Feedback is secondary: one quiet line under a hairline, not a block of its own.
-                        Hairline()
-                        HStack(spacing: 4) {
-                            Text(L10n.Place.stillThere).type(.callout, .ink3)
-                            Spacer(minLength: 8)
-                            verdict(.exists, L10n.Place.exists, "checkmark", chosen: detail.myVerdict == .exists)
-                            verdict(.gone, L10n.Place.gone, "xmark", chosen: detail.myVerdict == .gone)
-                            Button { vm.openPlaceReport() } label: {
-                                Image(systemName: "flag").font(.system(size: 15)).foregroundStyle(Color.ink2).frame(width: 40, height: 44).contentShape(Rectangle())
-                            }
-                            .accessibilityLabel(L10n.Place.report)
-                        }
                         if sheet.feedbackError != nil { Text(L10n.Common.errorTitle).type(.caption, .danger) }
                     }
                 } else if sheet.error != nil {
                     StateView(error: sheet.error ?? .unknown) { vm.select(placeId: place.id) }.frame(height: 200)
                 }
             }
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { fit($0 + 24) }
             .padding(.horizontal, Metrics.gutter)
             .padding(.top, 22)
-            .padding(.bottom, 12)
+            // Room under the last row, so nothing sits on the screen's curve.
+            .padding(.bottom, 28)
             .readable()
         }
         .accessibilityLabel(L10n.Map.sheetLabel)
@@ -169,8 +199,8 @@ private struct PlacePanel: View {
 
     private func info(_ symbol: String, _ text: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(Color.ink3).frame(width: 20)
-            Text(text).type(.callout, .ink2).fixedSize(horizontal: false, vertical: true)
+            Image(systemName: symbol).font(.system(size: 14)).foregroundStyle(Color.ink2).frame(width: 20)
+            Text(text).type(.callout).fixedSize(horizontal: false, vertical: true).textSelection(.enabled)
         }
     }
 
@@ -183,21 +213,91 @@ private struct PlacePanel: View {
         return Label(text, systemImage: symbol).type(.callout, color)
     }
 
-    /// A glyph in a small disc; the chosen one fills with the success tone and keeps its glyph.
-    private func verdict(_ value: PlacesConfirmInput.Verdict, _ title: String, _ symbol: String, chosen: Bool) -> some View {
-        Button { vm.confirmPlace(verdict: value) } label: {
-            Image(systemName: symbol).font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(chosen ? Color.onInk : Color.ink)
-                .frame(width: 36, height: 36)
-                .background(chosen ? Color.action : Color.paper2, in: Circle())
-                .frame(width: 44, height: 44)
+    /// A white card with a hairline: the row that opens it, then the question with its two
+    /// answers, and reporting as a row of its own under a rule.
+    private func verification(_ detail: PlacesDetailOutput) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button { withAnimation(reduceMotion ? nil : Motion.quick) { verifying.toggle() } } label: {
+                HStack(spacing: 10) {
+                    // Not the address pin: checking is its own act, so it gets its own glyph.
+                    Image(systemName: "checklist").font(.system(size: 15)).foregroundStyle(Color.ink2).frame(width: 20)
+                    Text(L10n.Place.verify).type(.bodyStrong)
+                    Spacer(minLength: 8)
+                    if let given = verdictLabel(detail.myVerdict) { Text(given).type(.callout, .ink3) }
+                    if sheet.confirming { ProgressView() } else {
+                        Image(systemName: "chevron.down").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.ink3)
+                            .rotationEffect(.degrees(verifying ? 180 : 0))
+                    }
+                }
+                .padding(.horizontal, 14)
+                .frame(minHeight: 50)
                 .contentShape(Rectangle())
+            }
+            .buttonStyle(Pressable(scale: 1))
+            .accessibilityAddTraits(verifying ? .isSelected : [])
+
+            if verifying {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(L10n.Place.stillThere).type(.body)
+                    // Side by side while they fit; stacked at large text sizes.
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) { answers(detail) }
+                        VStack(spacing: 8) { answers(detail) }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.bottom, 14)
+                .transition(.opacity)
+
+                Hairline()
+                Button { vm.openPlaceReport() } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "flag").font(.system(size: 14)).foregroundStyle(Color.ink2).frame(width: 20)
+                        Text(L10n.Place.report).type(.callout)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.ink4)
+                    }
+                    .padding(.horizontal, 14)
+                    .frame(minHeight: 48)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(RowPress())
+                .transition(.opacity)
+            }
         }
-        .buttonStyle(Pressable())
-        .accessibilityLabel(title)
-        .accessibilityAddTraits(chosen ? .isSelected : [])
+        // A grey block like the sheet's other surfaces, not an outlined card.
+        .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
         .disabled(sheet.confirming)
-        .sensoryFeedback(.success, trigger: chosen) { _, now in now }
+    }
+
+    @ViewBuilder private func answers(_ detail: PlacesDetailOutput) -> some View {
+        verdict(.exists, L10n.Place.exists, chosen: detail.myVerdict == .exists)
+        verdict(.gone, L10n.Place.gone, chosen: detail.myVerdict == .gone)
+    }
+
+    /// An answer as a pill with its word, both alike (an "x" would read as closing); the one
+    /// given gains a check and a ring, so the choice never rests on colour alone.
+    private func verdict(_ value: PlacesConfirmInput.Verdict, _ title: String, chosen: Bool) -> some View {
+        Button { vm.confirmPlace(verdict: value) } label: {
+            if chosen { Label(title, systemImage: "checkmark") } else { Text(title) }
+        }
+            .buttonStyle(.pill(chosen ? .tonal : .outline))
+            .overlay { if chosen { Capsule().strokeBorder(Color.brand, lineWidth: 1.5) } }
+            .accessibilityAddTraits(chosen ? .isSelected : [])
+    }
+
+    private func verdictLabel(_ verdict: PlacesDetailOutput.MyVerdict?) -> String? {
+        switch verdict {
+        case .exists: L10n.Place.exists
+        case .gone: L10n.Place.gone
+        default: nil
+        }
+    }
+
+    /// The street with its town, unless the address already names it.
+    private func fullAddress(_ address: String, in town: String) -> String {
+        town.isEmpty || address.localizedCaseInsensitiveContains(town) ? address : "\(address), \(town)"
     }
 }
 
@@ -215,7 +315,7 @@ private struct ReportPlace: View {
                 HStack {
                     Text(L10n.Place.reportTitle).type(.label)
                     Spacer()
-                    IconButton(symbol: "xmark", label: L10n.Common.cancel) { vm.closePlaceReport() }
+                    IconButton(symbol: "xmark", label: L10n.Common.cancel, glass: true) { vm.closePlaceReport() }
                 }
                 ChoiceFlow(items: PlacesReportInput.Reason.allCases, selected: report.reason, title: { $0.label }) { vm.updatePlaceReportReason(reason: $0) }
                 Field(placeholder: L10n.Place.reportDetails, text: $details, lines: 2...5)
@@ -256,7 +356,7 @@ private struct RoutePanel: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                PanelHeader(tint: .success, symbol: "figure.hiking", title: route.name, subtitle: "\(route.categoryName) · \(route.municipalityName)", close: close)
+                PanelHeader(tint: PinTone.trail.color, symbol: "figure.hiking", title: route.name, subtitle: "\(route.categoryName) · \(route.municipalityName)", close: close)
 
                 HStack(spacing: 0) {
                     fact(L10n.Routes.distance, Measurement(value: route.distanceMeters / 1000, unit: UnitLength.kilometers).formatted(.measurement(width: .abbreviated, usage: .asProvided, numberFormatStyle: .number.precision(.fractionLength(1)))))
@@ -316,6 +416,10 @@ private struct TrafficPanel: View {
     let vm: MapViewModel
     let close: () -> Void
 
+    /// A blocked road is asked about in its own words ("¿La vía sigue bloqueada?");
+    /// a pothole, a flood or slow traffic share "¿Sigue ahí?".
+    private var blocking: Bool { notice.severity == .blocking }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -323,24 +427,29 @@ private struct TrafficPanel: View {
                             subtitle: "\(notice.municipality) · \(CompactTime.since(notice.createdAt.date))", close: close)
                 if let details = notice.details, !details.isEmpty { Text(details).type(.body, .ink2) }
 
-                HStack(spacing: 0) {
-                    count(Int(notice.stillCount), L10n.Traffic.stillShort, "checkmark")
-                    Rectangle().fill(Color.line).frame(width: 1, height: 34)
-                    count(Int(notice.clearedCount), L10n.Traffic.goneShort, "xmark")
-                }
-                .padding(.vertical, 14)
-                .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-
-                if notice.canConfirm {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text(L10n.Traffic.ask).type(.label)
-                        HStack(spacing: 8) {
-                            answer(.still, L10n.Traffic.still)
-                            answer(.cleared, L10n.Traffic.gone)
-                        }
+                // What neighbours said, as sentences, right before the question; a
+                // side nobody has taken is left out rather than shown as a zero.
+                VStack(alignment: .leading, spacing: 10) {
+                    if notice.stillCount > 0 {
+                        Text(blocking ? L10n.Traffic.stillBlockedVoices(count: Int(notice.stillCount)) : L10n.Traffic.stillVoices(count: Int(notice.stillCount)))
+                            .type(.callout, .ink2)
+                            .contentTransition(.numericText())
                     }
-                } else if let mine = notice.myVerdict {
-                    Notice(symbol: "checkmark.circle", title: mine == .still ? L10n.Traffic.thanksStill : L10n.Traffic.thanksCleared)
+                    if notice.clearedCount > 0 {
+                        Text(blocking ? L10n.Traffic.goneBlockedVoices(count: Int(notice.clearedCount)) : L10n.Traffic.clearedVoices(count: Int(notice.clearedCount)))
+                            .type(.callout, .ink2)
+                            .contentTransition(.numericText())
+                    }
+
+                    if notice.canConfirm {
+                        Text(blocking ? L10n.Traffic.askBlocked : L10n.Traffic.ask).type(.label).padding(.top, 4)
+                        HStack(spacing: 8) {
+                            answer(.still, blocking ? L10n.Traffic.stillBlocked : L10n.Traffic.still)
+                            answer(.cleared, blocking ? L10n.Traffic.goneBlocked : L10n.Traffic.gone)
+                        }
+                    } else if let mine = notice.myVerdict {
+                        Notice(symbol: "checkmark.circle", title: mine == .still ? L10n.Traffic.thanksStill : L10n.Traffic.thanksCleared)
+                    }
                 }
             }
             .padding(.horizontal, Metrics.gutter)
@@ -351,16 +460,6 @@ private struct TrafficPanel: View {
         }
         .accessibilityLabel(L10n.Traffic.sheetLabel(category: notice.categoryName))
         .sensoryFeedback(.success, trigger: notice.myVerdict)
-    }
-
-    private func count(_ value: Int, _ label: String, _ symbol: String) -> some View {
-        VStack(spacing: 3) {
-            Text("\(value)").type(.title).contentTransition(.numericText())
-            Label(label, systemImage: symbol).type(.caption, .ink3).lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(symbol == "checkmark" ? L10n.Traffic.stillVoices(count: value) : L10n.Traffic.clearedVoices(count: value))
     }
 
     private func answer(_ verdict: TrafficVerdict, _ title: String) -> some View {
@@ -379,6 +478,10 @@ struct MapSearch: View {
     var pickCategory: (MapCategory) -> Void = { _ in }
     let pickPlace: (MapPlace) -> Void
     let pickRoute: (EcoRoute) -> Void
+    /// Shows every eco route on the map, like the header's Rutas chip.
+    var pickRoutes: (() -> Void)?
+    /// Nothing matched: offers to add the place that is missing.
+    var suggest: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @FocusState private var focused: Bool
@@ -388,7 +491,17 @@ struct MapSearch: View {
     }
     private var foundPlaces: [MapPlace] {
         let sorted = places.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
-        return query.isEmpty ? sorted : sorted.filter { "\($0.name) \($0.categoryName) \(municipalities[$0.municipalityId] ?? "")".localizedStandardContains(query) }
+        guard !query.isEmpty else { return sorted }
+        // Names that start with what was typed first, then names that contain it, then matches
+        // on the category or town only, so "co" finds Colmado before every bank.
+        func rank(_ place: MapPlace) -> Int? {
+            let name = place.name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            let typed = query.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            if name.hasPrefix(typed) || name.contains(" " + typed) { return 0 }
+            if name.contains(typed) { return 1 }
+            return "\(place.categoryName) \(municipalities[place.municipalityId] ?? "")".localizedStandardContains(query) ? 2 : nil
+        }
+        return sorted.compactMap { place in rank(place).map { (place, $0) } }.sorted { $0.1 < $1.1 }.map(\.0)
     }
 
     var body: some View {
@@ -398,7 +511,7 @@ struct MapSearch: View {
                     .focused($focused)
                     .submitLabel(.search)
                     .autocorrectionDisabled()
-                IconButton(symbol: "xmark", label: L10n.Common.close) { dismiss() }
+                IconButton(symbol: "xmark", label: L10n.Common.close, glass: true) { dismiss() }
             }
             .padding(.horizontal, 16)
             .padding(.top, 18)
@@ -407,9 +520,19 @@ struct MapSearch: View {
             if query.isEmpty, !categories.isEmpty {
                 // Before typing: every category as a tile, the way the system's browse screens open.
                 ScrollView {
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                        // Routes first, as on the map's filter row.
+                        if let pickRoutes, !routes.isEmpty {
+                            Button(action: pickRoutes) {
+                                CategoryTile(name: L10n.Map.routes, symbol: "figure.hiking", color: PinTone.trail.color, detail: L10n.Map.routesCount(count: routes.count))
+                            }
+                            .buttonStyle(Pressable(scale: 0.97))
+                        }
                         ForEach(categories, id: \.id) { category in
-                            Button { pickCategory(category) } label: { CategoryTile(category: category) }.buttonStyle(Pressable(scale: 0.97))
+                            Button { pickCategory(category) } label: {
+                                CategoryTile(name: category.name, symbol: Glyph.symbol(category.icon, filled: true), color: PinTone.of(hex: category.color).color, detail: L10n.Explore.placesCount(count: Int(category.count)))
+                            }
+                            .buttonStyle(Pressable(scale: 0.97))
                         }
                     }
                     .padding(.horizontal, Metrics.gutter)
@@ -419,20 +542,21 @@ struct MapSearch: View {
                 }
                 .scrollDismissesKeyboard(.immediately)
             } else if foundRoutes.isEmpty && foundPlaces.isEmpty {
-                StateView(symbol: "magnifyingglass", title: L10n.Search.emptyTitle, message: L10n.Search.emptyBody)
+                StateView(symbol: "magnifyingglass", title: L10n.Search.emptyTitle, message: L10n.Search.emptyBody,
+                          actionTitle: suggest == nil ? nil : L10n.Contributions.examplePlaceTitle, action: suggest)
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         if !foundRoutes.isEmpty {
                             FormLabel(text: L10n.Map.routes).padding(.horizontal, Metrics.gutter)
                             ForEach(foundRoutes, id: \.id) { route in
-                                row(symbol: "figure.hiking", tint: .mint, title: route.name, detail: "\(route.categoryName) · \(route.municipalityName)") { pickRoute(route) }
+                                row(symbol: "figure.hiking", tint: .solid(PinTone.trail.color), title: route.name, detail: "\(route.categoryName) · \(route.municipalityName)") { pickRoute(route) }
                             }
                         }
                         if !foundPlaces.isEmpty {
                             FormLabel(text: L10n.Search.places).padding(.horizontal, Metrics.gutter).padding(.top, 8)
                             ForEach(foundPlaces, id: \.id) { place in
-                                row(symbol: Glyph.symbol(place.icon), tint: .of(hex: place.color), title: place.name, detail: [place.categoryName, municipalities[place.municipalityId]].compactMap { $0 }.joined(separator: " · ")) { pickPlace(place) }
+                                row(symbol: Glyph.symbol(place.icon, filled: true), tint: .solid(place.tint), title: place.name, detail: [place.categoryName, municipalities[place.municipalityId]].compactMap { $0 }.joined(separator: " · ")) { pickPlace(place) }
                             }
                         }
                     }
@@ -458,36 +582,59 @@ struct MapSearch: View {
                     Spacer(minLength: 0)
                 }
                 .padding(.horizontal, Metrics.gutter)
-                .padding(.vertical, 10)
+                .padding(.vertical, 8)
             }
             .buttonStyle(RowPress())
-            Hairline(inset: Metrics.gutter + 54)
         }
     }
 }
 
-/// A category as a coloured tile: its name at the bottom, its glyph large and faint in the corner.
+/// A category as a quiet tile: its glyph on a disc in the kind's colour and how many places it
+/// has on the top row, its name under them, so nothing sits on top of anything else.
 private struct CategoryTile: View {
-    let category: MapCategory
+    let name: String
+    let symbol: String
+    let color: Color
+    let detail: String
 
     var body: some View {
-        let color = Tint.of(hex: category.color).solid
-        ZStack(alignment: .bottomLeading) {
-            LinearGradient(colors: [color, color.mix(with: .black, by: 0.16)], startPoint: .top, endPoint: .bottom)
-            Image(systemName: Glyph.symbol(category.icon, filled: true))
-                .font(.system(size: 54, weight: .regular))
-                .foregroundStyle(.white.opacity(0.28))
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                .padding(12)
+        HStack(spacing: 12) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(Color.onInk)
+                .frame(width: 36, height: 36)
+                .background(color, in: Circle())
             VStack(alignment: .leading, spacing: 1) {
-                Text(category.name).font(.system(size: 17, weight: .semibold)).tracking(-0.2).lineLimit(2).multilineTextAlignment(.leading)
-                Text("\(category.count)").font(.system(size: 13, weight: .medium)).opacity(0.8)
+                Text(name).type(.bodyStrong).lineLimit(2).multilineTextAlignment(.leading).minimumScaleFactor(0.9)
+                Text(detail).type(.caption, .ink3)
             }
-            .foregroundStyle(.white)
-            .padding(12)
+            Spacer(minLength: 0)
         }
-        .frame(height: 104)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, minHeight: 82, alignment: .leading)
+        .background(Color.paper2)
         .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A still, close map of the place's street with its category marker: what stands in
+/// for a photo until someone adds one.
+private struct PlaceStreet: View {
+    let coordinate: CLLocationCoordinate2D
+    let tint: Color
+    let symbol: String
+
+    var body: some View {
+        Map(initialPosition: .region(MKCoordinateRegion(center: coordinate, latitudinalMeters: 320, longitudinalMeters: 320)), interactionModes: []) {
+            Marker("", systemImage: symbol, coordinate: coordinate).tint(tint)
+        }
+        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
+        .frame(height: 150)
+        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }

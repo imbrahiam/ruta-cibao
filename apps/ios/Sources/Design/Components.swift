@@ -3,12 +3,14 @@ import SwiftUI
 
 // MARK: - Buttons
 
-/// The landing's pill: ink for the one main action, paper for the rest.
+/// A pill: the brand green for the one main action, quiet surfaces for the rest.
 struct PillStyle: ButtonStyle {
-    enum Kind { case ink, quiet, outline, danger }
+    enum Kind { case ink, tonal, quiet, outline, danger }
     var kind: Kind = .ink
     var compact = false
     var fill = true
+    /// The main action in the colour of the thing it acts on (a place's kind), not the brand's.
+    var tint: Color?
     @Environment(\.isEnabled) private var enabled
     /// A disabled main action rests as a quiet slab instead of a faded black one.
     private var off: Bool { kind == .ink && !enabled }
@@ -20,7 +22,7 @@ struct PillStyle: ButtonStyle {
             .padding(.horizontal, compact ? 16 : 22)
             .frame(maxWidth: fill ? .infinity : nil, minHeight: compact ? 40 : 52)
             .background(off ? Color.paper3 : background, in: Capsule())
-            .overlay { if kind == .outline { Capsule().strokeBorder(Color.line, lineWidth: 1) } }
+            .overlay { if kind == .outline { Capsule().strokeBorder(Color.ink4, lineWidth: 1) } }
             .contentShape(Capsule())
             .opacity(enabled || off ? 1 : 0.4)
             // Pressed is felt at the finger: the pill gives a little.
@@ -31,6 +33,7 @@ struct PillStyle: ButtonStyle {
     private var foreground: Color {
         switch kind {
         case .ink: .onInk
+        case .tonal: .brandDeep
         case .quiet, .outline: .ink
         case .danger: .danger
         }
@@ -38,7 +41,8 @@ struct PillStyle: ButtonStyle {
 
     private var background: Color {
         switch kind {
-        case .ink: .action
+        case .ink: tint ?? .action
+        case .tonal: .brandSoft
         case .quiet, .danger: .paper2
         case .outline: .clear
         }
@@ -48,25 +52,34 @@ struct PillStyle: ButtonStyle {
 extension ButtonStyle where Self == PillStyle {
     static var ink: PillStyle { PillStyle() }
     static var quiet: PillStyle { PillStyle(kind: .quiet) }
+    /// The main action, filled with the colour of what it acts on.
+    static func ink(tint: Color) -> PillStyle { PillStyle(tint: tint) }
     static func pill(_ kind: PillStyle.Kind, compact: Bool = false, fill: Bool = true) -> PillStyle {
         PillStyle(kind: kind, compact: compact, fill: fill)
     }
 }
 
-/// A round icon button: 44 pt target, paper fill, one thin symbol.
+/// A round icon button: 44 pt target, one thin symbol. It rests on a quiet fill; over the map
+/// it is a white disc with a shadow; the ways out (close, back) are Liquid Glass.
 struct IconButton: View {
     let symbol: String
     let label: String
     var floating = false
+    var glass = false
+    /// On the brand header: a plain white line glyph, no disc behind it.
+    var onBrand = false
+    /// A smaller disc where room is tight (a sheet's heading); the target stays 44 points.
+    var compact = false
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 17, weight: .regular))
-                .foregroundStyle(Color.ink)
+                .font(.system(size: onBrand ? 22 : compact ? 14 : 17, weight: compact ? .semibold : .regular))
+                .foregroundStyle(onBrand ? Color.onInk : Color.ink)
+                .frame(width: compact ? 34 : 44, height: compact ? 34 : 44)
+                .modifier(Surface(floating: floating, glass: glass, onBrand: onBrand))
                 .frame(width: 44, height: 44)
-                .modifier(Surface(floating: floating))
                 .contentShape(Circle())
         }
         .buttonStyle(Pressable())
@@ -75,8 +88,18 @@ struct IconButton: View {
 
     private struct Surface: ViewModifier {
         let floating: Bool
+        let glass: Bool
+        let onBrand: Bool
         func body(content: Content) -> some View {
-            if floating { content.glassEffect(.regular.interactive(), in: Circle()) } else { content.background(Color.paper2, in: Circle()) }
+            if onBrand {
+                content
+            } else if glass {
+                content.glassEffect(.regular.interactive(), in: Circle())
+            } else if floating {
+                content.floating(in: Circle())
+            } else {
+                content.background(Color.paper2, in: Circle())
+            }
         }
     }
 }
@@ -98,7 +121,7 @@ struct RowPress: ButtonStyle {
         configuration.label
             .frame(maxWidth: .infinity, alignment: .leading)
             .contentShape(Rectangle())
-            .background(configuration.isPressed ? Color.paper2 : .clear)
+            .background(configuration.isPressed ? Color.paper3 : .clear)
             .animation(Motion.quick, value: configuration.isPressed)
     }
 }
@@ -109,48 +132,74 @@ struct Chip: View {
     let title: String
     var symbol: String?
     let selected: Bool
-    /// Over the map: Liquid Glass instead of a paper surface.
-    var glass = false
+    /// Over the map: a white pill with a shadow, filled green when picked.
+    var floating = false
+    /// In a brand header: compact, a lighter green that turns white when picked.
+    var onBrand = false
+    /// A count beside the title (unread notices), in its own small pill.
+    var badge: Int?
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 7) {
-                if let symbol { Image(systemName: symbol).font(.system(size: 13, weight: .regular)) }
+            HStack(spacing: onBrand ? 5 : 7) {
+                if let symbol { Image(systemName: symbol).font(.system(size: onBrand ? 12 : 13, weight: .regular)) }
                 Text(title)
+                if let badge, badge > 0 {
+                    Text("\(badge)")
+                        .font(.system(size: 11.5, weight: .bold).monospacedDigit())
+                        .foregroundStyle(onBrand && !selected ? Color.brandDeep : Color.onInk)
+                        .padding(.horizontal, 6)
+                        .frame(minWidth: 20, minHeight: 20)
+                        .background(onBrand && !selected ? Color.onInk : Color.brand, in: Capsule())
+                }
             }
-            .type(.label, glass && selected ? .white : .ink)
-            .padding(.horizontal, 14)
-            .frame(height: 38)
-            .modifier(ChipSurface(selected: selected, glass: glass))
+            .type(.label, foreground)
+            .fontWeight(selected ? .semibold : .medium)
+            .padding(.horizontal, onBrand ? 12 : 14)
+            .frame(height: onBrand ? 34 : 38)
+            .modifier(ChipSurface(selected: selected, floating: floating, onBrand: onBrand))
+            // The visible pill is compact; the finger still gets 44 points.
+            .frame(minHeight: 44)
             .contentShape(Capsule())
         }
         .buttonStyle(Pressable())
         .accessibilityAddTraits(selected ? .isSelected : [])
         .sensoryFeedback(.selection, trigger: selected)
     }
+
+    private var foreground: Color {
+        if onBrand { return selected ? .brandDeep : .onInk }
+        if selected { return floating ? .onInk : .brandDeep }
+        return .ink
+    }
 }
 
-/// Every input is a white card with a hairline; the pick takes the brand's lavender and a ring.
-/// Over the map the same chip is glass, tinted iris when chosen.
+/// A chip rests on the quiet fill; the pick takes the soft green, a green ring and a heavier
+/// weight. Over the map it floats in white and the pick fills green.
 private struct ChipSurface: ViewModifier {
     let selected: Bool
-    let glass: Bool
+    let floating: Bool
+    let onBrand: Bool
 
     func body(content: Content) -> some View {
-        if glass {
-            content.glassEffect(selected ? .regular.tint(Color.iris).interactive() : .regular.interactive(), in: Capsule())
+        if onBrand {
+            content.background(selected ? Color.onInk : Color.onInk.opacity(0.14), in: Capsule())
+        } else if floating, selected {
+            content.background(Color.brand, in: Capsule()).shadow(color: Color.ink.opacity(0.10), radius: 10, y: 3)
+        } else if floating {
+            content.floating(in: Capsule())
         } else {
             content
-                .background(selected ? Tint.lavender.fill : Color.card, in: Capsule())
-                .overlay { Capsule().strokeBorder(selected ? Color.iris : Color.line, lineWidth: selected ? 1.5 : 1) }
+                .background(selected ? Color.brandSoft : Color.paper2, in: Capsule())
+                .overlay { if selected { Capsule().strokeBorder(Color.brand, lineWidth: 1.5) } }
         }
     }
 }
 
 // MARK: - Fields
 
-/// A text field on paper: no border until focused, the placeholder is the label.
+/// A text field: a quiet fill that takes a green ring when focused; the placeholder is the label.
 struct Field: View {
     let placeholder: String
     @Binding var text: String
@@ -169,10 +218,9 @@ struct Field: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 15)
         .frame(minHeight: 52, alignment: .top)
-        .background(Color.card, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
+        .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous)
-                .strokeBorder(focused ? Color.action : Color.line, lineWidth: focused ? 1.5 : 1)
+            if focused { RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous).strokeBorder(Color.action, lineWidth: 1.5) }
         }
         .animation(Motion.quick, value: focused)
         .contentShape(Rectangle())
@@ -190,7 +238,7 @@ struct Hairline: View {
     }
 }
 
-/// A glyph on a soft disc in one of the landing's accents. Saturated colour stays on the map.
+/// A glyph on a soft disc. Saturated colour stays on the map.
 struct GlyphDisc: View {
     var icon: String = ""
     var symbol: String?
@@ -207,7 +255,7 @@ struct GlyphDisc: View {
     }
 }
 
-/// The landing's location pin: a teardrop with a paper eye (`location-pin.tsx`, 24 by 28 box).
+/// The location pin: a green teardrop with a white eye (24 by 28 box).
 struct TeardropPin: View {
     var height: CGFloat = 42
     var color: Color = .pin
@@ -215,7 +263,7 @@ struct TeardropPin: View {
     var body: some View {
         Teardrop()
             .fill(color)
-            .overlay { GeometryReader { box in Circle().fill(Color(red: 1, green: 0.98, blue: 0.97)).frame(width: box.size.width / 3, height: box.size.width / 3).position(x: box.size.width / 2, y: box.size.height * 11 / 28) } }
+            .overlay { GeometryReader { box in Circle().fill(Color.onInk).frame(width: box.size.width / 3, height: box.size.width / 3).position(x: box.size.width / 2, y: box.size.height * 11 / 28) } }
             .frame(width: height * 24 / 28, height: height)
             .shadow(color: .black.opacity(0.22), radius: 3, y: 2)
             .accessibilityHidden(true)
@@ -255,44 +303,67 @@ struct Avatar: View {
     }
 }
 
-/// A small state word with its dot: colour and text together, never colour alone.
+/// Where something stands: its word on a soft wash of the state's colour, with the state's glyph
+/// when it has one, so the state is read from the word and never from colour alone.
+/// Over a photo the tag is solid white.
 struct StatusTag: View {
     let text: String
     var color: Color = .ink3
+    /// A glyph for the state, when it has one; otherwise the wash and the word say it.
+    var symbol: String?
+    var solid = false
 
     var body: some View {
-        HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(text).type(.caption, .ink2)
+        HStack(spacing: 5) {
+            if let symbol { Image(systemName: symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(color) }
+            Text(text).font(.system(size: 12.5, weight: .medium)).foregroundStyle(Color.ink)
         }
-        .padding(.horizontal, 10)
-        .frame(height: 26)
-        .background(.regularMaterial, in: Capsule())
+        .padding(.horizontal, 9)
+        .frame(height: 24)
+        .background(solid ? AnyShapeStyle(Color.paper) : AnyShapeStyle(color.opacity(0.12)), in: Capsule())
         .accessibilityElement(children: .combine)
     }
 }
 
-/// The landing page's mark ("Encuentro"): an open C and its meeting point on iris, drawn from
-/// the same geometry the web uses (`packages/shared/src/brand.ts`, 256 unit box).
+/// The mark ("Vínculo"): two links of a chain, drawn from the same paths as the brand's SVG
+/// (256 unit box, the links scaled to 75% around the centre).
+struct MarkLinks: View {
+    var size: CGFloat = 56
+    var color: Color = .onInk
+
+    var body: some View {
+        Canvas { context, canvas in
+            var links = Path()
+            links.move(to: CGPoint(x: 112, y: 78))
+            links.addLine(to: CGPoint(x: 94, y: 60))
+            links.addCurve(to: CGPoint(x: 36, y: 60), control1: CGPoint(x: 78, y: 44), control2: CGPoint(x: 52, y: 44))
+            links.addCurve(to: CGPoint(x: 36, y: 118), control1: CGPoint(x: 20, y: 76), control2: CGPoint(x: 20, y: 102))
+            links.addLine(to: CGPoint(x: 74, y: 156))
+            links.addCurve(to: CGPoint(x: 132, y: 156), control1: CGPoint(x: 90, y: 172), control2: CGPoint(x: 116, y: 172))
+            links.addLine(to: CGPoint(x: 148, y: 140))
+            links.move(to: CGPoint(x: 144, y: 178))
+            links.addLine(to: CGPoint(x: 162, y: 196))
+            links.addCurve(to: CGPoint(x: 220, y: 196), control1: CGPoint(x: 178, y: 212), control2: CGPoint(x: 204, y: 212))
+            links.addCurve(to: CGPoint(x: 220, y: 138), control1: CGPoint(x: 236, y: 180), control2: CGPoint(x: 236, y: 154))
+            links.addLine(to: CGPoint(x: 182, y: 100))
+            links.addCurve(to: CGPoint(x: 124, y: 100), control1: CGPoint(x: 166, y: 84), control2: CGPoint(x: 140, y: 84))
+            links.addLine(to: CGPoint(x: 108, y: 116))
+            let unit = canvas.width / 256
+            let place = CGAffineTransform(translationX: 32, y: 32).scaledBy(x: 0.75, y: 0.75).concatenating(CGAffineTransform(scaleX: unit, y: unit))
+            context.stroke(links.applying(place), with: .color(color), style: StrokeStyle(lineWidth: 27 * 0.75 * unit, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The mark on its green tile, as the app icon shows it.
 struct Mark: View {
     var size: CGFloat = 56
 
     var body: some View {
-        Canvas { context, canvas in
-            let unit = canvas.width / 256
-            var curve = Path()
-            curve.move(to: CGPoint(x: 190, y: 106))
-            curve.addCurve(to: CGPoint(x: 127, y: 54), control1: CGPoint(x: 181, y: 74), control2: CGPoint(x: 158, y: 54))
-            curve.addCurve(to: CGPoint(x: 54, y: 128), control1: CGPoint(x: 86, y: 54), control2: CGPoint(x: 54, y: 87))
-            curve.addCurve(to: CGPoint(x: 127, y: 202), control1: CGPoint(x: 54, y: 169), control2: CGPoint(x: 86, y: 202))
-            curve.addCurve(to: CGPoint(x: 193, y: 154), control1: CGPoint(x: 158, y: 202), control2: CGPoint(x: 182, y: 184))
-            let scale = CGAffineTransform(scaleX: unit, y: unit)
-            context.stroke(curve.applying(scale), with: .color(.white), style: StrokeStyle(lineWidth: 32 * unit, lineCap: .round))
-            context.fill(Path(ellipseIn: CGRect(x: 192, y: 42, width: 30, height: 30)).applying(scale), with: .color(.white))
-        }
-        .frame(width: size, height: size)
-        .background(Color.iris, in: RoundedRectangle(cornerRadius: size * 0.29, style: .continuous))
-        .accessibilityHidden(true)
+        MarkLinks(size: size)
+            .background(Color.brand, in: RoundedRectangle(cornerRadius: size * 0.235, style: .continuous))
     }
 }
 
@@ -325,6 +396,8 @@ struct StateView: View {
     let title: String
     var message: String?
     var actionTitle: String?
+    /// The page's main way forward (signing in): a filled button instead of an outlined one.
+    var prominent = false
     var action: (() -> Void)?
 
     var body: some View {
@@ -340,7 +413,12 @@ struct StateView: View {
             }
             .multilineTextAlignment(.center)
             if let actionTitle, let action {
-                Button(actionTitle, action: action).font(.system(size: 17)).tint(.iris).frame(minHeight: 44).padding(.top, 2)
+                // A real button, so an empty or failed state reads as a next step.
+                if prominent {
+                    Button(actionTitle, action: action).buttonStyle(.ink).frame(maxWidth: 300).padding(.top, 6)
+                } else {
+                    Button(actionTitle, action: action).buttonStyle(.pill(.outline, compact: true, fill: false)).padding(.top, 4)
+                }
             }
         }
         .padding(32)
@@ -364,40 +442,108 @@ extension StateView {
 
 // MARK: - Screen furniture
 
-/// A root screen's title, in the landing's display type, with optional trailing controls.
-struct ScreenTitle<Trailing: View>: View {
-    let title: String
-    @ViewBuilder var trailing: Trailing
+/// Adding to the map, from any tab's header: the one solid white button on the green, like
+/// the search's green one on white.
+struct ContributeButton: View {
+    @Environment(AppChrome.self) private var chrome: AppChrome?
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
-            Text(title).type(.display).accessibilityAddTraits(.isHeader)
-            Spacer(minLength: 8)
-            trailing
+        Button { chrome?.contributing = true } label: {
+            // As tall as the search pill beside it, so the header's row reads as one line.
+            Image(systemName: "plus")
+                .font(.system(size: 19, weight: .bold))
+                .foregroundStyle(Color.brand)
+                .frame(width: 48, height: 48)
+                .background(Color.onInk, in: Circle())
+                .contentShape(Circle())
         }
-        .padding(.horizontal, Metrics.gutter)
-        .padding(.top, 10)
-        .padding(.bottom, 14)
+        .buttonStyle(Pressable())
+        .accessibilityLabel(L10n.Contributions.contribute)
     }
 }
 
-extension ScreenTitle where Trailing == EmptyView {
-    init(_ title: String) { self.init(title: title) { EmptyView() } }
+extension View {
+    /// A sideways row that runs past an edge fades into its background instead of being cut by
+    /// it. The fade is as wide as the row's own inset, so the first item is whole at rest.
+    func edgeFade(_ width: CGFloat = Metrics.gutter) -> some View {
+        mask {
+            HStack(spacing: 0) {
+                LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing).frame(width: width)
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: width)
+            }
+        }
+    }
+
+    /// A tab's own header in place of the system navigation bar: the title, what you can do
+    /// here and adding to the map on one row, and the tab's filters under it, all on the brand green.
+    /// The page scrolls under it. Pushed pages keep the system bar and its back swipe.
+    func rootHeader<Trailing: View, Accessory: View>(_ title: String, @ViewBuilder trailing: () -> Trailing, @ViewBuilder accessory: () -> Accessory) -> some View {
+        toolbarVisibility(.hidden, for: .navigationBar)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 10) {
+                        Text(title).font(.system(size: 28, weight: .bold)).tracking(-0.6).foregroundStyle(Color.onInk).accessibilityAddTraits(.isHeader)
+                        Spacer(minLength: 8)
+                        trailing()
+                        ContributeButton()
+                    }
+                    .padding(.horizontal, Metrics.gutter)
+                    accessory()
+                }
+                .padding(.top, 4)
+                .padding(.bottom, 14)
+                .brandHeader()
+            }
+    }
+
+    func rootHeader<Accessory: View>(_ title: String, @ViewBuilder accessory: () -> Accessory) -> some View {
+        rootHeader(title, trailing: { EmptyView() }, accessory: accessory)
+    }
+
+    /// The header's slab: the brand green from the top of the screen, rounded where it meets
+    /// the page.
+    func brandHeader() -> some View {
+        background {
+            UnevenRoundedRectangle(bottomLeadingRadius: Metrics.radiusPanel, bottomTrailingRadius: Metrics.radiusPanel, style: .continuous)
+                .fill(Color.brand)
+                .ignoresSafeArea(edges: .top)
+        }
+        .lightStatusBar()
+    }
 }
 
-/// A sheet or pushed form's top row: a close button, a centred title, an optional action.
-struct SheetBar<Trailing: View>: View {
+/// A row of filters inside a brand header, scrolling sideways when they do not fit.
+struct HeaderFilters<Content: View>: View {
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 6) { content }.padding(.horizontal, Metrics.gutter)
+        }
+        .scrollIndicators(.hidden)
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        .edgeFade()
+    }
+}
+
+/// A sheet or pushed form's top row: a centred title with the way out at the trailing edge.
+/// When the sheet has its own main action (send a reply), that takes the trailing edge and the
+/// way out moves to the leading one, as in the system's compose sheets.
+struct SheetBar<Action: View>: View {
     let title: String
     let close: () -> Void
-    @ViewBuilder var trailing: Trailing
+    @ViewBuilder var action: Action
+
+    private var closeButton: some View { IconButton(symbol: "xmark", label: L10n.Common.close, glass: true, action: close) }
 
     var body: some View {
         ZStack {
             Text(title).type(.bodyStrong).accessibilityAddTraits(.isHeader)
             HStack {
-                IconButton(symbol: "xmark", label: L10n.Common.close, action: close)
+                if Action.self != EmptyView.self { closeButton }
                 Spacer()
-                trailing
+                if Action.self == EmptyView.self { closeButton } else { action }
             }
         }
         .padding(.horizontal, 16)
@@ -405,7 +551,7 @@ struct SheetBar<Trailing: View>: View {
     }
 }
 
-extension SheetBar where Trailing == EmptyView {
+extension SheetBar where Action == EmptyView {
     init(title: String, close: @escaping () -> Void) { self.init(title: title, close: close) { EmptyView() } }
 }
 
@@ -446,6 +592,7 @@ struct Page<Content: View, Trailing: View>: View {
                 .padding(.bottom, 28)
                 .readable()
         }
+        .scrollEdgeEffectStyle(.hard, for: .top)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar { ToolbarItem(placement: .topBarTrailing) { trailing } }
@@ -482,15 +629,14 @@ extension Page where Trailing == EmptyView {
     }
 }
 
-/// Rows that belong together, on one card with a hairline ring.
+/// Rows that belong together, on one quiet slab.
 struct RowGroup<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
         VStack(spacing: 0) { content }
-            .background(Color.card, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+            .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
     }
 }
 

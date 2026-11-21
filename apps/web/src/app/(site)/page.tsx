@@ -30,7 +30,7 @@ import styles from "./page.module.css";
 const t = getT("landing");
 
 export const metadata: Metadata = {
-  title: { absolute: `${t("brand")} · ${t("headline")}` },
+  title: { absolute: t("brand") },
   description: t("intro"),
   alternates: { canonical: "/" },
 };

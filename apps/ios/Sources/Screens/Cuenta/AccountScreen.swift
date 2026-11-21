@@ -39,7 +39,7 @@ struct AccountScreen: View {
                     }
             }
             .navigationTitle(L10n.Account.title)
-            .navigationBarTitleDisplayMode(.inline)
+            .rootHeader(L10n.Account.title) { EmptyView() }
             .paperBackground()
         }
     }
@@ -56,7 +56,7 @@ struct AccountScreen: View {
                                 HStack(spacing: 6) {
                                     Text(state.me?.displayName ?? " ").type(.heading)
                                     if state.me?.residencyVerified == true {
-                                        Image(systemName: "checkmark.seal.fill").font(.system(size: 14)).foregroundStyle(Color.iris)
+                                        Image(systemName: "checkmark.seal.fill").font(.system(size: 14)).foregroundStyle(Color.brand)
                                             .accessibilityLabel(L10n.Account.residentVerified)
                                     }
                                 }
@@ -68,9 +68,8 @@ struct AccountScreen: View {
                         .padding(16)
                     }
                     .buttonStyle(RowPress())
-                    .background(Color.card, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+                    .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
                     .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
                     .rise(0)
 
                     RowGroup {
@@ -114,7 +113,7 @@ struct AccountScreen: View {
                 }
             }
             .padding(.horizontal, Metrics.gutter)
-            .padding(.top, 8)
+            .padding(.top, 18)
             .padding(.bottom, 28)
             .readable()
         }
@@ -184,13 +183,14 @@ private struct SavedPage: View {
     var body: some View {
         Page(title: L10n.Account.saved) {
             if items.isEmpty {
-                StateView(symbol: "bookmark", title: L10n.Explore.savedEmpty, message: L10n.Explore.savedEmptyBody).frame(height: 360)
+                StateView(symbol: "bookmark", title: L10n.Explore.savedEmpty, message: L10n.Explore.savedEmptyBody, actionTitle: L10n.Explore.savedExplore) { chrome.tab = .map }
+                    .frame(height: 360)
             } else {
                 RowGroup {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, place in
                         Button { links.open("/lugares/\(place.slug)"); if links.pending == nil { links.pending = .place(slug: place.slug) }; chrome.tab = .map } label: {
                             HStack(spacing: 14) {
-                                GlyphDisc(icon: place.icon, tint: .of(hex: place.color))
+                                GlyphDisc(icon: place.icon, tint: .neutral)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(place.name).type(.bodyStrong)
                                     Text("\(place.categoryName) · \(place.municipalityName)").type(.callout, .ink3)
@@ -212,24 +212,26 @@ private struct SavedPage: View {
 
 private struct PassportPage: View {
     let passport: PassportListOutput?
+    @Environment(AppChrome.self) private var chrome
 
     var body: some View {
         let items = passport?.items ?? []
         Page(title: L10n.Account.passport) {
             if items.isEmpty {
-                StateView(symbol: "book.closed", title: L10n.Account.passportEmpty, message: L10n.Account.passportEmptyBody).frame(height: 360)
+                StateView(symbol: "book.closed", title: L10n.Account.passportEmpty, message: L10n.Account.passportEmptyBody, actionTitle: L10n.Explore.savedExplore) { chrome.tab = .map }
+                    .frame(height: 360)
             } else {
                 Text(L10n.Account.passportLede(count: items.count)).type(.body, .ink2)
                 RowGroup {
                     ForEach(Array(items.enumerated()), id: \.offset) { index, stamp in
                         HStack(spacing: 14) {
-                            GlyphDisc(symbol: "mappin", tint: .mint)
+                            GlyphDisc(symbol: "mappin", tint: stamp.place.map { .solid(PinTone.of(hex: $0.categoryColor).color) } ?? .neutral)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(stamp.place?.name ?? L10n.Account.passportRemoved).type(.bodyStrong)
-                                Text(stamp.stampedAt.date.formatted(date: .abbreviated, time: .omitted)).type(.callout, .ink3)
+                                Text([stamp.place?.municipalityName, stamp.stampedAt.date.formatted(.dateTime.day().month(.abbreviated).year())].compactMap { $0 }.joined(separator: " · ")).type(.callout, .ink3)
                             }
                             Spacer(minLength: 0)
-                            Image(systemName: "checkmark.seal").font(.system(size: 17, weight: .light)).foregroundStyle(Color.iris)
+                            Image(systemName: "checkmark.seal").font(.system(size: 17, weight: .light)).foregroundStyle(Color.brand)
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
@@ -280,7 +282,7 @@ private struct NotificationsPage: View {
                 Text(hint).type(.caption, .ink3)
             }
         }
-        .tint(.ink)
+        .tint(.brand)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .sensoryFeedback(.selection, trigger: on)
@@ -289,35 +291,73 @@ private struct NotificationsPage: View {
 
 // MARK: - Privacy and about
 
+/// What the app keeps and why: one quiet row per kind of data with its short answer; the full
+/// one opens in a sheet of its own.
 private struct PrivacyPage: View {
-    private var sections: [(String, String, String)] {
+    @State private var shown: PrivacyTopic?
+
+    private var topics: [PrivacyTopic] {
         [
-            ("person", L10n.Privacy.Account.title, L10n.Privacy.Account.summary),
-            ("location", L10n.Privacy.Location.title, L10n.Privacy.Location.summary),
-            ("plus.circle", L10n.Privacy.Contributions.title, L10n.Privacy.Contributions.summary),
-            ("camera", L10n.Privacy.Photos.title, L10n.Privacy.Photos.summary),
-            ("bell", L10n.Privacy.Notifications.title, L10n.Privacy.Notifications.summary),
-            ("externaldrive", L10n.Privacy.Backups.title, L10n.Privacy.Backups.summary),
+            PrivacyTopic(symbol: "person", title: L10n.Privacy.Account.title, summary: L10n.Privacy.Account.summary, body: L10n.Privacy.Account.body),
+            PrivacyTopic(symbol: "location", title: L10n.Privacy.Location.title, summary: L10n.Privacy.Location.summary, body: L10n.Privacy.Location.body),
+            PrivacyTopic(symbol: "rectangle.stack", title: L10n.Privacy.Contributions.title, summary: L10n.Privacy.Contributions.summary, body: L10n.Privacy.Contributions.body),
+            PrivacyTopic(symbol: "camera", title: L10n.Privacy.Photos.title, summary: L10n.Privacy.Photos.summary, body: L10n.Privacy.Photos.body),
+            PrivacyTopic(symbol: "bell", title: L10n.Privacy.Notifications.title, summary: L10n.Privacy.Notifications.summary, body: L10n.Privacy.Notifications.body),
+            PrivacyTopic(symbol: "externaldrive", title: L10n.Privacy.Backups.title, summary: L10n.Privacy.Backups.summary, body: L10n.Privacy.Backups.body),
         ]
     }
 
     var body: some View {
         Page(title: L10n.Privacy.title) {
-            Text(L10n.Privacy.lede).type(.title).padding(.bottom, 6)
-            ForEach(Array(sections.enumerated()), id: \.offset) { index, section in
-                HStack(alignment: .top, spacing: 14) {
-                    Image(systemName: section.0).font(.system(size: 17, weight: .light)).foregroundStyle(Color.ink).frame(width: 24)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(section.1).type(.bodyStrong)
-                        Text(section.2).type(.callout, .ink2).lineSpacing(2)
+            Text(L10n.Privacy.lede).type(.title).fixedSize(horizontal: false, vertical: true).padding(.bottom, 6)
+            RowGroup {
+                ForEach(Array(topics.enumerated()), id: \.offset) { index, topic in
+                    Button { shown = topic } label: {
+                        VStack(spacing: 0) {
+                            HStack(alignment: .center, spacing: 14) {
+                                Image(systemName: topic.symbol).font(.system(size: 17, weight: .light)).foregroundStyle(Color.ink).frame(width: 24)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(topic.title).type(.bodyStrong)
+                                    Text(topic.summary).type(.callout, .ink3).multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+                                }
+                                Spacer(minLength: 8)
+                                Image(systemName: "chevron.right").font(.system(size: 12, weight: .medium)).foregroundStyle(Color.ink4)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 13)
+                            if index < topics.count - 1 { Hairline(inset: 54) }
+                        }
                     }
+                    .buttonStyle(RowPress())
+                    .accessibilityHint(L10n.Privacy.showDetailsHint)
+                    .rise(index)
                 }
-                .padding(.vertical, 6)
-                .rise(index)
-                if index < sections.count - 1 { Hairline(inset: 38) }
             }
         }
+        .sheet(item: $shown) { topic in
+            VStack(alignment: .leading, spacing: 16) {
+                SheetBar(title: L10n.Privacy.detailsTitle) { shown = nil }.padding(.horizontal, -16)
+                HStack(spacing: 12) {
+                    GlyphDisc(symbol: topic.symbol, size: 44)
+                    Text(topic.title).type(.title)
+                }
+                Text(topic.body).type(.body).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Metrics.gutter)
+            .paperBackground()
+            .presentationDetents([.medium, .large])
+            .presentationCornerRadius(Metrics.radiusPanel)
+        }
     }
+}
+
+private struct PrivacyTopic: Identifiable {
+    let symbol: String
+    let title: String
+    let summary: String
+    let body: String
+    var id: String { title }
 }
 
 private struct AboutPage: View {
@@ -336,7 +376,6 @@ private struct AboutPage: View {
             // The mark, the name, and what the app is for: nothing else competes with them.
             VStack(spacing: 0) {
                 Mark(size: 92)
-                    .shadow(color: Color.iris.opacity(0.28), radius: 18, y: 10)
                     .scaleEffect(settled || reduceMotion ? 1 : 0.82)
                     .opacity(settled ? 1 : 0)
                 Text(name).font(.system(size: 30, weight: .bold)).tracking(-0.8).foregroundStyle(Color.ink).padding(.top, 22).rise(1)
@@ -357,9 +396,9 @@ private struct AboutPage: View {
 
             // The three towns it covers, in the landing's accents.
             HStack(spacing: 8) {
-                town(L10n.About.Town.sabaneta, .mint)
-                town(L10n.About.Town.moncion, .butter)
-                town(L10n.About.Town.almacigos, .lavender)
+                town(L10n.About.Town.sabaneta, .brand)
+                town(L10n.About.Town.moncion, .brand)
+                town(L10n.About.Town.almacigos, .brand)
             }
             .rise(4)
 
@@ -385,12 +424,17 @@ private struct AboutPage: View {
 
     private func town(_ name: String, _ tint: Tint) -> some View {
         VStack(spacing: 8) {
-            TeardropPin(height: 22, color: tint.ink)
-            Text(name).font(.system(size: 13, weight: .medium)).foregroundStyle(tint.ink).lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.85)
+            TeardropPin(height: 22, color: .brand)
+            // A fixed two-line slot, so every pin stands at the same height.
+            Text(name).font(.system(size: 13, weight: .medium)).foregroundStyle(Color.ink).lineLimit(2).multilineTextAlignment(.center).minimumScaleFactor(0.85)
+                .frame(height: 34, alignment: .top)
         }
-        .frame(maxWidth: .infinity, minHeight: 84)
+        .frame(maxWidth: .infinity)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
         .padding(.horizontal, 6)
-        .background(tint.fill, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+        // Grey tiles: the green stays on the pins, the one thing that is the brand's here.
+        .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
     }
 }
 

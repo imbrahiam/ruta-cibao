@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useAdminTheme } from "@/lib/web/admin-theme";
 import {
   createMarkerOverlay,
   loadGoogleMaps,
@@ -55,7 +56,6 @@ import {
   type StretchOverlay,
   type StretchStyle,
 } from "./stretch-overlay";
-import { useColorScheme } from "./use-color-scheme";
 import { BASE_MAPS, type BaseMap, useMapChoice } from "./use-map-choice";
 import { useSnappedItems } from "./use-snapped-path";
 
@@ -92,6 +92,8 @@ type Props = {
   className?: string;
   /** Drawn above the map while it works (the thumbnail's expand button). */
   overlay?: ReactNode;
+  /** Write each item's name under its marker (the one place under review). */
+  named?: boolean;
 };
 
 /**
@@ -111,10 +113,12 @@ export function AdminMap({
   interactive = false,
   className,
   overlay,
+  named = false,
 }: Props) {
   const t = useTranslations("admin.queue.map");
   const q = useTranslations("admin.queue");
-  const scheme = useColorScheme();
+  // The map follows the desk's theme, which the viewer may have set.
+  const scheme = useAdminTheme().theme;
   const host = useRef<HTMLDivElement>(null);
   const [failure, setFailure] = useState<MapsFailure | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -384,6 +388,7 @@ export function AdminMap({
                   ends: { start: q("pathStart"), end: q("pathEnd") },
                   selected: item.id === selectedId,
                   onSelect: select ? () => select(item.id) : undefined,
+                  name: named ? item.label : undefined,
                 }),
               )
             : null}
@@ -419,6 +424,7 @@ function markersFor(
     ends,
     selected,
     onSelect,
+    name,
   }: {
     map: google.maps.Map;
     scheme: Scheme;
@@ -426,6 +432,7 @@ function markersFor(
     ends: { start: string; end: string };
     selected: boolean;
     onSelect?: () => void;
+    name?: string;
   },
 ): ReactNode[] {
   const z = selected ? 20 : 10;
@@ -473,6 +480,7 @@ function markersFor(
         label={item.label}
         selected={selected}
         onSelect={onSelect}
+        name={name}
       />
     </OverlayMarker>,
   ];
@@ -633,7 +641,7 @@ function MapMenu({
           aria-label={`${t("options")}: ${current}`}
         >
           <Layers aria-hidden />
-          {current}
+          {t("layers")}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="pointer-coarse:text-base">

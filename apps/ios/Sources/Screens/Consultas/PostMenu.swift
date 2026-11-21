@@ -16,7 +16,7 @@ struct PostMenu: View {
                 .fullScreenCover(isPresented: Binding(get: { model.state.signInRequested }, set: { if !$0 { model.vm.signInHandled() } })) { SignInScreen() }
         }
         .paperBackground()
-        .presentationDetents([.height(340), .large])
+        .presentationDetents([.height(240), .large])
         .presentationCornerRadius(Metrics.radiusPanel)
     }
 }
@@ -60,9 +60,7 @@ private struct Sheet: View {
         VStack(spacing: 0) {
             ShareLink(item: shareURL(slug), subject: Text(title)) { MenuRow(title: L10n.Common.share, symbol: "square.and.arrow.up") }
                 .buttonStyle(RowPress())
-            Hairline(inset: 60)
             Button { confirmingHide = true } label: { MenuRow(title: L10n.Safety.Block.action, symbol: "eye.slash") }.buttonStyle(RowPress())
-            Hairline(inset: 60)
             Button { step = .reasons } label: { MenuRow(title: L10n.Safety.Report.action, symbol: "flag", danger: true) }.buttonStyle(RowPress())
             if let code = model.state.errorCode {
                 Label(errorText(code), systemImage: "exclamationmark.circle").type(.callout, .danger).padding(20)
@@ -87,7 +85,6 @@ private struct Sheet: View {
                 }
                 .buttonStyle(RowPress())
                 .disabled(model.state.working)
-                Hairline(inset: 20)
             }
         }
     }

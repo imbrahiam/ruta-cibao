@@ -2,34 +2,27 @@
 
 import { ORPCError } from "@orpc/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderCog, Plus } from "lucide-react";
+import { EyeOff, FolderCog, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "use-intl";
+import { CategoryPin } from "@/components/admin/category-pin";
 import { ErrorPanel } from "@/components/admin/error-panel";
 import { catalogKind, catalogOptions } from "@/components/admin/list-queries";
 import {
   AdminEmpty,
   AdminPageHeader,
-  AdminTableCard,
+  InboxList,
+  InboxRow,
 } from "@/components/admin/page-frame";
 import { QueryState } from "@/components/admin/query-state";
-import { TableRowsSkeleton } from "@/components/admin/skeletons";
 import { useStaff } from "@/components/admin/staff-context";
 import { StatusIndicator } from "@/components/admin/status-indicator";
 import { useUrlParam } from "@/components/admin/use-url-param";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   CategoryForm,
-  CategoryIcon,
   type CategoryKind,
   type CategoryRecord,
 } from "./category-form";
@@ -42,56 +35,21 @@ const KINDS: readonly CategoryKind[] = [
   "consultation",
 ];
 
-/** The column heads, shared by the table and its placeholder so they never differ. */
-function CategoryHead({ traffic }: { traffic: boolean }) {
-  const t = useTranslations("admin");
+/** Placeholder rows in the shape of the list: pin, name, order. */
+function CategorySkeleton() {
   return (
-    <TableHeader>
-      <TableRow className="hover:bg-transparent">
-        <TableHead className="h-10 text-xs text-muted-foreground">
-          {t("name")}
-        </TableHead>
-        <TableHead className="hidden h-10 text-xs text-muted-foreground sm:table-cell">
-          {t("icon")}
-        </TableHead>
-        {traffic ? (
-          <TableHead className="hidden h-10 text-xs text-muted-foreground md:table-cell">
-            {t("severity")}
-          </TableHead>
-        ) : null}
-        <TableHead className="hidden h-10 text-right text-xs text-muted-foreground sm:table-cell">
-          {t("sortOrder")}
-        </TableHead>
-        <TableHead className="h-10 text-xs text-muted-foreground">
-          {t("status")}
-        </TableHead>
-        <TableHead className="h-10 w-px">
-          <span className="sr-only">{t("editCategory")}</span>
-        </TableHead>
-      </TableRow>
-    </TableHeader>
-  );
-}
-
-/** Placeholder rows: name with its colour dot, icon, severity, order, status, edit. */
-function categorySkeleton(traffic: boolean) {
-  const cells = [
-    { bars: ["h-5 w-40"] },
-    { cell: "hidden sm:table-cell", bars: ["h-4 w-24"] },
-    ...(traffic ? [{ cell: "hidden md:table-cell", bars: ["h-4 w-16"] }] : []),
-    { cell: "hidden sm:table-cell", bars: ["ml-auto h-4 w-6"] },
-    { bars: ["h-5 w-16"] },
-    { bars: ["ml-auto h-9 w-16"] },
-  ];
-  return (
-    <AdminTableCard>
-      <Table>
-        <CategoryHead traffic={traffic} />
-        <TableBody>
-          <TableRowsSkeleton rows={5} rowClassName="h-12" cells={cells} />
-        </TableBody>
-      </Table>
-    </AdminTableCard>
+    <ul className="flex flex-col">
+      {Array.from({ length: 6 }, (_, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
+        <li key={index} className="flex min-h-16 items-center gap-3 py-3">
+          <Skeleton className="size-7 rounded-full" />
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-3.5 w-16" />
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -172,66 +130,37 @@ export function CategoryManager() {
         </TabsList>
       </Tabs>
 
-      <QueryState query={list} skeleton={categorySkeleton(traffic)}>
+      <QueryState query={list} skeleton={<CategorySkeleton />}>
         {(categories) =>
           categories.length === 0 ? (
             <AdminEmpty icon={FolderCog} title={c("empty")} />
           ) : (
-            <AdminTableCard>
-              <Table>
-                <CategoryHead traffic={traffic} />
-                <TableBody>
-                  {categories.map((record) => (
-                    <TableRow key={record.id} className="h-12">
-                      <TableCell className="py-0">
-                        <span className="flex items-center gap-3 font-medium">
-                          <span
-                            aria-hidden
-                            className="size-3 shrink-0 rounded-full"
-                            style={{ backgroundColor: record.color }}
-                          />
-                          <span className="truncate" title={record.name}>
-                            {record.name}
-                          </span>
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden py-0 text-muted-foreground sm:table-cell">
-                        <CategoryIcon name={record.icon} />
-                      </TableCell>
-                      {traffic ? (
-                        <TableCell className="hidden py-0 md:table-cell">
-                          {record.severity ? (
-                            t(record.severity)
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                      ) : null}
-                      <TableCell className="hidden py-0 text-right tabular-nums sm:table-cell">
-                        {record.sortOrder}
-                      </TableCell>
-                      <TableCell className="py-0">
-                        <StatusIndicator
-                          tone={record.isActive ? "success" : "neutral"}
-                        >
-                          {record.isActive ? t("active") : c("inactive")}
-                        </StatusIndicator>
-                      </TableCell>
-                      <TableCell className="py-0 text-right">
-                        <Button
-                          variant="ghost"
-                          aria-label={c("editFor", { name: record.name })}
-                          id={`cat-edit-${record.id}`}
-                          onClick={() => setEditing(record)}
-                        >
-                          {t("editCategory")}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </AdminTableCard>
+            <InboxList label={c("kindGroup")} className="max-w-3xl">
+              {categories.map((record) => (
+                <InboxRow
+                  key={record.id}
+                  dense
+                  title={record.name}
+                  onOpen={() => setEditing(record)}
+                  openId={`cat-edit-${record.id}`}
+                  openLabel={c("editFor", { name: record.name })}
+                  lead={<CategoryPin icon={record.icon} color={record.color} />}
+                  badge={
+                    // Active is the normal case and goes unsaid.
+                    record.isActive ? null : (
+                      <StatusIndicator icon={EyeOff}>
+                        {c("inactive")}
+                      </StatusIndicator>
+                    )
+                  }
+                  // The rows already stand in their order; only what differs
+                  // between them (a traffic severity) is said.
+                  meta={
+                    traffic && record.severity ? t(record.severity) : undefined
+                  }
+                />
+              ))}
+            </InboxList>
           )
         }
       </QueryState>

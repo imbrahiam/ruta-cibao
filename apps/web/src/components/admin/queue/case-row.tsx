@@ -1,6 +1,7 @@
 "use client";
 
 import type { ApiOutputs, DecidePublicationInput } from "@ruta/contracts";
+import { Clock, Eye } from "lucide-react";
 import Link from "next/link";
 import { useId } from "react";
 import { useTranslations } from "use-intl";
@@ -53,16 +54,17 @@ export function CaseRow({ item }: { item: PendingCase }) {
           {item.title}
         </Link>
       }
+      badge={
+        <StatusIndicator
+          icon={item.publicationStatus === "pending" ? Clock : Eye}
+        >
+          {q(`publicationLabel.${item.publicationStatus}`)}
+        </StatusIndicator>
+      }
       meta={
         <>
           <MunicipalityTag name={item.municipalityName} />
           {item.categoryName}
-          <StatusIndicator
-            tone={item.publicationStatus === "pending" ? "warning" : "success"}
-            className="text-sm text-muted-foreground"
-          >
-            {q(`publicationLabel.${item.publicationStatus}`)}
-          </StatusIndicator>
         </>
       }
       byline={
@@ -80,9 +82,11 @@ export function CaseRow({ item }: { item: PendingCase }) {
         </Facts>
       }
       decision={
-        <div className="flex flex-col gap-2">
+        // One line of actions, as in every other row; on a phone they share
+        // the row's width.
+        <div className="flex flex-wrap items-start gap-2 lg:flex-nowrap lg:justify-end [&>fieldset]:flex-1 lg:[&>fieldset]:flex-none">
           {item.publicationStatus === "published" ? (
-            <Button asChild className="pointer-coarse:h-11">
+            <Button asChild className="flex-1 pointer-coarse:h-11 lg:flex-none">
               <Link href={`/admin/consultations/${item.slug}`}>
                 {t("respond")}
               </Link>

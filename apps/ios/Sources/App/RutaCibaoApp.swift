@@ -1,3 +1,4 @@
+import GoogleMaps
 import UIKit
 import RutaKit
 import SwiftUI
@@ -9,6 +10,11 @@ struct RutaCibaoApp: App {
     private let graph: AppGraph
 
     init() {
+        // The app speaks only Spanish, so system text it borrows (MapKit's turn instructions,
+        // permission prompts, share sheet) follows it even on a phone set to another language.
+        if Locale.preferredLanguages.first?.hasPrefix("es") != true {
+            UserDefaults.standard.set(["es-DO", "es"], forKey: "AppleLanguages")
+        }
         let store = KeychainSecureStore()
         #if DEBUG
         // Test hook for simulator runs: `SIMCTL_CHILD_RUTA_DEBUG_SESSION="better-auth.session_token=…"`
@@ -20,12 +26,15 @@ struct RutaCibaoApp: App {
         if DebugHook.value("RUTA_DEBUG_OFFLINE") == "1" { DebugNetwork.shared.offline = true }
         #endif
         graph = createAppGraph(config: AppConfig.current, secureStore: store)
+        if let key = Bundle.main.object(forInfoDictionaryKey: "RutaGoogleMapsKey") as? String, !key.isEmpty { GMSServices.provideAPIKey(key) }
     }
 
     var body: some Scene {
         WindowGroup {
             Shell()
                 .launchVeil()
+                // Light only until the light look is settled.
+                .preferredColorScheme(.light)
                 .environment(\.graph, graph)
                 .environment(delegate.links)
                 // Custom-scheme and universal links share the notification router.

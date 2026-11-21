@@ -31,7 +31,7 @@ private struct TrafficForm: View {
                         let selected = category.id == state.categoryId
                         Button { vm.selectCategory(id: category.id) } label: {
                             VStack(spacing: 10) {
-                                Image(systemName: Glyph.symbol(category.icon)).font(.system(size: 22, weight: .light))
+                                Image(systemName: Glyph.symbol(category.icon)).font(.system(size: 22, weight: .light)).frame(height: 28)
                                 Text(category.name).font(.system(size: 13, weight: .medium)).multilineTextAlignment(.center).lineLimit(2)
                             }
                             .foregroundStyle(selected ? Color.onInk : Color.ink)
@@ -97,7 +97,9 @@ private struct PlaceForm: View {
                 StateView(symbol: "clock", title: L10n.Contribute.Place.pendingTitle, message: L10n.Contribute.Place.pendingBody)
             }
         } else {
-            FormScreen(title: L10n.Contribute.Place.title, submit: L10n.Contribute.Place.submit, sending: state.sending, close: close, send: { vm.send() }) {
+            // Like the other forms, Send waits until what is required is there.
+            let ready = !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && state.categoryId != nil && state.latitude != nil
+            FormScreen(title: L10n.Contribute.Place.title, submit: L10n.Contribute.Place.submit, sending: state.sending, enabled: ready, close: close, send: { vm.send() }) {
                 Field(placeholder: L10n.Contribute.Place.name, text: $name).onChange(of: name) { _, v in vm.updateName(value: v) }
                 problem(.name, L10n.Contribute.Place.Errors.name)
                 Field(placeholder: L10n.Contribute.Place.description, text: $detail, lines: 3...8).onChange(of: detail) { _, v in vm.updateDescription(value: v) }

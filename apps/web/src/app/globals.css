@@ -26,8 +26,8 @@
   --accent-hover: #242421;
   --accent-soft: #12121114;
   --on-accent: #fafaf7;
-  --selection-background: #d8cce9;
-  --selection-foreground: #242029;
+  --selection-background: #cfe3d9;
+  --selection-foreground: #14241d;
   /* Near-black monochrome band (territory section, footer). */
   --pine: #121211;
   --on-pine: #f3f2ee;
@@ -170,10 +170,11 @@
  *
  * The `admin` class sits on the desk's wrapper and, while it is mounted, on
  * `<html>` so portalled menus, dialogs and tooltips share the tokens. Values
- * are the warm neutrals measured on grok.com: a near-white page with a
- * slightly darker sidebar, hairline borders as alpha, secondary text as the
- * primary at reduced alpha. Brand iris is the only hue (focus, links); the
- * primary button is the inverted neutral. Dark follows the system setting.
+ * are plain neutrals, as grok.com and the MDS desk use them: a white page, a
+ * faintly grey sidebar, hairline borders as alpha, secondary text as the ink
+ * at reduced alpha. Brand pine is the only hue: the main button, focus, links,
+ * the selected item. Status colours appear only where a state is named. Dark
+ * is the viewer's choice (see the dark block below).
  */
 .admin {
   --radius-button: 9999px;
@@ -204,20 +205,20 @@
   --picker-label-font-weight: 400;
   --command-separator-margin-y: 0.375rem;
 
-  --background: #fefefc;
-  --foreground: #2c2c2b;
+  --background: #ffffff;
+  --foreground: #1c1c1e;
   --card: #ffffff;
-  --card-foreground: #2c2c2b;
+  --card-foreground: #1c1c1e;
   --popover: #ffffff;
-  --popover-foreground: #2c2c2b;
-  --primary: #6a5498;
+  --popover-foreground: #1c1c1e;
+  --primary: #28594a;
   --primary-foreground: #ffffff;
-  --secondary: oklch(0.25 0.03 70 / 5%);
-  --secondary-foreground: #2c2c2b;
-  --muted: #f2f1ef;
-  --muted-foreground: color-mix(in oklab, #2c2c2b 62%, transparent);
-  --accent: oklch(0.25 0.03 70 / 7%);
-  --accent-foreground: #2c2c2b;
+  --secondary: oklch(0 0 0 / 4.5%);
+  --secondary-foreground: #1c1c1e;
+  --muted: #f4f4f5;
+  --muted-foreground: color-mix(in oklab, #1c1c1e 62%, transparent);
+  --accent: oklch(0 0 0 / 5.5%);
+  --accent-foreground: #1c1c1e;
   --destructive: oklch(0.577 0.215 27);
   --destructive-foreground: #ffffff;
   --success: oklch(0.55 0.135 155);
@@ -227,25 +228,22 @@
   --info: oklch(0.55 0.11 235);
   --info-foreground: #ffffff;
   --border: oklch(0 0 0 / 8%);
-  --input: oklch(0.25 0.03 70 / 14%);
-  --focus-ring: #7860a8;
-  --sidebar: #f9f8f7;
-  --sidebar-foreground: #2c2c2b;
-  --sidebar-primary: #6a5498;
+  --input: oklch(0 0 0 / 13%);
+  --focus-ring: #28594a;
+  --sidebar: #f8f8f9;
+  --sidebar-foreground: #1c1c1e;
+  --sidebar-primary: #28594a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: oklch(0.25 0.03 70 / 8%);
-  --sidebar-accent-foreground: #2c2c2b;
+  --sidebar-accent: oklch(0 0 0 / 6%);
+  --sidebar-accent-foreground: #1c1c1e;
   --sidebar-border: oklch(0 0 0 / 6%);
-  --sidebar-ring: #7860a8;
+  --sidebar-ring: #28594a;
   --shadow-elevated: 0 0 0 1px oklch(0 0 0 / 6%), 0 12px 32px oklch(0 0 0 / 8%);
 
-  --button-background: var(--foreground);
-  --button-foreground: var(--background);
-  --button-hover-background: color-mix(
-    in oklab,
-    var(--foreground) 85%,
-    transparent
-  );
+  /* The main action is the brand's colour, the one hue on the page. */
+  --button-background: var(--primary);
+  --button-foreground: var(--primary-foreground);
+  --button-hover-background: color-mix(in oklab, var(--primary) 88%, black);
   --button-outline-background: transparent;
   --button-outline-border: var(--input);
   --button-outline-hover-background: var(--accent);
@@ -262,67 +260,57 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  .admin {
-    --background: #131211;
-    --foreground: #e6e5e3;
-    --card: #1b1a19;
-    --card-foreground: #e6e5e3;
-    --popover: #232120;
-    --popover-foreground: #e6e5e3;
-    --primary: #a592d1;
-    --primary-foreground: #131211;
-    --secondary: oklch(1 0 0 / 8%);
-    --secondary-foreground: #e6e5e3;
-    --muted: #1e1d1c;
-    --muted-foreground: color-mix(in oklab, #e6e5e3 65%, transparent);
-    --accent: oklch(1 0 0 / 6%);
-    --accent-foreground: #e6e5e3;
-    --destructive: oklch(0.68 0.17 25.3);
-    --destructive-foreground: #0a0a0a;
-    --success: oklch(0.72 0.12 155);
-    --success-foreground: #0a0a0a;
-    --warning: oklch(0.79 0.13 65);
-    --warning-foreground: #0a0a0a;
-    --info: oklch(0.73 0.095 235);
-    --info-foreground: #0a0a0a;
-    --border: oklch(1 0 0 / 8%);
-    --input: oklch(1 0 0 / 14%);
-    --focus-ring: #a592d1;
-    --sidebar: #1e1d1d;
-    --sidebar-foreground: #e6e5e3;
-    --sidebar-primary: #a592d1;
-    --sidebar-primary-foreground: #131211;
-    --sidebar-accent: oklch(1 0 0 / 8%);
-    --sidebar-accent-foreground: #e6e5e3;
-    --sidebar-border: oklch(1 0 0 / 5%);
-    --sidebar-ring: #a592d1;
-    --shadow-elevated:
-      0 0 0 1px oklch(1 0 0 / 8.6%), 0 12px 32px oklch(0 0 0 / 25%);
+/*
+ * Dark desk, chosen by the viewer (System, Light, Dark in the account menu)
+ * and resolved onto `<html data-admin-theme>` before paint. Grok-like: a
+ * near-black page and sidebar, surfaces one step up, white hairlines as alpha,
+ * text off-white with secondary text as alpha. Pine lightens to stay legible.
+ */
+:where(html[data-admin-theme="dark"]) .admin,
+:where(html[data-admin-theme="dark"]).admin {
+  --background: #0d0d0e;
+  --foreground: #ededee;
+  --card: #151516;
+  --card-foreground: #ededee;
+  --popover: #1b1b1d;
+  --popover-foreground: #ededee;
+  --primary: #8fcab2;
+  --primary-foreground: #0c1a15;
+  --secondary: oklch(1 0 0 / 7%);
+  --secondary-foreground: #ededee;
+  --muted: #19191b;
+  --muted-foreground: color-mix(in oklab, #ededee 58%, transparent);
+  --accent: oklch(1 0 0 / 6%);
+  --accent-foreground: #ededee;
+  --destructive: oklch(0.68 0.17 25.3);
+  --destructive-foreground: #0a0a0a;
+  --success: oklch(0.72 0.12 155);
+  --success-foreground: #0a0a0a;
+  --warning: oklch(0.79 0.13 65);
+  --warning-foreground: #0a0a0a;
+  --info: oklch(0.73 0.095 235);
+  --info-foreground: #0a0a0a;
+  --border: oklch(1 0 0 / 7%);
+  --input: oklch(1 0 0 / 12%);
+  --focus-ring: #8fcab2;
+  --sidebar: #0d0d0e;
+  --sidebar-foreground: #ededee;
+  --sidebar-primary: #8fcab2;
+  --sidebar-primary-foreground: #0c1a15;
+  --sidebar-accent: oklch(1 0 0 / 7%);
+  --sidebar-accent-foreground: #ededee;
+  --sidebar-border: oklch(1 0 0 / 7%);
+  --sidebar-ring: #8fcab2;
+  --shadow-elevated:
+    0 0 0 1px oklch(1 0 0 / 8%), 0 16px 40px oklch(0 0 0 / 45%);
 
-    --button-outline-background: color-mix(
-      in oklab,
-      var(--input) 30%,
-      transparent
-    );
-    --button-outline-hover-background: color-mix(
-      in oklab,
-      var(--input) 50%,
-      transparent
-    );
-    --button-ghost-hover-background: color-mix(
-      in oklab,
-      var(--accent) 50%,
-      transparent
-    );
-    --field-background: color-mix(in oklab, var(--input) 30%, transparent);
-    --field-hover-background: color-mix(
-      in oklab,
-      var(--input) 50%,
-      transparent
-    );
-    color-scheme: dark;
-  }
+  --button-hover-background: color-mix(in oklab, var(--primary) 88%, white);
+  --button-outline-background: transparent;
+  --button-outline-hover-background: var(--accent);
+  --button-ghost-hover-background: var(--accent);
+  --field-background: oklch(1 0 0 / 3%);
+  --field-hover-background: oklch(1 0 0 / 5%);
+  color-scheme: dark;
 }
 
 /* ── Type roles ─────────────────────────────────────────────────────────── */
@@ -439,8 +427,11 @@
 /* ── Base ───────────────────────────────────────────────────────────────── */
 
 @layer base {
+  /* The root is the canvas overscroll and the browser toolbar show. The
+     visible layout names its surface (`--canvas`, from `<Canvas>`), and past
+     the middle of a page the footer's colour takes over (`--canvas-tone`). */
   html {
-    background: var(--paper);
+    background: var(--canvas-tone, var(--canvas, var(--paper)));
     color: var(--ink);
     font-family: var(--font-sans);
     font-optical-sizing: auto;
@@ -451,23 +442,23 @@
     scroll-padding-top: 88px;
   }
 
+  /* Tokens only. Not the canvas colour: after an in-app navigation the page
+     that was left stays in the document, so this can match the wrong page. */
   html:has(meta[name="color-scheme"][content="light"]) {
     --paper: #fafaf7;
     --ink: #2a2a27;
-    background: #fafaf7;
     color-scheme: light;
   }
 
+  /* Transparent on purpose: the root (`html`) is the canvas that overscroll and
+     the browser toolbar show. Safari lays an opaque body colour over it past
+     the edges, so a body tint would show there instead of the page's. */
   body {
     min-height: 100dvh;
-    background: var(--paper);
+    background: transparent;
     font-size: 15px;
     line-height: 1.55;
     letter-spacing: -0.008em;
-  }
-
-  html:has(meta[name="color-scheme"][content="light"]) body {
-    background: #fafaf7;
   }
 
   ::selection {
@@ -501,11 +492,6 @@
   }
 }
 
-/* The overscroll canvas matches the desk, not the public paper. */
-html.admin {
-  background-color: var(--background);
-}
-
 @layer base {
   .admin,
   .admin *,
@@ -534,6 +520,37 @@ html.admin {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
+}
+
+/* The desk's sidebar is fixed, and in a rubber-band bounce it travels with the
+   page, uncovering the canvas above or below it. These extensions carry its
+   grey and its edge line a screen past each end, so the column (and the
+   collapse rail's line) stretches instead of ending in the page's white.
+   Fixed boxes add no scrollable overflow, so nothing new can be scrolled to.
+   Unlayered so they win over the utilities on the same pseudo-elements. */
+.admin [data-slot="sidebar-container"]::before,
+.admin [data-slot="sidebar-container"]::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0 -1px;
+  height: 100lvh;
+  box-sizing: border-box;
+  border-inline-end: 1px solid var(--border);
+  background: var(--sidebar);
+  pointer-events: none;
+}
+
+.admin [data-slot="sidebar-container"]::before {
+  bottom: 100%;
+}
+
+.admin [data-slot="sidebar-container"]::after {
+  top: 100%;
+}
+
+.admin [data-sidebar="rail"]::after {
+  top: -100lvh;
+  bottom: -100lvh;
 }
 
 /* ── Motion ─────────────────────────────────────────────────────────────── */

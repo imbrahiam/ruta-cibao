@@ -18,7 +18,7 @@ const COMPOSITIONS = [
   },
   {
     index: 1,
-    theme: "lavender",
+    theme: "pine",
     route: "M-10 67 C37 29 74 39 99 86 S133 147 187 109 S251 65 309 116",
     secondary: "M193 -10 C160 35 207 54 199 96 S156 151 195 196",
   },

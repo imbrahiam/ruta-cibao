@@ -327,7 +327,7 @@ extension RutaPalette {
 
 /// Brand colours that do not change with the theme.
 enum RutaBrand {
-    static let iris = rgb(0x7860A8)
+    static let pine = rgb(0x28594A)
     static let white = rgb(0xFFFFFF)
     static let ink = rgb(0x2A2A27)
     static let paper = rgb(0xFAFAF7)

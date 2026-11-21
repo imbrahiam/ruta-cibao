@@ -26,10 +26,16 @@ struct ConsultationsScreen: View {
                             path.append(ConsultationRoute(slug: slug))
                         }
                     }
+                    .rootHeader(L10n.Consultations.title) {
+                        HeaderFilters {
+                            Chip(title: L10n.Consultations.allTab, selected: model.state.status == nil, onBrand: true) { model.vm.selectStatus(status: nil) }
+                            ForEach(ConsultationsBrowseInput.Status.allCases, id: \.self) { status in
+                                Chip(title: status.label, selected: model.state.status == status, onBrand: true) { model.vm.selectStatus(status: status) }
+                            }
+                        }
+                    }
             }
             .navigationTitle(L10n.Consultations.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button(L10n.Consultations.new, systemImage: "square.and.pencil", action: compose) } }
             .paperBackground()
             .navigationDestination(for: ConsultationRoute.self) { ConsultationDetailScreen(slug: $0.slug) }
         }
@@ -56,13 +62,22 @@ private struct Feed: View {
 
     private var state: ConsultationsUiState { model.state }
 
-    /// The newest cases that have a picture lead the page.
-    private var featured: [Consultation] { state.items.filter { !($0.photos ?? []).isEmpty }.prefix(6).map { $0 } }
+    /// The newest cases that have a picture lead the page, only on the unfiltered feed: under a
+    /// state filter they would repeat the list right below.
+    private var featured: [Consultation] {
+        guard state.status == nil else { return [] }
+        return state.items.filter { !($0.photos ?? []).isEmpty }.prefix(6).map { $0 }
+    }
+
+    /// The list skips what the carousel already shows.
+    private var listed: [Consultation] {
+        let shown = Set(featured.map(\.id))
+        return state.items.filter { !shown.contains($0.id) }
+    }
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                filters
                 switch state.phase {
                 case .loading:
                     LoadingDots().frame(height: 320)
@@ -82,17 +97,20 @@ private struct Feed: View {
                             .padding(.horizontal, Metrics.gutter)
                         }
                         .scrollIndicators(.hidden)
+                        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
                         .scrollTargetBehavior(.viewAligned)
+                        .edgeFade()
                     }
-                    SectionHeader(title: state.status?.label ?? L10n.Consultations.allTab)
-                    ForEach(Array(state.items.enumerated()), id: \.element.id) { index, item in
-                        CompactRow(item: item, open: { open(item.slug) }, support: { model.vm.toggleSupport(id: item.id) })
+                    // Filtered, the chip in the header already names the list.
+                    if featured.isEmpty { Color.clear.frame(height: 12) } else { SectionHeader(title: L10n.Consultations.more) }
+                    ForEach(Array(listed.enumerated()), id: \.element.id) { index, item in
+                        // Filtered by a state, every row has it: saying it again on each is noise.
+                        CompactRow(item: item, showsStatus: state.status == nil, open: { open(item.slug) })
                             .contextMenu {
                                 ShareLink(item: shareURL(item.slug), subject: Text(item.title)) { Label(L10n.Common.share, systemImage: "square.and.arrow.up") }
                                 Button(L10n.Safety.Report.action, systemImage: "flag") { menuFor = item }
                             }
-                            .onAppear { if index >= state.items.count - 3 { model.vm.loadMore() } }
-                        Hairline(inset: Metrics.gutter + 86)
+                            .onAppear { if index >= listed.count - 3 { model.vm.loadMore() } }
                     }
                     if state.loadingMore { LoadingDots().frame(height: 64) }
                 }
@@ -106,20 +124,6 @@ private struct Feed: View {
         }
         .fullScreenCover(isPresented: Binding(get: { state.signInRequested }, set: { if !$0 { model.vm.signInHandled() } })) { SignInScreen() }
     }
-
-    private var filters: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                Chip(title: L10n.Consultations.allTab, selected: state.status == nil) { model.vm.selectStatus(status: nil) }
-                ForEach(ConsultationsBrowseInput.Status.allCases, id: \.self) { status in
-                    Chip(title: status.label, selected: state.status == status) { model.vm.selectStatus(status: status) }
-                }
-            }
-            .padding(.horizontal, Metrics.gutter)
-        }
-        .scrollIndicators(.hidden)
-        .padding(.top, 6)
-    }
 }
 
 extension ConsultationsBrowseOutput.Item: @retroactive Identifiable {}
@@ -131,115 +135,128 @@ private struct FeatureCard: View {
 
     var body: some View {
         Button(action: open) {
-            VStack(alignment: .leading, spacing: 10) {
-                RemoteImage(url: item.photos?.first?.url ?? "")
-                    .frame(width: 290, height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-                    .overlay(alignment: .topLeading) { StatusBadge(status: item.statusValue).padding(10) }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.title).type(.heading).lineLimit(2).multilineTextAlignment(.leading)
-                    Text("\(item.categoryName) · \(CompactTime.since(item.createdAt.date))").type(.callout, .ink3)
+            // The picture carries the card; its words sit on a scrim at the foot so they read
+            // over any photo.
+            RemoteImage(url: item.photos?.first?.url ?? "")
+                .frame(width: 264, height: 248)
+                .overlay {
+                    LinearGradient(stops: [.init(color: .clear, location: 0.42), .init(color: .black.opacity(0.78), location: 1)], startPoint: .top, endPoint: .bottom)
                 }
-            }
-            .frame(width: 290, alignment: .leading)
+                .overlay(alignment: .bottomLeading) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.title).font(.system(size: 19, weight: .semibold)).tracking(-0.3).foregroundStyle(.white).lineLimit(3).multilineTextAlignment(.leading)
+                        Text("\(item.categoryName) · \(CompactTime.since(item.createdAt.date))").font(.system(size: 13.5)).foregroundStyle(.white.opacity(0.86))
+                    }
+                    .padding(16)
+                }
+                .overlay(alignment: .topLeading) { StatusBadge(status: item.statusValue, solid: true).padding(12) }
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         }
         .buttonStyle(Pressable(scale: 0.98))
     }
 }
 
-/// A case in the list: its picture or category, what it says, where it stands, and support.
+/// A case in the list: its picture or category beside its title, where and when, and where it
+/// stands. Support is counted on the case itself, not here.
 private struct CompactRow: View {
     let item: Consultation
+    var showsStatus = true
     let open: () -> Void
-    let support: () -> Void
 
     var body: some View {
-        HStack(spacing: 14) {
-            Button(action: open) {
-                HStack(spacing: 14) {
-                    Group {
-                        if let url = item.photos?.first?.url {
-                            RemoteImage(url: url)
-                        } else {
-                            Tint.of(hex: item.categoryColor).fill.overlay {
-                                Image(systemName: Glyph.symbol(item.categoryIcon)).font(.system(size: 24, weight: .light)).foregroundStyle(Tint.of(hex: item.categoryColor).ink)
-                            }
+        Button(action: open) {
+            HStack(alignment: .top, spacing: 14) {
+                Group {
+                    if let url = item.photos?.first?.url {
+                        RemoteImage(url: url)
+                    } else {
+                        Color.paper2.overlay {
+                            Image(systemName: Glyph.symbol(item.categoryIcon)).font(.system(size: 24, weight: .light)).foregroundStyle(Color.ink2)
                         }
                     }
-                    .frame(width: 72, height: 72)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(item.title).type(.bodyStrong).lineLimit(2).multilineTextAlignment(.leading)
-                        Text("\(item.categoryName) · \(CompactTime.since(item.createdAt.date))").type(.callout, .ink3).lineLimit(1)
-                        HStack(spacing: 6) {
-                            Circle().fill(StatusBadge.color(item.statusValue)).frame(width: 6, height: 6)
-                            Text(item.statusValue.label).type(.caption, .ink2)
-                        }
-                    }
-                    Spacer(minLength: 0)
                 }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(Pressable(scale: 1))
-
-            Button(action: support) {
-                VStack(spacing: 2) {
-                    Image(systemName: item.supported ? "heart.fill" : "heart")
-                        .font(.system(size: 18))
-                        .foregroundStyle(item.supported ? Color.danger : Color.ink3)
-                        .symbolEffect(.bounce, value: item.supported)
-                    Text("\(item.supportCount)").type(.caption, .ink3).contentTransition(.numericText())
+                .frame(width: 76, height: 76)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(item.title).type(.bodyStrong).lineLimit(2).multilineTextAlignment(.leading)
+                    // Which ayuntamiento it was raised with matters as much as the topic.
+                    Text("\(item.categoryName) · \(item.municipalityName) · \(CompactTime.since(item.createdAt.date))").type(.callout, .ink3).lineLimit(2)
+                    if showsStatus { StatusBadge(status: item.statusValue).padding(.top, 2) }
                 }
-                .frame(width: 44, height: 52)
-                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(Pressable(scale: 0.9))
-            .accessibilityLabel(item.supported ? L10n.Consultations.supported : L10n.Consultations.support)
-            .sensoryFeedback(.impact(weight: .light), trigger: item.supported)
+            .padding(.horizontal, Metrics.gutter)
+            .padding(.vertical, 9)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, Metrics.gutter)
-        .padding(.vertical, 12)
+        .buttonStyle(Pressable(scale: 1))
     }
 }
 
-/// A case's standing: a dot in the status colour beside its word.
+/// A case's standing: a glyph for the step it is at, in that step's colour, beside its word.
 struct StatusBadge: View {
     let status: ConsultationsBrowseInput.Status
+    var solid = false
 
     var body: some View {
-        StatusTag(text: status.label, color: Self.color(status))
+        StatusTag(text: status.label, color: Self.color(status), symbol: Self.symbol(status), solid: solid)
     }
 
     static func color(_ status: ConsultationsBrowseInput.Status) -> Color {
         switch status {
-        case .open: .ink4
+        case .open: .ink3
         case .inReview: .warning
         case .answered, .resolved: .success
         case .rejected: .danger
         }
     }
+
+    static func symbol(_ status: ConsultationsBrowseInput.Status) -> String {
+        switch status {
+        case .open: "tray.and.arrow.down.fill"
+        case .inReview: "eye.fill"
+        case .answered: "bubble.left.fill"
+        case .resolved: "checkmark.circle.fill"
+        case .rejected: "xmark.circle.fill"
+        }
+    }
 }
 
-/// Photos side by side, each a rounded frame; one photo takes the width.
+/// Photos side by side, each a rounded frame. One photo takes the width and two share it, so
+/// the strip keeps the same margin at both ends; more than two scroll and fade at the edges.
 struct PhotoStrip: View {
     let urls: [String]
     var height: CGFloat = 210
-    var open: (() -> Void)?
+    /// The room at each end of the strip: the page's gutter, or a card's padding.
+    var inset: CGFloat = Metrics.gutter
+    var corner: CGFloat = Metrics.radiusCard
+    private let spacing: CGFloat = 8
 
     var body: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 8) {
-                ForEach(urls, id: \.self) { url in
+            HStack(spacing: spacing) {
+                ForEach(Array(urls.enumerated()), id: \.offset) { index, url in
                     RemoteImage(url: url)
-                        .frame(width: urls.count == 1 ? nil : height * 1.25, height: height)
-                        .containerRelativeFrame(.horizontal) { length, _ in urls.count == 1 ? length - Metrics.gutter * 2 : height * 1.25 }
-                        .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-                        .onTapGesture { open?() }
+                        .frame(height: height)
+                        .containerRelativeFrame(.horizontal) { length, _ in width(in: length) }
+                        .clipShape(RoundedRectangle(cornerRadius: corner, style: .continuous))
+                        .opensPhotos(urls, at: index)
                 }
             }
-            .padding(.horizontal, Metrics.gutter)
+            .padding(.horizontal, inset)
         }
         .scrollIndicators(.hidden)
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        .scrollDisabled(urls.count <= 2)
+        .edgeFade(inset)
+    }
+
+    private func width(in length: CGFloat) -> CGFloat {
+        switch urls.count {
+        case 1: length - inset * 2
+        case 2: (length - inset * 2 - spacing) / 2
+        default: height * 1.25
+        }
     }
 }
 
@@ -279,7 +296,7 @@ struct PostActions: View {
             Button(action: support) {
                 HStack(spacing: 6) {
                     Image(systemName: supported ? "heart.fill" : "heart")
-                        .foregroundStyle(supported ? Color.danger : Color.ink3)
+                        .foregroundStyle(supported ? Color.heart : Color.ink3)
                         .symbolEffect(.bounce, value: supported)
                     if supportCount > 0 {
                         Text("\(supportCount)").contentTransition(.numericText(value: Double(supportCount)))

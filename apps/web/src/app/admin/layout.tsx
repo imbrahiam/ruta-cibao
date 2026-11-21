@@ -1,14 +1,25 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { AdminProviders } from "@/components/admin/providers";
 import { AdminShell } from "@/components/admin/shell";
 import { AdminThemeScope } from "@/components/admin/theme-scope";
+import { ADMIN_THEME_SCRIPT } from "@/lib/web/admin-theme-script";
 import { getT, pickMessages } from "@/lib/web/i18n";
 
 const t = getT("admin");
 
+// The browser toolbar takes the desk's surface (white, or the dark desk), not
+// the public site's warm paper.
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#111112" },
+  ],
+};
+
 export const metadata: Metadata = {
-  title: t("title"),
+  // Restated here: a segment that sets its own title stops inheriting the root template.
+  title: { default: t("title"), template: `%s | ${t("brand")}` },
   // The staff desk is never an entry point for search engines.
   robots: { index: false, follow: false },
 };
@@ -35,6 +46,11 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
         "consultations",
       ])}
     >
+      {/* Before the desk paints: the viewer's theme, so dark never flashes white. */}
+      <script
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed string from our own module, no user input
+        dangerouslySetInnerHTML={{ __html: ADMIN_THEME_SCRIPT }}
+      />
       <AdminThemeScope>
         <Suspense>
           <AdminShell>{children}</AdminShell>

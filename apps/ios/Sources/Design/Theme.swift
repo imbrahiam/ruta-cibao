@@ -1,118 +1,114 @@
 import RutaKit
 import SwiftUI
-import UIKit
 
-/// One palette computed from the mark's iris (#7860A8): cream paper, violet-leaning ink and
-/// greys, and muted accents around it. Dark follows the system.
+/// One palette taken from the mark: its pine green for what you act on or have picked, and
+/// nothing else green. Surfaces are white, ink and greys are neutral. Light only for now.
 extension Color {
-    // Nonisolated: SwiftUI resolves dynamic colours from its render thread too.
-    nonisolated fileprivate static func pair(_ light: UInt32, _ dark: UInt32, alpha: CGFloat = 1) -> Color {
-        Color(UIColor { @Sendable traits in
-            let hex = traits.userInterfaceStyle == .dark ? dark : light
-            return UIColor(
-                red: CGFloat((hex >> 16) & 0xFF) / 255,
-                green: CGFloat((hex >> 8) & 0xFF) / 255,
-                blue: CGFloat(hex & 0xFF) / 255,
-                alpha: alpha
-            )
-        })
+    nonisolated static func solid(_ hex: UInt32, alpha: Double = 1) -> Color {
+        Color(.sRGB, red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255, opacity: alpha)
     }
 
-    // Every neutral leans a little toward the mark's iris (hue 260), so black, grey and
-    // silver belong to the same family as the logo; the paper is its warm counterpart, cream.
-    static let ink = pair(0x17151C, 0xF3F1F6)
-    static let ink2 = pair(0x55515E, 0xB6B2BF)
-    static let ink3 = pair(0x6E6A78, 0x9995A3)
-    static let ink4 = pair(0xB4B0BC, 0x58545F)
-    static let paper = pair(0xFAF8F4, 0x121116)
-    static let paper2 = pair(0xF2EEE7, 0x26242C)
-    static let paper3 = pair(0xE8E3DA, 0x302E37)
-    static let line = pair(0xDDD7CC, 0x35323D)
-    static let card = pair(0xFFFFFF, 0x1D1B22)
-    /// Text and glyphs on an ink fill.
-    static let onInk = pair(0xFAF8F4, 0x17151C)
-    static let success = pair(0x3F7D5A, 0x7FBF98)
-    static let warning = pair(0xB07A1F, 0xE0B45A)
-    static let danger = pair(0xC4473F, 0xEE7A70)
-    /// The brand iris: the mark's field, tints and links.
-    static let iris = pair(0x7860A8, 0xA590D6)
-    /// The iris deep enough to read as text: the selected tab, links.
-    static let irisDeep = pair(0x5F4A8C, 0xB9A6E6)
-    /// The main action's fill: the mark's iris taken down to a deep indigo; at night the
-    /// button stays light, like ink.
-    static let action = pair(0x44367C, 0xF3F1F6)
-    static let scrim = pair(0x17151C, 0x000000, alpha: 0.32)
-    /// The landing's location pin.
-    static let pin = pair(0xC4473F, 0xEE7A70)
+    static let ink = solid(0x161718)
+    static let ink2 = solid(0x5C5E62)
+    /// The lightest text allowed: 5.2:1 on white, 4.7:1 on `paper2`.
+    static let ink3 = solid(0x6A6C71)
+    static let ink4 = solid(0xB4B6BA)
+    static let paper = solid(0xFFFFFF)
+    /// Groups, fields and chips resting on the page.
+    static let paper2 = solid(0xF3F3F4)
+    static let paper3 = solid(0xE8E8EA)
+    static let line = solid(0xE1E1E4)
+    static let card = solid(0xFFFFFF)
+    /// Text and glyphs on a brand or ink fill.
+    static let onInk = solid(0xFFFFFF)
+    static let success = solid(0x2F7D57)
+    static let warning = solid(0xB87503)
+    static let danger = solid(0xC8372D)
+    /// The mark's pine green: the selected tab, links, the verified seal, map pins.
+    static let brand = solid(0x28594A)
+    /// The green pressed, and as text on its own soft tint.
+    static let brandDeep = solid(0x1F4739)
+    /// A tonal button or a picked chip.
+    static let brandSoft = solid(0xE6EFEB)
+    /// The main action's fill.
+    static let action = brand
+    static let scrim = solid(0x161718, alpha: 0.32)
+    static let pin = brand
+    /// Support given to a post or a place.
+    static let heart = solid(0xE0364A)
+    /// "You are here" on the map.
+    static let locate = solid(0x2F6FE4)
 }
 
-/// The accents, all built around the iris: its own lavender, its complement (straw), and the
-/// quiet neighbours either side: sage, denim, dusty rose, camel. Each has a soft fill with a
-/// deep glyph for lists, and one solid mid-tone for map markers. Same lightness and chroma
-/// across the set, so no one colour shouts.
-enum Tint: CaseIterable {
-    case mint, butter, lavender, denim, rose, camel, neutral
+/// The colour of a kind of thing on the map. Categories are database rows with a hex chosen in
+/// the admin panel; each folds onto the nearest of these by hue, so the map keeps one family of
+/// colours that sit beside the brand green. Each is dark enough for white text at 4.5:1, so
+/// the same tone fills a pin, a sheet's disc and that sheet's main button.
+enum PinTone: String {
+    case pine, moss, clay, ochre, sky, plum, slate
+    /// What is happening on the road, and the eco routes.
+    case blocked, caution, trail
+
+    var hex: UInt32 {
+        switch self {
+        case .pine: 0x28594A
+        // Green categories (parks, sport, pharmacies): a leaf green, so they never read as the brand's pine.
+        case .moss: 0x5E7F2B
+        case .clay: 0xB5523B
+        case .ochre: 0x94661A
+        case .sky: 0x2F6C96
+        case .plum: 0x7B5596
+        case .slate: 0x5A5C61
+        case .blocked: 0xC8372D
+        case .caution: 0x9C6400
+        case .trail: 0x2F7D57
+        }
+    }
+
+    var color: Color { .solid(hex) }
+    /// The same colour for the map's own layers.
+    var css: String { String(format: "#%06X", hex) }
+
+    static func of(hex: String) -> PinTone {
+        var value = hex.trimmingCharacters(in: .whitespaces)
+        if value.hasPrefix("#") { value.removeFirst() }
+        guard value.count == 6, let rgb = UInt32(value, radix: 16) else { return .slate }
+        let r = Double((rgb >> 16) & 0xFF) / 255, g = Double((rgb >> 8) & 0xFF) / 255, b = Double(rgb & 0xFF) / 255
+        let high = max(r, g, b), delta = high - min(r, g, b)
+        guard high > 0, delta / high > 0.25 else { return .slate }
+        var hue = high == r ? 60 * ((g - b) / delta).truncatingRemainder(dividingBy: 6) : high == g ? 60 * ((b - r) / delta + 2) : 60 * ((r - g) / delta + 4)
+        if hue < 0 { hue += 360 }
+        switch hue {
+        case 0..<20, 335...360: return .clay
+        case 20..<65: return .ochre
+        case 65..<170: return .moss
+        case 170..<250: return .sky
+        default: return .plum
+        }
+    }
+}
+
+/// A list glyph's disc: quiet by default, the brand's soft green where the row is the app's own.
+enum Tint {
+    case brand, neutral
+    /// A category's own colour with a white glyph, as on its map pin.
+    case solid(Color)
 
     var fill: Color {
         switch self {
-        case .mint: Color.tone(0xE3EADB, 0x2A3324)
-        case .butter: Color.tone(0xF6ECC9, 0x3A321C)
-        case .lavender: Color.tone(0xEAE4F6, 0x2F2840)
-        case .denim: Color.tone(0xDDE6F1, 0x22304A)
-        case .rose: Color.tone(0xF4E1E1, 0x40262B)
-        case .camel: Color.tone(0xEFDFC9, 0x3B2C1B)
-        case .neutral: .paper2
+        case .brand: .brandSoft
+        case .neutral: .paper3
+        case .solid(let color): color
         }
     }
 
     var ink: Color {
         switch self {
-        case .mint: Color.tone(0x4F6645, 0xB7CFA6)
-        case .butter: Color.tone(0x7A6428, 0xE3CB8E)
-        case .lavender: Color.tone(0x5F4A8C, 0xC7B5E6)
-        case .denim: Color.tone(0x3D5A80, 0xA9C1E6)
-        case .rose: Color.tone(0x96505A, 0xE8B4BC)
-        case .camel: Color.tone(0x8A5F2E, 0xE0BE94)
+        case .brand: .brandDeep
         case .neutral: .ink
+        case .solid: .onInk
         }
     }
-
-    /// A marker's colour: white glyphs read on every one.
-    var solid: Color {
-        switch self {
-        case .mint: Color.tone(0x6B8A5E, 0x7D9C70)
-        case .butter: Color.tone(0xB8922E, 0xC6A244)
-        case .lavender: Color.tone(0x7860A8, 0x8A72BA)
-        case .denim: Color.tone(0x4A6FA5, 0x5C81B5)
-        case .rose: Color.tone(0xB9667A, 0xC7788B)
-        case .camel: Color.tone(0xA9753C, 0xB98750)
-        case .neutral: Color.tone(0x5A5665, 0x76727F)
-        }
-    }
-
-    /// A category's admin colour, folded onto the nearest accent by hue.
-    static func of(hex: String) -> Tint {
-        var value = hex.trimmingCharacters(in: .whitespaces)
-        if value.hasPrefix("#") { value.removeFirst() }
-        guard value.count == 6, let rgb = UInt32(value, radix: 16) else { return .neutral }
-        let r = Double((rgb >> 16) & 0xFF) / 255, g = Double((rgb >> 8) & 0xFF) / 255, b = Double(rgb & 0xFF) / 255
-        let high = max(r, g, b), delta = high - min(r, g, b)
-        guard high > 0, delta / high > 0.25 else { return .neutral }
-        var hue = high == r ? 60 * ((g - b) / delta).truncatingRemainder(dividingBy: 6) : high == g ? 60 * ((b - r) / delta + 2) : 60 * ((r - g) / delta + 4)
-        if hue < 0 { hue += 360 }
-        switch hue {
-        case 0..<18, 325...360: return .rose
-        case 18..<42: return .camel
-        case 42..<70: return .butter
-        case 70..<175: return .mint
-        case 175..<255: return .denim
-        default: return .lavender
-        }
-    }
-}
-
-extension Color {
-    nonisolated static func tone(_ light: UInt32, _ dark: UInt32) -> Color { pair(light, dark) }
 }
 
 /// The landing's type: light weights, tight tracking on large sizes, small quiet captions.
@@ -185,7 +181,7 @@ extension View {
     func floating<S: InsettableShape>(in shape: S) -> some View {
         background(Color.card, in: shape)
             .overlay(shape.strokeBorder(Color.ink.opacity(0.07), lineWidth: 1))
-            .shadow(color: .black.opacity(0.07), radius: 9, y: 4)
+            .shadow(color: Color.ink.opacity(0.10), radius: 10, y: 3)
     }
 }
 

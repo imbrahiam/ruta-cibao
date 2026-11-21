@@ -32,9 +32,7 @@
   height: 0.18em;
   overflow: visible;
   z-index: 0;
-  color: #b8a6cf;
+  color: #7eb9a4;
   pointer-events: none;
 }
-.yellow .underline {
-  color: #f4e7a4;
-}
+/* Every underline is the brand green, whatever the word's tone. */

@@ -51,13 +51,16 @@ struct OfflinePage: View {
                 Label(message(error), systemImage: "exclamationmark.circle").type(.callout, .danger)
             }
             if ready {
-                Button(L10n.Offline.removeAction) { graph?.offline.removeSnapshot() }.buttonStyle(.pill(.danger))
                 RowGroup {
-                    RowLabel(symbol: "mappin", title: L10n.Offline.placesRowTitle, value: "\(state?.places ?? 0)", chevron: false)
-                    RowLabel(symbol: "figure.hiking", title: L10n.Offline.routesRowTitle, value: "\(state?.routes ?? 0)", chevron: false)
-                    RowLabel(symbol: "road.lanes", title: L10n.Offline.roadsRowTitle, value: "\(state?.roads ?? 0)", chevron: false, divider: false)
+                    RowLabel(symbol: "mappin", title: L10n.Offline.placesRowTitle, value: Int(state?.places ?? 0).formatted(), chevron: false)
+                    RowLabel(symbol: "figure.hiking", title: L10n.Offline.routesRowTitle, value: Int(state?.routes ?? 0).formatted(), chevron: false)
+                    RowLabel(symbol: "road.lanes", title: L10n.Offline.roadsRowTitle, value: Int(state?.roads ?? 0).formatted(), chevron: false, divider: false)
                 }
                 .padding(.top, 6)
+                // Removing the copy is the rare, destructive way out: quiet red text under what it holds.
+                Button(L10n.Offline.removeAction) { graph?.offline.removeSnapshot() }
+                    .font(.system(size: 16)).foregroundStyle(Color.danger)
+                    .frame(maxWidth: .infinity, minHeight: 44)
             }
 
             if let pending = state?.pending, !pending.isEmpty {

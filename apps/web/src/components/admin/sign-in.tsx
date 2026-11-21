@@ -3,6 +3,7 @@
 import { formatPhoneInput, normalizePhone } from "@ruta/shared/phone";
 import { useQueryClient } from "@tanstack/react-query";
 import { Mail, MessageSquareText } from "lucide-react";
+import Link from "next/link";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 import { useTranslations } from "use-intl";
 import { RoadMark } from "@/components/brand/logo";
@@ -113,7 +114,10 @@ export function AdminSignIn() {
       className="mx-auto flex min-h-dvh w-full max-w-[22rem] flex-col justify-center gap-8 px-5 py-12"
     >
       <header className="flex animate-rise flex-col items-center gap-5 text-center">
-        <RoadMark size={56} />
+        {/* The mark leads home, as it does in the site header. */}
+        <Link href="/" aria-label={t("home")} className="rounded-[14px]">
+          <RoadMark size={56} />
+        </Link>
         <div className="flex flex-col gap-1.5">
           <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight">
             {t("title")}
@@ -146,13 +150,19 @@ export function AdminSignIn() {
           >
             <TabsList
               aria-label={t("contact")}
-              className="grid h-11 w-full grid-cols-2"
+              className="grid w-full grid-cols-2 rounded-full p-1 group-data-[orientation=horizontal]/tabs:h-12"
             >
-              <TabsTrigger value="phone">
+              <TabsTrigger
+                value="phone"
+                className="h-full rounded-full text-[0.9375rem] group-data-[variant=default]/tabs-list:data-[state=active]:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.04)]"
+              >
                 <MessageSquareText aria-hidden="true" />
                 {t("phone")}
               </TabsTrigger>
-              <TabsTrigger value="email">
+              <TabsTrigger
+                value="email"
+                className="h-full rounded-full text-[0.9375rem] group-data-[variant=default]/tabs-list:data-[state=active]:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.04)]"
+              >
                 <Mail aria-hidden="true" />
                 {t("email")}
               </TabsTrigger>

@@ -48,6 +48,8 @@
 	<string>$(RUTA_API_ORIGIN)</string>
 	<key>RutaAppScheme</key>
 	<string>$(RUTA_APP_SCHEME)</string>
+	<key>RutaGoogleMapsKey</key>
+	<string>$(RUTA_GOOGLE_MAPS_KEY)</string>
 	<key>RutaVariant</key>
 	<string>$(RUTA_VARIANT)</string>
 	<key>UIApplicationSceneManifest</key>

@@ -3,7 +3,7 @@ import Image from "next/image";
 import { cx } from "@/lib/web/cx";
 import styles from "./logo.module.css";
 
-/** Encuentro, using the same geometry and colors as the native app. */
+/** Vínculo, using the same geometry and colors as the native app. */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <span aria-hidden className={cx(styles.mark, className)}>
@@ -15,20 +15,19 @@ export function LogoMark({ className }: { className?: string }) {
         <rect
           width={MARK.viewBox}
           height={MARK.viewBox}
-          fill={BRAND_COLORS.iris}
+          fill={BRAND_COLORS.pine}
         />
-        <path
-          d={MARK.curve}
+        <g
+          transform={MARK.transform}
           stroke={BRAND_COLORS.white}
           strokeWidth={MARK.strokeWidth}
           strokeLinecap="round"
-        />
-        <circle
-          cx={MARK.point.cx}
-          cy={MARK.point.cy}
-          r={MARK.point.r}
-          fill={BRAND_COLORS.white}
-        />
+          strokeLinejoin="round"
+        >
+          {MARK.links.map((link) => (
+            <path key={link} d={link} />
+          ))}
+        </g>
       </svg>
     </span>
   );
@@ -49,7 +48,7 @@ export function Logo({
   );
 }
 
-/** The road mark (green disc, ink road), as the native apps carry it. Decorative: name it beside it. */
+/** The mark on its green tile, as the app icon carries it. Decorative: name it beside it. */
 export function RoadMark({
   size = 56,
   className,

@@ -124,7 +124,7 @@ function IllustratedMap() {
         d="m233 399-38-81 38-199 143 137 145-14"
       />
       <path
-        stroke="#8d7bb7"
+        stroke="#4f9179"
         strokeWidth="5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -135,7 +135,7 @@ function IllustratedMap() {
         cx="233"
         cy="399"
         r="10"
-        fill="#8d7bb7"
+        fill="#4f9179"
         stroke="white"
         strokeWidth="5"
       />
@@ -143,7 +143,7 @@ function IllustratedMap() {
         cx="521"
         cy="242"
         r="10"
-        fill="#8d7bb7"
+        fill="#4f9179"
         stroke="white"
         strokeWidth="5"
       />
@@ -190,7 +190,7 @@ export function HeroConcept() {
                 {t("studio.businesses")}
               </div>
               <div className={styles.sideItem}>
-                <span className={styles.lavenderIcon}>
+                <span className={styles.pineIcon}>
                   <Route size={17} />
                 </span>
                 {t("studio.routes")}
@@ -262,7 +262,7 @@ export function HeroConcept() {
           </div>
           <div className={styles.phoneSeparator} />
           <div className={styles.phoneCommunity}>
-            <span className={styles.lavenderIcon}>
+            <span className={styles.pineIcon}>
               <MessagesSquare size={17} />
             </span>
             <div>
@@ -273,7 +273,7 @@ export function HeroConcept() {
           <div className={styles.phoneHome} />
         </div>
         <div className={styles.routeNote}>
-          <span className={styles.lavenderIcon}>
+          <span className={styles.pineIcon}>
             <Navigation size={18} />
           </span>
           <div>
@@ -398,7 +398,7 @@ export function CommunityConcept() {
           </div>
         </div>
         <div className={styles.communityPaper}>
-          <span className={styles.lavenderIcon}>
+          <span className={styles.pineIcon}>
             <MessagesSquare size={25} />
           </span>
           <p>{t("studio.aSharedPriority")}</p>

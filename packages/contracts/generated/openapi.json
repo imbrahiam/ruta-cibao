@@ -911,6 +911,9 @@
                           "reportedBy": {
                             "type": ["string", "null"]
                           },
+                          "reportedByImage": {
+                            "type": ["string", "null"]
+                          },
                           "reporterResidentVerified": {
                             "type": "boolean"
                           }
@@ -932,6 +935,7 @@
                           "municipalityId",
                           "municipalityName",
                           "reportedBy",
+                          "reportedByImage",
                           "reporterResidentVerified"
                         ],
                         "additionalProperties": false
@@ -6921,14 +6925,43 @@
                     "type": "string",
                     "enum": [
                       "map-pin",
-                      "mountain",
-                      "route",
-                      "store",
-                      "droplets",
-                      "triangle-alert",
+                      "bed",
+                      "bed-double",
+                      "bike",
+                      "building-2",
+                      "bus",
+                      "car",
+                      "church",
+                      "cloud-rain",
+                      "coffee",
                       "construction",
+                      "cross",
+                      "droplets",
+                      "fuel",
+                      "footprints",
+                      "graduation-cap",
+                      "hospital",
+                      "landmark",
+                      "leaf",
+                      "lightbulb",
+                      "messages-square",
+                      "mountain",
+                      "octagon-x",
+                      "pill",
+                      "route",
+                      "shopping-bag",
+                      "shopping-basket",
+                      "store",
+                      "tent",
+                      "trash-2",
                       "trees",
-                      "messages-square"
+                      "triangle-alert",
+                      "trophy",
+                      "utensils",
+                      "waves",
+                      "wheat",
+                      "wifi",
+                      "wrench"
                     ]
                   },
                   "color": {

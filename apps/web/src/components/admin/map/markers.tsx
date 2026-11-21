@@ -71,11 +71,18 @@ export function GlyphMarker({
   icon,
   color,
   size,
+  name,
   ...interaction
-}: Interaction & { icon: string; color: string; size: number }) {
+}: Interaction & {
+  icon: string;
+  color: string;
+  size: number;
+  /** Written under the disc: the item a reviewer is looking for, by name. */
+  name?: string;
+}) {
   const Glyph = categoryIcon(icon);
   const px = interaction.selected ? size + 6 : size;
-  return (
+  const mark = (
     <Mark
       {...interaction}
       className="rounded-full"
@@ -96,6 +103,15 @@ export function GlyphMarker({
         }}
       />
     </Mark>
+  );
+  if (!name) return mark;
+  return (
+    <span className="relative block">
+      {mark}
+      <span className="pointer-events-none absolute top-full left-1/2 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-full bg-card px-2.5 py-1 text-xs font-semibold text-foreground shadow-(--shadow-elevated)">
+        {name}
+      </span>
+    </span>
   );
 }
 

@@ -43,7 +43,8 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("degradation", () => {
   }, 20_000);
 
   test("push without a provider token is skipped, not failed", async () => {
-    const result = await run("push", { APNS_KEY_ID: "" });
+    // Both providers off: a machine with FCM configured would otherwise stay enabled.
+    const result = await run("push", { APNS_KEY_ID: "", FCM_PROJECT_ID: "" });
     expect(result).toEqual({
       enabled: false,
       sent: 0,

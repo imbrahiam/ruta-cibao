@@ -1,9 +1,11 @@
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useTranslations } from "use-intl";
+import { useAdminTheme } from "@/lib/web/admin-theme";
 import { AdminMap } from "./admin-map";
 import { ItemFrameProvider, itemDomId } from "./item-frame";
 import { type LegendEntry, MapLegend } from "./legend";
 import type { MapItem } from "./map-types";
+import { ContextDot } from "./markers";
 import { useContextPlaces } from "./use-context-places";
 import type { MapCopy } from "./use-map-copy";
 
@@ -41,6 +43,7 @@ export function QueueMapLayout({
   children: ReactNode;
 }) {
   const t = useTranslations("admin.queue.map");
+  const scheme = useAdminTheme().theme;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const context = useContextPlaces(true);
 
@@ -61,7 +64,7 @@ export function QueueMapLayout({
   }, []);
 
   const frame = useMemo(
-    () => ({ stacked: true, selectedId: selected, onSelect: select }),
+    () => ({ selectedId: selected, onSelect: select }),
     [selected, select],
   );
 
@@ -80,7 +83,11 @@ export function QueueMapLayout({
           />
           <MapLegend entries={legend} />
           {context.length > 0 ? (
-            <p className="text-xs text-muted-foreground">{t("contextHint")}</p>
+            // The same dot as on the map, named.
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <ContextDot scheme={scheme} />
+              {t("publishedPlaces")}
+            </span>
           ) : null}
         </div>
         <div className="flex min-w-0 flex-col gap-3">{children}</div>

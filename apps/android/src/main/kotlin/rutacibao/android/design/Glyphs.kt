@@ -24,6 +24,7 @@ import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.ShoppingBasket
 import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Waves
 import androidx.compose.material.icons.outlined.WaterDrop
 import androidx.compose.material.icons.automirrored.outlined.AltRoute
@@ -61,6 +62,7 @@ fun categoryIcon(name: String): ImageVector = when (name) {
     "wheat" -> Icons.Outlined.Grass
     "trash-2" -> Icons.Outlined.Delete
     "building-2" -> Icons.Outlined.Business
+    "trophy" -> Icons.Outlined.EmojiEvents
     else -> Icons.Outlined.Place
 }
 

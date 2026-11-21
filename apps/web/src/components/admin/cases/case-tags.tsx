@@ -1,10 +1,18 @@
 "use client";
 
-import { useTranslations } from "use-intl";
 import {
-  StatusIndicator,
-  type StatusTone,
-} from "@/components/admin/status-indicator";
+  CircleCheck,
+  CircleDot,
+  CircleSlash,
+  Clock,
+  Eye,
+  EyeOff,
+  type LucideIcon,
+  MessageSquareReply,
+  Search,
+} from "lucide-react";
+import { useTranslations } from "use-intl";
+import { StatusIndicator } from "@/components/admin/status-indicator";
 
 export type CaseStatus =
   | "open"
@@ -22,33 +30,34 @@ export const CASE_STATUSES: readonly CaseStatus[] = [
   "rejected",
 ];
 
-const STATUS_TONE: Record<CaseStatus, StatusTone> = {
-  open: "warning",
-  in_review: "info",
-  answered: "success",
-  resolved: "success",
-  rejected: "neutral",
+/** An icon that means each state, beside its word; no colour code. */
+const STATUS_ICON: Record<CaseStatus, LucideIcon> = {
+  open: CircleDot,
+  in_review: Search,
+  answered: MessageSquareReply,
+  resolved: CircleCheck,
+  rejected: CircleSlash,
 };
 
-const PUBLICATION_TONE: Record<Publication, StatusTone> = {
-  pending: "warning",
-  published: "success",
-  hidden: "danger",
+const PUBLICATION_ICON: Record<Publication, LucideIcon> = {
+  pending: Clock,
+  published: Eye,
+  hidden: EyeOff,
 };
 
-/** The workflow state of a case: a dot and its word. */
+/** The workflow state of a case: its word in a quiet pill. */
 export function CaseStatusTag({ status }: { status: CaseStatus }) {
   const t = useTranslations("consultations.statusLabel");
   return (
-    <StatusIndicator tone={STATUS_TONE[status]}>{t(status)}</StatusIndicator>
+    <StatusIndicator icon={STATUS_ICON[status]}>{t(status)}</StatusIndicator>
   );
 }
 
-/** Whether neighbours can see the case: a dot and its word. */
+/** Whether neighbours can see the case: its word in a quiet pill. */
 export function PublicationTag({ status }: { status: Publication }) {
   const t = useTranslations("admin.cases.publication");
   return (
-    <StatusIndicator tone={PUBLICATION_TONE[status]}>
+    <StatusIndicator icon={PUBLICATION_ICON[status]}>
       {t(status)}
     </StatusIndicator>
   );

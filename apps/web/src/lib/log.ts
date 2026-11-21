@@ -59,9 +59,11 @@ function write(level: LogLevel, event: string, fields: Fields): void {
     event,
     ...(scrub(fields) as Fields),
   };
-  const line = `${JSON.stringify(record)}\n`;
-  if (level === "error") process.stderr.write(line);
-  else process.stdout.write(line);
+  // `console` writes one line to stdout or stderr in Node and also exists in
+  // the Edge runtime, which has no `process.stdout` (instrumentation runs there).
+  const line = JSON.stringify(record);
+  if (level === "error") console.error(line);
+  else console.log(line);
 }
 
 export function logInfo(event: string, fields: Fields = {}): void {

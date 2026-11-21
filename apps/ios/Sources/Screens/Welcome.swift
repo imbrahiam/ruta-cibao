@@ -112,9 +112,10 @@ struct Onboarding: View {
             }
             .padding(.bottom, 8)
         }
-        .padding(.horizontal, 28)
+        .padding(.horizontal, Metrics.gutter)
         .readable(520)
         .paperBackground()
+        .darkStatusBar()
         .sensoryFeedback(.selection, trigger: welcome.step)
     }
 
@@ -159,17 +160,17 @@ private struct Beacon: View {
     }
 }
 
-/// A bell on the landing's lavender, with one unread dot.
+/// A bell on the brand's soft green, with one unread dot.
 private struct Bell: View {
     @State private var rung = false
 
     var body: some View {
         Image(systemName: "bell.fill")
             .font(.system(size: 40))
-            .foregroundStyle(Tint.lavender.ink)
+            .foregroundStyle(Color.brand)
             .symbolEffect(.bounce, value: rung)
             .frame(width: 96, height: 96)
-            .background(Tint.lavender.fill, in: Circle())
+            .background(Color.paper2, in: Circle())
             .overlay(alignment: .topTrailing) { Circle().fill(Color.pin).frame(width: 20, height: 20).overlay(Circle().strokeBorder(Color.paper, lineWidth: 3)).offset(x: -6, y: 6) }
             .task { try? await Task.sleep(for: .milliseconds(500)); rung = true }
     }

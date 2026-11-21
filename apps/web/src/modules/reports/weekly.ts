@@ -237,23 +237,29 @@ export async function computeMetrics(
         ),
       ),
 
+    // The same event as `places.published` above (a publication decided in
+    // the window), split by category, so the two never disagree. Counting
+    // places created in the window instead put a category bar under a "0
+    // lugares nuevos" headline.
     db
       .select({
         name: categories.name,
-        count: sql<number>`count(*)::int`,
+        count: sql<number>`count(distinct ${places.id})::int`,
       })
-      .from(places)
+      .from(auditEvents)
+      .innerJoin(places, sql`${places.id}::text = ${auditEvents.subjectId}`)
       .innerJoin(categories, eq(categories.id, places.categoryId))
       .where(
         and(
-          eq(places.municipalityId, municipalityId),
-          eq(places.status, "published"),
-          gte(places.createdAt, start),
-          lt(places.createdAt, end),
+          eq(auditEvents.municipalityId, municipalityId),
+          eq(auditEvents.action, "place.published"),
+          eq(auditEvents.subjectType, "place"),
+          gte(auditEvents.createdAt, start),
+          lt(auditEvents.createdAt, end),
         ),
       )
       .groupBy(categories.name)
-      .orderBy(desc(sql`count(*)`))
+      .orderBy(desc(sql`count(distinct ${places.id})`))
       .limit(5),
   ]);
 

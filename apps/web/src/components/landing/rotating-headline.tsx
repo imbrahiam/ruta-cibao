@@ -43,7 +43,7 @@ export function RouteHeadline({
   firstLine: string;
   lead: string;
   phrases: readonly [string, string, string];
-  tone: "lavender" | "yellow";
+  tone: "pine" | "yellow";
 }) {
   return (
     <>

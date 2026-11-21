@@ -30,7 +30,7 @@ export default function DownloadPage() {
             t("pages.downloadHeadingWordTwo"),
             t("pages.downloadHeadingWordThree"),
           ]}
-          tone="lavender"
+          tone="pine"
         />
       }
       intro={t("pages.downloadIntro")}

@@ -6,7 +6,7 @@ import styles from "./rotating-word.module.css";
 
 type RotatingWordProps = {
   phrases: readonly [string, string, string];
-  tone?: "lavender" | "yellow";
+  tone?: "pine" | "yellow";
   className?: string;
 };
 
@@ -28,7 +28,7 @@ function getServerMotionPreference() {
 
 export function RotatingWord({
   phrases,
-  tone = "lavender",
+  tone = "pine",
   className,
 }: RotatingWordProps) {
   const [index, setIndex] = useState(0);

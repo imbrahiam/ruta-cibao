@@ -112,11 +112,10 @@ const COLORES: Record<Scheme, ColoresPalette> = {
 export const MAP_PALETTES = { colores: COLORES, gris: GRIS } as const;
 
 /**
- * Ink on the app's paper: routes, route ends and the faint context dots. Both
- * styles keep the phone app's black-on-light, white-on-dark: pure ink holds
- * 11:1 or more against every ground, road and fill above in its scheme (so
- * a trail and its end markers stay legible on green, blue and highway tones),
- * and its rim is the paper colour. Severity colours do not clear 3:1 on every
+ * The brand's pine on the map: routes, route ends and the faint context dots.
+ * Deep pine holds about 7:1 against the grey ground and white roads in light,
+ * the pale pine about 9:1 on the dark ground, and each rim is the paper
+ * colour. Severity colours do not clear 3:1 on every
  * ground, so the stretch line is adjusted per style (`stretchColor`).
  */
 export const MAP_INK: Record<
@@ -124,14 +123,14 @@ export const MAP_INK: Record<
   { pin: string; onPin: string; background: string; onStatus: string }
 > = {
   light: {
-    pin: "#000000",
+    pin: "#28594A",
     onPin: "#FFFFFF",
     background: "#F6F6F6",
     onStatus: "#FFFFFF",
   },
   dark: {
-    pin: "#FFFFFF",
-    onPin: "#000000",
+    pin: "#8FCAB2",
+    onPin: "#0F1F19",
     background: "#000000",
     onStatus: "#FFFFFF",
   },

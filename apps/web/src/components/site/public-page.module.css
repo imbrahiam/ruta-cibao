@@ -94,7 +94,7 @@
 }
 .feature > svg {
   margin-bottom: 18px;
-  color: #76658b;
+  color: #537367;
 }
 .feature h3,
 .step h3 {
@@ -209,7 +209,7 @@
   margin-top: 32px;
   padding: 28px 32px;
   border-radius: 20px;
-  background: #f0ecef;
+  background: #f0efea;
 }
 .help h2 {
   font-size: 18px;
@@ -266,7 +266,7 @@
   height: 100%;
 }
 .municipality:nth-child(2) .portrait {
-  background: #ece7f1;
+  background: #deece7;
 }
 .municipality:nth-child(3) .portrait {
   background: #f4edda;
@@ -326,7 +326,7 @@
   font-size: 14px;
 }
 .sharedList svg {
-  color: #76658b;
+  color: #537367;
 }
 .continue {
   margin-top: 72px;
@@ -356,7 +356,7 @@
   background: #f0efea;
 }
 .page a:focus-visible {
-  outline: 3px solid #746391;
+  outline: 3px solid #4e7265;
   outline-offset: 4px;
 }
 

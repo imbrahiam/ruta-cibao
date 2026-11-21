@@ -80,7 +80,8 @@
   left: -3px;
   height: 0.39em;
   border-radius: 3px;
-  background: #f4e7a4;
+  /* A pale wash of the underline's green (#7eb9a4): one accent hue on the page. */
+  background: #cfe6dc;
   content: "";
   transform: rotate(-1.5deg);
 }

@@ -51,6 +51,7 @@ const NAMESPACES = [
   "place",
   "privacy",
   "profile",
+  "reports",
   "routes",
   "safety",
   "safetyUi",

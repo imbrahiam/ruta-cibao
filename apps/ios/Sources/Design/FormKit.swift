@@ -38,6 +38,11 @@ struct FormScreen<Content: View>: View {
             .padding(.vertical, 10)
             .readable()
             .background(Color.paper)
+            // Fields fade into the bar instead of being cut flat by it.
+            .background(alignment: .top) {
+                LinearGradient(colors: [Color.paper.opacity(0), Color.paper], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 20).offset(y: -20).allowsHitTesting(false)
+            }
         }
         .paperBackground()
     }
@@ -95,8 +100,7 @@ struct MenuField<Item: Hashable>: View {
             }
             .padding(.horizontal, 16)
             .frame(minHeight: 52)
-            .background(Color.card, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
-            .overlay { RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous).strokeBorder(Color.line, lineWidth: 1) }
+            .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
             .overlay { RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous).strokeBorder(Color.danger, lineWidth: problem ? 1.5 : 0) }
             .contentShape(Rectangle())
         }
@@ -160,6 +164,7 @@ struct PhotoTray: View {
             }
         }
         .scrollIndicators(.hidden)
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         .buttonStyle(Pressable())
         .onChange(of: picked) { _, items in
             guard !items.isEmpty else { return }
@@ -219,8 +224,7 @@ private struct PhotoTile: View {
         }
         .foregroundStyle(Color.ink2)
         .frame(width: 84, height: 84)
-        .background(Color.card, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
-            .overlay { RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous).strokeBorder(Color.line, lineWidth: 1) }
+        .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
     }
 }
 
@@ -273,12 +277,12 @@ struct LocationField: View {
                             .type(.label)
                             .padding(.horizontal, 12)
                             .frame(height: 34)
-                            .glassEffect(.regular, in: Capsule())
+                            .floating(in: Capsule())
                             .padding(10)
                     }
             } else {
                 HStack(spacing: 10) {
-                    Image(systemName: "mappin.and.ellipse").font(.system(size: 17, weight: .light))
+                    Image(systemName: Glyph.location).font(.system(size: 17, weight: .light))
                     Text(title).type(.body)
                     Spacer()
                     if !required { Text(L10n.Common.optional).type(.caption, .ink3) }
@@ -287,8 +291,7 @@ struct LocationField: View {
                 .foregroundStyle(Color.ink)
                 .padding(.horizontal, 16)
                 .frame(height: 54)
-                .background(Color.card, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
-                .overlay { RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous).strokeBorder(Color.line, lineWidth: 1) }
+                .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
             }
         }
         .buttonStyle(Pressable(scale: 0.99))
@@ -333,11 +336,11 @@ struct LocationPicker: View {
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             HStack {
-                IconButton(symbol: "xmark", label: L10n.Common.cancel, floating: true) { dismiss() }
-                Spacer()
                 IconButton(symbol: "location", label: L10n.Picker.locate, floating: true) {
                     Task { if let here = await CurrentLocation.once() { withAnimation { camera = region(here) } } }
                 }
+                Spacer()
+                IconButton(symbol: "xmark", label: L10n.Common.cancel, glass: true) { dismiss() }
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)

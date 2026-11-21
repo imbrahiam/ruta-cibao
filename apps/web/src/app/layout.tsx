@@ -37,7 +37,8 @@ const t = getT("landing");
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.origin),
-  title: { default: t("brand"), template: `%s · ${t("brand")}` },
+  // Tabs read "Page | Ruta Cibao"; the home page is the brand alone.
+  title: { default: t("brand"), template: `%s | ${t("brand")}` },
   description: t("intro"),
   applicationName: t("brand"),
   openGraph: {
@@ -52,7 +53,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang={LOCALE} className={`${inter.variable} ${fraunces.variable}`}>
+    // The desk's theme script sets `data-admin-theme` here before hydration;
+    // this only silences that attribute mismatch on <html> itself.
+    <html
+      lang={LOCALE}
+      className={`${inter.variable} ${fraunces.variable}`}
+      suppressHydrationWarning
+    >
       <body>
         <a
           href="#contenido"

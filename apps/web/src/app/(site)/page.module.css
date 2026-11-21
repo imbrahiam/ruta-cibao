@@ -20,7 +20,7 @@
   scroll-margin-top: 35px;
 }
 .landing a:focus-visible {
-  outline: 3px solid #746391;
+  outline: 3px solid #4e7265;
   outline-offset: 5px;
 }
 
@@ -217,8 +217,8 @@
   height: 36px;
   place-items: center;
   border-radius: 10px;
-  background: #ece6f5;
-  color: #7f6c9b;
+  background: #d5eee5;
+  color: #557d6e;
 }
 .reportIcon {
   background: #f3ecd3;

@@ -24,6 +24,12 @@ final class DeepLinks {
         requestId &+= 1
     }
 
+    /// Sends the app somewhere it already knows, without an address to parse.
+    func go(_ target: Target) {
+        pending = target
+        requestId &+= 1
+    }
+
     static func parse(_ href: String) -> Target? {
         guard let target = AppTarget.companion.parse(href: href, apiOrigin: AppConfig.current.apiOrigin, appScheme: AppConfig.current.appScheme) else { return nil }
         switch target.kind {

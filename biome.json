@@ -17,7 +17,8 @@
       "!apps/web/src/db/schema/auth.ts",
       "!**/*.xcassets",
       "!apps/ios/DerivedData",
-      "!apps/ios/DerivedData-device"
+      "!apps/ios/DerivedData-device",
+      "!apps/ios/DerivedDataDevice"
     ]
   },
   "formatter": {

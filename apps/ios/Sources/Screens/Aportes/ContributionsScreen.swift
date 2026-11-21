@@ -21,30 +21,21 @@ enum ContributeAction: String, Identifiable, CaseIterable {
         }
     }
 
-    var tint: Tint {
-        switch self {
-        case .consultation: .lavender
-        case .traffic: .butter
-        case .place: .mint
-        }
-    }
-
     var symbol: String {
         switch self {
         case .consultation: "bubble.left"
         case .traffic: "exclamationmark.triangle"
-        case .place: "mappin.and.ellipse"
+        case .place: Glyph.location
         }
     }
 }
 
-/// Where a resident adds to the map: three ways to contribute, then what they sent and what came back.
+/// What a resident sent and what came back: their contributions and the notices about them.
+/// Adding something new is the header's add button, from anywhere in the app.
 struct ContributionsScreen: View {
-    @Environment(\.graph) private var graph
     @Environment(DeepLinks.self) private var links
+    @Environment(AppChrome.self) private var chrome
     @State private var path: [ConsultationRoute] = []
-    @State private var action: ContributeAction? = DebugHook.value("RUTA_DEBUG_COMPOSE").flatMap(ContributeAction.init(rawValue:))
-    @State private var wanted: ContributeAction?
     @State private var signingIn = false
     @State private var section: Section = DebugHook.value("RUTA_DEBUG_COMPOSE") == "inbox" ? .inbox : .mine
 
@@ -55,14 +46,11 @@ struct ContributionsScreen: View {
             Host(make: { $0.contributions() }, flow: { $0.state }) { mine in
                 Host(make: { $0.inbox() }, flow: { $0.state }) { inbox in
                     page(mine, inbox)
-                        .fullScreenCover(item: $action, onDismiss: { mine.vm.refresh() }) { action in
-                            switch action {
-                            case .consultation:
-                                NewConsultationScreen { slug in mine.vm.refresh(); path.append(ConsultationRoute(slug: slug)) }
-                            case .traffic: TrafficReportScreen()
-                            case .place: SuggestPlaceScreen()
-                            }
+                        .rootHeader(L10n.Contributions.title) {
+                            if mine.state.signedIn { sections(inbox) }
                         }
+                        // Something was just sent from the header's add button: show it.
+                        .onChange(of: chrome.sent) { _, _ in mine.vm.refresh() }
                         .onChange(of: links.requestId, initial: true) { _, _ in
                             guard links.pending == .contributions else { return }
                             links.pending = nil
@@ -72,73 +60,46 @@ struct ContributionsScreen: View {
                 }
             }
             .navigationTitle(L10n.Contributions.title)
-            .navigationBarTitleDisplayMode(.inline)
             .paperBackground()
             .navigationDestination(for: ConsultationRoute.self) { ConsultationDetailScreen(slug: $0.slug) }
         }
-        .fullScreenCover(isPresented: $signingIn, onDismiss: {
-            if graph?.session.isSignedIn.value == true { action = wanted }
-            wanted = nil
-        }) { SignInScreen() }
+        .fullScreenCover(isPresented: $signingIn) { SignInScreen() }
     }
 
-    private func start(_ next: ContributeAction) {
-        if graph?.session.isSignedIn.value == true { action = next } else { wanted = next; signingIn = true }
+    private func sections(_ inbox: Screen<InboxViewModel, InboxUiState>) -> some View {
+        HStack(spacing: 6) {
+            Chip(title: L10n.Contributions.mine, selected: section == .mine, onBrand: true) { withAnimation(Motion.quick) { section = .mine } }
+            Chip(title: L10n.Contributions.inbox, selected: section == .inbox, onBrand: true, badge: Int(inbox.state.unread)) {
+                withAnimation(Motion.quick) { section = .inbox }
+            }
+            Spacer()
+            if section == .inbox, inbox.state.unread > 0 {
+                Button { inbox.vm.markRead(id: nil) } label: {
+                    Label(L10n.Notifications.markAllRead, systemImage: "checkmark").labelStyle(.iconOnly)
+                        .font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.onInk)
+                        .frame(width: 34, height: 34).background(Color.onInk.opacity(0.14), in: Circle()).frame(minWidth: 44, minHeight: 44)
+                }
+                .buttonStyle(Pressable())
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, Metrics.gutter)
     }
 
     private func page(_ mine: Screen<ContributionsViewModel, ContributionsUiState>, _ inbox: Screen<InboxViewModel, InboxUiState>) -> some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                VStack(spacing: 0) {
-                    ForEach(Array(ContributeAction.allCases.enumerated()), id: \.element) { index, item in
-                        Button { start(item) } label: {
-                            HStack(spacing: 14) {
-                                GlyphDisc(symbol: item.symbol, size: 44, tint: item.tint)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.title).type(.bodyStrong)
-                                    Text(item.detail).type(.callout, .ink3).lineLimit(2).multilineTextAlignment(.leading)
-                                }
-                                Spacer(minLength: 8)
-                                Image(systemName: "arrow.up.right").font(.system(size: 13, weight: .medium)).foregroundStyle(Color.ink3)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                        }
-                        .buttonStyle(RowPress())
-                        .rise(index)
-                        if index < ContributeAction.allCases.count - 1 { Hairline(inset: 74) }
-                    }
-                }
-                .background(Color.card, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous).strokeBorder(Color.line, lineWidth: 1))
-                .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-                .padding(.horizontal, Metrics.gutter)
-
                 if mine.state.signedIn {
-                    HStack(spacing: 8) {
-                        Chip(title: L10n.Contributions.mine, selected: section == .mine) { withAnimation(Motion.quick) { section = .mine } }
-                        Chip(title: inbox.state.unread > 0 ? L10n.Contributions.inboxCount(count: String(inbox.state.unread)) : L10n.Contributions.inbox, selected: section == .inbox) {
-                            withAnimation(Motion.quick) { section = .inbox }
-                        }
-                        Spacer()
-                        if section == .inbox, inbox.state.unread > 0 {
-                            IconButton(symbol: "checkmark", label: L10n.Notifications.markAllRead) { inbox.vm.markRead(id: nil) }
-                                .transition(.scale.combined(with: .opacity))
-                        }
-                    }
-                    .padding(.horizontal, Metrics.gutter)
-                    .padding(.top, 26)
-                    .padding(.bottom, 8)
-
                     switch section {
                     case .mine: MineList(model: mine, open: { path.append(ConsultationRoute(slug: $0)) })
                     case .inbox: InboxList(model: inbox, open: { path.append(ConsultationRoute(slug: $0)) })
                     }
                 } else {
-                    StateView(title: L10n.Contributions.signedOutTitle, message: L10n.Contributions.signedOutBody, actionTitle: L10n.Contributions.signIn) { signingIn = true }
-                        .frame(height: 300)
+                    StateView(title: L10n.Contributions.signedOutTitle, message: L10n.Contributions.signedOutBody, actionTitle: L10n.Contributions.signIn, prominent: true) { signingIn = true }
+                        .frame(height: 360)
                 }
             }
+            .padding(.top, 6)
             .readable()
         }
         .refreshable { mine.vm.refresh(); inbox.vm.refresh() }
@@ -148,37 +109,39 @@ struct ContributionsScreen: View {
 private struct MineList: View {
     let model: Screen<ContributionsViewModel, ContributionsUiState>
     let open: (String) -> Void
+    @Environment(AppChrome.self) private var chrome: AppChrome?
     @Environment(DeepLinks.self) private var links
 
     var body: some View {
         switch model.state.phase {
         case .loading: LoadingDots().frame(height: 200)
         case .failed: StateView(error: model.state.error ?? .unknown) { model.vm.retry() }.frame(height: 280)
-        case .empty: StateView(title: L10n.Contributions.empty, message: L10n.Contributions.emptyBody).frame(height: 280)
+        case .empty:
+            StateView(title: L10n.Contributions.empty, message: L10n.Contributions.emptyBody, actionTitle: L10n.Contributions.contribute) { chrome?.contributing = true }
+                .frame(height: 280)
         case .ready:
             ForEach(model.state.items, id: \.id) { item in
                 Button {
                     if let slug = model.state.slugFor(item: item) { open(slug) } else if let href = item.href { links.open(href) }
                 } label: {
                     HStack(spacing: 14) {
-                        GlyphDisc(icon: item.categoryIcon, tint: .of(hex: item.categoryColor))
+                        GlyphDisc(icon: item.categoryIcon, tint: .neutral)
                         VStack(alignment: .leading, spacing: 3) {
                             Text(item.name).type(.bodyStrong).lineLimit(1)
-                            HStack(spacing: 6) {
-                                Text("\(kind(item)) · \(CompactTime.since(item.createdAt.date))").type(.callout, .ink3)
-                                Circle().fill(color(item)).frame(width: 6, height: 6).padding(.leading, 2)
-                                Text(status(item)).type(.callout, .ink2)
+                            Text("\(kind(item)) · \(CompactTime.since(item.createdAt.date))").type(.callout, .ink3)
+                            // The team's reason, when they left one: why it was not approved, or what changed.
+                            if let note = item.note, !note.isEmpty {
+                                Text(note).type(.callout, .ink2).lineLimit(3).padding(.top, 2)
                             }
                         }
                         Spacer(minLength: 8)
-                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .medium)).foregroundStyle(Color.ink4)
+                        StatusTag(text: status(item), color: color(item), symbol: symbol(item))
                     }
                     .padding(.horizontal, Metrics.gutter)
-                    .padding(.vertical, 13)
+                    .padding(.vertical, 10)
                 }
                 .buttonStyle(RowPress())
                 .disabled(model.state.slugFor(item: item) == nil && item.href == nil)
-                Hairline(inset: Metrics.gutter + 54)
             }
         }
     }
@@ -214,12 +177,25 @@ private struct MineList: View {
         }
     }
 
+    /// The same glyphs as a consultation's state, so a state reads alike everywhere.
+    private func symbol(_ item: PlacesContributionsItem) -> String {
+        switch item.status {
+        case .published, .approved, .active, .resolved: "checkmark.circle.fill"
+        case .answered: "bubble.left.fill"
+        case .pending, .inReview: "eye.fill"
+        case .draft: "pencil"
+        case .open: "tray.and.arrow.down.fill"
+        case .rejected, .removed: "xmark.circle.fill"
+        case .expired, .cleared, .archived, .dismissed: "clock.fill"
+        }
+    }
+
     private func color(_ item: PlacesContributionsItem) -> Color {
         switch item.status {
         case .published, .resolved, .answered, .approved, .active: .success
         case .pending, .inReview, .draft: .warning
         case .rejected, .removed: .danger
-        default: .ink4
+        default: .ink3
         }
     }
 }
@@ -241,7 +217,7 @@ private struct InboxList: View {
                     if let slug = notice.consultationSlug { open(slug) } else if let href = notice.href { links.open(href) }
                 } label: {
                     HStack(alignment: .top, spacing: 14) {
-                        GlyphDisc(icon: notice.categoryIcon ?? "bell", tint: notice.categoryColor.map(Tint.of(hex:)) ?? .lavender)
+                        GlyphDisc(icon: notice.categoryIcon ?? "bell", tint: .neutral)
                             .overlay(alignment: .topTrailing) {
                                 if notice.unread { Circle().fill(Color.action).frame(width: 9, height: 9).overlay(Circle().strokeBorder(Color.paper, lineWidth: 2)) }
                             }
@@ -254,11 +230,10 @@ private struct InboxList: View {
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, Metrics.gutter)
-                    .padding(.vertical, 13)
+                    .padding(.vertical, 10)
                 }
                 .buttonStyle(RowPress())
                 .accessibilityValue(notice.unread ? L10n.Notifications.unread : "")
-                Hairline(inset: Metrics.gutter + 54)
             }
         }
     }

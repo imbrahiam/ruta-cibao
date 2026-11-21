@@ -309,7 +309,8 @@ enum TripText {
     }
 
     static func arrival(_ seconds: TimeInterval) -> String {
-        L10n.Directions.arrival(time: Date.now.addingTimeInterval(seconds).formatted(date: .omitted, time: .shortened))
+        // Dominican style ("1:57 p. m."), whatever region the phone is set to.
+        L10n.Directions.arrival(time: Date.now.addingTimeInterval(seconds).formatted(Date.FormatStyle(date: .omitted, time: .shortened, locale: Locale(identifier: "es_DO"))))
     }
 
     /// A maneuver glyph from the instruction's words (MapKit doesn't expose the maneuver).
@@ -318,7 +319,7 @@ enum TripText {
         if text.contains("rotonda") || text.contains("roundabout") { return "arrow.triangle.turn.up.right.circle" }
         if text.contains("izquierda") || text.contains("left") { return "arrow.turn.up.left" }
         if text.contains("derecha") || text.contains("right") { return "arrow.turn.up.right" }
-        if text.contains("destino") || text.contains("llega") || text.contains("arrive") { return "mappin.and.ellipse" }
+        if text.contains("destino") || text.contains("llega") || text.contains("arrive") { return Glyph.location }
         return "arrow.up"
     }
 }

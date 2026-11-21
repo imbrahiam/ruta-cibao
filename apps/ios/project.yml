@@ -17,12 +17,19 @@ settings:
     "EXCLUDED_ARCHS[sdk=iphonesimulator*]": x86_64   # RutaKit ships arm64 simulator only
     DEVELOPMENT_LANGUAGE: es
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    RUTA_GOOGLE_MAPS_KEY: ""
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
 
 configs:
   Debug: debug
   Release: release
+
+packages:
+  # The same basemap engine as Android, so one custom style serves both apps.
+  GoogleMaps:
+    url: https://github.com/googlemaps/ios-maps-sdk
+    exactVersion: 11.4.0
 
 targets:
   RutaCibao:
@@ -35,6 +42,8 @@ targets:
     dependencies:
       - target: RutaCibaoWidgets
         embed: true
+      - package: GoogleMaps
+        product: GoogleMaps
     entitlements:
       path: Sources/App/RutaCibao.entitlements
       properties:
@@ -52,6 +61,8 @@ targets:
         RutaApiOrigin: $(RUTA_API_ORIGIN)
         RutaAppScheme: $(RUTA_APP_SCHEME)
         RutaVariant: $(RUTA_VARIANT)
+        # Never committed: pass RUTA_GOOGLE_MAPS_KEY to xcodebuild or set it in a local xcconfig.
+        RutaGoogleMapsKey: $(RUTA_GOOGLE_MAPS_KEY)
         CFBundleURLTypes:
           - CFBundleURLSchemes: [$(RUTA_APP_SCHEME)]
         # Values are localized from the catalogue by Resources/InfoPlist.xcstrings.

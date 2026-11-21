@@ -1,7 +1,13 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Download, FileText } from "lucide-react";
+import {
+  Download,
+  FileCheck,
+  FileText,
+  Loader,
+  TriangleAlert,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
@@ -19,6 +25,23 @@ const POLL_INTERVAL_MS = 4000;
 const POLL_ATTEMPTS = 8;
 
 /** "Semana del 12 al 18 de octubre", from the half-open period a report covers. */
+/**
+ * A week as a short range for headings: "12–18 oct 2026". The period ends at
+ * the next Monday's midnight, so the last day is the Sunday before it.
+ */
+export function useWeekRange() {
+  const format = useFormatter();
+  return useCallback(
+    (period: { periodStart: string | Date; periodEnd: string | Date }) =>
+      format.dateTimeRange(
+        new Date(period.periodStart),
+        new Date(new Date(period.periodEnd).getTime() - 1),
+        { day: "numeric", month: "short", year: "numeric" },
+      ),
+    [format],
+  );
+}
+
 export function useWeekLabel() {
   const reports = useTranslations("reports");
   const format = useFormatter();
@@ -40,17 +63,20 @@ export function useWeekLabel() {
   );
 }
 
-const STATUS_TONE = {
-  pending: "warning",
-  ready: "success",
-  failed: "danger",
-} as const;
-
-/** Generation state of a report: a dot and always the word. */
+/** Generation state of a report: always the word; a failure stands out. */
 export function ReportStatusIndicator({ status }: { status: ReportStatus }) {
   const reports = useTranslations("reports.statuses");
   return (
-    <StatusIndicator tone={STATUS_TONE[status]}>
+    <StatusIndicator
+      tone={status === "failed" ? "danger" : "neutral"}
+      icon={
+        status === "failed"
+          ? TriangleAlert
+          : status === "pending"
+            ? Loader
+            : FileCheck
+      }
+    >
       {reports(status)}
     </StatusIndicator>
   );
@@ -180,12 +206,14 @@ export function PdfActions({
 
   const working = state.phase === "working";
   const row = placement === "row";
-  // In a row the button is an icon until there is room for its word.
-  const buttonClass = row ? "xl:w-auto xl:px-4" : undefined;
-  const text = (word: string) =>
-    row ? <span className="hidden xl:inline">{word}</span> : word;
-  const size = row ? "icon" : "default";
-  const variant = row ? "outline" : "default";
+  // In a list row the button is quiet (ghost, small), so the row's figures,
+  // not its controls, are what the eye lands on.
+  const buttonClass = undefined;
+  // Named in words even in a row: an icon alone beside the row's own link
+  // read as a second way to open the report.
+  const text = (word: string) => word;
+  const size = row ? "sm" : "default";
+  const variant = row ? "ghost" : "default";
 
   return (
     <div
@@ -222,7 +250,7 @@ export function PdfActions({
         </Button>
       ) : (
         <Button
-          variant="outline"
+          variant={row ? "ghost" : "outline"}
           size={size}
           className={buttonClass}
           disabled={working}

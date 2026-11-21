@@ -4,6 +4,13 @@ import SwiftUI
 /// Before leaving: how long, how far, by car or on foot, and one button to go.
 struct RoutePreview: View {
     let navigator: RouteNavigator
+    @Environment(\.openURL) private var openURL
+
+    /// No starting point: the fix is in Settings, and the travel modes mean nothing yet.
+    private var needsLocation: Bool {
+        if case .failed(let message) = navigator.phase { return message == L10n.Directions.locationError || message == L10n.Directions.permissionBody }
+        return false
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -11,7 +18,12 @@ struct RoutePreview: View {
                 VStack(alignment: .leading, spacing: 2) {
                     switch navigator.phase {
                     case .failed(let message):
-                        Text(message).type(.heading).fixedSize(horizontal: false, vertical: true)
+                        if needsLocation {
+                            Text(L10n.Directions.locationErrorTitle).type(.heading)
+                            Text(L10n.Directions.locationErrorBody).type(.callout, .ink3).fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text(message).type(.body).fixedSize(horizontal: false, vertical: true)
+                        }
                     case .loading:
                         Text(L10n.Directions.loading).type(.heading)
                     default:
@@ -22,14 +34,21 @@ struct RoutePreview: View {
                     }
                 }
                 Spacer(minLength: 8)
-                IconButton(symbol: "xmark", label: L10n.Directions.close) { navigator.stop() }
+                IconButton(symbol: "xmark", label: L10n.Directions.close, glass: true) { navigator.stop() }
             }
 
+            if needsLocation {
+                Button(L10n.Directions.openSettings) {
+                    if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+                }
+                .buttonStyle(.ink)
+            } else {
             HStack(spacing: 8) {
                 mode(.drive, L10n.Directions.drive, "car")
                 mode(.walk, L10n.Directions.walk, "figure.walk")
                 Spacer()
                 Button(L10n.Directions.openMaps) { navigator.openInMaps() }.buttonStyle(.pill(.outline, compact: true, fill: false))
+            }
             }
 
             if navigator.phase == .loading {

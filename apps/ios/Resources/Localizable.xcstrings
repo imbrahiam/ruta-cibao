@@ -1203,7 +1203,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Publica tu respuesta"
+            "value": "Escribe tu respuesta"
           }
         }
       }
@@ -1220,6 +1220,17 @@
       }
     },
     "comments.replyPlaceholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Responder"
+          }
+        }
+      }
+    },
+    "comments.replyTitle": {
       "extractionState": "manual",
       "localizations": {
         "es": {
@@ -1791,6 +1802,17 @@
         }
       }
     },
+    "consultations.more": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Más consultas"
+          }
+        }
+      }
+    },
     "consultations.municipality": {
       "extractionState": "manual",
       "localizations": {
@@ -1958,7 +1980,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "respondido"
+            "value": "respondida"
           }
         }
       }
@@ -1980,7 +2002,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "recibido"
+            "value": "recibida"
           }
         }
       }
@@ -2002,7 +2024,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "resuelto"
+            "value": "resuelta"
           }
         }
       }
@@ -2956,7 +2978,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Reportar en la vía"
+            "value": "Reportar la vía"
           }
         }
       }
@@ -3176,7 +3198,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vía"
+            "value": "Reporte de vía"
           }
         }
       }
@@ -3220,7 +3242,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Iniciar sesión"
+            "value": "Entrar o crear cuenta"
           }
         }
       }
@@ -3231,7 +3253,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aquí sigues lo que aportas a la provincia y las respuestas del ayuntamiento. Puedes ver el mapa y las consultas sin cuenta; para aportar, entra con tu celular o tu correo."
+            "value": "Sigue lo que aportas y lo que responde el ayuntamiento. Para aportar, entra con tu celular o tu correo."
           }
         }
       }
@@ -3352,7 +3374,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vencido"
+            "value": "Inactivo"
           }
         }
       }
@@ -3610,6 +3632,28 @@
         }
       }
     },
+    "directions.locationErrorBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La necesitamos como punto de partida."
+          }
+        }
+      }
+    },
+    "directions.locationErrorTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activa tu ubicación"
+          }
+        }
+      }
+    },
     "directions.mapLabel": {
       "extractionState": "manual",
       "localizations": {
@@ -3650,6 +3694,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Abrir en Mapas"
+          }
+        }
+      }
+    },
+    "directions.openSettings": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Ajustes"
           }
         }
       }
@@ -4067,7 +4122,18 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Toca Guardar en cualquier lugar para tenerlo a mano."
+            "value": "Toca el marcador en la ficha de un lugar para tenerlo a mano."
+          }
+        }
+      }
+    },
+    "explore.savedExplore": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explorar el mapa"
           }
         }
       }
@@ -4471,6 +4537,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "La respuesta necesita al menos 10 caracteres."
+          }
+        }
+      }
+    },
+    "gestion.staffOnly": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta sección es para el personal del ayuntamiento."
           }
         }
       }
@@ -4962,6 +5039,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "Rutas"
+          }
+        }
+      }
+    },
+    "map.routesCount": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld ruta"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld rutas"
+                }
+              }
+            }
           }
         }
       }
@@ -5599,7 +5699,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El ayuntamiento respondió tu caso: %1$@"
+            "value": "El ayuntamiento respondió tu consulta «%1$@»"
           }
         }
       }
@@ -5610,7 +5710,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tu caso «%1$@» no se publicó. Toca para ver por qué."
+            "value": "No publicamos tu consulta «%1$@». Toca para ver por qué."
           }
         }
       }
@@ -5621,7 +5721,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tu caso «%1$@» ya es público."
+            "value": "Tu consulta «%1$@» ya es pública."
           }
         }
       }
@@ -5632,7 +5732,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tu caso «%1$@» pasó a %2$@"
+            "value": "Tu consulta «%1$@» pasó a %2$@"
           }
         }
       }
@@ -6722,7 +6822,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Lugares, rutas y avisos de la vía cerca de ti."
+            "value": "Lugares, rutas, avisos de la vía y tus consultas al ayuntamiento."
           }
         }
       }
@@ -7552,6 +7652,17 @@
         }
       }
     },
+    "place.verify": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verificar este lugar"
+          }
+        }
+      }
+    },
     "place.whatsapp": {
       "extractionState": "manual",
       "localizations": {
@@ -7999,6 +8110,589 @@
           "stringUnit": {
             "state": "translated",
             "value": "Bienvenido"
+          }
+        }
+      }
+    },
+    "reports.back": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volver a los informes"
+          }
+        }
+      }
+    },
+    "reports.downloadPdf": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descargar PDF"
+          }
+        }
+      }
+    },
+    "reports.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todavía no hay informes"
+          }
+        }
+      }
+    },
+    "reports.emptyHint": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El primero se genera el lunes a las 6 de la mañana."
+          }
+        }
+      }
+    },
+    "reports.eyebrow": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Municipio"
+          }
+        }
+      }
+    },
+    "reports.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos generar este informe. Se reintenta solo."
+          }
+        }
+      }
+    },
+    "reports.forbidden": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los informes son para el personal del municipio"
+          }
+        }
+      }
+    },
+    "reports.generatedAt": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generado el %1$@"
+          }
+        }
+      }
+    },
+    "reports.intro": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lo que pasó en la plataforma cada semana, municipio por municipio."
+          }
+        }
+      }
+    },
+    "reports.loading": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cargando los informes…"
+          }
+        }
+      }
+    },
+    "reports.metrics.businessesApproved": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aprobadas"
+          }
+        }
+      }
+    },
+    "reports.metrics.businessesClaimed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Solicitudes"
+          }
+        }
+      }
+    },
+    "reports.metrics.consultationsAnswered": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Respondidos"
+          }
+        }
+      }
+    },
+    "reports.metrics.consultationsOpened": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Casos abiertos"
+          }
+        }
+      }
+    },
+    "reports.metrics.consultationsResolved": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resueltos"
+          }
+        }
+      }
+    },
+    "reports.metrics.consultationsStillOpen": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin responder"
+          }
+        }
+      }
+    },
+    "reports.metrics.medianResponse": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tiempo típico de respuesta"
+          }
+        }
+      }
+    },
+    "reports.metrics.medianResponseHours": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ h"
+          }
+        }
+      }
+    },
+    "reports.metrics.medianResponseNone": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin datos"
+          }
+        }
+      }
+    },
+    "reports.metrics.peopleContributors": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Personas que aportaron"
+          }
+        }
+      }
+    },
+    "reports.metrics.peopleVerified": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cédulas verificadas"
+          }
+        }
+      }
+    },
+    "reports.metrics.placesPublished": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publicados"
+          }
+        }
+      }
+    },
+    "reports.metrics.placesRejected": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rechazados"
+          }
+        }
+      }
+    },
+    "reports.metrics.placesSubmitted": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviados"
+          }
+        }
+      }
+    },
+    "reports.metrics.placesTotal": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Total en el mapa"
+          }
+        }
+      }
+    },
+    "reports.metrics.routesPublished": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutas publicadas"
+          }
+        }
+      }
+    },
+    "reports.metrics.routesSubmitted": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutas propuestas"
+          }
+        }
+      }
+    },
+    "reports.metrics.trafficCleared": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resueltos por vecinos"
+          }
+        }
+      }
+    },
+    "reports.metrics.trafficExpired": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vencidos solos"
+          }
+        }
+      }
+    },
+    "reports.metrics.trafficRemoved": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Retirados"
+          }
+        }
+      }
+    },
+    "reports.metrics.trafficReported": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reportes"
+          }
+        }
+      }
+    },
+    "reports.noActivity": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin actividad esta semana."
+          }
+        }
+      }
+    },
+    "reports.notFound": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ese informe no existe."
+          }
+        }
+      }
+    },
+    "reports.open": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver"
+          }
+        }
+      }
+    },
+    "reports.pdfFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No pudimos preparar el PDF."
+          }
+        }
+      }
+    },
+    "reports.pdfQueued": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Estamos preparando el PDF. Recarga en un momento."
+          }
+        }
+      }
+    },
+    "reports.pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este informe se está generando."
+          }
+        }
+      }
+    },
+    "reports.preparePdf": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparar PDF"
+          }
+        }
+      }
+    },
+    "reports.preparingPdf": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparando el PDF…"
+          }
+        }
+      }
+    },
+    "reports.print": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imprimir"
+          }
+        }
+      }
+    },
+    "reports.sections.businesses": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Negocios"
+          }
+        }
+      }
+    },
+    "reports.sections.consultations": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consultas"
+          }
+        }
+      }
+    },
+    "reports.sections.people": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gente"
+          }
+        }
+      }
+    },
+    "reports.sections.places": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lugares"
+          }
+        }
+      }
+    },
+    "reports.sections.routes": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutas de ecoturismo"
+          }
+        }
+      }
+    },
+    "reports.sections.topCategories": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Categorías con más lugares nuevos"
+          }
+        }
+      }
+    },
+    "reports.sections.traffic": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tránsito"
+          }
+        }
+      }
+    },
+    "reports.statuses.failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Falló"
+          }
+        }
+      }
+    },
+    "reports.statuses.pending": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generando"
+          }
+        }
+      }
+    },
+    "reports.statuses.ready": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listo"
+          }
+        }
+      }
+    },
+    "reports.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Informes semanales"
+          }
+        }
+      }
+    },
+    "reports.unreadable": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este informe se generó con una versión anterior y no podemos mostrarlo."
+          }
+        }
+      }
+    },
+    "reports.week": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Semana del %1$@ al %2$@"
           }
         }
       }
@@ -8658,7 +9352,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Prueba con otra palabra, o busca por categoría o municipio."
+            "value": "Revisa cómo está escrito o busca por categoría."
           }
         }
       }
@@ -8669,7 +9363,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No encontramos nada con ese nombre"
+            "value": "No encontramos ese lugar"
           }
         }
       }
@@ -8951,7 +9645,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Puedes pedir otro en %1$lld s"
+            "value": "Reenviar código en %1$lld s"
           }
         }
       }
@@ -9212,6 +9906,17 @@
         }
       }
     },
+    "traffic.askBlocked": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿La vía sigue bloqueada?"
+          }
+        }
+      }
+    },
     "traffic.cleared": {
       "extractionState": "manual",
       "localizations": {
@@ -9232,13 +9937,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld dice que ya pasó"
+                  "value": "%1$lld persona dice que ya no está."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld dicen que ya pasó"
+                  "value": "%1$lld personas dicen que ya no está."
                 }
               }
             }
@@ -9263,18 +9968,41 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ya pasó"
+            "value": "Ya no está"
           }
         }
       }
     },
-    "traffic.goneShort": {
+    "traffic.goneBlocked": {
       "extractionState": "manual",
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ya no está"
+            "value": "Ya se puede pasar"
+          }
+        }
+      }
+    },
+    "traffic.goneBlockedVoices": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld persona dice que ya se puede pasar."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld personas dicen que ya se puede pasar."
+                }
+              }
+            }
           }
         }
       }
@@ -9385,18 +10113,41 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sí, sigue ahí"
+            "value": "Sigue ahí"
           }
         }
       }
     },
-    "traffic.stillShort": {
+    "traffic.stillBlocked": {
       "extractionState": "manual",
       "localizations": {
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sigue ahí"
+            "value": "Sigue bloqueada"
+          }
+        }
+      }
+    },
+    "traffic.stillBlockedVoices": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld persona confirma que la vía sigue bloqueada."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld personas confirman que la vía sigue bloqueada."
+                }
+              }
+            }
           }
         }
       }
@@ -9410,13 +10161,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld vecino dice que sigue ahí"
+                  "value": "%1$lld persona confirma que sigue ahí."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld vecinos dicen que sigue ahí"
+                  "value": "%1$lld personas confirman que sigue ahí."
                 }
               }
             }

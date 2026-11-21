@@ -3,6 +3,10 @@ import SwiftUI
 /// Categories are database rows with a Lucide icon name and a hex colour. The app maps the
 /// name to an SF Symbol; the colour is used only where colour carries meaning (map pins).
 enum Glyph {
+    /// "Where": an address, a location field, a town. A plain pin; `mappin.and.ellipse` draws a
+    /// pin on a disc that reads as a joystick at small sizes on iOS 27.
+    static let location = "mappin"
+
     /// Outline symbols, like the landing's thin icons. The map's pins ask for the filled ones.
     static func symbol(_ lucide: String, filled: Bool = false) -> String {
         let name = table[lucide] ?? "mappin"
@@ -38,6 +42,7 @@ enum Glyph {
         "flag": "flag.fill",
         "image": "photo.fill",
         "store": "storefront.fill",
+        "trophy": "trophy.fill",
         "shield-alert": "exclamationmark.shield.fill",
         "messages-square": "bubble.left.and.bubble.right.fill",
         "octagon-x": "xmark.octagon.fill",

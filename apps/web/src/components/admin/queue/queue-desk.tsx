@@ -6,7 +6,7 @@ import {
   type UseQueryResult,
   useQuery,
 } from "@tanstack/react-query";
-import { CheckCircle2, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import {
   type FocusEvent,
   Fragment,
@@ -19,6 +19,7 @@ import {
 } from "react";
 import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { moderationQueueOptions, pendingRoutesOptions } from "../list-queries";
 import { placeMapItem, routeMapItem, trafficMapItem } from "../map/queue-items";
 import { QueueMapLayout, type QueueMapSpec } from "../map/queue-map-view";
@@ -28,23 +29,20 @@ import {
   MunicipalityFilter,
   useMunicipalityFilter,
 } from "../municipality-filter";
-import {
-  AdminEmpty,
-  AdminPageHeader,
-  AdminTableCard,
-  AdminToolbar,
-} from "../page-frame";
+import { AdminPageHeader, AdminTableCard, AdminToolbar } from "../page-frame";
 import { QueryState } from "../query-state";
 import { QueueSkeleton } from "../skeletons";
 import { CaseRow } from "./case-row";
-import { ClaimRow } from "./claim-row";
+import { ClaimDetail, ClaimLine, ClaimRow } from "./claim-row";
 import { ContentReportRow } from "./content-report-row";
 import { PhotoRow } from "./photo-row";
 import { PlaceRow } from "./place-row";
+import { QueueEmpty } from "./queue-empty";
 import { ReportRow } from "./report-row";
 import { RouteRow } from "./route-row";
 import { QUEUE_LIMIT, type QueueSlug } from "./slugs";
-import { TrafficRow } from "./traffic-row";
+import { SplitContext } from "./split";
+import { TrafficDetail, TrafficLine, TrafficRow } from "./traffic-row";
 import { DeskContext, useDeskState } from "./use-decision";
 
 /** `admin` catalogue keys for each desk's title and intro. */
@@ -73,7 +71,18 @@ const INTRO: Record<QueueSlug, string> = {
 /** How long a decided card takes to leave. */
 const LEAVE_MS = 200;
 
-type Row = { key: string; node: ReactNode };
+/**
+ * One item of a queue. `node` is the full card. A queue that also gives
+ * `compact` and `pane` is worked as a list beside the selected item on wide
+ * screens (the compact line on the left, its pane on the right); phones keep
+ * the full card.
+ */
+type Row = {
+  key: string;
+  node: ReactNode;
+  compact?: ReactNode;
+  pane?: ReactNode;
+};
 
 type Moderation = ApiOutputs["moderation"]["queue"];
 type RoutesData = ApiOutputs["routes"]["browse"];
@@ -141,6 +150,8 @@ function ModerationDesk({ queue }: { queue: Exclude<QueueSlug, "routes"> }) {
             return data.claims.map((claim) => ({
               key: claim.id,
               node: <ClaimRow claim={claim} />,
+              compact: <ClaimLine claim={claim} />,
+              pane: <ClaimDetail claim={claim} />,
             }));
           case "photos":
             return data.photos.map((photo) => ({
@@ -156,6 +167,8 @@ function ModerationDesk({ queue }: { queue: Exclude<QueueSlug, "routes"> }) {
             return data.traffic.map((report) => ({
               key: report.id,
               node: <TrafficRow report={report} />,
+              compact: <TrafficLine report={report} />,
+              pane: <TrafficDetail report={report} />,
             }));
           case "content-reports":
             return data.contentReports.map((report) => ({
@@ -308,6 +321,17 @@ function Desk<T>({
   const [refreshing, setRefreshing] = useState(false);
   const [position, setPosition] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [wide, setWide] = useState(false);
+  const [chosen, setChosen] = useState<string | null>(null);
+  const pane = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const sync = () => setWide(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -324,6 +348,32 @@ function Desk<T>({
     scope,
     query.isPlaceholderData,
     !reduceMotion,
+  );
+
+  // List beside the selected item: only on a wide screen, for a queue that
+  // gives both a compact line and a pane. The selection survives decisions:
+  // when the chosen item leaves, the one that took its place is shown.
+  // Beside the queue map the list is a narrow column of cards linked to its
+  // pins, so the map view never splits.
+  const split =
+    wide &&
+    view !== "map" &&
+    items.length > 0 &&
+    items.every((row) => row.pane);
+  const selectedIndex = (() => {
+    const at = shown.findIndex((row) => row.key === chosen);
+    if (at >= 0 && !shown[at]?.leaving) return at;
+    const from = Math.max(at, 0);
+    const next = shown.findIndex((row, index) => index >= from && !row.leaving);
+    return next >= 0 ? next : shown.findLastIndex((row) => !row.leaving);
+  })();
+  const selected = selectedIndex >= 0 ? shown[selectedIndex] : undefined;
+  const splitValue = useMemo(
+    () => ({
+      selected: selected?.key ?? null,
+      select: (key: string) => setChosen(key),
+    }),
+    [selected?.key],
   );
 
   // Leaving cards fold away; a card that came back (a refused decision) is
@@ -441,8 +491,10 @@ function Desk<T>({
         return;
       }
 
-      if ((key === "p" || key === "r") && current >= 0) {
-        const button = cards[current]?.querySelector<HTMLButtonElement>(
+      if ((key === "p" || key === "r") && (current >= 0 || split)) {
+        // Beside a list, the decision lives in the selected item's pane.
+        const scope = split ? pane.current : cards[current];
+        const button = scope?.querySelector<HTMLButtonElement>(
           `[data-decision="${key === "p" ? "primary" : "secondary"}"]:not(:disabled)`,
         );
         if (!button) return;
@@ -464,7 +516,10 @@ function Desk<T>({
       ? Array.prototype.indexOf.call(list.current?.children, card)
       : -1;
     const entry = shown[index];
-    if (entry) focused.current = { key: entry.key, index };
+    if (entry) {
+      focused.current = { key: entry.key, index };
+      if (split && !entry.leaving) setChosen(entry.key);
+    }
   };
 
   const onListBlur = (event: FocusEvent<HTMLUListElement>) => {
@@ -493,100 +548,123 @@ function Desk<T>({
 
   return (
     <DeskContext.Provider value={desk}>
-      <div className="flex flex-col gap-6">
-        <AdminPageHeader
-          id="queue-title"
-          title={t(TITLE[slug])}
-          description={q(`intro.${INTRO[slug]}`)}
-        />
+      <SplitContext.Provider value={splitValue}>
+        <div className="flex flex-col gap-5">
+          <AdminPageHeader
+            id="queue-title"
+            title={t(TITLE[slug])}
+            description={q(`intro.${INTRO[slug]}`)}
+          />
 
-        <AdminToolbar
-          actions={
-            <>
-              {count ? (
-                <p className="text-sm text-muted-foreground tabular-nums">
-                  {q("count", { count })}
-                </p>
-              ) : null}
-              <Button
-                variant="outline"
-                size="icon"
-                aria-label={t("refresh")}
-                title={t("refresh")}
-                onClick={refresh}
-                disabled={refreshing}
-                className="pointer-coarse:size-11"
-              >
-                <RefreshCw
-                  aria-hidden
-                  className={refreshing ? "motion-safe:animate-spin" : ""}
-                />
-              </Button>
-            </>
-          }
-        >
-          <MunicipalityFilter />
-          {map ? <ViewToggle value={view} onChange={setView} /> : null}
-        </AdminToolbar>
+          {/* The filter and its refresh sit together, the count right above the
+            list it counts: one short row before the first card. */}
+          <AdminToolbar>
+            <MunicipalityFilter />
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label={t("refresh")}
+              title={t("refresh")}
+              onClick={refresh}
+              disabled={refreshing}
+              className="pointer-coarse:size-11"
+            >
+              <RefreshCw
+                aria-hidden
+                className={refreshing ? "motion-safe:animate-spin" : ""}
+              />
+            </Button>
+            {/* Nothing to list is nothing to map either: no switch then. */}
+            {map && count ? (
+              <ViewToggle value={view} onChange={setView} />
+            ) : null}
+            {/* What is being reviewed, counted in its own word, beside the
+              filter that decides it. */}
+            {count ? (
+              <p className="ml-auto text-sm text-muted-foreground tabular-nums">
+                {q(`counts.${slug}`, { count })}
+              </p>
+            ) : null}
+          </AdminToolbar>
 
-        <section
-          ref={region}
-          aria-labelledby="queue-title"
-          aria-keyshortcuts="J K P R"
-          tabIndex={-1}
-          inert={query.isPlaceholderData}
-          className={
-            query.isPlaceholderData
-              ? "flex flex-col gap-3 opacity-60 outline-none transition-opacity delay-150"
-              : "flex flex-col gap-3 outline-none"
-          }
-        >
-          <QueryState
-            query={query}
-            skeleton={
-              <QueueSkeleton detail={slug === "photos" ? "image" : "facts"} />
+          <section
+            ref={region}
+            aria-labelledby="queue-title"
+            aria-keyshortcuts="J K P R"
+            tabIndex={-1}
+            inert={query.isPlaceholderData}
+            className={
+              query.isPlaceholderData
+                ? "flex flex-col gap-3 opacity-60 outline-none transition-opacity delay-150"
+                : "flex flex-col gap-3 outline-none"
             }
           >
-            {() =>
-              shown.length === 0 ? (
-                <AdminEmpty
-                  icon={CheckCircle2}
-                  title={q("emptyTitle")}
-                  description={q("emptyHint")}
-                  className="animate-fade"
-                />
-              ) : (
-                <ListOrMap
-                  map={view === "map" ? map : undefined}
-                  data={query.data}
-                >
-                  <AdminTableCard>
-                    <ul
-                      ref={list}
-                      className="divide-y [&>li:focus-visible]:ring-2 [&>li:focus-visible]:ring-ring/50 [&>li:focus-visible]:outline-none [&>li:focus-visible]:ring-inset"
-                      onFocus={onListFocus}
-                      onBlur={onListBlur}
+            <QueryState
+              query={query}
+              errorTitle={q(`loadFailed.${slug}`)}
+              skeleton={
+                <QueueSkeleton detail={slug === "photos" ? "image" : "facts"} />
+              }
+            >
+              {() =>
+                shown.length === 0 ? (
+                  <QueueEmpty slug={slug} />
+                ) : (
+                  <ListOrMap
+                    map={view === "map" ? map : undefined}
+                    data={query.data}
+                  >
+                    <div
+                      className={
+                        split
+                          ? "grid items-start gap-6 grid-cols-[minmax(0,22rem)_minmax(0,1fr)]"
+                          : undefined
+                      }
                     >
-                      {shown.map((row) => (
-                        <Fragment key={row.key}>{row.node}</Fragment>
-                      ))}
-                    </ul>
-                  </AdminTableCard>
-                  {items.length >= QUEUE_LIMIT ? (
-                    <p className="text-xs text-muted-foreground">
-                      {q("mayBeMore", { count: QUEUE_LIMIT })}
-                    </p>
-                  ) : null}
-                </ListOrMap>
-              )
-            }
-          </QueryState>
-        </section>
+                      {/* No frame and no rules: each item is its own soft block. */}
+                      <AdminTableCard className="overflow-visible rounded-none border-0 bg-transparent">
+                        <ul
+                          ref={list}
+                          className={cn(
+                            "flex flex-col [&>li:focus-visible]:ring-2 [&>li:focus-visible]:ring-ring/50 [&>li:focus-visible]:outline-none [&>li:focus-visible]:ring-inset",
+                            split ? "gap-1" : "gap-3",
+                          )}
+                          onFocus={onListFocus}
+                          onBlur={onListBlur}
+                        >
+                          {shown.map((row) => (
+                            <Fragment key={row.key}>
+                              {split ? row.compact : row.node}
+                            </Fragment>
+                          ))}
+                        </ul>
+                      </AdminTableCard>
+                      {split && selected ? (
+                        <div
+                          ref={pane}
+                          key={selected.key}
+                          className="sticky top-6 min-w-0 animate-fade"
+                        >
+                          {selected.pane}
+                        </div>
+                      ) : null}
+                    </div>
+                    {items.length >= QUEUE_LIMIT ? (
+                      <p className="text-xs text-muted-foreground">
+                        {q("mayBeMore", { count: QUEUE_LIMIT })}
+                      </p>
+                    ) : null}
+                  </ListOrMap>
+                )
+              }
+            </QueryState>
+          </section>
 
-        <p role="status" className="sr-only">
-          {position}
-        </p>
-      </div>
+          <p role="status" className="sr-only">
+            {position}
+          </p>
+        </div>
+      </SplitContext.Provider>
     </DeskContext.Provider>
   );
 }

@@ -1,45 +1,16 @@
 "use client";
 
-import type { ApiInputs, ApiOutputs } from "@ruta/contracts";
-import { useQueryClient } from "@tanstack/react-query";
 import {
-  BedDouble,
-  Bike,
-  Building2,
-  Bus,
-  Car,
-  Church,
-  CloudRain,
-  Coffee,
-  Construction,
-  Cross,
-  Droplets,
-  Footprints,
-  Fuel,
-  GraduationCap,
-  Landmark,
-  Lightbulb,
-  type LucideIcon,
-  MapPin,
-  MessagesSquare,
-  Mountain,
-  OctagonX,
-  Pill,
-  Route,
-  ShoppingBasket,
-  Store,
-  Trash2,
-  Trees,
-  TriangleAlert,
-  Utensils,
-  Waves,
-  Wheat,
-  Wrench,
-} from "lucide-react";
+  type ApiInputs,
+  type ApiOutputs,
+  categoryIconNames,
+} from "@ruta/contracts";
+import { useQueryClient } from "@tanstack/react-query";
 import { useId, useState } from "react";
 import { useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
 import { FormField } from "@/components/admin/form-field";
+import { CATEGORY_ICONS } from "@/components/admin/map/category-glyph";
 import { useOutcome } from "@/components/admin/outcome";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
 import { Button } from "@/components/ui/button";
@@ -71,64 +42,6 @@ type SaveInput = Omit<ApiInputs["catalog"]["save"], "requestId">;
 type Icon = SaveInput["icon"];
 type Severity = NonNullable<SaveInput["severity"]>;
 
-/** The icons `catalog.save` accepts; icon names are data, never catalogue keys. */
-const ICONS: readonly Icon[] = [
-  "map-pin",
-  "mountain",
-  "route",
-  "store",
-  "droplets",
-  "triangle-alert",
-  "construction",
-  "trees",
-  "messages-square",
-];
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  "map-pin": MapPin,
-  mountain: Mountain,
-  route: Route,
-  store: Store,
-  droplets: Droplets,
-  "triangle-alert": TriangleAlert,
-  construction: Construction,
-  trees: Trees,
-  "messages-square": MessagesSquare,
-  waves: Waves,
-  cross: Cross,
-  "graduation-cap": GraduationCap,
-  landmark: Landmark,
-  bus: Bus,
-  church: Church,
-  wheat: Wheat,
-  "shopping-basket": ShoppingBasket,
-  utensils: Utensils,
-  "bed-double": BedDouble,
-  pill: Pill,
-  fuel: Fuel,
-  "building-2": Building2,
-  wrench: Wrench,
-  car: Car,
-  coffee: Coffee,
-  footprints: Footprints,
-  bike: Bike,
-  "octagon-x": OctagonX,
-  "cloud-rain": CloudRain,
-  "trash-2": Trash2,
-  lightbulb: Lightbulb,
-};
-
-/** The Lucide icon for a stored icon name, with the raw name beside it. */
-export function CategoryIcon({ name }: { name: string }) {
-  const IconComponent = ICON_MAP[name] ?? MapPin;
-  return (
-    <span className="inline-flex items-center gap-2 whitespace-nowrap">
-      <IconComponent aria-hidden className="size-4 shrink-0" />
-      {name}
-    </span>
-  );
-}
-
 const SEVERITIES: readonly Severity[] = ["blocking", "partial", "minor"];
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -158,7 +71,7 @@ export function CategoryForm({
 
   const [name, setName] = useState(record?.name ?? "");
   const [icon, setIcon] = useState<Icon>(
-    ICONS.find((item) => item === record?.icon) ?? "map-pin",
+    categoryIconNames.find((item) => item === record?.icon) ?? "map-pin",
   );
   const [color, setColor] = useState(record?.color ?? "#121211");
   const [severity, setSeverity] = useState<Severity | "">(
@@ -309,22 +222,32 @@ export function CategoryForm({
                 value={icon}
                 disabled={save.isPending}
                 onValueChange={(value) =>
-                  setIcon(ICONS.find((item) => item === value) ?? icon)
+                  setIcon(
+                    categoryIconNames.find((item) => item === value) ?? icon,
+                  )
                 }
               >
                 <SelectTrigger id={`${uid}-icon`} className="w-full">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ICONS.map((item) => {
-                    const ItemIcon = ICON_MAP[item] ?? MapPin;
-                    return (
-                      <SelectItem key={item} value={item}>
-                        <ItemIcon aria-hidden />
-                        {item}
-                      </SelectItem>
-                    );
-                  })}
+                  {/* Sorted by the desk's word for the glyph, not its code id. */}
+                  {[...categoryIconNames]
+                    .sort((a, b) =>
+                      t(`iconNames.${a}`).localeCompare(
+                        t(`iconNames.${b}`),
+                        "es",
+                      ),
+                    )
+                    .map((item) => {
+                      const ItemIcon = CATEGORY_ICONS[item];
+                      return (
+                        <SelectItem key={item} value={item}>
+                          <ItemIcon aria-hidden />
+                          {t(`iconNames.${item}`)}
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             </FormField>

@@ -163,6 +163,8 @@ export const liveTrafficShape = z.object({
   municipalityId: z.string(),
   municipalityName: z.string(),
   reportedBy: z.string().nullable(),
+  /** The reporter's profile photo, sized for an avatar; null without one. */
+  reportedByImage: z.string().nullable(),
   reporterResidentVerified: z.boolean(),
 });
 

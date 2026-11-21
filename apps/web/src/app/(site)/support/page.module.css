@@ -6,7 +6,7 @@
 
 .page a:focus-visible,
 .page button:focus-visible {
-  outline: 3px solid #746391;
+  outline: 3px solid #4e7265;
   outline-offset: 5px;
 }
 
@@ -38,7 +38,7 @@
   left: 0;
   height: 4px;
   border-radius: 999px;
-  background: #b8a6cf;
+  background: #7eb9a4;
   content: "";
   transform: rotate(-1deg);
 }
@@ -85,9 +85,9 @@
 
 .helpPanel {
   overflow: hidden;
-  border: 1px solid #ded5e9;
+  border: 1px solid #c2dfd4;
   border-radius: 30px;
-  background: #e8e1f1;
+  background: #d1e9e0;
 }
 
 .panelTop {
@@ -113,7 +113,7 @@
 
 .panelCopy > p {
   margin-top: 18px;
-  color: #61586d;
+  color: var(--ink-2);
   font-size: 14px;
   line-height: 1.8;
   text-wrap: pretty;
@@ -160,7 +160,7 @@
 .orbit {
   position: absolute;
   inset: 18px 0 24px;
-  border: 1px solid #c9bdd9;
+  border: 1px solid #a3cabc;
   border-radius: 50%;
   transform: rotate(-24deg);
 }
@@ -171,9 +171,9 @@
   bottom: 7px;
   width: 15px;
   height: 15px;
-  border: 4px solid #e8e1f1;
+  border: 4px solid #d1e9e0;
   border-radius: 50%;
-  background: #9780b3;
+  background: #59957f;
   content: "";
 }
 
@@ -181,7 +181,7 @@
   position: absolute;
   top: 11px;
   right: 20px;
-  color: #7c639c;
+  color: #4b7767;
   font-size: 56px;
   line-height: 1;
 }
@@ -195,7 +195,7 @@
   border-radius: 21px;
   padding: 22px 19px 18px;
   background: #fffdf5;
-  box-shadow: 0 12px 28px #4e3c6210;
+  box-shadow: 0 12px 28px #2d493f10;
   transform: rotate(-6deg);
 }
 
@@ -236,11 +236,11 @@
   align-items: center;
   gap: 9px;
   margin-top: 22px;
-  border: 1px solid #d4c8e3;
+  border: 1px solid #add5c7;
   border-radius: 10px;
   padding-inline: 10px;
-  background: #e8dff2;
-  color: #554364;
+  background: #cae9de;
+  color: #354f46;
   font-size: 12px;
   font-weight: 500;
 }
@@ -364,7 +364,7 @@
 }
 
 .questionTrigger:hover {
-  background: #f2eef7;
+  background: #e5f3ee;
 }
 
 .toggle {
@@ -372,10 +372,10 @@
   width: 26px;
   height: 26px;
   flex-shrink: 0;
-  border: 1px solid #dfd6e9;
+  border: 1px solid #c4e0d6;
   border-radius: 50%;
-  background: #f0eaf6;
-  color: #655078;
+  background: #ddf1ea;
+  color: #3f5f53;
 }
 
 .toggle::before,
@@ -421,7 +421,7 @@
 }
 
 .textAction:hover {
-  background: #eee8f6;
+  background: #d8f0e7;
 }
 
 .explore {

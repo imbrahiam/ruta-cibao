@@ -9,7 +9,7 @@ export function SiteFooter() {
   const t = getT("landing");
 
   return (
-    <footer className={styles.footer}>
+    <footer id="site-footer" className={styles.footer}>
       <div className={styles.footerMain}>
         <div className={styles.footerIdentity}>
           <Link href="/" className={styles.footerBrand} aria-label={t("back")}>

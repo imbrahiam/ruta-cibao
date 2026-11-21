@@ -14,7 +14,7 @@ export function formatCoordinates({ lat, lng }: LatLng): string {
 const googleMapsUrl = ({ lat, lng }: LatLng) =>
   `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 
-const openStreetMapUrl = ({ lat, lng }: LatLng) =>
+export const openStreetMapUrl = ({ lat, lng }: LatLng) =>
   `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`;
 
 const LINK =

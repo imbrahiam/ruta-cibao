@@ -25,11 +25,11 @@ private struct SignInFlow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Going back a step is at the leading edge; leaving is at the trailing one.
             HStack {
-                IconButton(symbol: state.step == .verify ? "chevron.left" : "xmark", label: state.step == .verify ? L10n.SignIn.change : L10n.Common.close) {
-                    if state.step == .verify { vm.editDestination() } else { close() }
-                }
+                if state.step == .verify { IconButton(symbol: "chevron.left", label: L10n.SignIn.change, glass: true) { vm.editDestination() } }
                 Spacer()
+                if state.step != .verify { IconButton(symbol: "xmark", label: L10n.Common.close, glass: true) { close() } }
             }
             .padding(.top, 10)
 
@@ -45,7 +45,7 @@ private struct SignInFlow: View {
 
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, Metrics.gutter)
         .readable(480)
         .animation(Motion.settle, value: state.step)
         .onChange(of: state.step, initial: true) { _, step in
@@ -122,11 +122,17 @@ private struct SignInFlow: View {
                 .disabled(state.code.count < 6 || state.busy)
                 .padding(.top, 16)
 
-            Button(state.resendIn > 0 ? L10n.SignIn.resendIn(seconds: Int(state.resendIn)) : L10n.SignIn.resend) { vm.resend() }
-                .buttonStyle(.pill(.outline, compact: true, fill: false))
-                .disabled(state.resendIn > 0 || state.busy)
-                .monospacedDigit()
-                .padding(.top, 14)
+            // While the wait runs it is a readable line, not a greyed-out button.
+            Group {
+                if state.resendIn > 0 {
+                    Text(L10n.SignIn.resendIn(seconds: Int(state.resendIn))).type(.callout, .ink3).monospacedDigit().frame(minHeight: 40)
+                } else {
+                    Button(L10n.SignIn.resend) { vm.resend() }
+                        .buttonStyle(.pill(.outline, compact: true, fill: false))
+                        .disabled(state.busy)
+                }
+            }
+            .padding(.top, 14)
         }
     }
 
@@ -187,7 +193,7 @@ struct CodeBoxes: View {
                         .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous)
-                                .strokeBorder(failed ? Color.danger : Color.ink, lineWidth: focused && index == min(code.count, 5) ? 1.5 : 0)
+                                .strokeBorder(failed ? Color.danger : Color.brand, lineWidth: focused && index == min(code.count, 5) ? 1.5 : 0)
                         }
                         .contentTransition(.numericText())
                         .animation(Motion.quick, value: digit)

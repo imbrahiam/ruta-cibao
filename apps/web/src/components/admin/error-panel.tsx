@@ -45,7 +45,10 @@ export function ErrorPanel({
   error,
   onRetry,
   compact = false,
+  title,
 }: {
+  /** What could not be loaded, said before why. */
+  title?: string;
   error: unknown;
   onRetry?: () => void;
   compact?: boolean;
@@ -71,7 +74,10 @@ export function ErrorPanel({
     >
       <Icon aria-hidden="true" />
       <AlertDescription className="text-foreground">
-        <p>{t(errorMessageKey(error))}</p>
+        {title ? <p className="font-medium">{title}</p> : null}
+        <p className={title ? "text-muted-foreground" : undefined}>
+          {t(errorMessageKey(error))}
+        </p>
         {needsStepUp ? (
           <StaffStepUpForm onVerified={onRetry} />
         ) : onRetry && !refused ? (

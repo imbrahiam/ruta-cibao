@@ -84,36 +84,53 @@ private struct Thread: View {
         if state.canRespond || comments.state.signedIn { replying = true } else { comments.vm.requestSignIn() }
     }
 
+    private func byline(_ detail: ConsultationDetail) -> some View {
+        HStack(spacing: 10) {
+            Avatar(name: detail.openedBy, size: 28)
+            Text([detail.isMine ? L10n.Consultations.you : (detail.openedBy ?? L10n.Traffic.resident), detail.municipalityName].joined(separator: " · "))
+                .type(.callout, .ink2)
+        }
+    }
+
+    private func category(_ detail: ConsultationDetail) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: Glyph.symbol(detail.categoryIcon)).font(.system(size: 12))
+            Text(detail.categoryName)
+        }
+        .type(.caption, .ink2)
+        .fixedSize()
+        .padding(.horizontal, 10)
+        .frame(minHeight: 28)
+        .background(Color.paper2, in: Capsule())
+    }
+
     private func content(_ detail: ConsultationDetail) -> some View {
         let replies = detail.responses.count + Int(comments.state.total)
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 12) {
-                    Avatar(name: detail.openedBy, size: 44)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(detail.isMine ? L10n.Consultations.you : (detail.openedBy ?? L10n.Traffic.resident)).type(.bodyStrong)
-                        Text(detail.municipalityName).type(.callout, .ink3)
-                    }
-                    Spacer(minLength: 8)
+                // Corners, as on the Gestión cards: state top-left, time top-right, so the
+                // title is the first thing read; who and where close the block.
+                HStack(spacing: 8) {
                     StatusBadge(status: detail.statusValue)
+                    Spacer(minLength: 8)
+                    Text(CompactTime.since(detail.createdAt.date)).type(.caption, .ink3)
+                        .accessibilityLabel(detail.createdAt.date.formatted(date: .long, time: .shortened))
                 }
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.top, 8)
                 .rise(0)
 
-                Text(detail.title).type(.title).padding(.horizontal, Metrics.gutter).padding(.top, 18).rise(1)
-                Text(detail.body).type(.body, .ink2).lineSpacing(3).padding(.horizontal, Metrics.gutter).padding(.top, 8).rise(2)
+                Text(detail.title).type(.title).padding(.horizontal, Metrics.gutter).padding(.top, 12).rise(1)
+                Text(detail.body).type(.body).lineSpacing(3).padding(.horizontal, Metrics.gutter).padding(.top, 8).rise(2)
 
-                HStack(spacing: 7) {
-                    Image(systemName: Glyph.symbol(detail.categoryIcon)).font(.system(size: 12))
-                    Text(detail.categoryName)
+                // Byline left, category right while both fit; the category drops under the
+                // byline for a long town name or large text.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { byline(detail); Spacer(minLength: 8); category(detail) }
+                    VStack(alignment: .leading, spacing: 10) { byline(detail); category(detail) }
                 }
-                .type(.caption, .ink2)
-                .padding(.horizontal, 11)
-                .frame(height: 28)
-                .overlay(Capsule().strokeBorder(Color.line, lineWidth: 1))
                 .padding(.horizontal, Metrics.gutter)
-                .padding(.top, 14)
+                .padding(.top, 16)
                 .rise(3)
 
                 if let photos = detail.photos, !photos.isEmpty {
@@ -122,11 +139,6 @@ private struct Thread: View {
                 if let location = detail.location {
                     PlaceCard(latitude: location.lat, longitude: location.lng).padding(.horizontal, Metrics.gutter).padding(.top, 12).rise(4)
                 }
-
-                Text(detail.createdAt.date.formatted(date: .abbreviated, time: .shortened))
-                    .type(.caption, .ink3)
-                    .padding(.horizontal, Metrics.gutter)
-                    .padding(.top, 16)
 
                 PostActions(supported: detail.supported, supportCount: Int(detail.supportCount), replies: replies, slug: detail.slug, title: detail.title, support: { vm.toggleSupport() }, reply: { if canReply { startReply() } })
                     .padding(.horizontal, Metrics.gutter - 10)
@@ -155,6 +167,8 @@ private struct Thread: View {
             .padding(.bottom, 24)
             .readable()
         }
+        // Text scrolls under the back and menu buttons: a solid edge keeps it from showing through.
+        .scrollEdgeEffectStyle(.hard, for: .top)
         .refreshable { vm.refresh(); comments.vm.refresh() }
     }
 }
@@ -219,7 +233,7 @@ struct CommentThread: View {
                                 Button(L10n.Comments.report, systemImage: "flag") { reporting = comment }
                             }
                         } label: {
-                            Image(systemName: "ellipsis").font(.system(size: 14)).foregroundStyle(Color.ink3).frame(width: 36, height: 36)
+                            Image(systemName: "ellipsis").font(.system(size: 14)).foregroundStyle(Color.ink3).frame(width: 44, height: 44)
                         }
                         .accessibilityLabel(L10n.Comments.options)
                     }
@@ -228,7 +242,6 @@ struct CommentThread: View {
                     .padding(.vertical, 14)
                     .opacity(state.workingCommentId == comment.id ? 0.4 : 1)
                     .transition(.opacity)
-                    Hairline(inset: Metrics.gutter + 48)
                 }
                 if state.canLoadMore {
                     Button(L10n.Common.seeAll) { comments.vm.loadMore() }
@@ -299,12 +312,17 @@ private struct ReplyComposer: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            SheetBar(title: asStaff ? L10n.Comments.officialReply : L10n.Comments.title, close: close) {
+            SheetBar(title: asStaff ? L10n.Comments.officialReply : L10n.Comments.replyTitle, close: close) {
                 Button { send() } label: {
                     HStack(spacing: 8) { if busy { ProgressView().tint(.onInk) }; Text(L10n.Common.send) }
                 }
                 .buttonStyle(.pill(.ink, compact: true, fill: false))
                 .disabled(!canSend || busy)
+            }
+
+            // What the reply answers, so the sheet never loses its context.
+            if let title = model.state.detail?.title {
+                Text(L10n.Comments.replyingTo(name: "«\(title)»")).type(.callout, .ink3).lineLimit(2).padding(.horizontal, 20)
             }
 
             TextField("", text: asStaff ? $official : Binding(get: { comments.state.draft }, set: { comments.vm.updateDraft(value: $0) }),
@@ -326,6 +344,8 @@ private struct ReplyComposer: View {
                         .padding(.horizontal, 20)
                     }
                     .scrollIndicators(.hidden)
+                    .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                    .edgeFade(20)
                 }
             }
 

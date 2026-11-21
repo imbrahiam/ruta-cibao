@@ -1,6 +1,6 @@
 "use client";
 
-import { Maximize2, X } from "lucide-react";
+import { Copy, ExternalLink, Maximize2, MoreHorizontal, X } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
@@ -12,12 +12,27 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useAdminTheme } from "@/lib/web/admin-theme";
+import { useCopy } from "../contact/use-copy";
+import { useOutcome } from "../outcome";
 import { AdminMap } from "./admin-map";
 import { useItemFrame } from "./item-frame";
 import { type LegendEntry, MapLegend } from "./legend";
-import { CoordinateLine, MapLinks } from "./map-links";
+import {
+  CoordinateLine,
+  formatCoordinates,
+  MapLinks,
+  openStreetMapUrl,
+} from "./map-links";
 import type { LatLng, MapItem } from "./map-types";
+import { ContextDot } from "./markers";
 import { useContextPlaces } from "./use-context-places";
 
 /**
@@ -34,12 +49,17 @@ export function MapPreview({
   anchor,
   anchorLabel,
   className,
+  mapClassName,
+  facts = true,
+  subtitle,
 }: {
   item: MapItem;
   /** The map's text alternative. */
   label: string;
   /** Names the large map's window. */
   title: string;
+  /** One quiet line under the title there ("Sabaneta · Comedor"). */
+  subtitle?: string;
   legend: LegendEntry[];
   /** One more line for the large map, e.g. a route's distance. */
   summary?: string;
@@ -48,16 +68,27 @@ export function MapPreview({
   /** Says which point `anchor` is when it is not the item's own spot. */
   anchorLabel?: string;
   className?: string;
+  /** The map's own box; 16:10 unless a layout needs it lower. */
+  mapClassName?: string;
+  /** Coordinates and copy under the small map; off where the map is only a
+   * supporting preview (the expanded map still has them). */
+  facts?: boolean;
 }) {
   const t = useTranslations("admin.queue.map");
   const [open, setOpen] = useState(false);
   const items = useMemo(() => [item], [item]);
-  // Beside the desk's big map the row needs no map of its own: the facts only.
+  // Beside the desk's big map the row needs no map of its own, nor a second
+  // copy of the legend that already sits under that map: the point only.
   const beside = useItemFrame() !== null;
 
   if (beside) {
     return (
-      <PointFacts legend={legend} anchor={anchor} anchorLabel={anchorLabel} />
+      <PointFacts
+        legend={[]}
+        anchor={anchor}
+        anchorLabel={anchorLabel}
+        compact
+      />
     );
   }
 
@@ -67,7 +98,7 @@ export function MapPreview({
         <AdminMap
           items={items}
           label={label}
-          className="aspect-[16/10] w-full"
+          className={cn("aspect-[16/10] w-full", mapClassName)}
           overlay={
             <DialogTrigger asChild>
               <button
@@ -75,7 +106,9 @@ export function MapPreview({
                 aria-label={t("expandLabel", { title })}
                 className="group absolute inset-0 z-10 cursor-zoom-in outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60 focus-visible:ring-inset"
               >
-                <span className="absolute right-2 bottom-2 inline-flex items-center gap-1 rounded-full border bg-card/95 px-2.5 py-1 text-xs font-medium shadow-(--shadow-elevated) group-hover:bg-card">
+                {/* Top corner: the bottom one is Google's attribution, which
+                    the chip used to cover. */}
+                <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full border bg-card/95 px-2.5 py-1 text-xs font-medium shadow-(--shadow-elevated) group-hover:bg-card">
                   <Maximize2 aria-hidden className="size-3" />
                   {t("expand")}
                 </span>
@@ -86,13 +119,16 @@ export function MapPreview({
         <DialogContent
           data-fullscreen
           showCloseButton={false}
-          className="fixed inset-0 flex h-dvh w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:inset-6 sm:h-auto sm:w-auto sm:max-w-none sm:rounded-(--radius-dialog) sm:border"
+          // A phone gets the whole screen; a desk a deliberate window, centred,
+          // with the full-screen control for more.
+          className="fixed inset-0 flex h-dvh w-full max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-[min(80dvh,760px)] sm:w-[min(92vw,1100px)] sm:max-w-none sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-(--radius-dialog) sm:border"
         >
           {open ? (
             <ExpandedMap
               item={item}
               label={label}
               title={title}
+              subtitle={subtitle}
               legend={legend}
               summary={summary}
               anchor={anchor}
@@ -101,12 +137,14 @@ export function MapPreview({
           ) : null}
         </DialogContent>
       </Dialog>
-      <PointFacts
-        legend={legend}
-        anchor={anchor}
-        anchorLabel={anchorLabel}
-        compact
-      />
+      {facts ? (
+        <PointFacts
+          legend={legend}
+          anchor={anchor}
+          anchorLabel={anchorLabel}
+          compact
+        />
+      ) : null}
     </div>
   );
 }
@@ -115,30 +153,47 @@ function ExpandedMap({
   item,
   label,
   title,
+  subtitle,
   legend,
   summary,
   anchor,
-  anchorLabel,
 }: {
   item: MapItem;
   label: string;
   title: string;
+  subtitle?: string;
   legend: LegendEntry[];
   summary?: string;
   anchor: LatLng;
   anchorLabel?: string;
 }) {
   const t = useTranslations("admin.queue.map");
+  const q = useTranslations("admin.queue");
   const context = useContextPlaces(true);
   const items = useMemo(() => [item], [item]);
+  const scheme = useAdminTheme().theme;
+  const copy = useCopy();
+  const announce = useOutcome();
+  const contact = useTranslations("admin.contactActions");
+
+  const copyCoordinates = async () => {
+    if (await copy(formatCoordinates(anchor))) {
+      announce(contact("copied", { what: t("theCoordinates") }));
+    } else {
+      announce(contact("copyFailed"), "error");
+    }
+  };
 
   return (
     <>
-      <header className="flex items-center justify-between gap-3 border-b px-4 py-3">
+      <header className="flex items-start justify-between gap-3 px-5 pt-4 pb-3">
         <div className="min-w-0">
-          <DialogTitle className="truncate text-[15px] leading-snug font-medium">
-            {t("dialogTitle", { title })}
+          <DialogTitle className="truncate text-base leading-snug font-semibold">
+            {title}
           </DialogTitle>
+          {subtitle ? (
+            <p className="truncate text-sm text-muted-foreground">{subtitle}</p>
+          ) : null}
           <DialogDescription className="sr-only">{label}</DialogDescription>
         </div>
         <DialogClose asChild>
@@ -147,21 +202,58 @@ function ExpandedMap({
           </Button>
         </DialogClose>
       </header>
-      <div className="min-h-0 flex-1 p-3">
+      <div className="min-h-0 flex-1">
         <AdminMap
           interactive
+          named
           items={items}
           context={context}
           label={label}
-          className="size-full"
+          className="size-full rounded-none border-0"
         />
       </div>
-      <footer className="flex flex-col gap-2 border-t px-4 py-3">
-        {summary ? <p className="text-sm font-medium">{summary}</p> : null}
-        <PointFacts legend={legend} anchor={anchor} anchorLabel={anchorLabel} />
+      <footer className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3 text-sm">
+        {summary ? <p className="font-medium">{summary}</p> : null}
+        <MapLegend entries={legend} />
         {context.length > 0 ? (
-          <p className="text-xs text-muted-foreground">{t("contextHint")}</p>
+          // The same dot as on the map, named.
+          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+            <ContextDot scheme={scheme} />
+            {t("publishedPlaces")}
+          </span>
         ) : null}
+        <span className="ml-auto inline-flex items-center gap-1">
+          <MapLinks point={anchor} only="google" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={t("more")}
+                title={t("more")}
+              >
+                <MoreHorizontal aria-hidden />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top">
+              <DropdownMenuItem onSelect={copyCoordinates}>
+                <Copy aria-hidden />
+                {t("copyCoordinates")}
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a
+                  href={openStreetMapUrl(anchor)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink aria-hidden />
+                  {q("openInMaps")}
+                  <span className="sr-only">{q("newTab")}</span>
+                </a>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </span>
       </footer>
     </>
   );

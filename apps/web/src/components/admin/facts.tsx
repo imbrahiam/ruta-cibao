@@ -1,5 +1,14 @@
-import { Children, type ReactNode } from "react";
+import { Children, Fragment, isValidElement, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+
+/** Facts handed over in a fragment count one by one. */
+function flatten(node: ReactNode): ReactNode[] {
+  return Children.toArray(node).flatMap((child) =>
+    isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment
+      ? flatten(child.props.children)
+      : [child],
+  );
+}
 
 /**
  * Inline facts about a record. Never type a `·`, `|` or `—` between values:
@@ -12,7 +21,7 @@ export function MetaList({
   children: ReactNode;
   className?: string;
 }) {
-  const items = Children.toArray(children).filter((child) => child !== "");
+  const items = flatten(children).filter((child) => child !== "");
   if (items.length === 0) return null;
   return (
     // The list is pulled left by one gutter and the wrapper clips it, so the
@@ -73,7 +82,7 @@ export function PropertyRow({
   return (
     <div
       data-slot="property-row"
-      className={cn("flex flex-col gap-0.5", className)}
+      className={cn("flex flex-col gap-1", className)}
     >
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="min-w-0 text-sm break-words">{children}</dd>

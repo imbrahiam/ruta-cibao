@@ -69,12 +69,12 @@ function MunicipalityPortrait({
             <circle cx="102" cy="70" r="19" fill="#f7f3e7" />
             <path
               d="M146 250c-55-51 124-70 73-118-32-30-100-14-80-55 10-21 42-29 57-48"
-              stroke="#faf8fc"
+              stroke="#f4faf8"
               strokeWidth="42"
             />
             <path
               d="M146 250c-55-51 124-70 73-118-32-30-100-14-80-55 10-21 42-29 57-48"
-              stroke="#9e8db4"
+              stroke="#6c9e8c"
               strokeWidth="2"
               strokeDasharray="4 8"
               strokeLinecap="round"
@@ -83,14 +83,14 @@ function MunicipalityPortrait({
               cx="207"
               cy="163"
               r="10"
-              fill="#a698ba"
+              fill="#7ca797"
               stroke="#fff"
               strokeWidth="4"
             />
-            <path d="m243 69 15-7-5 16-3-9-7 0Z" fill="#8d7caa" />
+            <path d="m243 69 15-7-5 16-3-9-7 0Z" fill="#5c8e7b" />
             <path
               d="M82 178h30m-15-15v30M264 135h18m-9-9v18"
-              stroke="#b8acca"
+              stroke="#92b9ab"
               strokeWidth="2"
               strokeLinecap="round"
             />
@@ -128,7 +128,7 @@ function MunicipalityPortrait({
               strokeLinecap="round"
             />
             <path d="m174 177-9 17 27-13" fill="#c0cba9" />
-            <circle cx="263" cy="64" r="13" fill="#d8c7df" />
+            <circle cx="263" cy="64" r="13" fill="#b3d4c8" />
             <path
               d="m83 180 6 6 13-15"
               stroke="#a49a7d"
@@ -177,7 +177,7 @@ export default function TerritoryPage() {
             t("pages.territoryHeadingWordTwo"),
             t("pages.territoryHeadingWordThree"),
           ]}
-          tone="lavender"
+          tone="pine"
         />
       }
       intro={t("pages.territoryIntro")}

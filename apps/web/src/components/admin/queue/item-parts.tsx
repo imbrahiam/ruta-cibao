@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { itemDomId, useItemFrame } from "../map/item-frame";
+import { MediaViewer } from "../media-viewer";
 
 /** Rows pass their facts in a fragment; `MetaList` needs them one by one. */
 function facts(node: ReactNode): ReactNode[] {
@@ -28,17 +29,20 @@ function facts(node: ReactNode): ReactNode[] {
 }
 
 /**
- * One item: identity, detail facts and the decision, in one row of the list's
- * shared surface. Three columns on wide screens (so every row lines up), one
- * stack on phones with the decision last and full width.
+ * One item, in the order it is reviewed: what it is and who sent it, the
+ * evidence, then the decision at the end under a hairline. At every width, so
+ * no one reaches "Publicar" before reading what they publish.
  */
 export function ItemRow({
   titleId,
   itemId,
   title,
   lead,
+  badge,
   meta,
+  summary,
   byline,
+  aside,
   detail,
   decision,
 }: {
@@ -51,10 +55,19 @@ export function ItemRow({
   title: ReactNode;
   /** A picture beside the title block: the place, or the person. */
   lead?: ReactNode;
+  /** A state worth naming, in a pill beside the title. */
+  badge?: ReactNode;
   /** Inline facts under the title: municipality, kind, verified marker. */
   meta?: ReactNode;
+  /**
+   * The sender's own words, read together with the title and `meta`: what was
+   * reported, before who reported it.
+   */
+  summary?: ReactNode;
   /** Who sent it and when; quieter than `meta`. */
   byline?: ReactNode;
+  /** A way out to the subject itself (its public page), top right. */
+  aside?: ReactNode;
   detail?: ReactNode;
   decision: ReactNode;
 }) {
@@ -62,7 +75,6 @@ export function ItemRow({
   const frame = useItemFrame();
   const linked = frame !== null && itemId !== undefined;
   const selected = linked && frame.selectedId === itemId;
-  const stacked = frame?.stacked === true;
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: the "Ver en el mapa" button is the keyboard path; the row click is a pointer shortcut
@@ -72,29 +84,32 @@ export function ItemRow({
       aria-current={selected ? "true" : undefined}
       onClick={linked ? () => frame.onSelect(itemId) : undefined}
       className={cn(
-        "grid gap-4 p-4 sm:p-5",
-        !stacked &&
-          "lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_14rem] lg:gap-x-8",
-        selected && "bg-muted/60 shadow-[inset_3px_0_0_var(--foreground)]",
+        "grid gap-4 rounded-(--radius-card) bg-muted/45 p-4 sm:p-5",
+        selected && "bg-muted shadow-[inset_3px_0_0_var(--primary)]",
       )}
     >
       <div className="flex min-w-0 gap-3">
         {lead}
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <h2
-            id={titleId}
-            title={typeof title === "string" ? title : undefined}
-            className="line-clamp-2 text-[15px] leading-snug font-medium break-words"
-          >
-            {title}
-          </h2>
-          <MetaList>{facts(meta)}</MetaList>
-          <div className="flex flex-col text-xs text-muted-foreground">
-            {facts(byline).map((line, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static lines, never reordered
-              <p key={index}>{line}</p>
-            ))}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <h2
+              id={titleId}
+              title={typeof title === "string" ? title : undefined}
+              className="line-clamp-2 text-[15px] leading-snug font-medium break-words"
+            >
+              {title}
+            </h2>
+            {badge}
           </div>
+          <MetaList>{facts(meta)}</MetaList>
+          {summary ? (
+            <p className="text-[15px] leading-relaxed text-pretty break-words">
+              {summary}
+            </p>
+          ) : null}
+          {/* One quieter line of the same kind as the facts above, not a
+              stack of differently sized sentences. */}
+          <MetaList className="text-[13px]">{facts(byline)}</MetaList>
           {linked ? (
             <Button
               variant="link"
@@ -107,13 +122,15 @@ export function ItemRow({
             </Button>
           ) : null}
         </div>
+        {aside ? <div className="shrink-0">{aside}</div> : null}
       </div>
       {detail ? (
-        <div className="flex min-w-0 flex-col gap-3">{detail}</div>
+        <div className={cn("@container/item flex min-w-0 flex-col gap-3")}>
+          {detail}
+        </div>
       ) : null}
-      <div className={cn("min-w-0", !detail && !stacked && "lg:col-start-3")}>
-        {decision}
-      </div>
+      {/* After the evidence, in reading and tab order: read, then decide. */}
+      <div className="min-w-0 pt-1">{decision}</div>
     </li>
   );
 }
@@ -144,7 +161,8 @@ export function ResidentBadge() {
 /** Labelled values of an item, two to a row when there is room. */
 export function Facts({ children }: { children: ReactNode }) {
   return (
-    <PropertyList className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+    // Kept to a reading width: two facts half a screen apart read as unrelated.
+    <PropertyList className="grid max-w-3xl gap-x-6 gap-y-3 sm:grid-cols-2">
       {children}
     </PropertyList>
   );
@@ -164,7 +182,8 @@ export function Fact({
     <PropertyRow
       label={label}
       className={cn(
-        "min-w-0 [overflow-wrap:anywhere] whitespace-pre-line",
+        // The evidence is what the reviewer reads: body size, not caption.
+        "min-w-0 [overflow-wrap:anywhere] whitespace-pre-line [&>dd]:text-[15px]",
         wide && "sm:col-span-2",
       )}
     >
@@ -246,35 +265,65 @@ export function usePerson() {
 
 /**
  * The picture that anchors a row: the place's photo when it has one, else
- * the person's own, else a neutral tile with a user glyph. Decorative, since
- * the name sits right beside it.
+ * the person's own, else nothing. The place's photo is evidence and opens in
+ * the desk's viewer like every other picture; a person's avatar is only an
+ * identity mark beside their name.
  */
 export function LeadImage({
   placeImage,
   personImage,
+  placeName,
+  large,
 }: {
   placeImage?: string | null;
   personImage?: string | null;
+  /** Names the place photo for the viewer and screen readers. */
+  placeName: string;
+  /** Fills its box (beside a map) instead of a small square before a title. */
+  large?: boolean;
 }) {
+  const q = useTranslations("admin.queue");
+  const [viewing, setViewing] = useState<number | null>(null);
   const source = placeImage ?? personImage ?? null;
-  const person = !placeImage;
+  // A stand-in glyph beside a business name said "person" and pushed the
+  // title off the left edge the evidence below starts on; no picture, no tile.
+  if (!source) return null;
+
+  if (placeImage) {
+    const alt = q("photoAlt", { place: placeName });
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => setViewing(0)}
+          aria-label={q("photoOpen", { place: placeName })}
+          className={cn(
+            "shrink-0 cursor-zoom-in overflow-hidden rounded-(--radius-field) border bg-muted outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+            large ? "block aspect-[4/3] w-full" : "size-12",
+          )}
+        >
+          {/* biome-ignore lint/performance/noImgElement: arbitrary uploaded host, reviewed as-is */}
+          <img
+            src={placeImage}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="size-full object-cover"
+          />
+        </button>
+        <MediaViewer
+          items={[{ kind: "image", src: placeImage, alt }]}
+          index={viewing}
+          onIndexChange={setViewing}
+        />
+      </>
+    );
+  }
+
   return (
-    <Avatar
-      aria-hidden="true"
-      className={cn(
-        "size-12 shrink-0",
-        person ? "rounded-full" : "rounded-(--radius-field)",
-      )}
-    >
-      {source ? (
-        <AvatarImage src={source} alt="" className="object-cover" />
-      ) : null}
-      <AvatarFallback
-        className={cn(
-          "bg-muted text-muted-foreground",
-          person ? "rounded-full" : "rounded-(--radius-field)",
-        )}
-      >
+    <Avatar aria-hidden="true" className="size-12 shrink-0 rounded-full">
+      <AvatarImage src={source} alt="" className="object-cover" />
+      <AvatarFallback className="rounded-full bg-muted text-muted-foreground">
         <UserRound className="size-5" />
       </AvatarFallback>
     </Avatar>

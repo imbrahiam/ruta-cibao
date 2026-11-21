@@ -19,10 +19,10 @@ import { CaseDetailSkeleton } from "@/components/admin/skeletons";
 import { useStaff } from "@/components/admin/staff-context";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { api, orpc } from "@/lib/web/api";
 import { failureKind } from "@/lib/web/errors";
+import { CasePhotos } from "./case-photos";
 import { CaseStatusTag, PublicationTag } from "./case-tags";
 
 type Detail = ApiOutputs["consultations"]["detail"];
@@ -108,37 +108,23 @@ export function CaseDetail({ slug }: { slug: string }) {
             <p className="text-sm leading-relaxed whitespace-pre-line">
               {item.body}
             </p>
-            {item.photos?.map((photo) => (
-              <a
-                key={photo.url}
-                href={photo.url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {/* Signed storage URLs also cover pending moderation imagery. */}
-                {/* biome-ignore lint/performance/noImgElement: private signed object URL */}
-                <img
-                  src={photo.url}
-                  alt={photo.alt ?? ""}
-                  width={photo.width}
-                  height={photo.height}
-                  className="mt-4 max-h-96 w-full rounded-lg object-contain"
-                />
-              </a>
-            ))}
+            {item.photos && item.photos.length > 0 && (
+              <CasePhotos
+                photos={item.photos}
+                label={(index) => c("photoOpen", { n: index + 1 })}
+              />
+            )}
           </AdminSection>
 
-          <AdminSection
-            id="timeline"
-            title={consultations("timeline")}
-            count={item.responses.length || undefined}
-          >
-            {item.responses.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                {c("noResponses")}
-              </p>
-            ) : (
-              <ol className="flex flex-col divide-y">
+          {/* With no answer yet the reply form is the next step: an empty
+              "Respuestas" block above it only pushed it down. */}
+          {item.responses.length === 0 ? null : (
+            <AdminSection
+              id="timeline"
+              title={consultations("timeline")}
+              count={item.responses.length}
+            >
+              <ol className="flex flex-col gap-6">
                 {item.responses.map((response) => (
                   <li
                     key={response.id}
@@ -179,19 +165,18 @@ export function CaseDetail({ slug }: { slug: string }) {
                   </li>
                 ))}
               </ol>
-            )}
-          </AdminSection>
+            </AdminSection>
+          )}
 
           <ReplyForm consultation={item} />
         </div>
 
         <aside
           aria-label={c("facts")}
-          className="order-first min-w-0 lg:order-none lg:self-stretch lg:border-l lg:pl-8"
+          className="order-first min-w-0 lg:order-none lg:self-stretch lg:pl-8"
         >
           <div className="flex flex-col gap-5 lg:sticky lg:top-6">
             <PublicationControl consultation={item} />
-            <Separator />
             <PropertyList>
               <PropertyRow label={c("colDate")}>
                 {format.dateTime(new Date(item.createdAt), "long")}
@@ -318,7 +303,17 @@ function ReplyForm({ consultation }: { consultation: Detail }) {
 
   const submit = () => {
     setBodyTouched(true);
-    if (!valid) return;
+    if (!valid) {
+      // The button is never disabled, so a press that cannot go through
+      // takes the reviewer to the first thing missing.
+      const first = bodyError
+        ? document.getElementById("reply-body")
+        : document.querySelector<HTMLInputElement>(
+            'input[name="status-after"]',
+          );
+      first?.focus();
+      return;
+    }
     reply.mutate({
       consultationId: consultation.id,
       body: body.trim(),
@@ -345,8 +340,8 @@ function ReplyForm({ consultation }: { consultation: Detail }) {
           <Textarea
             id="reply-body"
             value={body}
-            rows={6}
-            className="min-h-32"
+            rows={4}
+            className="min-h-24"
             required
             aria-invalid={bodyTouched && bodyError !== null}
             aria-describedby={
@@ -362,7 +357,9 @@ function ReplyForm({ consultation }: { consultation: Detail }) {
           <legend className="mb-1 text-sm font-medium">
             {c("statusAfter")}
           </legend>
-          <div className="grid gap-x-4 sm:grid-cols-2">
+          {/* Pulled out by the options' own padding, so each radio lines up
+              with the legend and the field above instead of sitting indented. */}
+          <div className="-mx-3 grid gap-x-4 sm:grid-cols-2">
             {REPLY_STATUSES.map((value) => (
               <label
                 key={value}
@@ -397,7 +394,9 @@ function ReplyForm({ consultation }: { consultation: Detail }) {
         <InlineError error={reply.error} />
 
         <div className="flex">
-          <Button type="submit" disabled={!valid || reply.isPending}>
+          {/* Never greyed out before anyone tried: a press shows what is
+              missing, next to the field it concerns. */}
+          <Button type="submit" disabled={reply.isPending}>
             {reply.isPending ? c("sending") : t("respond")}
           </Button>
         </div>
@@ -565,7 +564,7 @@ function PublicationControl({ consultation }: { consultation: Detail }) {
           </div>
         </form>
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2 [&>:not(button)]:basis-full">
           <InlineError error={decide.error} />
           {current === "published" ? null : (
             <Button disabled={decide.isPending} onClick={publish}>

@@ -61,12 +61,12 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("platform edges", () => {
   });
 
   test("a client error is accepted as one JSON line with personal data redacted", async () => {
+    // The logger writes errors through `console.error` (it also runs on the edge).
     const lines: string[] = [];
-    const original = process.stderr.write;
-    process.stderr.write = ((chunk: string | Uint8Array) => {
-      lines.push(String(chunk));
-      return true;
-    }) as typeof process.stderr.write;
+    const original = console.error;
+    console.error = (line: unknown) => {
+      lines.push(String(line));
+    };
 
     let response: Response;
     try {
@@ -84,7 +84,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("platform edges", () => {
         }),
       );
     } finally {
-      process.stderr.write = original;
+      console.error = original;
     }
 
     expect(response.status).toBe(204);

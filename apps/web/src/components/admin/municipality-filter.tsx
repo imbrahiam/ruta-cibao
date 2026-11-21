@@ -62,8 +62,15 @@ export function MunicipalityFilter() {
       disabled={locked || municipalities.isPending}
       onValueChange={change}
     >
-      <SelectTrigger aria-label={t("municipality")} className="min-w-48">
-        <span className="text-muted-foreground">{t("municipality")}</span>
+      <SelectTrigger
+        aria-label={t("municipality")}
+        className="min-w-0 sm:min-w-48"
+      >
+        {/* The visible prefix is a desk nicety; on a phone it pushed the
+            refresh to a line of its own. The name stays in `aria-label`. */}
+        <span className="hidden text-muted-foreground sm:inline">
+          {t("municipality")}
+        </span>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

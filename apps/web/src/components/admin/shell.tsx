@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { LogOut, ShieldAlert } from "lucide-react";
+import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { useTranslations } from "use-intl";
 import { Logo, RoadMark } from "@/components/brand/logo";
@@ -78,7 +79,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
         id="contenido"
         className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center gap-6 px-5 py-10"
       >
-        <Logo label={t("title")} />
+        <Link href="/" aria-label={t("home")} className="self-start rounded-lg">
+          <Logo label={t("title")} />
+        </Link>
         <Alert>
           <ShieldAlert aria-hidden="true" />
           <AlertDescription>{t("notStaff")}</AlertDescription>

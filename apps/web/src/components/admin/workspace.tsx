@@ -50,6 +50,7 @@ import { ADMIN_GROUPS, ADMIN_SECTIONS, findAdminSection } from "./nav";
 import { OfflineBanner } from "./offline-banner";
 import { useAdminPageTitle } from "./page-frame";
 import type { Staff } from "./staff-context";
+import { ThemeChoices } from "./theme-menu";
 import { useAdminPrefetch } from "./use-admin-prefetch";
 
 type WorkspaceProps = {
@@ -105,7 +106,7 @@ export function AdminWorkspace({
   }, [counts.data, client, staff]);
 
   // The tab says where you are and how much waits there, so it is readable
-  // from another tab: "Fotografías (1) · Mesa municipal".
+  // from another tab: "Fotografías (1) | Ruta Cibao", the site's title format.
   const waiting =
     active?.countKey && (!nested || pathname === active.relatedPath)
       ? counts.data?.[active.countKey]
@@ -117,7 +118,7 @@ export function AdminWorkspace({
       : "";
   useEffect(() => {
     if (!page) return;
-    document.title = `${page}${waiting ? ` (${waiting})` : ""} · ${t("title")}`;
+    document.title = `${page}${waiting ? ` (${waiting})` : ""} | ${t("brand")}`;
   }, [page, waiting, t]);
 
   // A list remembers its filters: coming back to it from a detail page, or
@@ -161,12 +162,7 @@ export function AdminWorkspace({
       <SidebarInset className="min-w-0">
         <header className="flex h-14 shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
           <div className="flex min-w-0 items-center gap-2">
-            <SidebarTrigger
-              className={open ? "md:hidden" : undefined}
-              aria-label={t(
-                open ? "shell.collapseNavigation" : "shell.expandNavigation",
-              )}
-            />
+            <TopbarTrigger />
             {nested ? (
               <Breadcrumb aria-label={t("shell.breadcrumb")}>
                 <BreadcrumbList>
@@ -196,12 +192,33 @@ export function AdminWorkspace({
         <OfflineBanner />
         <main
           id="contenido"
-          className="mx-auto flex w-full max-w-[1520px] min-w-0 flex-1 flex-col gap-6 px-4 pt-2 pb-10 sm:px-6 lg:px-10"
+          className="@container/main mx-auto flex w-full max-w-[1520px] min-w-0 flex-1 flex-col gap-6 px-4 pt-2 pb-10 sm:px-6 lg:px-10"
         >
           {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+/**
+ * The topbar's toggle. On a phone it opens the drawer, on a desktop it brings
+ * back a collapsed sidebar; its name says which.
+ */
+function TopbarTrigger() {
+  const t = useTranslations("admin");
+  const { isMobile, open } = useSidebar();
+  return (
+    <SidebarTrigger
+      className={open ? "md:hidden" : undefined}
+      aria-label={t(
+        isMobile
+          ? "shell.openNavigation"
+          : open
+            ? "shell.collapseNavigation"
+            : "shell.expandNavigation",
+      )}
+    />
   );
 }
 
@@ -277,7 +294,8 @@ function AdminSidebar({
                   <SidebarGroupLabel>{t(group.label)}</SidebarGroupLabel>
                 ) : null}
                 <SidebarGroupContent>
-                  <SidebarMenu>
+                  {/* Rows sit close within a group; the groups keep their gap. */}
+                  <SidebarMenu className="gap-0.5">
                     {sections.map((section) => {
                       const Icon = section.icon;
                       const count = section.countKey
@@ -313,7 +331,12 @@ function AdminSidebar({
                             </Link>
                           </SidebarMenuButton>
                           {count ? (
-                            <SidebarMenuBadge aria-hidden="true">
+                            <SidebarMenuBadge
+                              aria-hidden="true"
+                              // Secondary to the label, and right-aligned on
+                              // the last digit so 5 and 14 line up.
+                              className="justify-end text-muted-foreground peer-hover/menu-button:text-muted-foreground peer-data-[active=true]/menu-button:text-muted-foreground"
+                            >
                               {count}
                             </SidebarMenuBadge>
                           ) : null}
@@ -368,16 +391,21 @@ function AdminSidebar({
               <DropdownMenuContent
                 side="top"
                 align="start"
-                className="w-72 max-w-[calc(100vw-1.5rem)]"
+                // Anchored to the account button: the same width and edges,
+                // and wide enough to read when the sidebar is collapsed.
+                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 max-w-[calc(100vw-1.5rem)]"
               >
-                <DropdownMenuLabel className="flex flex-col gap-0.5">
-                  <span className="truncate text-sm font-medium text-foreground">
-                    {name}
-                  </span>
-                  {scope ? (
-                    <span className="text-pretty">{t("scope", { scope })}</span>
-                  ) : null}
-                </DropdownMenuLabel>
+                {/* The button under the menu already says who this is; the
+                    menu only adds what it can reach. */}
+                {scope ? (
+                  <>
+                    <DropdownMenuLabel className="font-normal text-pretty text-muted-foreground">
+                      {t("scope", { scope })}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                  </>
+                ) : null}
+                <ThemeChoices />
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/">

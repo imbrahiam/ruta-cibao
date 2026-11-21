@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { InlineError } from "../error-panel";
 import { FormField } from "../form-field";
 
@@ -40,6 +41,7 @@ export function DecisionBar({
   secondary,
   pending,
   error,
+  align = "start",
 }: {
   id: string;
   /** What is being decided on, for the names screen readers announce. */
@@ -48,6 +50,8 @@ export function DecisionBar({
   secondary?: DecisionSide;
   pending: boolean;
   error: unknown;
+  /** Rows close with the bar under their evidence (`start`); `end` sits it at the right. */
+  align?: "start" | "end";
 }) {
   const t = useTranslations("admin");
   const common = useTranslations("common");
@@ -126,7 +130,7 @@ export function DecisionBar({
       </legend>
       {side ? (
         <form
-          className="flex flex-col gap-2"
+          className="flex flex-col gap-2 lg:w-80"
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
@@ -194,7 +198,14 @@ export function DecisionBar({
           </div>
         </form>
       ) : (
-        <div className="flex flex-wrap gap-2 lg:flex-col">
+        // Side by side and compact on a desk, like any toolbar; full width on a
+        // phone, where they are the row's last line.
+        <div
+          className={cn(
+            "flex flex-wrap gap-2 lg:flex-nowrap",
+            align === "end" && "lg:justify-end",
+          )}
+        >
           {primary ? (
             <Button
               ref={(node) => {

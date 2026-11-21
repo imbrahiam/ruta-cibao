@@ -35,6 +35,15 @@ async function read(relative: string): Promise<string> {
   return readFile(path.join(root, relative), "utf8");
 }
 
+/** True when git ignores the path: a local, generated file rather than a broken reference. */
+function ignoredByGit(candidate: string): boolean {
+  return (
+    Bun.spawnSync(["git", "check-ignore", "--quiet", "--no-index", candidate], {
+      cwd: root,
+    }).exitCode === 0
+  );
+}
+
 async function exists(relative: string): Promise<boolean> {
   try {
     await stat(path.join(root, relative));
@@ -174,7 +183,8 @@ for (const file of docs) {
     for (const match of line.matchAll(PATH_TOKEN)) {
       const candidate = (match[1] ?? "").replace(/[.,;:]+$/, "");
       if (candidate.includes("*") || candidate.includes("<")) continue;
-      if (!(await exists(candidate))) {
+      // A per-machine file the docs tell you to create (and git ignores) is not drift.
+      if (!(await exists(candidate)) && !ignoredByGit(candidate)) {
         report(file, lineNumber, `names missing path ${candidate}`);
       }
     }

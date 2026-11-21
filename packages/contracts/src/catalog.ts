@@ -9,21 +9,60 @@ export const categoryKinds = z.enum([
   "traffic",
   "consultation",
 ]);
+/**
+ * Every glyph a category can carry, by its Lucide name: the one list the
+ * desk's picker offers, the API accepts and each client maps to a drawing
+ * (web `category-glyph.tsx`, iOS `Glyphs.swift`, Android `Glyphs.kt`). A name
+ * stored before it was listed here could not be saved again unchanged.
+ */
+export const categoryIconNames = [
+  "map-pin",
+  "bed",
+  "bed-double",
+  "bike",
+  "building-2",
+  "bus",
+  "car",
+  "church",
+  "cloud-rain",
+  "coffee",
+  "construction",
+  "cross",
+  "droplets",
+  "fuel",
+  "footprints",
+  "graduation-cap",
+  "hospital",
+  "landmark",
+  "leaf",
+  "lightbulb",
+  "messages-square",
+  "mountain",
+  "octagon-x",
+  "pill",
+  "route",
+  "shopping-bag",
+  "shopping-basket",
+  "store",
+  "tent",
+  "trash-2",
+  "trees",
+  "triangle-alert",
+  "trophy",
+  "utensils",
+  "waves",
+  "wheat",
+  "wifi",
+  "wrench",
+] as const;
+export const categoryIcon = z.enum(categoryIconNames);
+export type CategoryIconName = z.infer<typeof categoryIcon>;
+
 export const editableCategory = z.object({
   id: z.string(),
   kind: categoryKinds,
   name: z.string().trim().min(2).max(80),
-  icon: z.enum([
-    "map-pin",
-    "mountain",
-    "route",
-    "store",
-    "droplets",
-    "triangle-alert",
-    "construction",
-    "trees",
-    "messages-square",
-  ]),
+  icon: categoryIcon,
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   severity: z.enum(["blocking", "partial", "minor"]).nullable(),
   sortOrder: z.number().int().min(0).max(1000),

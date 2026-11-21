@@ -1,79 +1,116 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ChartColumn } from "lucide-react";
+import { ArrowRight, ChartColumn } from "lucide-react";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { ErrorPanel } from "@/components/admin/error-panel";
 import { MetaList } from "@/components/admin/facts";
-import {
-  AdminEmpty,
-  AdminPageHeader,
-  AdminSection,
-} from "@/components/admin/page-frame";
+import { AdminEmpty, AdminPageHeader } from "@/components/admin/page-frame";
 import { ReportDetailSkeleton } from "@/components/admin/skeletons";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-} from "@/components/ui/table";
 import { orpc } from "@/lib/web/api";
 import { failureKind } from "@/lib/web/errors";
 import {
   PdfActions,
   ReportStatusIndicator,
   useWeekLabel,
+  useWeekRange,
 } from "./report-parts";
 
-type Figure = { label: string; value: string | number };
+/** One figure said as a phrase ("1 sin responder"); zeros are left out. */
+type Phrase = { key: string; text: string; strong?: boolean } | null;
 
-/** The headline figures: a flat row, the number over its label. */
-function StatRow({ figures }: { figures: Figure[] }) {
+/**
+ * One part of the week as a short paragraph: its name, then what moved, in
+ * words, on one line. A part where nothing moved is not shown here; it is
+ * named in the closing "Sin actividad en …" line instead.
+ */
+function ReportPart({
+  id,
+  title,
+  phrases,
+  children,
+}: {
+  id: string;
+  title: string;
+  phrases: Phrase[];
+  children?: ReactNode;
+}) {
+  const said = phrases.filter((phrase) => phrase !== null);
   return (
-    <dl className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-5 sm:gap-x-0">
-      {figures.map((figure) => (
-        <div
-          key={figure.label}
-          className="flex min-w-0 flex-col-reverse justify-end gap-1 sm:border-l sm:px-6 sm:first:border-l-0 sm:first:pl-0"
-        >
-          <dt className="text-sm text-muted-foreground">{figure.label}</dt>
-          <dd className="text-2xl font-semibold tabular-nums">
-            {figure.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <section aria-labelledby={id} className="flex flex-col gap-1.5">
+      <h2 id={id} className="text-[15px] font-medium">
+        {title}
+      </h2>
+      <MetaList className="text-[15px] text-muted-foreground">
+        {said.map((phrase) => (
+          <span
+            key={phrase.key}
+            className={
+              phrase.strong ? "font-medium text-foreground" : undefined
+            }
+          >
+            {phrase.text}
+          </span>
+        ))}
+      </MetaList>
+      {children}
+    </section>
   );
 }
 
-/** One block of the report: its figures as label and value rows. */
-function FigureSection({
-  title,
-  id,
-  figures,
+/**
+ * The cases still waiting, by title, each a way into it: what the report
+ * asks someone to follow up. Read now, so it says how things stand today.
+ */
+function PendingConsultations({
+  municipalityId,
+  before,
 }: {
-  title: string;
-  id: string;
-  figures: Figure[];
+  municipalityId: string;
+  before: string;
 }) {
+  const w = useTranslations("admin.weeklyReport");
+  const input = (status: "open" | "in_review") => ({
+    // Newest first, and the ones this week left waiting can be older
+    // than whatever came in since: read a full page, then keep the week's.
+    input: { municipality: municipalityId, status, limit: 48 },
+  });
+  const open = useQuery(orpc.consultations.browse.queryOptions(input("open")));
+  const review = useQuery(
+    orpc.consultations.browse.queryOptions(input("in_review")),
+  );
+  const items = [...(open.data?.items ?? []), ...(review.data?.items ?? [])]
+    .filter((item) => item.createdAt < before)
+    .slice(0, 3);
+  if (items.length === 0) return null;
   return (
-    <AdminSection id={id} title={title}>
-      <Table>
-        <TableBody>
-          {figures.map((figure) => (
-            <TableRow key={figure.label} className="h-11 hover:bg-transparent">
-              <TableHead scope="row" className="h-11 px-0 font-normal">
-                {figure.label}
-              </TableHead>
-              <TableCell className="px-0 py-0 text-right font-medium tabular-nums">
-                {figure.value}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </AdminSection>
+    <div className="mt-2 flex flex-col gap-1">
+      <p className="text-[13px] text-muted-foreground">{w("pendingTitle")}</p>
+      <ul className="flex flex-col">
+        {items.map((item) => (
+          <li key={item.id}>
+            <Link
+              href={`/admin/consultations/${item.slug}`}
+              className="group -mx-2 flex min-h-10 items-center justify-between gap-3 rounded-md px-2 text-[15px] hover:bg-accent/70"
+            >
+              <span className="truncate">{item.title}</span>
+              <span className="inline-flex shrink-0 items-center gap-1 text-sm text-primary">
+                {w("viewConsultation")}
+                <ArrowRight aria-hidden className="size-3.5" />
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <Link
+        href={`/admin/consultations?municipality=${encodeURIComponent(municipalityId)}&status=open`}
+        className="w-fit text-sm text-primary underline-offset-4 hover:underline"
+      >
+        {w("pendingSeeAll")}
+      </Link>
+    </div>
   );
 }
 
@@ -83,9 +120,10 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
   const r = useTranslations("reports");
   const w = useTranslations("admin.weeklyReport");
   const s = useTranslations("reports.sections");
-  const m = useTranslations("reports.metrics");
   const format = useFormatter();
+  const p = useTranslations("admin.weeklyReport.phrase");
   const weekLabel = useWeekLabel();
+  const weekRange = useWeekRange();
   const query = useQuery(
     orpc.reports.detail.queryOptions({ input: { reportId } }),
   );
@@ -109,19 +147,129 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
   const report = query.data;
   const metrics = report.metrics;
   const week = weekLabel(report);
-  const topMax = Math.max(
-    1,
-    ...(metrics?.topCategories ?? []).map((c) => c.count),
-  );
+  const n = (key: string, count: number, strong = false): Phrase =>
+    count > 0
+      ? {
+          key,
+          text: p(key as Parameters<typeof p>[0], { count }),
+          strong,
+        }
+      : null;
+
+  const parts = metrics
+    ? [
+        {
+          id: "consultations",
+          title: s("consultations"),
+          phrases: [
+            n("consultationsResolved", metrics.consultations.resolved),
+            n("consultationsAnswered", metrics.consultations.answered),
+            n("consultationsOpened", metrics.consultations.opened),
+            n("consultationsStillOpen", metrics.consultations.stillOpen, true),
+            metrics.consultations.medianResponseHours === null
+              ? null
+              : {
+                  key: "median",
+                  text: p("medianResponse", {
+                    hours: Math.round(
+                      metrics.consultations.medianResponseHours,
+                    ),
+                  }),
+                },
+          ],
+          extra:
+            metrics.consultations.stillOpen > 0 ? (
+              <PendingConsultations
+                municipalityId={report.municipalityId}
+                before={report.periodEnd}
+              />
+            ) : null,
+        },
+        {
+          id: "places",
+          title: s("places"),
+          // The map's total is context, not activity: said only beside
+          // something that moved.
+          phrases: [
+            n("placesPublished", metrics.places.published),
+            n("placesSubmitted", metrics.places.submitted),
+            n("placesRejected", metrics.places.rejected),
+          ],
+          lead: {
+            key: "total",
+            text: p("placesTotal", { count: metrics.places.total }),
+          },
+          extra:
+            metrics.topCategories.length > 0 ? (
+              <MetaList className="text-sm text-muted-foreground">
+                {metrics.topCategories.map((category) => (
+                  <span key={category.name}>
+                    {w("categoryCount", {
+                      count: category.count,
+                      name: category.name,
+                    })}
+                  </span>
+                ))}
+              </MetaList>
+            ) : null,
+        },
+        {
+          id: "traffic",
+          title: s("traffic"),
+          phrases: [
+            n("trafficReported", metrics.traffic.reported),
+            n("trafficCleared", metrics.traffic.cleared),
+            n("trafficExpired", metrics.traffic.expired),
+            n("trafficRemoved", metrics.traffic.removed),
+          ],
+        },
+        {
+          id: "routes",
+          title: s("routes"),
+          phrases: [
+            n("routesSubmitted", metrics.routes.submitted),
+            n("routesPublished", metrics.routes.published),
+          ],
+        },
+        {
+          id: "businesses",
+          title: s("businesses"),
+          phrases: [
+            n("businessesClaimed", metrics.businesses.claimed),
+            n("businessesApproved", metrics.businesses.approved),
+          ],
+        },
+        {
+          id: "people",
+          title: s("people"),
+          phrases: [
+            n("peopleContributors", metrics.people.contributors),
+            n("peopleVerified", metrics.people.verified),
+          ],
+        },
+      ]
+    : [];
+  const moved = parts.filter((part) => part.phrases.some(Boolean));
+  const quiet = parts.filter((part) => !part.phrases.some(Boolean));
 
   return (
-    <article className="flex flex-col gap-8" aria-busy={query.isFetching}>
+    // One reading column: the report is read top to bottom, not scanned
+    // across a wide grid of zeros.
+    <article
+      className="flex max-w-2xl flex-col gap-8"
+      aria-busy={query.isFetching}
+    >
       <AdminPageHeader
-        title={week}
-        badge={<ReportStatusIndicator status={report.status} />}
+        title={w("detailTitle", { municipality: report.municipalityName })}
+        badge={
+          // "Descargar PDF" already says it is ready; only other states show.
+          report.status === "ready" ? undefined : (
+            <ReportStatusIndicator status={report.status} />
+          )
+        }
         description={
           <MetaList>
-            {report.municipalityName}
+            {weekRange(report)}
             {report.generatedAt
               ? r("generatedAt", {
                   date: format.dateTime(new Date(report.generatedAt), "long"),
@@ -147,155 +295,32 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
         </p>
       ) : (
         <>
-          <StatRow
-            figures={[
-              { label: w("statPlaces"), value: metrics.places.published },
-              { label: w("statOpened"), value: metrics.consultations.opened },
-              {
-                label: w("statAnswered"),
-                value: metrics.consultations.answered,
-              },
-              {
-                label: w("statStillOpen"),
-                value: metrics.consultations.stillOpen,
-              },
-              { label: w("statTraffic"), value: metrics.traffic.reported },
-            ]}
-          />
-
-          <div className="grid gap-x-12 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">
-            <FigureSection
-              id="sec-places"
-              title={s("places")}
-              figures={[
-                {
-                  label: m("placesSubmitted"),
-                  value: metrics.places.submitted,
-                },
-                {
-                  label: m("placesPublished"),
-                  value: metrics.places.published,
-                },
-                { label: m("placesRejected"), value: metrics.places.rejected },
-                { label: m("placesTotal"), value: metrics.places.total },
-              ]}
-            />
-            <FigureSection
-              id="sec-traffic"
-              title={s("traffic")}
-              figures={[
-                {
-                  label: m("trafficReported"),
-                  value: metrics.traffic.reported,
-                },
-                { label: m("trafficCleared"), value: metrics.traffic.cleared },
-                { label: m("trafficExpired"), value: metrics.traffic.expired },
-                { label: m("trafficRemoved"), value: metrics.traffic.removed },
-              ]}
-            />
-            <FigureSection
-              id="sec-consultations"
-              title={s("consultations")}
-              figures={[
-                {
-                  label: m("consultationsOpened"),
-                  value: metrics.consultations.opened,
-                },
-                {
-                  label: m("consultationsAnswered"),
-                  value: metrics.consultations.answered,
-                },
-                {
-                  label: m("consultationsResolved"),
-                  value: metrics.consultations.resolved,
-                },
-                {
-                  label: m("consultationsStillOpen"),
-                  value: metrics.consultations.stillOpen,
-                },
-                {
-                  label: m("medianResponse"),
-                  value:
-                    metrics.consultations.medianResponseHours === null
-                      ? m("medianResponseNone")
-                      : m("medianResponseHours", {
-                          hours: Math.round(
-                            metrics.consultations.medianResponseHours,
-                          ),
-                        }),
-                },
-              ]}
-            />
-            <FigureSection
-              id="sec-routes"
-              title={s("routes")}
-              figures={[
-                {
-                  label: m("routesSubmitted"),
-                  value: metrics.routes.submitted,
-                },
-                {
-                  label: m("routesPublished"),
-                  value: metrics.routes.published,
-                },
-              ]}
-            />
-            <FigureSection
-              id="sec-businesses"
-              title={s("businesses")}
-              figures={[
-                {
-                  label: m("businessesClaimed"),
-                  value: metrics.businesses.claimed,
-                },
-                {
-                  label: m("businessesApproved"),
-                  value: metrics.businesses.approved,
-                },
-              ]}
-            />
-            <FigureSection
-              id="sec-people"
-              title={s("people")}
-              figures={[
-                {
-                  label: m("peopleContributors"),
-                  value: metrics.people.contributors,
-                },
-                { label: m("peopleVerified"), value: metrics.people.verified },
-              ]}
-            />
-          </div>
-
-          <AdminSection id="sec-top" title={s("topCategories")}>
-            {metrics.topCategories.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{r("noActivity")}</p>
-            ) : (
-              <ol className="flex flex-col">
-                {metrics.topCategories.map((category) => (
-                  <li
-                    key={category.name}
-                    className="grid h-11 grid-cols-[minmax(0,9rem)_1fr_2rem] items-center gap-4 sm:grid-cols-[minmax(0,14rem)_1fr_2rem]"
-                  >
-                    <span className="truncate text-sm" title={category.name}>
-                      {category.name}
-                    </span>
-                    <span aria-hidden className="h-1.5 rounded-full bg-muted">
-                      <span
-                        className="block h-full rounded-full bg-primary"
-                        style={{
-                          width: `${Math.max(2, (category.count / topMax) * 100)}%`,
-                        }}
-                      />
-                    </span>
-                    <span className="text-right text-sm font-medium tabular-nums">
-                      {category.count}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </AdminSection>
+          {moved.map((part) => (
+            <ReportPart
+              key={part.id}
+              id={`sec-${part.id}`}
+              title={part.title}
+              phrases={
+                "lead" in part && part.lead
+                  ? [part.lead, ...part.phrases]
+                  : part.phrases
+              }
+            >
+              {part.extra}
+            </ReportPart>
+          ))}
+          {quiet.length > 0 ? (
+            <p className="text-[15px] text-muted-foreground">
+              {moved.length === 0
+                ? r("noActivity")
+                : w("quiet", {
+                    sections: format.list(
+                      quiet.map((part) => part.title.toLocaleLowerCase("es")),
+                      { type: "conjunction" },
+                    ),
+                  })}
+            </p>
+          ) : null}
         </>
       )}
     </article>

@@ -84,7 +84,7 @@ const CATEGORIES = [
     id: "deporte",
     kind: "place",
     name: "Deporte",
-    icon: "landmark",
+    icon: "trophy",
     color: "#15803d",
     sortOrder: 70,
   },

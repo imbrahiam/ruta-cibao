@@ -242,7 +242,9 @@ try {
   const durationMinutes = Math.max(5, Math.ceil((area.meters / 4000) * 60));
   const difficulty =
     area.meters <= 2000 ? "easy" : area.meters <= 10000 ? "moderate" : "hard";
-  const description = `Camino cartografiado en OpenStreetMap como ${tags.highway}, en ${area.municipality_name}. Distancia calculada sobre el trazado: ${(area.meters / 1000).toFixed(2)} km, solo ida. Duración estimada: ${durationMinutes} minutos a pie, a 4 km/h, sin incluir descansos ni desnivel; no se dispone de elevación verificada. Dificultad estimada únicamente por distancia (hasta 2 km: fácil; hasta 10 km: moderada; más de 10 km: difícil). No es una ruta de senderismo certificada ni verificada en campo; el acceso, el estado actual y las condiciones deben comprobarse localmente. No se han verificado servicios. Fuente: ${SOURCE_URL}, versión ${feature.properties.osmVersion}, consulta ${snapshot.provenance.retrievedAt.slice(0, 10)}. © OpenStreetMap contributors, ODbL 1.0.`;
+  // What a resident reads. The method (OSM version, speed, thresholds) is not
+  // for them: it lives in the audit metadata and the review note below.
+  const description = `Camino de ${tags.surface === "ground" ? "tierra" : "campo"} en ${area.municipality_name}, para recorrer a pie. Lleve agua, sombrero y calzado cerrado, vaya temprano y evite los días de lluvia, cuando el camino se pone resbaloso.`;
   const input = submitRouteInput.parse({
     requestId: requestId("submit"),
     name: tags.name,
@@ -262,7 +264,15 @@ try {
     const existing = await db
       .select()
       .from(ecoRoutes)
-      .where(sql`position(${SOURCE_URL} in ${ecoRoutes.description}) > 0`);
+      .where(
+        // Found through its import audit event; the second clause matches rows
+        // imported before the description stopped carrying the source URL.
+        sql`${ecoRoutes.id}::text in (
+          select subject_id from audit_events
+          where action = 'route.osmImported'
+            and metadata->>'osmId' = ${String(SOURCE_ID)}
+        ) or position(${SOURCE_URL} in ${ecoRoutes.description}) > 0`,
+      );
     if (existing.length > 1)
       throw new Error(
         "Multiple routes reference this OSM way; resolve duplicates explicitly",
@@ -270,8 +280,7 @@ try {
     const previous = existing[0];
     if (
       previous &&
-      (previous.description !== description ||
-        previous.name !== input.name ||
+      (previous.name !== input.name ||
         previous.distanceMeters !== area.meters ||
         previous.durationMinutes !== durationMinutes ||
         previous.difficulty !== difficulty ||

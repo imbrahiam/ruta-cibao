@@ -1,6 +1,7 @@
 "use client";
 
 import type { ApiOutputs, DecideContentReportInput } from "@ruta/contracts";
+import { TriangleAlert } from "lucide-react";
 import { useId } from "react";
 import { useTranslations } from "use-intl";
 import { api } from "@/lib/web/api";
@@ -41,15 +42,17 @@ export function ContentReportRow({ report }: { report: ContentReport }) {
     <ItemRow
       titleId={`${id}-title`}
       title={title}
+      badge={
+        report.priority ? (
+          <StatusIndicator tone="danger" icon={TriangleAlert}>
+            {q("priority")}
+          </StatusIndicator>
+        ) : null
+      }
       meta={
         <>
           <MunicipalityTag name={report.municipalityName} />
           {q(`subjectKind.${report.subject.kind}`)}
-          {report.priority ? (
-            <StatusIndicator tone="danger" className="text-sm">
-              {q("priority")}
-            </StatusIndicator>
-          ) : null}
         </>
       }
       byline={

@@ -46,5 +46,53 @@
     "license": "CC BY-SA 2.0",
     "author": "Neil Owen",
     "source": "https://commons.wikimedia.org/wiki/File:Dry_tap_on_The_Limes_-_geograph.org.uk_-_7895045.jpg"
+  },
+  {
+    "file": "drenaje-1.jpg",
+    "width": 1280,
+    "height": 960,
+    "license": "CC BY 3.0",
+    "author": "nick hoke",
+    "source": "https://commons.wikimedia.org/wiki/File:Storm_drains_clogged_-_heavy_rain_on_7th_avenue_%3D_flooding_-_panoramio.jpg"
+  },
+  {
+    "file": "alumbrado-1.jpg",
+    "width": 1280,
+    "height": 960,
+    "license": "Public domain",
+    "author": "Dmitry G",
+    "source": "https://commons.wikimedia.org/wiki/File:Water_inside_streetlamp.JPG"
+  },
+  {
+    "file": "basura-4.jpg",
+    "width": 1280,
+    "height": 855,
+    "license": "Unsplash License",
+    "author": "Stephen Han",
+    "source": "https://unsplash.com/photos/a-pile-of-garbage-sitting-on-the-side-of-a-road-WK1MGjYAKxI"
+  },
+  {
+    "file": "inund-1.jpg",
+    "width": 1280,
+    "height": 853,
+    "license": "Pexels License",
+    "author": "Sveta K",
+    "source": "https://www.pexels.com/photo/flood-on-street-8568719/"
+  },
+  {
+    "file": "parque-1.jpg",
+    "width": 1280,
+    "height": 854,
+    "license": "Pexels License",
+    "author": "Sami Abdullah",
+    "source": "https://www.pexels.com/photo/an-empty-playground-during-night-time-10163236/"
+  },
+  {
+    "file": "senal-1.jpg",
+    "width": 1280,
+    "height": 853,
+    "license": "Pexels License",
+    "author": "Anton Massalov",
+    "source": "https://www.pexels.com/photo/broken-no-entry-sign-on-the-road-20852351/"
   }
 ]

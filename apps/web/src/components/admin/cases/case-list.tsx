@@ -5,10 +5,10 @@ import {
   useInfiniteQuery,
   useQuery,
 } from "@tanstack/react-query";
-import { MessagesSquare } from "lucide-react";
+import { ArrowRight, MessagesSquare } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { useFormatter, useTranslations } from "use-intl";
+import { useTranslations } from "use-intl";
 import { ErrorPanel, InlineError } from "@/components/admin/error-panel";
 import {
   consultationListOptions,
@@ -21,13 +21,13 @@ import {
 import {
   AdminEmpty,
   AdminPageHeader,
-  AdminTableCard,
   AdminToolbar,
+  InboxList,
 } from "@/components/admin/page-frame";
-import { TableRowsSkeleton } from "@/components/admin/skeletons";
 import { useStaff } from "@/components/admin/staff-context";
 import { useAdminPrefetch } from "@/components/admin/use-admin-prefetch";
 import { useUrlParam } from "@/components/admin/use-url-param";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -36,33 +36,62 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { orpc } from "@/lib/web/api";
-import { CASE_STATUSES, CaseStatusTag } from "./case-tags";
+import { CaseInboxRow } from "./case-inbox-row";
+import { CASE_STATUSES } from "./case-tags";
 
 /** Radix items cannot carry an empty value, so "all topics" travels as this. */
 const ALL = "__all__";
 
-const HEAD = "h-10 text-xs font-normal text-muted-foreground";
-const CELL = "py-1.5";
+/** Placeholder rows in the shape of the inbox: title, context, figure. */
+function InboxSkeleton() {
+  return (
+    <ul className="flex flex-col">
+      {Array.from({ length: 5 }, (_, index) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
+        <li key={index} className="flex min-h-16 items-center gap-3 py-3">
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton className="h-4 w-2/5" />
+            <Skeleton className="h-3.5 w-1/3" />
+          </div>
+          <Skeleton className="h-4 w-16" />
+        </li>
+      ))}
+    </ul>
+  );
+}
 
-/** One placeholder row: the same columns, at the same breakpoints, as a case. */
-const SKELETON_CELLS = [
-  { cell: "w-full max-w-0", bars: ["h-4 w-2/5", "h-3.5 w-1/4"] },
-  { cell: "hidden md:table-cell", bars: ["h-4 w-24"] },
-  { bars: ["h-5 w-20"] },
-  { cell: "hidden sm:table-cell", bars: ["ml-auto h-4 w-6"] },
-  { cell: "hidden md:table-cell", bars: ["ml-auto h-4 w-6"] },
-  { cell: "hidden sm:table-cell", bars: ["h-4 w-20"] },
-];
+type Recency = "today" | "week" | "month" | "earlier";
+
+/**
+ * The list in a few time groups (today, this week, this month, before), so a
+ * long inbox has landmarks and what is new reads first. Items arrive newest
+ * first, so each group keeps that order.
+ */
+function groupByRecency<T extends { createdAt: string }>(
+  items: readonly T[],
+): { key: Recency; items: T[] }[] {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const day = 24 * 60 * 60 * 1000;
+  const bucket = (createdAt: string): Recency => {
+    const time = new Date(createdAt).getTime();
+    if (time >= startOfToday.getTime()) return "today";
+    if (time >= startOfToday.getTime() - 6 * day) return "week";
+    if (time >= startOfToday.getTime() - 29 * day) return "month";
+    return "earlier";
+  };
+  const groups: { key: Recency; items: T[] }[] = [];
+  for (const item of items) {
+    const key = bucket(item.createdAt);
+    const last = groups.at(-1);
+    if (last?.key === key) last.items.push(item);
+    else groups.push({ key, items: [item] });
+  }
+  return groups;
+}
 
 /**
  * Citizen cases for triage. Opens on what waits for an answer; every filter
@@ -71,7 +100,8 @@ const SKELETON_CELLS = [
 export function CaseList() {
   const t = useTranslations("admin");
   const c = useTranslations("admin.cases");
-  const format = useFormatter();
+  // The tabs speak the same words as the status tags in the rows.
+  const statusLabel = useTranslations("consultations.statusLabel");
   const municipality = useMunicipalityFilter();
   const [rawStatus, setStatus] = useUrlParam("status", "open");
   const [category, setCategory] = useUrlParam("category");
@@ -79,6 +109,8 @@ export function CaseList() {
   const status = consultationStatus(rawStatus);
 
   const categories = useQuery(orpc.consultations.categories.queryOptions());
+  const waiting = useQuery(orpc.moderation.counts.queryOptions()).data
+    ?.consultations;
 
   const prefetch = useAdminPrefetch(useStaff());
 
@@ -93,6 +125,11 @@ export function CaseList() {
   });
 
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
+  const duplicated = new Set(
+    items
+      .map((item) => item.title)
+      .filter((title, index, all) => all.indexOf(title) !== index),
+  );
   const total = list.data?.pages.at(-1)?.total ?? 0;
 
   return (
@@ -101,7 +138,28 @@ export function CaseList() {
         title={c("title")}
         actions={
           <Button variant="outline" asChild>
-            <Link href="/admin/queue/consultations">{c("pendingQueue")}</Link>
+            <Link
+              href="/admin/queue/consultations"
+              aria-label={
+                waiting
+                  ? `${c("pendingQueue")}, ${t("shell.pendingCount", { count: waiting })}`
+                  : undefined
+              }
+            >
+              {c("pendingQueue")}
+              {/* How many wait there, so the way in says whether it is worth
+                  taking. */}
+              {waiting ? (
+                <Badge
+                  variant="secondary"
+                  className="-mr-1 h-5 min-w-5 rounded-full px-1.5 tabular-nums"
+                >
+                  {waiting}
+                </Badge>
+              ) : null}
+              {/* It leads to another view (the queue), not a filter here. */}
+              <ArrowRight aria-hidden />
+            </Link>
           </Button>
         }
       />
@@ -115,8 +173,13 @@ export function CaseList() {
               disabled={categories.isPending}
               onValueChange={(next) => setCategory(next === ALL ? "" : next)}
             >
-              <SelectTrigger aria-label={c("category")} className="min-w-48">
-                <span className="text-muted-foreground">{c("category")}</span>
+              <SelectTrigger
+                aria-label={c("category")}
+                className="min-w-0 sm:min-w-48"
+              >
+                <span className="hidden text-muted-foreground sm:inline">
+                  {c("category")}
+                </span>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -134,13 +197,19 @@ export function CaseList() {
         <Tabs
           value={status}
           onValueChange={setStatus}
-          className="max-w-full min-w-0 overflow-x-auto scrollbar-none"
+          className="max-w-full min-w-0"
         >
-          <TabsList variant="pill" aria-label={c("statusGroup")}>
+          {/* Wraps instead of scrolling: on a phone the last states were cut
+              off with nothing hinting they were there. */}
+          <TabsList
+            variant="pill"
+            aria-label={c("statusGroup")}
+            className="h-auto! flex-wrap justify-start *:flex-none"
+          >
             <TabsTrigger value="all">{c("all")}</TabsTrigger>
             {CASE_STATUSES.map((value) => (
               <TabsTrigger key={value} value={value}>
-                {t(value)}
+                {statusLabel(value)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -162,90 +231,48 @@ export function CaseList() {
               {t("loading")}
             </span>
           )}
-          <AdminTableCard>
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className={HEAD}>{c("colCase")}</TableHead>
-                  <TableHead className={`${HEAD} hidden md:table-cell`}>
-                    {c("colMunicipality")}
-                  </TableHead>
-                  <TableHead className={HEAD}>{c("colStatus")}</TableHead>
-                  <TableHead
-                    className={`${HEAD} hidden text-right sm:table-cell`}
+          {!list.data ? (
+            <InboxSkeleton />
+          ) : (
+            <div className="flex max-w-3xl flex-col gap-8">
+              {groupByRecency(items).map((group) => (
+                <section
+                  key={group.key}
+                  aria-labelledby={`cases-${group.key}`}
+                  className="flex flex-col gap-1"
+                >
+                  <h2
+                    id={`cases-${group.key}`}
+                    className="text-[13px] font-medium text-muted-foreground"
                   >
-                    {c("colSupport")}
-                  </TableHead>
-                  <TableHead
-                    className={`${HEAD} hidden text-right md:table-cell`}
-                  >
-                    {c("colReplies")}
-                  </TableHead>
-                  <TableHead className={`${HEAD} hidden sm:table-cell`}>
-                    {c("colDate")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!list.data ? (
-                  <TableRowsSkeleton
-                    rows={5}
-                    rowClassName="h-12"
-                    cells={SKELETON_CELLS}
-                  />
-                ) : (
-                  items.map((item) => (
-                    <TableRow key={item.id} className="h-12">
-                      <TableCell className={`${CELL} w-full max-w-0`}>
-                        <Link
-                          href={`/admin/consultations/${item.slug}`}
-                          onPointerEnter={() =>
-                            prefetch(`/admin/consultations/${item.slug}`)
+                    {c(`groups.${group.key}`)}
+                  </h2>
+                  <InboxList>
+                    {group.items.map((item) => {
+                      const href = `/admin/consultations/${item.slug}`;
+                      return (
+                        <CaseInboxRow
+                          key={item.id}
+                          item={item}
+                          href={href}
+                          // Two cases with the same words get a short
+                          // reference, so they can be told apart.
+                          reference={
+                            duplicated.has(item.title)
+                              ? item.id.slice(-6)
+                              : undefined
                           }
-                          onFocus={() =>
-                            prefetch(`/admin/consultations/${item.slug}`)
-                          }
-                          title={item.title}
-                          className="block truncate font-medium hover:underline"
-                        >
-                          {item.title}
-                        </Link>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {item.categoryName}
-                        </span>
-                      </TableCell>
-                      <TableCell className={`${CELL} hidden md:table-cell`}>
-                        {item.municipalityName}
-                      </TableCell>
-                      <TableCell className={CELL}>
-                        <CaseStatusTag status={item.status} />
-                        {item.publicationStatus === "published" ? null : (
-                          <span className="block text-xs text-muted-foreground">
-                            {c(`publication.${item.publicationStatus}`)}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell
-                        className={`${CELL} hidden text-right tabular-nums sm:table-cell`}
-                      >
-                        {item.supportCount}
-                      </TableCell>
-                      <TableCell
-                        className={`${CELL} hidden text-right tabular-nums md:table-cell`}
-                      >
-                        {item.responseCount}
-                      </TableCell>
-                      <TableCell
-                        className={`${CELL} hidden text-muted-foreground tabular-nums sm:table-cell`}
-                      >
-                        {format.dateTime(new Date(item.createdAt), "short")}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </AdminTableCard>
+                          onPrefetch={() => prefetch(href)}
+                          // Under a status tab every row has that status.
+                          showStatus={status === "all"}
+                        />
+                      );
+                    })}
+                  </InboxList>
+                </section>
+              ))}
+            </div>
+          )}
 
           {list.data ? (
             <>

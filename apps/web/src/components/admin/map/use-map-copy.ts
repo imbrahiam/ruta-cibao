@@ -100,9 +100,25 @@ export function useMapCopy() {
     },
 
     routeLegend: (): LegendEntry[] => [
-      { key: "trail", swatch: "line", label: t("trail") },
-      { key: "start", swatch: "disc", label: q("pathStart") },
-      { key: "end", swatch: "square", label: q("pathEnd") },
+      // The trail and its ends are drawn in the brand's pine (`MAP_INK`).
+      {
+        key: "trail",
+        swatch: "line",
+        color: "var(--primary)",
+        label: t("trail"),
+      },
+      {
+        key: "start",
+        swatch: "disc",
+        color: "var(--primary)",
+        label: q("pathStart"),
+      },
+      {
+        key: "end",
+        swatch: "square",
+        color: "var(--primary)",
+        label: q("pathEnd"),
+      },
     ],
   };
 }

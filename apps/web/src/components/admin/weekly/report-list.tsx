@@ -6,11 +6,9 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { ChartColumn, FileText } from "lucide-react";
-import Link from "next/link";
+import { ChartColumn } from "lucide-react";
 import { useFormatter, useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
-import { MetaList } from "@/components/admin/facts";
 import { weeklyReportOptions } from "@/components/admin/list-queries";
 import {
   MunicipalityFilter,
@@ -20,28 +18,23 @@ import { useOutcome } from "@/components/admin/outcome";
 import {
   AdminEmpty,
   AdminPageHeader,
-  AdminTableCard,
+  AdminSection,
   AdminToolbar,
+  InboxList,
+  InboxRow,
 } from "@/components/admin/page-frame";
 import { QueryState } from "@/components/admin/query-state";
-import { TableRowsSkeleton } from "@/components/admin/skeletons";
 import { useStaff } from "@/components/admin/staff-context";
 import { useAdminPrefetch } from "@/components/admin/use-admin-prefetch";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
-import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { api, orpc } from "@/lib/web/api";
+import { GenerateReports } from "./generate-reports";
 import {
   PdfActions,
   ReportStatusIndicator,
   useWeekLabel,
+  useWeekRange,
 } from "./report-parts";
 
 type Report = ApiOutputs["reports"]["list"][number];
@@ -56,24 +49,28 @@ function useFigures() {
     const metrics = report.metrics;
     if (!metrics) return null;
     return [
-      { key: "places", label: w("colPlaces"), value: metrics.places.published },
       {
-        key: "opened",
+        key: "places" as const,
+        label: w("colPlaces"),
+        value: metrics.places.published,
+      },
+      {
+        key: "opened" as const,
         label: w("colOpened"),
         value: metrics.consultations.opened,
       },
       {
-        key: "answered",
+        key: "answered" as const,
         label: w("colAnswered"),
         value: metrics.consultations.answered,
       },
       {
-        key: "stillOpen",
+        key: "stillOpen" as const,
         label: w("colStillOpen"),
         value: metrics.consultations.stillOpen,
       },
       {
-        key: "traffic",
+        key: "traffic" as const,
         label: w("colTraffic"),
         value: metrics.traffic.reported,
       },
@@ -81,59 +78,49 @@ function useFigures() {
   };
 }
 
-const FIGURE_HEADS = [
-  "colPlaces",
-  "colOpened",
-  "colAnswered",
-  "colStillOpen",
-  "colTraffic",
-] as const;
+/** In a row, what still needs an answer is said first. */
+const ROW_ORDER = ["stillOpen", "answered", "opened", "places", "traffic"];
 
-/** The column heads, shared by the list and its placeholder so they never differ. */
-function WeeklyHead() {
-  const w = useTranslations("admin.weeklyReport");
-  return (
-    <TableHeader className="max-sm:sr-only">
-      <TableRow className="hover:bg-transparent">
-        <TableHead className="pl-4">{w("colWeek")}</TableHead>
-        <TableHead className="max-sm:hidden">{w("colStatus")}</TableHead>
-        {FIGURE_HEADS.map((key) => (
-          <TableHead key={key} className="hidden px-3 text-right xl:table-cell">
-            {w(key)}
-          </TableHead>
-        ))}
-        <TableHead>
-          <span className="sr-only">{w("colActions")}</span>
-        </TableHead>
-      </TableRow>
-    </TableHeader>
-  );
+/** A figure said as a phrase in a row: "1 sin responder", "2 casos abiertos". */
+const ROW_FIGURE = {
+  places: "rowPlaces",
+  opened: "rowOpened",
+  answered: "rowAnswered",
+  stillOpen: "rowStillOpen",
+  traffic: "rowTraffic",
+} as const;
+
+/** The reports grouped under their week, in the order the list gives them. */
+function groupByWeek(
+  items: Report[],
+  weekLabel: (report: Report) => string,
+): [string, Report[]][] {
+  const groups = new Map<string, Report[]>();
+  for (const report of items) {
+    const week = weekLabel(report);
+    groups.set(week, [...(groups.get(week) ?? []), report]);
+  }
+  return [...groups];
 }
 
-/** Placeholder rows: week and municipality, status, five figures, actions. */
-const SKELETON_CELLS = [
-  {
-    cell: "pl-4",
-    bars: ["h-5 w-40", "h-4 w-56", "h-4 w-72 max-w-full xl:hidden"],
-  },
-  { cell: "max-sm:hidden", bars: ["h-5 w-20"] },
-  ...FIGURE_HEADS.map(() => ({
-    cell: "hidden px-3 xl:table-cell",
-    bars: ["ml-auto h-4 w-6"],
-  })),
-  { bars: ["ml-auto h-9 w-9 sm:w-24"] },
-];
-
+/** Placeholder: one week heading and its rows. */
 function WeeklySkeleton() {
   return (
-    <AdminTableCard>
-      <Table>
-        <WeeklyHead />
-        <TableBody>
-          <TableRowsSkeleton rows={4} cells={SKELETON_CELLS} />
-        </TableBody>
-      </Table>
-    </AdminTableCard>
+    <div className="flex flex-col gap-3">
+      <Skeleton className="h-5 w-56" />
+      <ul className="flex flex-col">
+        {Array.from({ length: 3 }, (_, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
+          <li key={index} className="flex min-h-16 items-center gap-3 py-3">
+            <div className="flex flex-1 flex-col gap-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3.5 w-48" />
+            </div>
+            <Skeleton className="h-4 w-24" />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -143,6 +130,7 @@ export function WeeklyReportList() {
   const reports = useTranslations("reports");
   const format = useFormatter();
   const weekLabel = useWeekLabel();
+  const weekRange = useWeekRange();
   const announce = useOutcome();
   const queryClient = useQueryClient();
   const { staffScope } = useStaff();
@@ -188,15 +176,16 @@ export function WeeklyReportList() {
         title={w("title")}
         description={w("intro")}
         actions={
-          <Button
-            disabled={generate.isPending || targetMunicipalities.length === 0}
-            onClick={() =>
+          <GenerateReports
+            municipalities={targetMunicipalities.map(
+              (id) =>
+                municipalities.data?.find((item) => item.id === id)?.name ?? id,
+            )}
+            pending={generate.isPending}
+            onConfirm={() =>
               generate.mutate({ municipalityIds: targetMunicipalities })
             }
-          >
-            <FileText aria-hidden />
-            {generate.isPending ? reports("preparingPdf") : t("generate")}
-          </Button>
+          />
         }
       />
 
@@ -214,110 +203,84 @@ export function WeeklyReportList() {
               description={reports("emptyHint")}
             />
           ) : (
-            <AdminTableCard>
-              <Table>
-                <WeeklyHead />
-                <TableBody>
-                  {items.map((report) => {
-                    const week = weekLabel(report);
-                    const figures =
-                      report.status === "ready" ? figuresOf(report) : null;
-                    const generatedAt = report.generatedAt
-                      ? reports("generatedAt", {
-                          date: format.dateTime(
-                            new Date(report.generatedAt),
-                            "short",
-                          ),
-                        })
-                      : "";
-                    const note =
-                      report.status === "ready" && !figures
-                        ? reports("unreadable")
-                        : report.status === "failed"
-                          ? reports("failed")
+            // One section per week, the municipalities under it: the list
+            // reads by week first instead of repeating the same dates per row.
+            <div className="flex max-w-3xl flex-col gap-8">
+              {groupByWeek(items, weekLabel).map(([week, group]) => (
+                <AdminSection
+                  key={week}
+                  title={weekRange(group[0] as Report)}
+                  count={`· ${w("reportCount", { count: group.length })}`}
+                >
+                  <InboxList>
+                    {group.map((report) => {
+                      const figures =
+                        report.status === "ready" ? figuresOf(report) : null;
+                      const busy = figures
+                        ?.filter((figure) => figure.value > 0)
+                        .sort(
+                          (a, b) =>
+                            ROW_ORDER.indexOf(a.key) - ROW_ORDER.indexOf(b.key),
+                        );
+                      const note =
+                        report.status === "ready" && !figures
+                          ? reports("unreadable")
                           : "";
-                    return (
-                      <TableRow key={report.id}>
-                        <TableCell className="py-1.5 pl-4 whitespace-normal">
-                          <Link
-                            href={`/admin/reports/${report.id}`}
-                            onPointerEnter={() =>
-                              prefetch(`/admin/reports/${report.id}`)
-                            }
-                            onFocus={() =>
-                              prefetch(`/admin/reports/${report.id}`)
-                            }
-                            className="block w-fit font-medium hover:underline"
-                          >
-                            {week}
-                          </Link>
-                          <MetaList className="text-xs max-sm:hidden">
-                            {report.municipalityName}
-                            {generatedAt}
-                          </MetaList>
-                          <MetaList className="text-xs sm:hidden">
-                            {report.municipalityName}
-                          </MetaList>
-                          <div className="mt-1 sm:hidden">
-                            <ReportStatusIndicator status={report.status} />
-                          </div>
-                          {figures ? (
-                            <MetaList className="mt-1 text-xs xl:hidden">
-                              {figures.map((figure) => (
-                                <span key={figure.key}>
-                                  {figure.label}{" "}
-                                  <span className="text-foreground tabular-nums">
-                                    {figure.value}
-                                  </span>
-                                </span>
-                              ))}
-                            </MetaList>
-                          ) : note ? (
-                            <p className="mt-1 text-xs text-muted-foreground xl:hidden">
-                              {note}
-                            </p>
-                          ) : null}
-                        </TableCell>
-
-                        <TableCell className="py-1.5 max-sm:hidden">
-                          <ReportStatusIndicator status={report.status} />
-                        </TableCell>
-
-                        {figures ? (
-                          figures.map((figure) => (
-                            <TableCell
-                              key={figure.key}
-                              className="hidden px-3 py-1.5 text-right tabular-nums xl:table-cell"
-                            >
-                              {figure.value}
-                            </TableCell>
-                          ))
-                        ) : (
-                          <TableCell
-                            colSpan={FIGURE_HEADS.length}
-                            className="hidden px-3 py-1.5 text-right text-xs whitespace-normal text-muted-foreground xl:table-cell"
-                          >
-                            {note}
-                          </TableCell>
-                        )}
-
-                        <TableCell className="py-1.5 align-top">
-                          <div className="flex items-start justify-end gap-1">
-                            <Button
-                              asChild
-                              variant="ghost"
-                              className="max-sm:hidden"
-                            >
-                              <Link
-                                href={`/admin/reports/${report.id}`}
-                                aria-label={w("openFor", {
-                                  municipality: report.municipalityName,
-                                  week,
-                                })}
-                              >
-                                {reports("open")}
-                              </Link>
-                            </Button>
+                      const href = `/admin/reports/${report.id}`;
+                      return (
+                        <InboxRow
+                          key={report.id}
+                          href={href}
+                          title={report.municipalityName}
+                          openLabel={w("openFor", {
+                            municipality: report.municipalityName,
+                            week,
+                          })}
+                          onPrefetch={() => prefetch(href)}
+                          badge={
+                            // Ready is the normal case and goes unsaid.
+                            report.status === "ready" ? null : (
+                              <ReportStatusIndicator status={report.status} />
+                            )
+                          }
+                          // What moved this week, right under the town it
+                          // belongs to; when it was made, quieter below.
+                          meta={
+                            busy === undefined
+                              ? undefined
+                              : busy.length === 0
+                                ? reports("noActivity")
+                                : busy.map((figure) => (
+                                    <span
+                                      key={figure.key}
+                                      className={
+                                        figure.key === "stillOpen"
+                                          ? "font-medium text-foreground"
+                                          : undefined
+                                      }
+                                    >
+                                      {w(ROW_FIGURE[figure.key], {
+                                        count: figure.value,
+                                      })}
+                                    </span>
+                                  ))
+                          }
+                          byline={
+                            report.generatedAt || note ? (
+                              <span>
+                                {report.generatedAt
+                                  ? reports("generatedAt", {
+                                      date: format.dateTime(
+                                        new Date(report.generatedAt),
+                                        "short",
+                                      ),
+                                    })
+                                  : null}
+                                {note ? ` · ${note}` : null}
+                              </span>
+                            ) : undefined
+                          }
+                          actions={
                             <PdfActions
                               reportId={report.id}
                               status={report.status}
@@ -327,14 +290,14 @@ export function WeeklyReportList() {
                                 week,
                               }}
                             />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </AdminTableCard>
+                          }
+                        />
+                      );
+                    })}
+                  </InboxList>
+                </AdminSection>
+              ))}
+            </div>
           )
         }
       </QueryState>

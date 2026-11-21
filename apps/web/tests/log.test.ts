@@ -6,21 +6,19 @@ type Output = { stdout: string[]; stderr: string[] };
 function capture(run: () => void): Output {
   const stdout: string[] = [];
   const stderr: string[] = [];
-  const originalOut = process.stdout.write;
-  const originalErr = process.stderr.write;
-  process.stdout.write = ((chunk: string | Uint8Array) => {
-    stdout.push(String(chunk));
-    return true;
-  }) as typeof process.stdout.write;
-  process.stderr.write = ((chunk: string | Uint8Array) => {
-    stderr.push(String(chunk));
-    return true;
-  }) as typeof process.stderr.write;
+  const originalLog = console.log;
+  const originalError = console.error;
+  console.log = (line: unknown) => {
+    stdout.push(String(line));
+  };
+  console.error = (line: unknown) => {
+    stderr.push(String(line));
+  };
   try {
     run();
   } finally {
-    process.stdout.write = originalOut;
-    process.stderr.write = originalErr;
+    console.log = originalLog;
+    console.error = originalError;
   }
   return { stdout, stderr };
 }
