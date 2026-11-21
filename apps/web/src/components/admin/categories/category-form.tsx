@@ -232,8 +232,8 @@ export function CategoryForm({
                 </SelectTrigger>
                 <SelectContent>
                   {/* Sorted by the desk's word for the glyph, not its code id. */}
-                  {[...categoryIconNames]
-                    .sort((a, b) =>
+                  {categoryIconNames
+                    .toSorted((a, b) =>
                       t(`iconNames.${a}`).localeCompare(
                         t(`iconNames.${b}`),
                         "es",
