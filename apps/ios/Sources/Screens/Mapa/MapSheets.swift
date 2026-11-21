@@ -64,7 +64,7 @@ private struct PanelHeader: View {
     let subtitle: String
     /// Set when the place is verified: the badge sits beside the name, read out with this text.
     var verified: String?
-    /// A road notice leads with its traffic sign, as drawn on the map.
+    /// A road notice leads with its report icon, as drawn on the map.
     var sign: TrafficSignKind?
     let close: () -> Void
 
@@ -72,7 +72,7 @@ private struct PanelHeader: View {
         HStack(alignment: .top, spacing: 14) {
             Group {
                 if let sign {
-                    TrafficSign(kind: sign, size: 38, raised: false).frame(width: 40, height: 40)
+                    TrafficBadge(kind: sign, size: 44)
                 } else {
                     Image(systemName: symbol).font(.system(size: 16, weight: .medium)).foregroundStyle(.white)
                         .frame(width: 40, height: 40).background(tint, in: Circle())

@@ -26,18 +26,35 @@ private struct TrafficForm: View {
             SentView(title: state.queued ? L10n.Offline.queuedToast : L10n.Contribute.Traffic.sent, message: state.queued ? L10n.Offline.queuedToastBody : L10n.Contribute.Traffic.sentBody, done: close)
         } else {
             FormScreen(title: L10n.Contribute.Traffic.title, submit: L10n.Contribute.Traffic.submit, sending: state.sending, enabled: state.canSend, close: close, send: { vm.send() }) {
-                HStack(spacing: 10) {
+                // What is on the road, as a grid of the same icons the map draws.
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8, alignment: .top), count: 3), spacing: 14) {
                     ForEach(state.categories, id: \.id) { category in
                         let selected = category.id == state.categoryId
+                        let kind = TrafficSignKind.of(category: category.name, icon: category.icon)
                         Button { vm.selectCategory(id: category.id) } label: {
-                            VStack(spacing: 10) {
-                                Image(systemName: Glyph.symbol(category.icon)).font(.system(size: 22, weight: .light)).frame(height: 28)
-                                Text(category.name).font(.system(size: 13, weight: .medium)).multilineTextAlignment(.center).lineLimit(2)
+                            VStack(spacing: 8) {
+                                TrafficSign(kind: kind, size: 42)
+                                    .frame(width: 76, height: 76)
+                                    .background(Color.paper2, in: Circle())
+                                    .overlay(Circle().strokeBorder(Color.action, lineWidth: selected ? 3 : 0))
+                                    .overlay(alignment: .topTrailing) {
+                                        if selected {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: 20))
+                                                .symbolRenderingMode(.palette)
+                                                .foregroundStyle(Color.onInk, Color.action)
+                                                .background(Circle().fill(Color.paper).padding(-2))
+                                                .transition(.scale.combined(with: .opacity))
+                                        }
+                                    }
+                                Text(category.name)
+                                    .font(.system(size: 14, weight: selected ? .semibold : .regular))
+                                    .foregroundStyle(Color.ink)
+                                    .multilineTextAlignment(.center).lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            .foregroundStyle(selected ? Color.onInk : Color.ink)
-                            .frame(maxWidth: .infinity, minHeight: 104)
-                            .padding(.horizontal, 6)
-                            .background(selected ? Color.action : Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(Pressable())
                         .accessibilityAddTraits(selected ? .isSelected : [])

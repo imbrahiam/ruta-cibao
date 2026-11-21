@@ -26,26 +26,39 @@ struct AppleMap: View {
         Map(position: $position, selection: Binding(get: { selected }, set: { onPick($0) })) {
             // Lines first, so markers and signs sit on top of them.
             ForEach(lines, id: \.id) { line in
-                if line.casing {
-                    MapPolyline(coordinates: line.path.map(\.coordinate))
-                        .stroke(Color.white, style: StrokeStyle(lineWidth: line.width + 4, lineCap: .round, lineJoin: .round))
-                }
-                MapPolyline(coordinates: line.path.map(\.coordinate))
-                    .stroke(Color(hex: line.color) ?? .ink, style: StrokeStyle(lineWidth: line.width, lineCap: .round, lineJoin: .round))
-                if !line.dash.isEmpty {
-                    MapPolyline(coordinates: line.path.map(\.coordinate))
-                        .stroke(Color.white.opacity(0.9), style: StrokeStyle(lineWidth: max(line.width * 0.34, 1.5), lineCap: .butt, dash: line.dash.map { CGFloat($0) }))
+                let path = line.path.map(\.coordinate)
+                if line.stripes {
+                    // A barrier on the road: a thin dark edge, white, and red bars across it.
+                    MapPolyline(coordinates: path)
+                        .stroke(Color.solid(0x2B2B2E).opacity(0.85), style: StrokeStyle(lineWidth: line.width + 3, lineCap: .butt, lineJoin: .round))
+                    MapPolyline(coordinates: path)
+                        .stroke(Color.white, style: StrokeStyle(lineWidth: line.width, lineCap: .butt, lineJoin: .round))
+                    MapPolyline(coordinates: path)
+                        .stroke(Color(hex: line.color) ?? .danger, style: StrokeStyle(lineWidth: line.width, lineCap: .butt, lineJoin: .round, dash: [line.width * 1.3, line.width * 1.3]))
+                } else {
+                    if line.casing {
+                        MapPolyline(coordinates: path)
+                            .stroke(Color.white, style: StrokeStyle(lineWidth: line.width + 4, lineCap: .round, lineJoin: .round))
+                    }
+                    MapPolyline(coordinates: path)
+                        .stroke(Color(hex: line.color) ?? .ink, style: StrokeStyle(lineWidth: line.width, lineCap: .round, lineJoin: .round))
+                    if !line.dash.isEmpty {
+                        MapPolyline(coordinates: path)
+                            .stroke(Color.white.opacity(0.9), style: StrokeStyle(lineWidth: max(line.width * 0.34, 1.5), lineCap: .butt, dash: line.dash.map { CGFloat($0) }))
+                    }
                 }
             }
             ForEach(pins, id: \.key) { pin in
                 let coordinate = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
                 if let sign = pin.sign {
-                    Annotation(pin.title, coordinate: coordinate, anchor: .center) {
-                        TrafficSign(kind: sign, size: selected == pin.key ? 42 : 32)
-                            .opacity(selected == nil || selected == pin.key ? 1 : 0.5)
-                            .animation(Motion.quick, value: selected)
+                    let picks = pin.selects ?? pin.key
+                    // The marker's point stands on the road.
+                    Annotation(pin.title, coordinate: coordinate, anchor: .bottom) {
+                        TrafficMarker(kind: sign, selected: selected == pin.key, small: pin.small)
+                            .opacity(selected == nil || selected == picks ? 1 : 0.5)
                     }
-                    .tag(pin.key)
+                    .annotationTitles(.hidden)
+                    .tag(picks)
                 } else {
                     Marker(pin.title, systemImage: pin.symbol, coordinate: coordinate)
                         // With one in hand, the others step back so it reads first.

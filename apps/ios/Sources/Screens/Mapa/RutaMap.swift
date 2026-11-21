@@ -11,6 +11,11 @@ struct MapPin: Equatable {
     let tone: PinTone
     /// A road notice: drawn as its traffic sign instead of a balloon.
     var sign: TrafficSignKind?
+    /// What picking it selects, when that is another pin's key (a closure's end markers pick
+    /// the notice itself).
+    var selects: String?
+    /// A quieter marker, as at either end of a closed stretch.
+    var small = false
 }
 
 /// A stroke on the map: a reported stretch, an eco route, the way you were given.
@@ -23,6 +28,8 @@ struct MapLine: Equatable {
     var dash: [Double] = []
     /// A white edge under the line so it reads over any street.
     var casing = false
+    /// Drawn as a barrier: a dark edge, white, and red stripes across it.
+    var stripes = false
 }
 
 struct GeoPoint: Hashable {

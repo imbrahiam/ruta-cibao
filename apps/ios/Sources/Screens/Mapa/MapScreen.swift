@@ -268,12 +268,21 @@ private struct MapBody: View {
 
     private var allPins: [MapPin] {
         places.map { MapPin(key: "p" + $0.id, latitude: $0.latitude, longitude: $0.longitude, title: $0.name, symbol: Glyph.symbol($0.icon, filled: true), tone: $0.tone) }
-            // A notice stands on its stretch of road as its traffic sign, at the stretch's middle.
-            + state.traffic.map { notice in
+            // A notice stands on its stretch of road as its marker, at the stretch's middle; a
+            // closed road also gets a smaller one at either end, so where it starts and stops reads.
+            + state.traffic.flatMap { notice -> [MapPin] in
+                let sign = TrafficSignKind.of(category: notice.categoryName, icon: notice.icon)
                 let middle = notice.path.count > 1 ? notice.path[notice.path.count / 2] : nil
-                return MapPin(key: "t" + notice.id, latitude: middle?.latitude ?? notice.latitude, longitude: middle?.longitude ?? notice.longitude,
-                              title: notice.categoryName, symbol: Glyph.symbol(notice.icon, filled: true), tone: notice.tone,
-                              sign: TrafficSignKind.of(category: notice.categoryName, icon: notice.icon))
+                let key = "t" + notice.id
+                var pins = [MapPin(key: key, latitude: middle?.latitude ?? notice.latitude, longitude: middle?.longitude ?? notice.longitude,
+                                   title: notice.categoryName, symbol: Glyph.symbol(notice.icon, filled: true), tone: notice.tone, sign: sign)]
+                if sign.striped, notice.path.count > 2, let first = notice.path.first, let last = notice.path.last {
+                    for (end, point) in [("s", first), ("e", last)] {
+                        pins.append(MapPin(key: key + end, latitude: point.latitude, longitude: point.longitude, title: notice.categoryName,
+                                           symbol: Glyph.symbol(notice.icon, filled: true), tone: notice.tone, sign: sign, selects: key, small: true))
+                    }
+                }
+                return pins
             }
             + state.visibleRoutes.compactMap { route in
                 route.start.map { MapPin(key: "r" + route.id, latitude: $0.latitude, longitude: $0.longitude, title: route.name, symbol: "figure.hiking", tone: .trail) }
@@ -282,12 +291,12 @@ private struct MapBody: View {
 
     private var lines: [MapLine] {
         (trail.route.map { [MapLine(id: "trail", path: $0.coordinates.map(GeoPoint.init), color: PinTone.trail.css, width: 7)] } ?? [])
-        // The affected stretch drawn on the road itself: a white edge, the hazard's colour, and
-        // white dashes through it when the road is closed.
+        // The affected stretch drawn on the road itself: in the hazard's colour on a white edge,
+        // or as a red and white barrier when the road is closed.
         + state.traffic.filter { $0.path.count > 1 }.map { notice in
             let sign = TrafficSignKind.of(category: notice.categoryName, icon: notice.icon)
             return MapLine(id: "t" + notice.id, path: notice.path.map { GeoPoint(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) },
-                           color: sign.lineCSS, width: 7, dash: sign == .closed ? [6, 7] : [], casing: true)
+                           color: sign.lineCSS, width: 7, casing: true, stripes: sign.striped)
         }
             + state.visibleRoutes.map { MapLine(id: "r" + $0.id, path: $0.coordinates.map(GeoPoint.init), color: PinTone.trail.css, width: state.route?.id == $0.id ? 6 : 4) }
             + (navigator.route.map { [MapLine(id: "way", path: $0.polyline.path, color: PinTone.pine.css, width: 7)] } ?? [])
