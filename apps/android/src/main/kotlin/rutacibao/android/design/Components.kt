@@ -1,5 +1,9 @@
 package rutacibao.android.design
 
+import androidx.compose.ui.text.TextRange
+
+import androidx.compose.ui.text.input.TextFieldValue
+
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.RepeatMode
@@ -47,6 +51,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material3.CircularProgressIndicator
@@ -238,9 +243,14 @@ fun Field(
     var focused by remember { mutableStateOf(false) }
     val ring by animateColorAsState(if (focused) p.brand else Color.Transparent, label = "ring")
     val shape = RoundedCornerShape(Metrics.radiusField)
+    // The text with its cursor. When the owner rewrites what was typed (a phone number gaining
+    // its dashes), the cursor goes to the end instead of staying where the old text put it, so
+    // the next digits land in order.
+    var edit by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
+    val shown = if (edit.text == value) edit else edit.copy(text = value, selection = TextRange(value.length))
     BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
+        value = shown,
+        onValueChange = { next -> edit = next; if (next.text != value) onValueChange(next.text) },
         modifier = modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
         textStyle = textStyle.copy(color = p.ink),
         cursorBrush = SolidColor(p.ink),
@@ -386,9 +396,11 @@ fun ScreenTitle(title: String, modifier: Modifier = Modifier, trailing: @Composa
 @Composable
 fun TopRow(title: String, onBack: () -> Unit, modifier: Modifier = Modifier, backIcon: ImageVector = Icons.AutoMirrored.Outlined.ArrowBack, trailing: @Composable () -> Unit = {}) {
     Box(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-        IconDisc(backIcon, stringResource(R.string.common_back), onBack, Modifier.align(Alignment.CenterStart), floating = true)
+        // Back sits at the start; a close (dismissing a sheet-like form) sits at the end, as on iOS.
+        val closes = backIcon == Icons.Outlined.Close
+        IconDisc(backIcon, stringResource(if (closes) R.string.common_close else R.string.common_back), onBack, Modifier.align(if (closes) Alignment.CenterEnd else Alignment.CenterStart), floating = true)
         Text(title, style = Type.bodyStrong, color = Ink.colors.ink, modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp).semantics { heading() }, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Box(Modifier.align(Alignment.CenterEnd)) { trailing() }
+        Box(Modifier.align(if (closes) Alignment.CenterStart else Alignment.CenterEnd)) { trailing() }
     }
 }
 

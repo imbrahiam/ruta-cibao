@@ -152,19 +152,29 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
         }
     }
     DisposableEffect(Unit) { vm.setMapVisible(true); onDispose { vm.setMapVisible(false) } }
-    LaunchedEffect(camera.isMoving) {
+    // Also once the map is ready: the first view never "stops moving", so without this its road
+    // notices would wait for the first pan.
+    LaunchedEffect(camera.isMoving, camera.projection != null) {
         if (camera.isMoving) return@LaunchedEffect
         camera.projection?.visibleRegion?.latLngBounds?.let { b -> vm.onViewportChanged(b.southwest.longitude, b.southwest.latitude, b.northeast.longitude, b.northeast.latitude) }
     }
     // Bring what was picked into the upper half, above its sheet.
     val selection = state.selection
-    LaunchedEffect((selection as? MapSelection.Place)?.sheet?.place?.id, (selection as? MapSelection.Route)?.route?.id, (selection as? MapSelection.Traffic)?.id) {
+    val screen = androidx.compose.ui.platform.LocalWindowInfo.current.containerSize
+    // Keyed on the map being ready too: picked from search, the map is not on screen yet and a
+    // move asked for then is lost.
+    LaunchedEffect((selection as? MapSelection.Place)?.sheet?.place?.id, (selection as? MapSelection.Route)?.route?.id, (selection as? MapSelection.Traffic)?.id, camera.projection != null) {
         when (selection) {
             is MapSelection.Place -> selection.sheet.place.let { fly(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude - 0.0022, it.longitude), 16f)) }
             is MapSelection.Traffic -> state.selectedTraffic?.let { fly(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude - 0.0022, it.longitude), 16f)) }
             is MapSelection.Route -> selection.route.path.takeIf { it.isNotEmpty() }?.let { path ->
                 val bounds = LatLngBounds.builder().apply { path.forEach { include(LatLng(it.lat, it.lng)) } }.build()
-                fly(CameraUpdateFactory.newLatLngBounds(bounds, 140))
+                // Fit the trail into the upper half, above the route's sheet: sized for half the
+                // screen, then moved up by a quarter of it.
+                runCatching {
+                    camera.animate(CameraUpdateFactory.newLatLngBounds(bounds, screen.width, screen.height / 2, 120), 450)
+                    camera.animate(CameraUpdateFactory.scrollBy(0f, screen.height / 4f), 250)
+                }
             }
             else -> Unit
         }
@@ -190,7 +200,8 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
                 state.visibleRoutes.forEach { route ->
                     val on = state.route?.id == route.id
                     Polyline(points = route.path.map { LatLng(it.lat, it.lng) }, color = p.success, width = if (on) 16f else 10f, clickable = true, onClick = { vm.selectRoute(route.id) })
-                    route.path.firstOrNull()?.let { start ->
+                    // Open, the route's own start flag takes the place of its walker pin.
+                    if (!on) route.path.firstOrNull()?.let { start ->
                         GlyphPin(LatLng(start.lat, start.lng), route.id, Icons.AutoMirrored.Outlined.DirectionsWalk, Tint.Trail.solid, on, dimmed = false, zIndex = 2f) { vm.selectRoute(route.id) }
                     }
                 }
@@ -201,7 +212,7 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
                     val sign = TrafficSignKind.of(notice.categoryName, notice.icon)
                     val on = state.selectedTraffic?.id == notice.id
                     // With something else in hand, notices shrink and fade so its own markers read first.
-                    val aside = !on && (selection != null || state.selectedTraffic != null)
+                    val aside = !on && selection !is MapSelection.None
                     val points = notice.path.map { LatLng(it.latitude, it.longitude) }
                     if (points.size > 1) {
                         if (sign.striped) {
@@ -621,15 +632,17 @@ private fun TrafficPanel(notice: TrafficNotice, vm: MapViewModel) {
     val p = Ink.colors
     PanelHeader(if (notice.severity == TrafficSeverity.Blocking) p.danger else p.warning, categoryIcon(notice.icon), notice.categoryName, "${notice.municipality} · ${relativeTimeText(notice.createdAt)}", sign = TrafficSignKind.of(notice.categoryName, notice.icon), onClose = vm::dismissTraffic)
     notice.details?.takeIf { it.isNotBlank() }?.let { Text(it, style = Type.body, color = p.ink2) }
-    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(pluralStringResource(R.plurals.traffic_still_voices, notice.stillCount, notice.stillCount), style = Type.callout, color = p.ink3)
-        Text(pluralStringResource(R.plurals.traffic_cleared_voices, notice.clearedCount, notice.clearedCount), style = Type.callout, color = p.ink3)
+    // A blocked road is asked about in its own words; a side nobody has taken is left out, not shown as zero.
+    val blocking = notice.severity == TrafficSeverity.Blocking
+    if (notice.stillCount > 0 || notice.clearedCount > 0) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (notice.stillCount > 0) Text(pluralStringResource(if (blocking) R.plurals.traffic_still_blocked_voices else R.plurals.traffic_still_voices, notice.stillCount, notice.stillCount), style = Type.callout, color = p.ink2)
+        if (notice.clearedCount > 0) Text(pluralStringResource(if (blocking) R.plurals.traffic_gone_blocked_voices else R.plurals.traffic_cleared_voices, notice.clearedCount, notice.clearedCount), style = Type.callout, color = p.ink2)
     }
     if (notice.canConfirm) {
-        Text(stringResource(R.string.traffic_ask), style = Type.label, color = p.ink)
+        Text(stringResource(if (blocking) R.string.traffic_ask_blocked else R.string.traffic_ask), style = Type.label, color = p.ink)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill(stringResource(R.string.traffic_still), { vm.confirmTraffic(TrafficVerdict.Still) }, Modifier.weight(1f), kind = if (notice.myVerdict == TrafficVerdict.Still) PillKind.Ink else PillKind.Quiet, compact = true)
-            Pill(stringResource(R.string.traffic_gone), { vm.confirmTraffic(TrafficVerdict.Cleared) }, Modifier.weight(1f), kind = if (notice.myVerdict == TrafficVerdict.Cleared) PillKind.Ink else PillKind.Quiet, compact = true)
+            Pill(stringResource(if (blocking) R.string.traffic_still_blocked else R.string.traffic_still), { vm.confirmTraffic(TrafficVerdict.Still) }, Modifier.weight(1f), kind = if (notice.myVerdict == TrafficVerdict.Still) PillKind.Ink else PillKind.Quiet, compact = true)
+            Pill(stringResource(if (blocking) R.string.traffic_gone_blocked else R.string.traffic_gone), { vm.confirmTraffic(TrafficVerdict.Cleared) }, Modifier.weight(1f), kind = if (notice.myVerdict == TrafficVerdict.Cleared) PillKind.Ink else PillKind.Quiet, compact = true)
         }
     } else notice.myVerdict?.let { Notice(Icons.Outlined.CheckCircle, stringResource(if (it == TrafficVerdict.Still) R.string.traffic_thanks_still else R.string.traffic_thanks_cleared)) }
 }

@@ -217,7 +217,7 @@ private fun preparePhoto(resolver: ContentResolver, uri: Uri): ByteArray {
 
 /** The landing's location pin: a teardrop with a paper eye (`location-pin.tsx`, 24 by 28 box). */
 @Composable
-fun TeardropPin(height: Dp = 42.dp, modifier: Modifier = Modifier, color: Color = Color(0xFFC4473F)) {
+fun TeardropPin(height: Dp = 42.dp, modifier: Modifier = Modifier, color: Color = Ink.colors.brand) {
     Canvas(modifier.size(height * 24f / 28f, height)) {
         val w = size.width / 24f; val h = size.height / 28f
         val drop = Path().apply {

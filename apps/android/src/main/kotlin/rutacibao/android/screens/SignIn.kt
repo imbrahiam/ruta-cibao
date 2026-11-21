@@ -124,7 +124,7 @@ private fun Verify(state: SignInUiState, vm: SignInViewModel) {
         Problem(state.error)
         Pill(stringResource(R.string.sign_in_verify), vm::verify, Modifier.padding(top = 16.dp).fillMaxWidth(), enabled = state.code.length == 6, busy = state.busy)
         Pill(
-            if (state.resendIn > 0) stringResource(R.string.sign_in_resend_in, state.resendIn.toString()) else stringResource(R.string.sign_in_resend),
+            if (state.resendIn > 0) stringResource(R.string.sign_in_resend_in, state.resendIn.toInt()) else stringResource(R.string.sign_in_resend),
             vm::resend, Modifier.padding(top = 14.dp), kind = PillKind.Outline, compact = true, enabled = state.resendIn <= 0 && !state.busy,
         )
         Spacer(Modifier.height(24.dp))
