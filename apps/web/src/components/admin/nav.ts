@@ -60,7 +60,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     href: "/admin/queue/places",
     label: "places",
     icon: MapPin,
-    model: "place-check",
+    model: "places",
     group: "map",
     countKey: "places",
   },

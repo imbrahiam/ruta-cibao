@@ -80,6 +80,15 @@ enum VehicleModels {
             return node
         }
 
+        /// A map marker (a teardrop with a white dot) whose tip touches `y - 0.56`.
+        func marker(_ material: SCNMaterial, x: Float, y: Float, z: Float) {
+            _ = add(SCNSphere(radius: 0.42), material, at: SCNVector3(x, y + 0.40, z))
+            // The cone meets the sphere where their radii match, so the drop is one smooth shape.
+            _ = add(SCNCone(topRadius: 0.38, bottomRadius: 0.0, height: 0.78), material, at: SCNVector3(x, y - 0.17, z))
+            // The dot sits on the side the thumbnail camera looks from, so it reads as a disc.
+            _ = add(SCNSphere(radius: 0.16), cream, at: SCNVector3(x + 0.15, y + 0.52, z + 0.25))
+        }
+
         switch type {
         case .swimming:
             // A life ring (🛟): coral with four cream bands, tipped toward the camera.
@@ -221,13 +230,26 @@ enum VehicleModels {
                 block(0.34, 0.54, 0.11, pine, 0.26, 0.46, 0, chamfer: 0.035)
             }
         case .placeCheck:
-            _ = add(SCNSphere(radius: 0.52), pine, at: SCNVector3(-0.31, 0.29, 0))
-            _ = add(SCNCone(topRadius: 0.44, bottomRadius: 0.04, height: 0.85), pine,
-                    at: SCNVector3(-0.31, -0.29, 0))
-            _ = add(SCNSphere(radius: 0.16), cream, at: SCNVector3(-0.31, 0.31, 0.48))
-            let lens = add(SCNTorus(ringRadius: 0.34, pipeRadius: 0.079), gold, at: SCNVector3(0.33, 0.12, 0.49))
-            lens.eulerAngles.x = .pi / 2
-            root.addChildNode(rod(from: SCNVector3(0.57, -0.13, 0.49), to: SCNVector3(0.85, -0.53, 0.49), radius: 0.095, brown))
+            // A map pin being looked at: the marker, and a whole magnifier in
+            // front of it (rim, glass and handle joined).
+            marker(pine, x: -0.28, y: -0.10, z: -0.10)
+            let glassTint = paint(UIColor(red: 0.78, green: 0.90, blue: 0.97, alpha: 1), metal: 0.1, rough: 0.15)
+            let center = SCNVector3(0.30, -0.02, 0.42)
+            let rim = add(SCNTorus(ringRadius: 0.30, pipeRadius: 0.07), gold, at: center)
+            rim.eulerAngles.x = .pi / 2
+            let pane = add(SCNCylinder(radius: 0.29, height: 0.03), glassTint, at: center)
+            pane.eulerAngles.x = .pi / 2
+            root.addChildNode(rod(from: SCNVector3(0.53, -0.25, 0.42), to: SCNVector3(0.84, -0.62, 0.42), radius: 0.075, brown))
+        case .places:
+            // Places on the map: a coral marker standing on a square of map
+            // with two streets and a tree.
+            let land = paint(UIColor(red: 0.80, green: 0.90, blue: 0.75, alpha: 1))
+            block(1.70, 0.08, 1.40, land, 0, -0.62, 0, chamfer: 0.04)
+            block(1.70, 0.02, 0.20, cream, 0, -0.575, 0.28, chamfer: 0.01)
+            block(0.20, 0.02, 1.40, cream, -0.40, -0.575, 0, chamfer: 0.01)
+            _ = add(SCNCylinder(radius: 0.04, height: 0.10), brown, at: SCNVector3(0.55, -0.53, -0.35))
+            _ = add(SCNCone(topRadius: 0, bottomRadius: 0.17, height: 0.42), pine, at: SCNVector3(0.55, -0.27, -0.35))
+            marker(coral, x: 0.10, y: -0.02, z: 0.05)
         case .store:
             // A cream shop with a dark door and window, under a coral and white
             // striped awning, a green sign on the roof line.
@@ -553,6 +575,8 @@ enum PlaceModel: String {
     case store
     /// Kinds of work rather than of places, for the staff desk's sections.
     case camera, cone, chat, chart
+    /// Places and businesses as a whole: a marker on a square of map.
+    case places
 
     init?(icon: String) {
         switch icon {

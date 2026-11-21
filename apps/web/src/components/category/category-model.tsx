@@ -32,7 +32,7 @@ export type ModelName =
   | "medical"
   | "park"
   | "pharmacy"
-  | "place-check"
+  | "places"
   | "repair"
   | "school"
   | "sports"
