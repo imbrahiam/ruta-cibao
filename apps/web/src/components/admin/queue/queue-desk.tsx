@@ -50,7 +50,7 @@ import { SplitContext } from "./split";
 import { TrafficDetail, TrafficLine, TrafficRow } from "./traffic-row";
 import { DeskContext, useDeskState } from "./use-decision";
 
-/** `admin` catalogue keys for each desk's title and intro. */
+/** `admin` catalogue keys for each desk's title. */
 const TITLE: Record<QueueSlug, string> = {
   places: "places",
   claims: "claims",
@@ -59,17 +59,6 @@ const TITLE: Record<QueueSlug, string> = {
   routes: "routes",
   traffic: "traffic",
   "content-reports": "safety",
-  consultations: "consultations",
-};
-
-const INTRO: Record<QueueSlug, string> = {
-  places: "places",
-  claims: "claims",
-  photos: "photos",
-  reports: "reports",
-  routes: "routes",
-  traffic: "traffic",
-  "content-reports": "contentReports",
   consultations: "consultations",
 };
 
@@ -286,7 +275,7 @@ function useShownRows(
   }
 
   const shown: Shown[] = rows.map((row) => ({ ...row, leaving: false }));
-  for (const { row, index } of [...track.leaving].sort(
+  for (const { row, index } of track.leaving.toSorted(
     (a, b) => a.index - b.index,
   )) {
     shown.splice(Math.min(index, shown.length), 0, { ...row, leaving: true });
@@ -583,11 +572,7 @@ function Desk<T>({
     <DeskContext.Provider value={desk}>
       <SplitContext.Provider value={splitValue}>
         <div className="flex flex-col gap-5">
-          <AdminPageHeader
-            id="queue-title"
-            title={t(TITLE[slug])}
-            description={q(`intro.${INTRO[slug]}`)}
-          />
+          <AdminPageHeader id="queue-title" title={t(TITLE[slug])} />
 
           {/* The filter, then the count right above the list it counts: one
             short row before the first card. */}
@@ -648,8 +633,14 @@ function Desk<T>({
                             <ul
                               ref={list}
                               className={cn(
-                                "flex flex-col [&>li:focus-visible]:ring-2 [&>li:focus-visible]:ring-ring/50 [&>li:focus-visible]:outline-none [&>li:focus-visible]:ring-inset",
-                                split ? "gap-1" : "gap-3",
+                                "[&>li:focus-visible]:ring-2 [&>li:focus-visible]:ring-ring/50 [&>li:focus-visible]:outline-none [&>li:focus-visible]:ring-inset",
+                                // Photos are judged by eye: a wall of tiles,
+                                // not one full-width card per picture.
+                                slug === "photos"
+                                  ? "grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] items-start gap-3"
+                                  : "flex flex-col",
+                                slug !== "photos" &&
+                                  (split ? "gap-1" : "gap-3"),
                               )}
                               onFocus={onListFocus}
                               onBlur={onListBlur}
@@ -676,7 +667,7 @@ function Desk<T>({
                       );
                       if (!split) return listColumn;
                       return (
-                        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,22rem)_minmax(0,1fr)] gap-6 lg:h-full">
+                        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,24rem)_minmax(0,1fr)] gap-6 lg:h-full">
                           {listColumn}
                           {selected ? (
                             <div
