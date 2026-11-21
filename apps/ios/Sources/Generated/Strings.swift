@@ -1644,6 +1644,7 @@ enum L10n {
         static var tooManyAttempts: String { String(localized: LocalizedStringResource("signIn.tooManyAttempts")) }
         static var sendFailed: String { String(localized: LocalizedStringResource("signIn.sendFailed")) }
         static var rateLimited: String { String(localized: LocalizedStringResource("signIn.rateLimited")) }
+        static var useSentCode: String { String(localized: LocalizedStringResource("signIn.useSentCode")) }
         static func waitSeconds(seconds: Int) -> String {
             String.localizedStringWithFormat(
                 NSLocalizedString("signIn.waitSeconds", comment: ""), seconds

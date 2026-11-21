@@ -30,6 +30,8 @@ public data class SignInUiState(
      * server asked for after refusing a send, and "Enviar código" stays off until it ends.
      */
     val resendIn: Int = 0,
+    /** On the first step: the typed address already has a usable code, so submitting goes back to it. */
+    val hasSentCode: Boolean = false,
     /** Bumped on each failed code so the UI can play its (reduced-motion aware) feedback once. */
     val failures: Int = 0,
 ) {
@@ -72,31 +74,44 @@ public class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
     private val _state = MutableStateFlow(SignInUiState())
     public val state: StateFlow<SignInUiState> = _state.asStateFlow()
     private var countdown: Job? = null
+    /** The address the running wait belongs to, and the seconds it has left. */
+    private var waitTarget: String? = null
+    private var waitLeft = 0
+    /** The address whose last code is still usable, so going back to it resumes the code. */
+    private var liveTarget: String? = null
+    private var liveCode: Job? = null
 
     public fun selectMethod(method: SignInUiState.Method) {
         val current = _state.value
         if (current.step != SignInUiState.Step.Enter || current.busy || current.method == method || !current.isAvailable(method)) return
-        newDestination()
-        _state.update { it.copy(method = method, error = null) }
+        _state.update { it.copy(method = method, error = null).withWait() }
     }
 
     public fun updatePhone(input: String) {
         val phone = Phone.formatInput(input)
-        if (phone != _state.value.phone) newDestination()
-        _state.update { it.copy(phone = phone, error = null) }
+        _state.update { it.copy(phone = phone, error = null).withWait() }
     }
 
     public fun updateEmail(input: String) {
         val email = input.trim()
-        if (email != _state.value.email) newDestination()
-        _state.update { it.copy(email = email, error = null) }
+        _state.update { it.copy(email = email, error = null).withWait() }
     }
 
-    /** The wait belongs to the address it was asked for: a different one can try right away. */
-    private fun newDestination() {
-        if (_state.value.step != SignInUiState.Step.Enter || _state.value.resendIn == 0) return
-        countdown?.cancel()
-        _state.update { it.copy(resendIn = 0) }
+    /**
+     * The wait belongs to the address it was asked for: a different one can try right away, and
+     * typing the first one again brings its wait back.
+     *
+     * What the screen shows as `resendIn`: the running wait, but only for its own address, and not
+     * on the first step for an address whose code still works (submitting goes back to it).
+     */
+    private fun SignInUiState.withWait(): SignInUiState {
+        val target = target(this)
+        val held = target != null && target == waitTarget &&
+            !(step == SignInUiState.Step.Enter && target == liveTarget)
+        return copy(
+            resendIn = if (held) waitLeft else 0,
+            hasSentCode = step == SignInUiState.Step.Enter && target != null && target == liveTarget,
+        )
     }
 
     public fun submit() {
@@ -108,10 +123,17 @@ public class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
             }
             return
         }
-        launchBusy(onError = { e -> waitIfLimited(e) }) {
+        // The code sent a moment ago still works: go type it instead of asking for another one
+        // the server would refuse.
+        if (target == liveTarget) {
+            _state.update { it.copy(step = SignInUiState.Step.Verify, code = "", error = null).withWait() }
+            return
+        }
+        launchBusy(onError = { e -> waitIfLimited(target, e) }) {
             send(s.method, target)
+            codeSent(target)
             _state.update { it.copy(step = SignInUiState.Step.Verify, code = "") }
-            startCountdown()
+            startCountdown(target)
         }
     }
 
@@ -126,9 +148,14 @@ public class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
         val s = _state.value
         if (s.busy || s.code.length != CODE_LENGTH) return
         val target = target(s) ?: return
-        launchBusy(onError = { _ -> _state.update { it.copy(code = "", failures = it.failures + 1) } }) {
+        launchBusy(onError = { e ->
+            // Spent or expired: this code is done, so the first step sends a new one.
+            if (classify(e) == SignInError.TooManyAttempts || classify(e) == SignInError.CodeExpired) codeSpent()
+            _state.update { it.copy(code = "", failures = it.failures + 1) }
+        }) {
             if (s.method == SignInUiState.Method.Phone) auth.verifyPhone(target, s.code) else auth.verifyEmail(target, s.code)
             countdown?.cancel()
+            codeSpent()
             _state.update { it.copy(step = SignInUiState.Step.Done) }
         }
     }
@@ -137,16 +164,31 @@ public class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
         val s = _state.value
         if (s.busy || s.resendIn > 0) return
         val target = target(s) ?: return
-        launchBusy(onError = { e -> waitIfLimited(e) }) {
+        launchBusy(onError = { e -> waitIfLimited(target, e) }) {
             send(s.method, target)
-            startCountdown()
+            codeSent(target)
+            startCountdown(target)
         }
     }
 
-    /** Back to the destination step ("Cambiar"). */
+    /** Back to the destination step ("Cambiar"). The wait keeps running for its address. */
     public fun editDestination() {
-        countdown?.cancel()
-        _state.update { it.copy(step = SignInUiState.Step.Enter, code = "", error = null, resendIn = 0) }
+        _state.update { it.copy(step = SignInUiState.Step.Enter, code = "", error = null).withWait() }
+    }
+
+    private fun codeSent(target: String) {
+        liveTarget = target
+        liveCode?.cancel()
+        liveCode = viewModelScope.launch {
+            delay(CODE_VALID_MS)
+            codeSpent()
+        }
+    }
+
+    private fun codeSpent() {
+        liveCode?.cancel()
+        liveTarget = null
+        _state.update { it.withWait() }
     }
 
     private fun target(s: SignInUiState): String? = when (s.method) {
@@ -159,18 +201,21 @@ public class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
     }
 
     /** A refused send waits as long as the server asked (a minute if it did not say). */
-    private fun waitIfLimited(error: Throwable) {
+    private fun waitIfLimited(target: String, error: Throwable) {
         if (classify(error) != SignInError.RateLimited) return
-        startCountdown((error as? AuthError)?.retryAfterSeconds?.takeIf { it > 0 } ?: RESEND_SECONDS)
+        startCountdown(target, (error as? AuthError)?.retryAfterSeconds?.takeIf { it > 0 } ?: RESEND_SECONDS)
     }
 
-    private fun startCountdown(seconds: Int = RESEND_SECONDS) {
+    private fun startCountdown(target: String, seconds: Int = RESEND_SECONDS) {
         countdown?.cancel()
+        waitTarget = target
         countdown = viewModelScope.launch {
             for (left in seconds downTo 0) {
-                _state.update { it.copy(resendIn = left) }
+                waitLeft = left
+                _state.update { it.withWait() }
                 if (left > 0) delay(1_000)
             }
+            waitTarget = null
             // The wait is over, so its message goes with it.
             _state.update { if (it.error == SignInError.RateLimited) it.copy(error = null) else it }
         }
@@ -203,5 +248,7 @@ public class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
     private companion object {
         const val CODE_LENGTH = 6
         const val RESEND_SECONDS = 60
+        /** A code stays usable this long after it is sent (the server's `expiresIn`). */
+        const val CODE_VALID_MS = 600_000L
     }
 }

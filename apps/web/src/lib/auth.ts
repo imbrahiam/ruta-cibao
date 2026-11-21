@@ -140,11 +140,16 @@ async function enforce(
 ): Promise<void> {
   const result = await consumeRollingRateLimit(identifier, policy);
   if (result.allowed) return;
-  throw new APIError("TOO_MANY_REQUESTS", {
-    code: "OTP_RATE_LIMITED",
-    message: "Too many codes requested. Try again later.",
-    retryAfter: result.retryAfterSeconds,
-  });
+  // The wait goes in the body for the apps and in `Retry-After` for HTTP.
+  throw new APIError(
+    "TOO_MANY_REQUESTS",
+    {
+      code: "OTP_RATE_LIMITED",
+      message: "Too many codes requested. Try again later.",
+      retryAfter: result.retryAfterSeconds,
+    },
+    { "Retry-After": String(result.retryAfterSeconds) },
+  );
 }
 
 /**

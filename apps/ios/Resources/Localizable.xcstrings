@@ -11344,6 +11344,17 @@
         }
       }
     },
+    "signIn.useSentCode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribir el código que te enviamos"
+          }
+        }
+      }
+    },
     "signIn.verify": {
       "extractionState": "manual",
       "localizations": {

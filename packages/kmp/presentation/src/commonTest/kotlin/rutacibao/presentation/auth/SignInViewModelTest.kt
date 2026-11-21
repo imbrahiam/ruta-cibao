@@ -147,4 +147,45 @@ class SignInViewModelTest {
         assertEquals(null, vm.state.value.error)
         assertTrue(vm.state.value.canSubmit)
     }
+
+    @Test
+    fun goingBackToTheSameAddressResumesItsCodeAndKeepsTheWait() = runTest(dispatcher) {
+        val sends = mutableListOf<String>()
+        val engine = MockEngine { request ->
+            sends += request.url.encodedPath
+            respond("""{"status":true}""", HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val session = Session(MemoryStore())
+        val client = io.ktor.client.HttpClient(engine)
+        val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
+
+        vm.updateEmail("ana@ejemplo.do")
+        vm.submit()
+        vm.await { it.step == Step.Verify }
+        runCurrent()
+        assertTrue(vm.state.value.resendIn in 1..60)
+
+        // "Cambiar": the same address offers its code back instead of a refused send.
+        vm.editDestination()
+        assertEquals(Step.Enter, vm.state.value.step)
+        assertTrue(vm.state.value.hasSentCode)
+        assertTrue(vm.state.value.canSubmit)
+
+        // Another address is free to send; typing the first again brings the offer back.
+        vm.updateEmail("luis@ejemplo.do")
+        assertTrue(!vm.state.value.hasSentCode)
+        vm.updateEmail("ana@ejemplo.do")
+        assertTrue(vm.state.value.hasSentCode)
+
+        vm.submit()
+        assertEquals(Step.Verify, vm.state.value.step)
+        assertTrue(vm.state.value.resendIn in 1..60)
+        assertEquals(1, sends.size)
+
+        // Once the code has expired, the first step sends a fresh one.
+        vm.editDestination()
+        advanceTimeBy(601_000); runCurrent()
+        assertTrue(!vm.state.value.hasSentCode)
+        assertEquals(0, vm.state.value.resendIn)
+    }
 }

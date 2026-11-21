@@ -1076,6 +1076,7 @@
     <string name="sign_in_too_many_attempts">Demasiados intentos. Pide un código nuevo.</string>
     <string name="sign_in_send_failed">No pudimos enviar el código. Inténtalo de nuevo en un momento.</string>
     <string name="sign_in_rate_limited">Espera un momento antes de pedir otro código.</string>
+    <string name="sign_in_use_sent_code">Escribir el código que te enviamos</string>
     <string name="sign_in_wait_seconds">Puedes pedir otro código en %1$d s</string>
     <string name="sign_in_wait_minutes">Puedes pedir otro código en %1$s min</string>
     <string name="sign_in_welcome">Sesión iniciada</string>

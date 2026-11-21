@@ -121,7 +121,7 @@ private struct SignInFlow: View {
             // stays off until the wait is over.
             if state.error != .rateLimited { problem }
 
-            Button { vm.submit() } label: { busyLabel(L10n.SignIn.sendCode) }
+            Button { vm.submit() } label: { busyLabel(state.hasSentCode ? L10n.SignIn.useSentCode : L10n.SignIn.sendCode) }
                 .buttonStyle(.ink)
                 .disabled(!state.canSubmit || state.busy || state.resendIn > 0)
                 .padding(.top, 16)

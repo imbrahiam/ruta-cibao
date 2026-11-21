@@ -136,7 +136,7 @@ private fun Enter(state: SignInUiState, vm: SignInViewModel) {
         // A wait is about the button, not the address: it shows beside the button, which stays off
         // until the wait is over.
         if (state.error != SignInError.RateLimited) Problem(state.error)
-        Pill(stringResource(R.string.sign_in_send_code), vm::submit, Modifier.padding(top = 16.dp).fillMaxWidth().rise(5), enabled = state.canSubmit, busy = state.busy)
+        Pill(stringResource(if (state.hasSentCode) R.string.sign_in_use_sent_code else R.string.sign_in_send_code), vm::submit, Modifier.padding(top = 16.dp).fillMaxWidth().rise(5), enabled = state.canSubmit, busy = state.busy)
         val wait = state.resendIn.toInt()
         if (wait > 0) {
             Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
