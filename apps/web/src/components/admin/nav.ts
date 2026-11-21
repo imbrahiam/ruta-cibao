@@ -1,17 +1,19 @@
 import type { ApiOutputs } from "@ruta/contracts";
 import type { LucideIcon } from "lucide-react";
+// Plain objects that name the work (a shop, a signpost, a car), drawn like
+// the rest of the set; not dashboard-tool shapes (grids, gears, wrenches).
 import {
-  Building2,
-  Camera,
-  FileText,
-  Flag,
-  FolderCog,
-  LayoutDashboard,
-  MapPin,
-  MessagesSquare,
-  Route,
-  TriangleAlert,
-  Wrench,
+  BadgeCheck,
+  CarFront,
+  Images,
+  Inbox,
+  MessageCircleMore,
+  Newspaper,
+  ShieldAlert,
+  Signpost,
+  SquarePen,
+  Store,
+  Tags,
 } from "lucide-react";
 import type { ModelName } from "@/components/category/category-model";
 
@@ -52,14 +54,14 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin",
     label: "shell.overview",
-    icon: LayoutDashboard,
+    icon: Inbox,
     model: "chart",
     group: "workspace",
   },
   {
     href: "/admin/queue/places",
     label: "places",
-    icon: MapPin,
+    icon: Store,
     model: "places",
     group: "map",
     countKey: "places",
@@ -67,7 +69,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin/queue/claims",
     label: "claims",
-    icon: Building2,
+    icon: BadgeCheck,
     model: "store",
     parent: "/admin/queue/places",
     shortLabel: "shell.claimsShort",
@@ -77,7 +79,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin/queue/photos",
     label: "photos",
-    icon: Camera,
+    icon: Images,
     model: "camera",
     parent: "/admin/queue/places",
     group: "map",
@@ -86,7 +88,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin/queue/reports",
     label: "reports",
-    icon: Wrench,
+    icon: SquarePen,
     model: "repair",
     parent: "/admin/queue/places",
     group: "map",
@@ -95,14 +97,14 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin/queue/routes",
     label: "routes",
-    icon: Route,
+    icon: Signpost,
     model: "adventure",
     group: "map",
   },
   {
     href: "/admin/queue/traffic",
     label: "traffic",
-    icon: TriangleAlert,
+    icon: CarFront,
     model: "cone",
     group: "map",
     countKey: "traffic",
@@ -110,7 +112,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin/consultations",
     label: "consultations",
-    icon: MessagesSquare,
+    icon: MessageCircleMore,
     model: "chat",
     group: "community",
     countKey: "consultations",
@@ -119,7 +121,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin/queue/content-reports",
     label: "safety",
-    icon: Flag,
+    icon: ShieldAlert,
     model: "flag",
     group: "community",
     countKey: "contentReports",
@@ -127,13 +129,13 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin/reports",
     label: "weekly",
-    icon: FileText,
+    icon: Newspaper,
     group: "management",
   },
   {
     href: "/admin/categories",
     label: "categories",
-    icon: FolderCog,
+    icon: Tags,
     group: "management",
     adminOnly: true,
   },
