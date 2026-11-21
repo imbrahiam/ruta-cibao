@@ -8,7 +8,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslations } from "use-intl";
 import { LogoMark } from "@/components/brand/logo";
-import { ModelIcon } from "@/components/category/category-model";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Breadcrumb,
@@ -47,6 +46,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 import { orpc } from "@/lib/web/api";
 import { InlineError } from "./error-panel";
 import { prefetchAdminRoute, QUEUE_POLL_MS } from "./list-queries";
@@ -68,6 +68,18 @@ type WorkspaceProps = {
 /** The sidebar's own state cookie (shadcn's), read once on the client. */
 function sidebarStartsOpen() {
   return !document.cookie.split("; ").includes("sidebar_state=false");
+}
+
+/**
+ * A sidebar row's ink: the open section in full, the rest quieter (glyph and
+ * label alike), so the one you are on is found at a glance. Lucide glyphs at
+ * 18 px, as in the other consoles; the 3D models stay on the overview's cards.
+ */
+function navTone(active: boolean) {
+  // `!` beats the sub-menu button's own `[&>svg]` colour.
+  return active
+    ? "text-sidebar-foreground!"
+    : "text-muted-foreground! group-hover/menu-item:text-sidebar-foreground! group-hover/menu-sub-item:text-sidebar-foreground!";
 }
 
 export function AdminWorkspace({
@@ -348,20 +360,18 @@ function AdminSidebar({
                                 onTouchStart={() => prefetch(href)}
                                 onClick={() => setOpenMobile(false)}
                               >
-                                {section.model ? (
-                                  // The glyphs' 18 px box, so every label starts
-                                  // at the same place; the model spills over it.
-                                  <span className="relative size-[18px] shrink-0">
-                                    <ModelIcon
-                                      name={section.model}
-                                      size={22}
-                                      className="absolute -top-0.5 -left-0.5"
-                                    />
-                                  </span>
-                                ) : (
-                                  <Icon aria-hidden="true" />
-                                )}
-                                <span className="truncate">
+                                <Icon
+                                  aria-hidden="true"
+                                  className={navTone(
+                                    activeHref === section.href,
+                                  )}
+                                />
+                                <span
+                                  className={cn(
+                                    "truncate",
+                                    navTone(activeHref === section.href),
+                                  )}
+                                >
                                   {t(section.label)}
                                 </span>
                               </Link>
@@ -409,12 +419,18 @@ function AdminSidebar({
                                 onTouchStart={() => prefetch(href)}
                                 onClick={() => setOpenMobile(false)}
                               >
-                                {section.model ? (
-                                  <ModelIcon name={section.model} size={18} />
-                                ) : (
-                                  <Icon aria-hidden="true" />
-                                )}
-                                <span className="min-w-0 flex-1 truncate">
+                                <Icon
+                                  aria-hidden="true"
+                                  className={navTone(
+                                    activeHref === section.href,
+                                  )}
+                                />
+                                <span
+                                  className={cn(
+                                    "min-w-0 flex-1 truncate",
+                                    navTone(activeHref === section.href),
+                                  )}
+                                >
                                   {t(section.shortLabel ?? section.label)}
                                 </span>
                                 {count ? (
