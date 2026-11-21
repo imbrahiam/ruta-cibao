@@ -135,7 +135,7 @@ export function CategoryManager() {
           categories.length === 0 ? (
             <AdminEmpty icon={FolderCog} title={c("empty")} />
           ) : (
-            <InboxList label={c("kindGroup")} className="max-w-3xl">
+            <InboxList label={c("kindGroup")} className="max-w-5xl">
               {categories.map((record) => (
                 <InboxRow
                   key={record.id}

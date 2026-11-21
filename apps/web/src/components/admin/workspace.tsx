@@ -180,7 +180,14 @@ export function AdminWorkspace({
         signOutError={signOutError}
       />
       <SidebarInset className="min-w-0">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
+        <header
+          className={cn(
+            "flex h-14 shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-10",
+            // On a desk with the sidebar open and no trail to show, the bar
+            // would be an empty band above the title.
+            open && !nested && "md:hidden",
+          )}
+        >
           <div className="flex min-w-0 items-center gap-2">
             <TopbarTrigger />
             {nested ? (
@@ -212,7 +219,10 @@ export function AdminWorkspace({
         <OfflineBanner />
         <main
           id="contenido"
-          className="@container/main mx-auto flex w-full max-w-[1520px] min-w-0 flex-1 flex-col gap-6 px-4 pt-2 pb-10 sm:px-6 lg:px-10"
+          className={cn(
+            "@container/main mx-auto flex w-full max-w-[1520px] min-w-0 flex-1 flex-col gap-5 px-4 pt-2 pb-10 sm:px-6 lg:px-10",
+            open && !nested && "md:pt-7",
+          )}
         >
           {children}
         </main>

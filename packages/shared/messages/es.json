@@ -305,9 +305,8 @@
   "admin": {
     "brand": "Ruta Cibao",
     "title": "Mesa municipal",
-    "intro": "Revisa aportes y da seguimiento a tu municipio.",
     "signIn": "Acceso del equipo municipal",
-    "signInBody": "Entra con el correo de tu cuenta autorizada.",
+    "signInBody": "Entra con tu cuenta autorizada.",
     "phone": "Teléfono",
     "methodUnavailable": "No disponible por ahora",
     "email": "Correo",
@@ -451,7 +450,7 @@
     },
     "weeklyReport": {
       "title": "Informes semanales",
-      "intro": "Un informe por municipio y semana. Se generan cada lunes a las 6:00, hora de Santo Domingo.",
+      "intro": "Se generan cada lunes a las 6:00 a. m.",
       "colWeek": "Semana",
       "colStatus": "Estado",
       "colActions": "Acciones",
@@ -536,16 +535,6 @@
       "copyLabel": "Copiar {what}"
     },
     "queue": {
-      "intro": {
-        "places": "Lugares enviados por vecinos, a la espera de publicación.",
-        "claims": "Solicitudes de dueños de negocios. Revisa la evidencia antes de aprobar.",
-        "photos": "Fotografías subidas a lugares, a la espera de publicación.",
-        "reports": "Correcciones que los vecinos piden sobre lugares publicados.",
-        "routes": "Rutas trazadas por vecinos, a la espera de publicación.",
-        "traffic": "Avisos activos en el mapa. Revisa su texto y retira los que ya no correspondan.",
-        "contentReports": "Reportes de vecinos sobre contenido publicado. Amenazas y datos personales primero.",
-        "consultations": "Consultas de vecinos que esperan decisión antes de mostrarse."
-      },
       "count": "{count, plural, one {# elemento} other {# elementos}}",
       "counts": {
         "places": "{count, plural, one {# lugar} other {# lugares}}",
@@ -618,6 +607,7 @@
       "expiresAt": "Vence el {date} a las {time}",
       "expiresToday": "Vence hoy, {time}",
       "until": "Hasta {time}",
+      "untilDate": "{date}, {time}",
       "expiresLabel": "Vence",
       "address": "Dirección",
       "description": "Descripción",

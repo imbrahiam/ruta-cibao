@@ -253,12 +253,12 @@ export function CaseList() {
               {!list.data ? (
                 <InboxSkeleton />
               ) : (
-                <div className="flex max-w-3xl flex-col gap-8">
+                <div className="flex max-w-5xl flex-col gap-6">
                   {groupByRecency(items).map((group) => (
                     <section
                       key={group.key}
                       aria-labelledby={`cases-${group.key}`}
-                      className="flex flex-col gap-1"
+                      className="flex flex-col gap-2"
                     >
                       <h2
                         id={`cases-${group.key}`}

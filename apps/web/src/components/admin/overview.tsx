@@ -2,9 +2,9 @@
 
 import type { ApiOutputs, ModerationQueueName } from "@ruta/contracts";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Check, Clock } from "lucide-react";
+import { ArrowRight, Check, Clock, ImageOff } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { useFormatter, useNow, useTranslations } from "use-intl";
 import { ModelIcon } from "@/components/category/category-model";
 import { Badge } from "@/components/ui/badge";
@@ -66,14 +66,14 @@ export function AdminOverview() {
 
   return (
     <>
-      <AdminPageHeader title={t("shell.overview")} description={t("intro")} />
+      <AdminPageHeader title={t("shell.overview")} />
       {counts.isError && !data ? (
         <ErrorPanel error={counts.error} onRetry={() => counts.refetch()} />
       ) : !data ? (
         <div
           role="status"
           aria-busy="true"
-          className="grid max-w-5xl gap-4 lg:grid-cols-2"
+          className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3"
         >
           <span className="sr-only">{t("loading")}</span>
           {Array.from({ length: 4 }, (_, index) => (
@@ -82,17 +82,14 @@ export function AdminOverview() {
           ))}
         </div>
       ) : (
-        <div
-          aria-busy={counts.isFetching}
-          className="flex max-w-5xl flex-col gap-8"
-        >
+        <div aria-busy={counts.isFetching} className="flex flex-col gap-8">
           {waiting.length > 0 ? (
             <AdminSection
               id="overview-waiting"
               title={t("pending")}
               count={total}
             >
-              <div className="grid items-start gap-4 lg:grid-cols-2">
+              <div className="grid items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
                 {waiting.map((section) => (
                   <WorkCard
                     key={section.href}
@@ -105,13 +102,13 @@ export function AdminOverview() {
           ) : null}
           {live && activeNotices > 0 ? (
             <AdminSection id="overview-live" title={o("live")}>
-              <div className="grid items-start gap-4 lg:grid-cols-2">
+              <div className="grid items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
                 <WorkCard section={live} count={activeNotices} />
                 {clear.length > 0 ? <UpToDate sections={clear} /> : null}
               </div>
             </AdminSection>
           ) : clear.length > 0 ? (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
               <UpToDate sections={clear} />
             </div>
           ) : null}
@@ -358,6 +355,14 @@ function PeekRow({
 }
 
 function Thumb({ src }: { src: string }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) {
+    return (
+      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+        <ImageOff aria-hidden className="size-4" />
+      </span>
+    );
+  }
   return (
     // biome-ignore lint/performance/noImgElement: signed, already-sized storage URLs
     <img
@@ -365,6 +370,7 @@ function Thumb({ src }: { src: string }) {
       alt=""
       loading="lazy"
       decoding="async"
+      onError={() => setBroken(true)}
       className="size-9 rounded-lg bg-muted object-cover"
     />
   );

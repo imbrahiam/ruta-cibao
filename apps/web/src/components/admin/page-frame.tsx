@@ -73,14 +73,14 @@ export function AdminPageHeader({
         <div className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1">
           <h1
             id={id}
-            className="text-2xl font-semibold tracking-tight text-balance sm:text-3xl"
+            className="text-xl font-semibold tracking-tight text-balance"
           >
             {title}
           </h1>
           {badge}
         </div>
         {typeof description === "string" ? (
-          <p className="max-w-3xl text-base text-balance text-muted-foreground">
+          <p className="max-w-3xl text-sm text-pretty text-muted-foreground">
             {description}
           </p>
         ) : (
@@ -219,7 +219,7 @@ export function AdminEmpty({
 }
 
 /**
- * A list read like an inbox, not a spreadsheet: no frame and no rules between
+ * A list read like an inbox, not a spreadsheet: one card with no rules between
  * rows (the owner finds stacked lines heavy). Rows are told apart by their
  * spacing and the hover background, each a title with its context under it
  * and a short summary at the end.
@@ -237,7 +237,10 @@ export function InboxList({
   return (
     <ul
       aria-label={label}
-      className={cn("flex min-w-0 flex-col gap-1", className)}
+      className={cn(
+        "flex min-w-0 flex-col gap-0.5 rounded-(--radius-card) border bg-card p-1.5",
+        className,
+      )}
     >
       {children}
     </ul>
@@ -287,11 +290,11 @@ export function InboxRow({
   dense?: boolean;
 }) {
   const stretched =
-    "outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50";
+    "outline-none after:absolute after:inset-0 after:rounded-[10px] focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50";
   return (
     <li
       className={cn(
-        "group relative -mx-3 flex items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent/70",
+        "group relative flex items-center gap-3 rounded-[10px] px-3 transition-colors hover:bg-accent/70",
         dense ? "min-h-12 py-2" : "min-h-14 py-3",
       )}
     >

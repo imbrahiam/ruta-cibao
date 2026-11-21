@@ -205,7 +205,7 @@ export function WeeklyReportList() {
           ) : (
             // One section per week, the municipalities under it: the list
             // reads by week first instead of repeating the same dates per row.
-            <div className="flex max-w-3xl flex-col gap-8">
+            <div className="flex max-w-5xl flex-col gap-6">
               {groupByWeek(items, weekLabel).map(([week, group]) => (
                 <AdminSection
                   key={week}
