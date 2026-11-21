@@ -5,11 +5,11 @@ import type { LucideIcon } from "lucide-react";
 import {
   BadgeCheck,
   CarFront,
+  ChartColumnBig,
   Images,
   Inbox,
   MessageCircleMore,
-  Newspaper,
-  ShieldAlert,
+  MessageSquareWarning,
   Signpost,
   SquarePen,
   Store,
@@ -89,7 +89,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     href: "/admin/queue/reports",
     label: "reports",
     icon: SquarePen,
-    model: "repair",
+    model: "correction",
     parent: "/admin/queue/places",
     group: "map",
     countKey: "reports",
@@ -121,7 +121,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin/queue/content-reports",
     label: "safety",
-    icon: ShieldAlert,
+    icon: MessageSquareWarning,
     model: "flag",
     group: "community",
     countKey: "contentReports",
@@ -129,7 +129,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
   {
     href: "/admin/reports",
     label: "weekly",
-    icon: Newspaper,
+    icon: ChartColumnBig,
     group: "management",
   },
   {

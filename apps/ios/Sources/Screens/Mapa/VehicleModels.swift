@@ -355,6 +355,38 @@ enum VehicleModels {
             // A pine at the foot of the trail.
             _ = add(SCNCylinder(radius: 0.05, height: 0.16), brown, at: SCNVector3(-0.78, 0.08, 0.5))
             _ = add(SCNCone(topRadius: 0, bottomRadius: 0.22, height: 0.5), forest, at: SCNVector3(-0.78, 0.4, 0.5))
+        case .correction:
+            // A place's card being put right: a cream card with a coral pin and
+            // lines of text, the last one freshly rewritten in green, and a
+            // yellow pencil resting on it at that line.
+            let ink = paint(UIColor(white: 0.62, alpha: 1))
+            block(1.25, 1.55, 0.14, cream, 0, 0, 0, chamfer: 0.12)
+            _ = add(SCNSphere(radius: 0.15), coral, at: SCNVector3(-0.33, 0.47, 0.13))
+            _ = add(SCNCone(topRadius: 0.13, bottomRadius: 0, height: 0.26), coral, at: SCNVector3(-0.33, 0.30, 0.13))
+            block(0.40, 0.09, 0.04, ink, 0.15, 0.50, 0.08, chamfer: 0.02)
+            block(0.30, 0.07, 0.04, ink, 0.10, 0.33, 0.08, chamfer: 0.02)
+            block(0.85, 0.08, 0.04, ink, 0, 0.02, 0.08, chamfer: 0.02)
+            block(0.70, 0.08, 0.04, ink, -0.07, -0.20, 0.08, chamfer: 0.02)
+            block(0.55, 0.10, 0.04, pine, -0.14, -0.44, 0.08, chamfer: 0.02)
+            // The pencil, from its eraser (top right) to the lead on that line.
+            let top = SCNVector3(0.95, 0.78, 0.50), tip = SCNVector3(0.20, -0.42, 0.13)
+            func at(_ t: Float) -> SCNVector3 {
+                SCNVector3(top.x + (tip.x - top.x) * t, top.y + (tip.y - top.y) * t, top.z + (tip.z - top.z) * t)
+            }
+            func taper(_ from: SCNVector3, _ to: SCNVector3, _ wide: CGFloat, _ narrow: CGFloat, _ material: SCNMaterial) {
+                let dx = to.x - from.x, dy = to.y - from.y, dz = to.z - from.z
+                let cone = add(SCNCone(topRadius: wide, bottomRadius: narrow, height: CGFloat(sqrt(dx * dx + dy * dy + dz * dz))),
+                               material, at: SCNVector3((from.x + to.x) / 2, (from.y + to.y) / 2, (from.z + to.z) / 2))
+                // A cone's narrow end is its bottom (-Y): point that at the lead.
+                cone.look(at: to, up: SCNVector3(0, 1, 0), localFront: SCNVector3(0, -1, 0))
+            }
+            let eraser = paint(UIColor(red: 0.94, green: 0.58, blue: 0.60, alpha: 1))
+            let ferrule = paint(UIColor(white: 0.78, alpha: 1), metal: 0.6, rough: 0.3)
+            root.addChildNode(rod(from: at(0), to: at(0.10), radius: 0.11, eraser))
+            root.addChildNode(rod(from: at(0.10), to: at(0.17), radius: 0.12, ferrule))
+            root.addChildNode(rod(from: at(0.17), to: at(0.80), radius: 0.11, gold))
+            taper(at(0.80), at(0.95), 0.11, 0.035, cream)
+            taper(at(0.95), at(1.0), 0.035, 0.0, dark)
         case .car, .bike, .hiker, .lodging, .food: break
         }
         return root
@@ -621,6 +653,8 @@ enum PlaceModel: String {
     case places
     /// Consultation topics: drinking water, streets, rubbish, street lighting.
     case water, road, trash, bulb
+    /// Corrections residents ask for on a place: its card, with a pencil on it.
+    case correction
 
     init?(icon: String) {
         switch icon {

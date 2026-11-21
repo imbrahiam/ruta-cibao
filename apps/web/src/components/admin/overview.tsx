@@ -2,26 +2,11 @@
 
 import type { ApiOutputs, ModerationQueueName } from "@ruta/contracts";
 import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowRight,
-  Check,
-  Clock,
-  Copy,
-  FileWarning,
-  type LucideIcon,
-  MapPinOff,
-  MessageSquare,
-  MessageSquareWarning,
-  ShieldAlert,
-  Store,
-  TriangleAlert,
-  UserX,
-} from "lucide-react";
+import { ArrowRight, Check, Clock } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useFormatter, useNow, useTranslations } from "use-intl";
 import { ModelIcon } from "@/components/category/category-model";
-import { CategoryPin } from "@/components/category/category-pin";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -254,7 +239,20 @@ function PeekRow({
   const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
   const ago = (iso: string) => format.relativeTime(new Date(iso), now);
-  const tile = "size-9 rounded-lg [&>svg]:size-4";
+  // Only the card's header carries the section's model; each row shows the
+  // person behind the item (or its photo), so the models are not repeated.
+  const who = (
+    name: string | null,
+    image: string | null = null,
+    verified = false,
+  ) => (
+    <PersonAvatar
+      name={name}
+      image={image}
+      className="size-9"
+      verified={verified ? q("residentBadge") : undefined}
+    />
+  );
 
   let lead: ReactNode = null;
   let title = "";
@@ -265,16 +263,8 @@ function PeekRow({
     case "consultations": {
       const c = item as Queue["consultations"][number];
       const photo = c.photos?.[0]?.url;
-      lead = photo ? (
-        <Thumb src={photo} />
-      ) : (
-        <CategoryPin
-          icon={c.categoryIcon}
-          color={c.categoryColor}
-          tile
-          className={tile}
-        />
-      );
+      // Its photo when it has one (the evidence); else who opened it.
+      lead = photo ? <Thumb src={photo} /> : who(c.openedBy);
       title = c.title;
       meta = `${c.categoryName} · ${c.municipalityName}`;
       end = ago(c.createdAt);
@@ -297,13 +287,7 @@ function PeekRow({
     }
     case "reports": {
       const r = item as Queue["reports"][number];
-      // The card's header already shows the model; each row says its reason.
-      lead = (
-        <ReasonGlyph
-          icon={REPORT_GLYPHS[r.reason]}
-          label={q(`reportReason.${r.reason}`)}
-        />
-      );
+      lead = who(r.reportedBy, r.reportedByImage, r.reporterResidentVerified);
       title = r.placeName;
       meta = r.details ?? q(`reportReason.${r.reason}`);
       end = ago(r.createdAt);
@@ -311,14 +295,7 @@ function PeekRow({
     }
     case "places": {
       const p = item as Queue["places"][number];
-      lead = (
-        <CategoryPin
-          icon={p.categoryIcon}
-          color={p.categoryColor}
-          tile
-          className={tile}
-        />
-      );
+      lead = who(p.submittedBy, null, p.submitterResidentVerified);
       title = p.name;
       meta = `${p.categoryName} · ${p.municipalityName}`;
       end = ago(p.createdAt);
@@ -334,12 +311,7 @@ function PeekRow({
     }
     case "contentReports": {
       const r = item as Queue["contentReports"][number];
-      lead = (
-        <ReasonGlyph
-          icon={CONTENT_GLYPHS[r.reason]}
-          label={q(`contentReason.${r.reason}`)}
-        />
-      );
+      lead = who(r.reportedBy);
       title = r.subjectTitle ?? r.municipalityName;
       meta = r.details ?? r.municipalityName;
       end = ago(r.createdAt);
@@ -347,14 +319,7 @@ function PeekRow({
     }
     case "traffic": {
       const r = item as Queue["traffic"][number];
-      lead = (
-        <CategoryPin
-          icon={r.categoryIcon}
-          color={r.categoryColor}
-          tile
-          className={tile}
-        />
-      );
+      lead = who(r.reportedBy, r.reportedByImage, r.reporterResidentVerified);
       title = r.categoryName;
       meta = r.description ?? r.municipalityName;
       end = (
@@ -389,42 +354,6 @@ function PeekRow({
         </span>
       </Link>
     </li>
-  );
-}
-
-const REPORT_GLYPHS: Record<Queue["reports"][number]["reason"], LucideIcon> = {
-  incorrect_information: FileWarning,
-  closed: Store,
-  duplicate: Copy,
-  wrong_location: MapPinOff,
-  other: MessageSquare,
-};
-
-const CONTENT_GLYPHS: Record<
-  Queue["contentReports"][number]["reason"],
-  LucideIcon
-> = {
-  abuse: MessageSquareWarning,
-  personal_information: UserX,
-  unsafe: ShieldAlert,
-  other: TriangleAlert,
-};
-
-/** Why an item was reported, as a quiet glyph; the label is for tooltips. */
-function ReasonGlyph({
-  icon: Icon,
-  label,
-}: {
-  icon: LucideIcon;
-  label: string;
-}) {
-  return (
-    <span
-      title={label}
-      className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground"
-    >
-      <Icon aria-hidden className="size-4" />
-    </span>
   );
 }
 

@@ -22,6 +22,7 @@ export type ModelName =
   | "church"
   | "civic"
   | "coffee"
+  | "correction"
   | "cone"
   | "farm"
   | "flag"
