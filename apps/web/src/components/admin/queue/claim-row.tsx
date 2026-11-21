@@ -180,7 +180,7 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
 
       {/* What to read on the left; where the place is, as a supporting
           preview, on the right once the pane is wide enough. */}
-      <div className="@container">
+      <div className="@container flex flex-col gap-6">
         <div className="grid gap-6 @lg:grid-cols-[minmax(0,1fr)_12rem] @lg:items-start">
           <div className="flex min-w-0 flex-col gap-5">
             <ClaimSection id={`${id}-statement`} title={q("claimStatement")}>
@@ -188,63 +188,6 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
                 <ClampedText>{claim.evidence}</ClampedText>
               </div>
             </ClaimSection>
-
-            {phone || claim.whatsapp || claim.openingHours ? (
-              <ClaimSection
-                id={`${id}-proposed`}
-                title={q("proposedDetails")}
-                hint={q("proposedDetailsHint")}
-              >
-                <Comparison>
-                  {sameNumber ? (
-                    <Change
-                      label={q("phoneAndWhatsapp")}
-                      before={current.data?.contactPhone}
-                      after={
-                        <ContactValue
-                          kind="phone"
-                          value={claim.contactPhone ?? ""}
-                        />
-                      }
-                    />
-                  ) : (
-                    <>
-                      {claim.contactPhone ? (
-                        <Change
-                          label={q("contactPhone")}
-                          before={current.data?.contactPhone}
-                          after={
-                            <ContactValue
-                              kind="phone"
-                              value={claim.contactPhone}
-                            />
-                          }
-                        />
-                      ) : null}
-                      {claim.whatsapp ? (
-                        <Change
-                          label={q("whatsapp")}
-                          before={current.data?.whatsapp}
-                          after={
-                            <ContactValue
-                              kind="whatsapp"
-                              value={claim.whatsapp}
-                            />
-                          }
-                        />
-                      ) : null}
-                    </>
-                  )}
-                  {claim.openingHours ? (
-                    <Change
-                      label={q("openingHours")}
-                      before={current.data?.openingHours}
-                      after={<span>{claim.openingHours}</span>}
-                    />
-                  ) : null}
-                </Comparison>
-              </ClaimSection>
-            ) : null}
           </div>
 
           {mapItem || claim.placeImage ? (
@@ -273,6 +216,60 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
             </div>
           ) : null}
         </div>
+        {/* Below both, across the pane: a table reads best with its width. */}
+        {phone || claim.whatsapp || claim.openingHours ? (
+          <ClaimSection
+            id={`${id}-proposed`}
+            title={q("proposedDetails")}
+            hint={q("proposedDetailsHint")}
+          >
+            <Comparison>
+              {sameNumber ? (
+                <Change
+                  label={q("phoneAndWhatsapp")}
+                  control
+                  before={current.data?.contactPhone}
+                  after={
+                    <ContactValue
+                      kind="phone"
+                      value={claim.contactPhone ?? ""}
+                    />
+                  }
+                />
+              ) : (
+                <>
+                  {claim.contactPhone ? (
+                    <Change
+                      label={q("contactPhone")}
+                      control
+                      before={current.data?.contactPhone}
+                      after={
+                        <ContactValue kind="phone" value={claim.contactPhone} />
+                      }
+                    />
+                  ) : null}
+                  {claim.whatsapp ? (
+                    <Change
+                      label={q("whatsapp")}
+                      control
+                      before={current.data?.whatsapp}
+                      after={
+                        <ContactValue kind="whatsapp" value={claim.whatsapp} />
+                      }
+                    />
+                  ) : null}
+                </>
+              )}
+              {claim.openingHours ? (
+                <Change
+                  label={q("openingHours")}
+                  before={keepTimesWhole(current.data?.openingHours)}
+                  after={<span>{keepTimesWhole(claim.openingHours)}</span>}
+                />
+              ) : null}
+            </Comparison>
+          </ClaimSection>
+        ) : null}
       </div>
 
       {/* The end of the review: its own band, after everything to read. A
@@ -301,21 +298,26 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
 }
 
 /**
- * What approving would change, field by field: what the place publishes now
- * beside what the requester proposes. Two labelled columns, no rules.
+ * What approving would change, field by field: a small table of the field,
+ * what the place publishes now and what the requester proposes. Every value
+ * is the same size and rows line up on their text, so the eye reads across.
+ * In a narrow pane the field's name goes above its two values.
  */
 function Comparison({ children }: { children: ReactNode }) {
   const q = useTranslations("admin.queue");
   return (
-    <div className="flex flex-col gap-2 text-[15px]">
-      <div
-        aria-hidden
-        className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-4 text-xs text-muted-foreground"
-      >
-        <span>{q("published")}</span>
-        <span>{q("proposed")}</span>
+    <div className="@container">
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-6 text-sm @lg:grid-cols-[10.5rem_minmax(0,1fr)_minmax(0,1fr)]">
+        <div
+          aria-hidden
+          className="col-span-full grid grid-cols-subgrid pb-1.5 text-xs text-muted-foreground"
+        >
+          <span className="hidden @lg:block" />
+          <span>{q("published")}</span>
+          <span>{q("proposed")}</span>
+        </div>
+        <dl className="col-span-full grid grid-cols-subgrid">{children}</dl>
       </div>
-      <dl className="flex flex-col gap-3">{children}</dl>
     </div>
   );
 }
@@ -325,33 +327,52 @@ function Change({
   label,
   before,
   after,
+  control = false,
 }: {
   label: string;
   before: string | null | undefined;
   after: ReactNode;
+  /** `after` is a 32 px contact button rather than text. */
+  control?: boolean;
 }) {
   const q = useTranslations("admin.queue");
   return (
-    <div className="flex flex-col gap-1">
-      <dt className="text-xs font-medium text-foreground/80">{label}</dt>
-      <dd className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-center gap-x-4">
+    // Text cells start 6 px down, where a 32 px contact button centres its
+    // own: first lines meet across the row, however many lines follow.
+    <div className="col-span-full grid grid-cols-subgrid items-start border-t border-border/70 py-1.5">
+      <dt className="col-span-full py-1.5 text-muted-foreground @lg:col-span-1">
+        {label}
+      </dt>
+      <dd className="contents">
         <span
-          className={
+          className={cn(
+            "min-w-0 py-1.5 [overflow-wrap:anywhere]",
             before
               ? "text-muted-foreground"
-              : "text-sm text-muted-foreground/80 italic"
-          }
+              : "text-muted-foreground/80 italic",
+          )}
         >
           <span className="sr-only">{q("published")}: </span>
           {before ?? q("nothingPublished")}
         </span>
-        <span className="min-w-0">
+        <span
+          className={cn(
+            "min-w-0 text-foreground [overflow-wrap:anywhere]",
+            !control && "py-1.5",
+          )}
+        >
           <span className="sr-only">{q("proposed")}: </span>
           {after}
         </span>
       </dd>
     </div>
   );
+}
+
+/** "11:00 a. m." never breaks inside: the time and its "a. m." stay on one line. */
+function keepTimesWhole<T extends string | null | undefined>(text: T): T {
+  return (text?.replace(/(\d) ([ap])\. m\./g, "$1\u00a0$2.\u00a0m.") ??
+    text) as T;
 }
 
 /** A titled part of the claim: what the requester says, what would change. */

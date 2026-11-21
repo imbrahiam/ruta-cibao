@@ -46,7 +46,7 @@ import {
 } from "@/components/ui/sidebar";
 import { orpc } from "@/lib/web/api";
 import { InlineError } from "./error-panel";
-import { prefetchAdminRoute } from "./list-queries";
+import { prefetchAdminRoute, QUEUE_POLL_MS } from "./list-queries";
 import { ADMIN_GROUPS, ADMIN_SECTIONS, findAdminSection } from "./nav";
 import { OfflineBanner } from "./offline-banner";
 import { useAdminPageTitle } from "./page-frame";
@@ -83,7 +83,11 @@ export function AdminWorkspace({
   const [open, setOpen] = useState(sidebarStartsOpen);
   const prefetch = useAdminPrefetch(staff);
   const pageTitle = useAdminPageTitle();
-  const counts = useQuery(orpc.moderation.counts.queryOptions());
+  // The badges keep up with the queues they count.
+  const counts = useQuery({
+    ...orpc.moderation.counts.queryOptions(),
+    refetchInterval: QUEUE_POLL_MS,
+  });
   const municipalities = useQuery(orpc.municipalities.list.queryOptions());
   const active = findAdminSection(pathname);
   const nested = active && pathname !== active.href;

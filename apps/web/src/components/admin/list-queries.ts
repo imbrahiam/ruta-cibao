@@ -21,6 +21,13 @@ export function resolveMunicipalityFilter(
     : params.get("municipality") || undefined;
 }
 
+/**
+ * How often an open queue re-reads itself while its tab is in front, so new
+ * items and other moderators' decisions show up without a refresh button.
+ * Leaving and coming back to the tab re-reads it at once.
+ */
+export const QUEUE_POLL_MS = 30_000;
+
 export function moderationQueueOptions(
   queue: Exclude<QueueSlug, "routes">,
   municipalityId?: string,

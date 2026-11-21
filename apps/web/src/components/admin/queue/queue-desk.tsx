@@ -6,7 +6,6 @@ import {
   type UseQueryResult,
   useQuery,
 } from "@tanstack/react-query";
-import { RefreshCw } from "lucide-react";
 import {
   type FocusEvent,
   Fragment,
@@ -20,7 +19,11 @@ import {
 import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { moderationQueueOptions, pendingRoutesOptions } from "../list-queries";
+import {
+  moderationQueueOptions,
+  pendingRoutesOptions,
+  QUEUE_POLL_MS,
+} from "../list-queries";
 import { placeMapItem, routeMapItem, trafficMapItem } from "../map/queue-items";
 import { QueueMapLayout, type QueueMapSpec } from "../map/queue-map-view";
 import { useMapCopy } from "../map/use-map-copy";
@@ -110,7 +113,8 @@ type Leaving = { row: Row; index: number };
 
 /**
  * The moderation desk for one queue: a title and count, the municipality
- * filter, a refresh, and the items waiting for a decision.
+ * filter, and the items waiting for a decision. The list keeps itself current
+ * (`QUEUE_POLL_MS`, and on returning to the tab); there is no refresh button.
  *
  * Every queue shares this frame and the decision controls; only the card in
  * the middle differs. Decisions are applied to the list before the server
@@ -131,6 +135,7 @@ function ModerationDesk({ queue }: { queue: Exclude<QueueSlug, "routes"> }) {
   const query = useQuery({
     ...moderationQueueOptions(queue, municipalityId),
     placeholderData: keepPreviousData,
+    refetchInterval: QUEUE_POLL_MS,
   });
 
   return (
@@ -191,6 +196,7 @@ function RoutesDesk() {
   const query = useQuery({
     ...pendingRoutesOptions(municipalityId),
     placeholderData: keepPreviousData,
+    refetchInterval: QUEUE_POLL_MS,
   });
 
   return (
@@ -318,7 +324,6 @@ function Desk<T>({
   const forget = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const desk = useDeskState();
   const [view, setView] = useQueueView();
-  const [refreshing, setRefreshing] = useState(false);
   const [position, setPosition] = useState("");
   const [reduceMotion, setReduceMotion] = useState(false);
   const [wide, setWide] = useState(false);
@@ -537,15 +542,6 @@ function Desk<T>({
 
   useEffect(() => () => clearTimeout(forget.current), []);
 
-  const refresh = async () => {
-    setRefreshing(true);
-    try {
-      await query.refetch();
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
   return (
     <DeskContext.Provider value={desk}>
       <SplitContext.Provider value={splitValue}>
@@ -556,24 +552,10 @@ function Desk<T>({
             description={q(`intro.${INTRO[slug]}`)}
           />
 
-          {/* The filter and its refresh sit together, the count right above the
-            list it counts: one short row before the first card. */}
+          {/* The filter, then the count right above the list it counts: one
+            short row before the first card. */}
           <AdminToolbar>
             <MunicipalityFilter />
-            <Button
-              variant="outline"
-              size="icon"
-              aria-label={t("refresh")}
-              title={t("refresh")}
-              onClick={refresh}
-              disabled={refreshing}
-              className="pointer-coarse:size-11"
-            >
-              <RefreshCw
-                aria-hidden
-                className={refreshing ? "motion-safe:animate-spin" : ""}
-              />
-            </Button>
             {/* Nothing to list is nothing to map either: no switch then. */}
             {map && count ? (
               <ViewToggle value={view} onChange={setView} />
