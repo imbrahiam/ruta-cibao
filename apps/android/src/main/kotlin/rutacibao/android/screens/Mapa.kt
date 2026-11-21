@@ -193,23 +193,32 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
                         GlyphPin(LatLng(start.lat, start.lng), route.id, Icons.AutoMirrored.Outlined.DirectionsWalk, Tint.Trail.solid, on, dimmed = false, zIndex = 2f) { vm.selectRoute(route.id) }
                     }
                 }
-                // A notice is drawn on its stretch of road: a white edge, the hazard's colour, white
-                // dashes through it when closed, and its traffic sign at the stretch's middle.
+                // A notice is drawn on its stretch of road: in the hazard's colour on a white edge, or
+                // as a red and white barrier when closed. Its marker stands at the stretch's middle, and
+                // a closed road gets a smaller one at either end.
                 state.traffic.forEach { notice ->
                     val sign = TrafficSignKind.of(notice.categoryName, notice.icon)
                     val on = state.selectedTraffic?.id == notice.id
                     val points = notice.path.map { LatLng(it.latitude, it.longitude) }
                     if (points.size > 1) {
-                        Polyline(points = points, color = Color.White, width = 30f, zIndex = 3f, startCap = RoundCap(), endCap = RoundCap(), jointType = JointType.ROUND)
-                        Polyline(points = points, color = sign.line, width = 20f, zIndex = 3.1f, startCap = RoundCap(), endCap = RoundCap(), jointType = JointType.ROUND)
-                        if (sign == TrafficSignKind.Closed) Polyline(points = points, color = Color.White.copy(alpha = 0.9f), width = 7f, zIndex = 3.2f, pattern = listOf(Dash(18f), Gap(22f)))
+                        if (sign.striped) {
+                            Polyline(points = points, color = Color(0xD92B2B2E), width = 27f, zIndex = 3f, jointType = JointType.ROUND)
+                            Polyline(points = points, color = Color.White, width = 20f, zIndex = 3.1f, jointType = JointType.ROUND)
+                            Polyline(points = points, color = sign.line, width = 20f, zIndex = 3.2f, jointType = JointType.ROUND, pattern = listOf(Dash(26f), Gap(26f)))
+                        } else {
+                            Polyline(points = points, color = Color.White, width = 30f, zIndex = 3f, startCap = RoundCap(), endCap = RoundCap(), jointType = JointType.ROUND)
+                            Polyline(points = points, color = sign.line, width = 20f, zIndex = 3.1f, startCap = RoundCap(), endCap = RoundCap(), jointType = JointType.ROUND)
+                        }
                     }
                     val middle = points.getOrNull(points.size / 2) ?: LatLng(notice.latitude, notice.longitude)
-                    androidx.compose.runtime.key("t" + notice.id) {
-                        com.google.maps.android.compose.MarkerComposable(
-                            keys = arrayOf<Any>("t" + notice.id, on), state = rememberUpdatedMarkerState(middle), anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f), zIndex = 4f,
-                            onClick = { vm.selectTraffic(notice.id); true },
-                        ) { TrafficSign(sign, if (on) 42.dp else 32.dp) }
+                    val ends = if (sign.striped && points.size > 2) listOf("s" to points.first(), "e" to points.last()) else emptyList()
+                    (listOf("" to middle) + ends).forEach { (end, at) ->
+                        androidx.compose.runtime.key("t" + notice.id + end) {
+                            com.google.maps.android.compose.MarkerComposable(
+                                keys = arrayOf<Any>("t" + notice.id + end, on), state = rememberUpdatedMarkerState(at), anchor = androidx.compose.ui.geometry.Offset(0.5f, 1f),
+                                zIndex = if (end.isEmpty()) 4.1f else 4f, onClick = { vm.selectTraffic(notice.id); true },
+                            ) { TrafficMarker(sign, selected = on && end.isEmpty(), small = end.isNotEmpty()) }
+                        }
                     }
                 }
                 // A route in hand shows its stops in order; the places it passes give way to them.
@@ -384,9 +393,11 @@ private fun StopDisc(index: Int, stop: TrailStop) {
 }
 
 @Composable
-private fun PanelHeader(color: Color, icon: ImageVector, title: String, subtitle: String, verified: String? = null, onClose: (() -> Unit)? = null) {
+private fun PanelHeader(color: Color, icon: ImageVector, title: String, subtitle: String, verified: String? = null, sign: TrafficSignKind? = null, onClose: (() -> Unit)? = null) {
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Box(Modifier.size(40.dp).background(color, CircleShape), Alignment.Center) { Icon(icon, null, Modifier.size(19.dp), tint = Color.White) }
+        // A road notice leads with its report icon, as drawn on the map.
+        if (sign != null) TrafficBadge(sign, 44.dp)
+        else Box(Modifier.size(40.dp).background(color, CircleShape), Alignment.Center) { Icon(icon, null, Modifier.size(19.dp), tint = Color.White) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(title, style = Type.title, color = Ink.colors.ink, modifier = Modifier.weight(1f, fill = false))
@@ -409,7 +420,7 @@ private fun PlacePanel(sheet: PlaceSheet, vm: MapViewModel) {
     val contact = when (val business = sheet.business) { is BusinessState.Listed -> business.contact; is BusinessState.Owned -> business.contact; else -> null }
     val shareLabel = stringResource(R.string.common_share)
     val established = detail != null && !sheet.cached && detail.trust.state == PlacesDetailOutput.Trust.State.Established
-    PanelHeader(place.tint(), categoryIcon(place.icon), place.name, listOfNotNull(place.categoryName, detail?.municipality?.name).joinToString(" · "), if (established) stringResource(R.string.place_trust_established) else null, vm::dismissSheet)
+    PanelHeader(place.tint(), categoryIcon(place.icon), place.name, listOfNotNull(place.categoryName, detail?.municipality?.name).joinToString(" · "), if (established) stringResource(R.string.place_trust_established) else null, onClose = vm::dismissSheet)
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         Pill(stringResource(R.string.place_directions), {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}")))
@@ -599,7 +610,7 @@ private fun RowScope.Fact(label: String, value: String) {
 @Composable
 private fun TrafficPanel(notice: TrafficNotice, vm: MapViewModel) {
     val p = Ink.colors
-    PanelHeader(if (notice.severity == TrafficSeverity.Blocking) p.danger else p.warning, categoryIcon(notice.icon), notice.categoryName, "${notice.municipality} · ${relativeTimeText(notice.createdAt)}", onClose = vm::dismissTraffic)
+    PanelHeader(if (notice.severity == TrafficSeverity.Blocking) p.danger else p.warning, categoryIcon(notice.icon), notice.categoryName, "${notice.municipality} · ${relativeTimeText(notice.createdAt)}", sign = TrafficSignKind.of(notice.categoryName, notice.icon), onClose = vm::dismissTraffic)
     notice.details?.takeIf { it.isNotBlank() }?.let { Text(it, style = Type.body, color = p.ink2) }
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(pluralStringResource(R.plurals.traffic_still_voices, notice.stillCount, notice.stillCount), style = Type.callout, color = p.ink3)

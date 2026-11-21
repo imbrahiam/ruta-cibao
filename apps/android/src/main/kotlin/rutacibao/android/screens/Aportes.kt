@@ -278,15 +278,30 @@ fun TrafficReportScreen(onBack: () -> Unit, onSent: () -> Unit) {
         return
     }
     FormScreen(stringResource(R.string.contribute_traffic_title), stringResource(R.string.contribute_traffic_submit), onBack, vm::send, sending = state.sending, enabled = state.canSend) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            state.categories.forEach { category ->
-                val selected = category.id == state.categoryId
-                Column(
-                    Modifier.weight(1f).height(104.dp).clip(RoundedCornerShape(Metrics.radiusCard)).background(if (selected) p.action else p.paper2).pressable(haptic = true) { vm.selectCategory(category.id) }.padding(horizontal = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically), horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Icon(categoryIcon(category.icon), null, Modifier.size(26.dp), tint = if (selected) p.onInk else p.ink)
-                    Text(category.name, style = Type.label.copy(fontSize = Type.caption.fontSize), color = if (selected) p.onInk else p.ink, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        // What is on the road, as a grid of the same icons the map draws.
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            state.categories.chunked(3).forEach { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    row.forEach { category ->
+                        val selected = category.id == state.categoryId
+                        Column(
+                            Modifier.weight(1f).pressable(haptic = true) { vm.selectCategory(category.id) },
+                            verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Box(Modifier.size(76.dp)) {
+                                Box(
+                                    Modifier.fillMaxSize().background(p.paper2, CircleShape).then(if (selected) Modifier.border(3.dp, p.action, CircleShape) else Modifier),
+                                    Alignment.Center,
+                                ) { TrafficSign(TrafficSignKind.of(category.name, category.icon), 42.dp) }
+                                if (selected) Icon(Icons.Filled.CheckCircle, null, Modifier.align(Alignment.TopEnd).size(22.dp).background(p.paper, CircleShape), tint = p.action)
+                            }
+                            Text(
+                                category.name, style = Type.callout.copy(fontWeight = if (selected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal),
+                                color = p.ink, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            )
+                        }
+                    }
+                    repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
