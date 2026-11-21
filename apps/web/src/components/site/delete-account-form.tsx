@@ -16,6 +16,7 @@ import { IntlProvider } from "use-intl/react";
 import { Button } from "@/components/site/button";
 import { Field, Input } from "@/components/site/field";
 import { Tag } from "@/components/site/tag";
+import { CodeInput } from "@/components/ui/code-input";
 import { formats, TIME_ZONE } from "@/i18n/config";
 import { api } from "@/lib/web/api";
 import { authClient } from "@/lib/web/auth-client";
@@ -401,16 +402,16 @@ function DeleteAccountCard() {
                   hint={admin("shell.codeHint")}
                   error={authError}
                 >
-                  <Input
+                  <CodeInput
                     id="del-code"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
+                    surface="site"
                     value={code}
-                    className="tabular max-w-xs text-center text-[20px] tracking-[0.35em]"
-                    onChange={(event) =>
-                      setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
+                    className="max-w-xs"
+                    aria-invalid={authError ? true : undefined}
+                    aria-describedby={
+                      authError ? "del-code-error" : "del-code-hint"
                     }
+                    onValueChange={setCode}
                   />
                 </Field>
                 <div className="flex flex-wrap items-center gap-3">

@@ -8,6 +8,7 @@ import { type FormEvent, useEffect, useState, useTransition } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { RoadMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
+import { CodeInput } from "@/components/ui/code-input";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -350,20 +351,13 @@ export function AdminSignIn({
             label={<span className="sr-only">{t("code")}</span>}
             error={error}
           >
-            <Input
+            <CodeInput
               id="staff-code"
               autoFocus
-              placeholder="······"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
               value={code}
               aria-invalid={Boolean(error)}
               aria-describedby={error ? "staff-code-error" : undefined}
-              className="h-14 text-center text-2xl tracking-[0.4em] tabular-nums md:text-2xl"
-              onChange={(event) =>
-                setCode(event.target.value.replace(/\D/g, "").slice(0, 6))
-              }
+              onValueChange={setCode}
             />
           </FormField>
           <Button

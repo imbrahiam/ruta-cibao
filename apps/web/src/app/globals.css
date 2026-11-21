@@ -590,6 +590,23 @@
   animation: fade-in 240ms var(--ease-out) both;
 }
 
+/* The code field's caret, blinking like a text caret. */
+@utility animate-caret-blink {
+  animation: caret-blink 1.1s ease-out infinite;
+}
+
+@keyframes caret-blink {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  50% {
+    opacity: 0;
+  }
+}
+
 /* biome-ignore-start lint/complexity/noImportantStyles: reduced motion has to beat every animation and transition, including inline ones */
 @media (prefers-reduced-motion: reduce) {
   *,

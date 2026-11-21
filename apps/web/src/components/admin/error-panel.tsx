@@ -6,6 +6,7 @@ import { type FormEvent, useId, useState } from "react";
 import { useTranslations } from "use-intl";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { CodeInput } from "@/components/ui/code-input";
 import { Input } from "@/components/ui/input";
 import { api } from "@/lib/web/api";
 import { failureKind, failureReason } from "@/lib/web/errors";
@@ -159,16 +160,26 @@ function StaffStepUpForm({
         ))}
       </div>
       <FormField htmlFor={`${uid}-stepup`} label={t(mode)} error={stepUpError}>
-        <Input
-          id={`${uid}-stepup`}
-          inputMode={mode === "totp" ? "numeric" : "text"}
-          autoComplete="one-time-code"
-          maxLength={mode === "totp" ? 6 : 64}
-          value={code}
-          aria-invalid={stepUpError ? true : undefined}
-          aria-describedby={stepUpError ? `${uid}-stepup-error` : undefined}
-          onChange={(event) => setCode(event.target.value)}
-        />
+        {mode === "totp" ? (
+          <CodeInput
+            id={`${uid}-stepup`}
+            value={code}
+            aria-invalid={stepUpError ? true : undefined}
+            aria-describedby={stepUpError ? `${uid}-stepup-error` : undefined}
+            onValueChange={setCode}
+          />
+        ) : (
+          <Input
+            id={`${uid}-stepup`}
+            inputMode="text"
+            autoComplete="one-time-code"
+            maxLength={64}
+            value={code}
+            aria-invalid={stepUpError ? true : undefined}
+            aria-describedby={stepUpError ? `${uid}-stepup-error` : undefined}
+            onChange={(event) => setCode(event.target.value)}
+          />
+        )}
       </FormField>
       <div>
         <Button type="submit" size="sm" disabled={busy || !code.trim()}>
