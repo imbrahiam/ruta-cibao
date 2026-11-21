@@ -504,7 +504,8 @@ enum PlaceModel: String {
 
     init?(icon: String) {
         switch icon {
-        case "waves", "droplets": self = .swimming
+        // A drop is drinking water (a consultation topic), not a swimming spot.
+        case "waves": self = .swimming
         case "cross": self = .medical
         case "graduation-cap": self = .school
         case "landmark": self = .civic

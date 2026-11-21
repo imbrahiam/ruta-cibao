@@ -5,6 +5,10 @@ import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
 import { useNow, useTranslations } from "use-intl";
+import {
+  ModelIcon,
+  type ModelName,
+} from "@/components/category/category-model";
 import { Skeleton } from "@/components/ui/skeleton";
 import { orpc } from "@/lib/web/api";
 import { ErrorPanel } from "./error-panel";
@@ -98,12 +102,13 @@ export function AdminOverview() {
               count={total}
             >
               <InboxList>
-                {waiting.map(({ href, label, icon: Icon, countKey }) => (
+                {waiting.map(({ href, label, icon: Icon, model, countKey }) => (
                   <OverviewRow
                     key={href}
                     href={href}
                     label={t(label)}
                     icon={Icon}
+                    model={model}
                     figure={o(`work.${countKey as WorkKey}`, {
                       count: data[countKey],
                     })}
@@ -120,6 +125,7 @@ export function AdminOverview() {
                   href={live.href}
                   label={t(live.label)}
                   icon={live.icon}
+                  model={live.model}
                   figure={o("activeNotices", { count: activeNotices })}
                   note={
                     expiringToday > 0
@@ -163,6 +169,7 @@ function OverviewRow({
   href,
   label,
   icon: Icon,
+  model,
   figure,
   note,
   onPrefetch,
@@ -170,6 +177,7 @@ function OverviewRow({
   href: string;
   label: string;
   icon: LucideIcon;
+  model?: ModelName;
   figure: string;
   note?: string;
   onPrefetch: () => void;
@@ -181,10 +189,17 @@ function OverviewRow({
       dense
       onPrefetch={onPrefetch}
       lead={
-        <Icon
-          aria-hidden="true"
-          className="size-[18px] shrink-0 text-muted-foreground"
-        />
+        // The same box either way, so names line up down the list.
+        <span className="flex size-6 shrink-0 items-center justify-center">
+          {model ? (
+            <ModelIcon name={model} size={24} />
+          ) : (
+            <Icon
+              aria-hidden="true"
+              className="size-[18px] text-muted-foreground"
+            />
+          )}
+        </span>
       }
       summary={
         <span className="flex items-center gap-1.5">

@@ -8,6 +8,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslations } from "use-intl";
 import { LogoMark } from "@/components/brand/logo";
+import { ModelIcon } from "@/components/category/category-model";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Breadcrumb,
@@ -324,7 +325,19 @@ function AdminSidebar({
                               onTouchStart={() => prefetch(href)}
                               onClick={() => setOpenMobile(false)}
                             >
-                              <Icon aria-hidden="true" />
+                              {section.model ? (
+                                // The glyphs' 18 px box, so every label starts
+                                // at the same place; the model spills over it.
+                                <span className="relative size-[18px] shrink-0">
+                                  <ModelIcon
+                                    name={section.model}
+                                    size={22}
+                                    className="absolute -top-0.5 -left-0.5"
+                                  />
+                                </span>
+                              ) : (
+                                <Icon aria-hidden="true" />
+                              )}
                               <span className="truncate">
                                 {t(section.label)}
                               </span>

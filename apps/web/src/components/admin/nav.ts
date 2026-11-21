@@ -13,6 +13,7 @@ import {
   TriangleAlert,
   Wrench,
 } from "lucide-react";
+import type { ModelName } from "@/components/category/category-model";
 
 /** The overview stands alone: a label over a single link is noise. */
 export const ADMIN_GROUPS: readonly {
@@ -28,6 +29,8 @@ export type AdminSection = {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** Shown instead of the glyph where an object reads better than a line. */
+  model?: ModelName;
   group: (typeof ADMIN_GROUPS)[number]["id"];
   countKey?: keyof ApiOutputs["moderation"]["counts"];
   adminOnly?: boolean;
@@ -45,6 +48,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     href: "/admin/queue/places",
     label: "places",
     icon: MapPin,
+    model: "place-check",
     group: "moderation",
     countKey: "places",
   },
@@ -52,6 +56,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     href: "/admin/queue/claims",
     label: "claims",
     icon: Building2,
+    model: "market",
     group: "moderation",
     countKey: "claims",
   },
@@ -66,6 +71,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     href: "/admin/queue/reports",
     label: "reports",
     icon: Wrench,
+    model: "repair",
     group: "moderation",
     countKey: "reports",
   },
@@ -73,6 +79,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     href: "/admin/queue/routes",
     label: "routes",
     icon: Route,
+    model: "adventure",
     group: "moderation",
   },
   {
@@ -86,6 +93,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     href: "/admin/queue/content-reports",
     label: "safety",
     icon: Flag,
+    model: "flag",
     group: "moderation",
     countKey: "contentReports",
   },

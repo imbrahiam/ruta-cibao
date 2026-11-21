@@ -17,7 +17,7 @@ import { QueryState } from "@/components/admin/query-state";
 import { useStaff } from "@/components/admin/staff-context";
 import { StatusIndicator } from "@/components/admin/status-indicator";
 import { useUrlParam } from "@/components/admin/use-url-param";
-import { CategoryPin } from "@/components/category/category-pin";
+import { CategoryLead } from "@/components/category/category-pin";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -144,7 +144,9 @@ export function CategoryManager() {
                   onOpen={() => setEditing(record)}
                   openId={`cat-edit-${record.id}`}
                   openLabel={c("editFor", { name: record.name })}
-                  lead={<CategoryPin icon={record.icon} color={record.color} />}
+                  lead={
+                    <CategoryLead icon={record.icon} color={record.color} />
+                  }
                   badge={
                     // Active is the normal case and goes unsaid.
                     record.isActive ? null : (
