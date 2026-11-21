@@ -1,6 +1,18 @@
 package rutacibao.android.app
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.runtime.remember
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import rutacibao.android.design.LocalContribute
+import rutacibao.android.screens.ContributeSheet
+import rutacibao.android.screens.SignInDialog
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -98,8 +110,8 @@ data class LinkRequest(val id: Long, val href: String, val target: AppTarget)
 enum class Tab(val label: Int, val icon: ImageVector, val iconSelected: ImageVector, val root: NavKey) {
     Map(R.string.tabs_map, Icons.Outlined.Map, Icons.Filled.Map, Route.Home),
     Consultations(R.string.tabs_consultations, Icons.Outlined.ChatBubbleOutline, Icons.Filled.ChatBubble, Route.Consultations),
-    Contributions(R.string.tabs_contributions, Icons.Outlined.AddCircleOutline, Icons.Filled.AddCircle, Route.Contributions),
-    Account(R.string.tabs_account, Icons.Outlined.PersonOutline, Icons.Filled.Person, Route.Account),
+    Contributions(R.string.tabs_contributions, Icons.Outlined.Layers, Icons.Filled.Layers, Route.Contributions),
+    Account(R.string.tabs_account, Icons.Outlined.AccountCircle, Icons.Filled.AccountCircle, Route.Account),
 }
 
 /** Navigation 3 keys. Saveable, so each tab's stack survives process death. */
@@ -210,17 +222,31 @@ fun AppRoot(
     val barVisible = !stack.lastOrNull().ownsBottom() && !WindowInsets.isImeVisible && !chrome.hidden
     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val statusInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val clearance = if (barVisible) BarHeight + 14.dp else 0.dp
-    // The map runs edge to edge under the status bar; every other screen sits clear of both bars.
-    val onMap = stack.lastOrNull() is Route.Home
-    val padding = if (onMap) PaddingValues(0.dp) else PaddingValues(top = statusInset, bottom = navInset)
+    // The bar is flat and sits under the content, so nothing scrolls beneath it.
+    val clearance = 0.dp
+    // The tabs' roots draw their green header (or the map) under the status bar; pushed pages
+    // sit clear of it. Without the bar, the content keeps clear of the system navigation.
+    val atRoot = stack.size == 1
+    val padding = PaddingValues(top = if (atRoot) 0.dp else statusInset, bottom = if (barVisible || stack.lastOrNull() is Route.Home) 0.dp else navInset)
+    var contributing by rememberSaveable { mutableStateOf(false) }
+    var wanted by remember { mutableStateOf<ContributeAction?>(null) }
+    var signingIn by remember { mutableStateOf(false) }
+    val signedIn by graph.session.isSignedIn.collectAsStateWithLifecycle()
+    fun begin(action: ContributeAction) {
+        stack.add(when (action) {
+            ContributeAction.Consultation -> Route.NewConsultation
+            ContributeAction.Traffic -> Route.TrafficReport
+            ContributeAction.Place -> Route.SuggestPlace
+        })
+    }
+    LaunchedEffect(signedIn, wanted) { val next = wanted; if (signedIn && next != null) { wanted = null; signingIn = false; begin(next) } }
 
     // Leaving a tab's root from another tab goes back to the map before leaving the app.
     BackHandler(enabled = stack.size == 1 && selected != Tab.Map) { selected = Tab.Map }
 
-    CompositionLocalProvider(LocalBarClearance provides clearance, LocalTabChrome provides chrome) {
-        Box(Modifier.fillMaxSize().background(Ink.colors.paper)) {
-            Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
+    CompositionLocalProvider(LocalBarClearance provides clearance, LocalTabChrome provides chrome, LocalContribute provides { contributing = true }) {
+        Column(Modifier.fillMaxSize().background(Ink.colors.paper)) {
+            Box(Modifier.weight(1f).fillMaxWidth().padding(padding).consumeWindowInsets(padding)) {
                 fun push(route: Route) { stack.add(route) }
                 fun pop() { stack.removeLastOrNull() }
                 NavDisplay(
@@ -232,13 +258,6 @@ fun AppRoot(
                         entry<Route.Consultations> { ConsultationsScreen(onOpen = { push(Route.Consultation(it)) }, onCompose = { push(Route.NewConsultation) }) }
                         entry<Route.Contributions> {
                             ContributionsScreen(
-                                onStart = {
-                                    push(when (it) {
-                                        ContributeAction.Consultation -> Route.NewConsultation
-                                        ContributeAction.Traffic -> Route.TrafficReport
-                                        ContributeAction.Place -> Route.SuggestPlace
-                                    })
-                                },
                                 onOpenConsultation = { push(Route.Consultation(it)) },
                                 startOnInbox = debugCompose == "inbox",
                                 inboxRequest = inboxRequest,
@@ -269,37 +288,44 @@ fun AppRoot(
             }
             AnimatedVisibility(
                 visible = barVisible,
-                modifier = Modifier.align(Alignment.BottomCenter),
-                enter = slideInVertically { it } + fadeIn(),
-                exit = slideOutVertically { it } + fadeOut(),
+                enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
+                exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
             ) {
-                TabBar(selected, Modifier.padding(bottom = navInset + 6.dp)) { tab ->
+                TabBar(selected, navInset) { tab ->
                     if (tab == selected) stacks.getValue(tab).popToRoot() else selected = tab
                 }
             }
         }
+        if (contributing) {
+            ContributeSheet(onDismiss = { contributing = false }) { action ->
+                contributing = false
+                if (signedIn) begin(action) else { wanted = action; signingIn = true }
+            }
+        }
+        if (signingIn && !signedIn) SignInDialog(onDismiss = { signingIn = false; wanted = null })
     }
 }
 
-private val BarHeight = 64.dp
-
-/** A floating capsule: icon over label, and a paper pill that slides to the current tab. */
+/**
+ * The app's own tab bar, as on iOS: flat on white under a hairline, an icon and its name for
+ * each place, grey until you are there. Where you are is the brand pine, filled in and
+ * heavier, so it never rests on colour alone.
+ */
 @Composable
-private fun TabBar(selected: Tab, modifier: Modifier = Modifier, onSelect: (Tab) -> Unit) {
-    BoxWithConstraints(modifier.padding(horizontal = 24.dp).widthIn(max = 420.dp).fillMaxWidth().height(BarHeight).floating(CircleShape).padding(5.dp)) {
-        val cell: Dp = maxWidth / Tab.entries.size
-        val offset by animateDpAsState(cell * selected.ordinal, spring(dampingRatio = 0.8f, stiffness = Spring.StiffnessMediumLow), label = "pill")
-        Box(Modifier.offset(x = offset).width(cell).height(54.dp).background(Ink.colors.paper2, CircleShape))
-        Row(Modifier.fillMaxSize()) {
+private fun TabBar(selected: Tab, navInset: Dp, onSelect: (Tab) -> Unit) {
+    Column(Modifier.fillMaxWidth().background(Ink.colors.paper)) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(Ink.colors.line))
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp, bottom = navInset + 4.dp)) {
             Tab.entries.forEach { tab ->
                 val on = tab == selected
+                val tint = if (on) Ink.colors.brand else Ink.colors.ink3
                 Column(
-                    Modifier.weight(1f).height(54.dp).clip(CircleShape).pressable(scale = 0.94f, haptic = true, role = Role.Tab) { onSelect(tab) }.semantics { this.selected = on },
-                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+                    Modifier.weight(1f).heightIn(min = 50.dp).pressable(scale = 0.94f, haptic = true, role = Role.Tab) { onSelect(tab) }.semantics { this.selected = on },
+                    verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Icon(if (on) tab.iconSelected else tab.icon, null, Modifier.size(22.dp), tint = if (on) Ink.colors.ink else Ink.colors.ink3)
-                    Text(stringResource(tab.label), style = Type.caption.copy(fontSize = 10.5.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium), color = if (on) Ink.colors.ink else Ink.colors.ink3, maxLines = 1)
+                    Icon(if (on) tab.iconSelected else tab.icon, null, Modifier.size(24.dp), tint = tint)
+                    Text(stringResource(tab.label), style = Type.caption.copy(fontSize = 11.sp, fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Medium), color = tint, maxLines = 1)
                 }
             }
         }

@@ -11,6 +11,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoveToInbox
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -46,63 +55,84 @@ import rutacibao.presentation.contributions.InboxUiState
 import rutacibao.presentation.contributions.InboxViewModel
 
 enum class ContributeAction(val title: Int, val detail: Int, val icon: ImageVector, val tint: Tint) {
-    Consultation(R.string.contributions_example_case_title, R.string.contributions_example_case_body, Icons.Outlined.ChatBubbleOutline, Tint.Lavender),
-    Traffic(R.string.contributions_example_traffic_title, R.string.contributions_example_traffic_body, Icons.Outlined.WarningAmber, Tint.Butter),
-    Place(R.string.contributions_example_place_title, R.string.contributions_example_place_body, Icons.Outlined.Place, Tint.Mint),
+    Consultation(R.string.contributions_example_case_title, R.string.contributions_example_case_body, Icons.Outlined.ChatBubbleOutline, Tint.Neutral),
+    Traffic(R.string.contributions_example_traffic_title, R.string.contributions_example_traffic_body, Icons.Outlined.WarningAmber, Tint.Neutral),
+    Place(R.string.contributions_example_place_title, R.string.contributions_example_place_body, Icons.Outlined.Place, Tint.Neutral),
 }
 
-/** Where a resident adds to the map: three ways to contribute, then what they sent and what came back. */
+/**
+ * The three ways to add something, opened from the add button in every header (iOS's
+ * `ContributeSheet`): grey blocks with a glyph, a title and one line, no rules between them.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation: (String) -> Unit, startOnInbox: Boolean, inboxRequest: Long, onOpenHref: (String) -> Unit) {
+fun ContributeSheet(onDismiss: () -> Unit, onChoose: (ContributeAction) -> Unit) {
+    val p = Ink.colors
+    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = p.paper, dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle(color = p.ink4) }) {
+        Text(stringResource(R.string.contributions_contribute), style = Type.bodyStrong, color = p.ink, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        Column(Modifier.padding(horizontal = 16.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            ContributeAction.entries.forEachIndexed { index, action ->
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(Metrics.radiusCard)).background(p.paper2).pressable(scale = 0.98f) { onChoose(action) }.padding(14.dp).rise(index),
+                    horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    GlyphDisc(action.icon, size = 48.dp, tint = Tint.Neutral)
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(stringResource(action.title), style = Type.bodyStrong, color = p.ink)
+                        Text(stringResource(action.detail), style = Type.callout, color = p.ink3, maxLines = 2)
+                    }
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(18.dp), tint = p.ink4)
+                }
+            }
+        }
+    }
+}
+
+/** What a resident sent and what came back: their contributions and their notices, under the green header. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ContributionsScreen(onOpenConsultation: (String) -> Unit, startOnInbox: Boolean, inboxRequest: Long, onOpenHref: (String) -> Unit) {
     val graph = LocalAppGraph.current
     val vm: ContributionsViewModel = rootViewModel("contributions") { graph.viewModels.contributions() }
     val inboxVm: InboxViewModel = rootViewModel("inbox") { graph.viewModels.inbox() }
     val state by vm.state.collectAsStateWithLifecycle()
     val inbox by inboxVm.state.collectAsStateWithLifecycle()
     var onInbox by rememberSaveable { mutableStateOf(startOnInbox) }
-    var wanted by remember { mutableStateOf<ContributeAction?>(null) }
     var signingIn by remember { mutableStateOf(false) }
+    val contribute = rutacibao.android.design.LocalContribute.current
     LaunchedEffect(inboxRequest) { if (inboxRequest != 0L) { onInbox = true; inboxVm.refresh() } }
-    LaunchedEffect(state.signedIn, wanted) { val next = wanted; if (state.signedIn && next != null) { wanted = null; signingIn = false; onStart(next) } }
     val p = Ink.colors
 
-    PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = { vm.refresh(); inboxVm.refresh() }, modifier = Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBarClearance.current + 24.dp)) {
-            item { ScreenTitle(stringResource(R.string.contributions_title)) }
-            item {
-                RowGroup(Modifier.padding(horizontal = Metrics.gutter)) {
-                    ContributeAction.entries.forEachIndexed { index, action ->
-                        Row(
-                            Modifier.clickable { if (state.signedIn) onStart(action) else { wanted = action; signingIn = true } }.padding(horizontal = 16.dp, vertical = 14.dp).rise(index),
-                            horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            GlyphDisc(action.icon, size = 44.dp, tint = action.tint)
-                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Text(stringResource(action.title), style = Type.bodyStrong, color = p.ink)
-                                Text(stringResource(action.detail), style = Type.callout, color = p.ink3, maxLines = 2)
-                            }
-                            Icon(Icons.Outlined.ArrowOutward, null, Modifier.size(16.dp), tint = p.ink3)
-                        }
-                        if (index < ContributeAction.entries.lastIndex) Hairline(inset = 74.dp)
+    Column(Modifier.fillMaxSize().background(p.paper)) {
+        RootHeader(stringResource(R.string.contributions_title), filters = if (!state.signedIn) null else ({
+            Chip(stringResource(R.string.contributions_mine), !onInbox, { onInbox = false }, onBrand = true)
+            Chip(stringResource(R.string.contributions_inbox), onInbox, { onInbox = true }, onBrand = true, badge = inbox.unread.toInt())
+            if (onInbox && inbox.unread > 0) {
+                Spacer(Modifier.weight(1f))
+                Box(
+                    Modifier.size(44.dp).clip(CircleShape).pressable { inboxVm.markRead(null) },
+                    Alignment.Center,
+                ) {
+                    Box(Modifier.size(34.dp).background(Color.White.copy(alpha = 0.14f), CircleShape), Alignment.Center) {
+                        Icon(Icons.Outlined.Check, stringResource(R.string.notifications_mark_all_read), Modifier.size(16.dp), tint = Color.White)
                     }
                 }
             }
-            if (!state.signedIn) {
-                item { StateView(stringResource(R.string.contributions_signed_out_title), Modifier.height(300.dp), message = stringResource(R.string.contributions_signed_out_body), action = stringResource(R.string.contributions_sign_in), onAction = { signingIn = true }) }
-            } else {
-                item {
-                    Row(Modifier.padding(start = Metrics.gutter, end = Metrics.gutter, top = 26.dp, bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Chip(stringResource(R.string.contributions_mine), !onInbox, { onInbox = false })
-                        Chip(if (inbox.unread > 0) stringResource(R.string.contributions_inbox_count, inbox.unread.toString()) else stringResource(R.string.contributions_inbox), onInbox, { onInbox = true })
-                        Spacer(Modifier.weight(1f))
-                        if (onInbox && inbox.unread > 0) IconDisc(Icons.Outlined.Check, stringResource(R.string.notifications_mark_all_read), { inboxVm.markRead(null) })
+        }))
+        PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = { vm.refresh(); inboxVm.refresh() }, modifier = Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(top = 6.dp, bottom = LocalBarClearance.current + 24.dp)) {
+                if (!state.signedIn) {
+                    item {
+                        StateView(stringResource(R.string.contributions_signed_out_title), Modifier.height(380.dp), message = stringResource(R.string.contributions_signed_out_body),
+                            action = stringResource(R.string.contributions_sign_in), prominent = true, onAction = { signingIn = true })
                     }
-                }
-                if (!onInbox) when (state.phase) {
+                } else if (!onInbox) when (state.phase) {
                     ContributionsUiState.Phase.Loading -> item { LoadingDots(Modifier.height(200.dp)) }
                     ContributionsUiState.Phase.Failed -> item { ErrorView(state.error ?: UiError.Unknown, Modifier.height(280.dp), vm::retry) }
-                    ContributionsUiState.Phase.Empty -> item { StateView(stringResource(R.string.contributions_empty), Modifier.height(280.dp), message = stringResource(R.string.contributions_empty_body)) }
+                    ContributionsUiState.Phase.Empty -> item {
+                        StateView(stringResource(R.string.contributions_empty), Modifier.height(280.dp), message = stringResource(R.string.contributions_empty_body),
+                            action = stringResource(R.string.contributions_contribute), onAction = contribute)
+                    }
                     ContributionsUiState.Phase.Ready -> items(state.items, key = { "${it.kind}:${it.id}" }) { item ->
                         val slug = state.slugFor(item)
                         MineRow(item, enabled = slug != null || item.href != null) { if (slug != null) onOpenConsultation(slug) else item.href?.let(onOpenHref) }
@@ -113,25 +143,26 @@ fun ContributionsScreen(onStart: (ContributeAction) -> Unit, onOpenConsultation:
                     InboxUiState.Phase.Empty -> item { StateView(stringResource(R.string.contributions_inbox_empty), Modifier.height(280.dp), icon = Icons.Outlined.Inbox, message = stringResource(R.string.contributions_inbox_empty_body)) }
                     InboxUiState.Phase.Ready -> items(inbox.items, key = { it.id }) { notice ->
                         val context = LocalContext.current
-                        Column(Modifier.clickable { inboxVm.markRead(notice.id); notice.consultationSlug?.let(onOpenConsultation) ?: notice.href?.let(onOpenHref) }) {
-                            Row(Modifier.padding(horizontal = Metrics.gutter, vertical = 13.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                                Box {
-                                    GlyphDisc(notice.categoryIcon?.let(::categoryIcon) ?: Icons.Outlined.Notifications, tint = notice.categoryColor?.let { Tint.of(it) } ?: Tint.Lavender)
-                                    if (notice.unread) Box(Modifier.align(Alignment.TopEnd).size(10.dp).background(p.paper, CircleShape).padding(1.5.dp).background(p.action, CircleShape))
-                                }
-                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                    Text(remember(notice) { noticeMessage(context, notice.messageKey, notice.params) }, style = if (notice.unread) Type.bodyStrong else Type.body, color = if (notice.unread) p.ink else p.ink2)
-                                    Text(relativeTimeText(notice.createdAt), style = Type.caption, color = p.ink3)
-                                }
+                        Row(
+                            Modifier.fillMaxWidth().clickable { inboxVm.markRead(notice.id); notice.consultationSlug?.let(onOpenConsultation) ?: notice.href?.let(onOpenHref) }
+                                .padding(horizontal = Metrics.gutter, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        ) {
+                            Box {
+                                GlyphDisc(notice.categoryIcon?.let(::categoryIcon) ?: Icons.Outlined.Notifications, tint = Tint.Neutral)
+                                if (notice.unread) Box(Modifier.align(Alignment.TopEnd).size(11.dp).background(p.paper, CircleShape).padding(2.dp).background(p.brand, CircleShape))
                             }
-                            Hairline(inset = Metrics.gutter + 54.dp)
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(remember(notice) { noticeMessage(context, notice.messageKey, notice.params) }, style = if (notice.unread) Type.bodyStrong else Type.body, color = if (notice.unread) p.ink else p.ink2)
+                                Text(relativeTimeText(notice.createdAt), style = Type.caption, color = p.ink3)
+                            }
                         }
                     }
                 }
             }
         }
     }
-    if (signingIn && !state.signedIn) SignInDialog(onDismiss = { signingIn = false; wanted = null })
+    if (signingIn && !state.signedIn) SignInDialog(onDismiss = { signingIn = false })
 }
 
 @Composable
@@ -167,22 +198,31 @@ private fun MineRow(item: PlacesContributionsItem, enabled: Boolean, onClick: ()
         PlacesContributionsItem.Status.Published, PlacesContributionsItem.Status.Resolved, PlacesContributionsItem.Status.Answered, PlacesContributionsItem.Status.Approved, PlacesContributionsItem.Status.Active -> p.success
         PlacesContributionsItem.Status.Pending, PlacesContributionsItem.Status.InReview, PlacesContributionsItem.Status.Draft -> p.warning
         PlacesContributionsItem.Status.Rejected, PlacesContributionsItem.Status.Removed -> p.danger
-        else -> p.ink4
+        else -> p.ink3
     }
-    Column(Modifier.clickable(enabled = enabled, onClick = onClick)) {
-        Row(Modifier.padding(horizontal = Metrics.gutter, vertical = 13.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            GlyphDisc(categoryIcon(item.categoryIcon), tint = Tint.of(item.categoryColor))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(item.name, style = Type.bodyStrong, color = p.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("$kind · ${relativeTimeText(item.createdAt)}", style = Type.callout, color = p.ink3)
-                    Box(Modifier.padding(start = 2.dp).size(6.dp).background(color, CircleShape))
-                    Text(status, style = Type.callout, color = p.ink2)
-                }
-            }
-            if (enabled) Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(18.dp), tint = p.ink4)
+    // The same glyphs as a consultation's state, so a state reads alike everywhere.
+    val glyph = when (item.status) {
+        PlacesContributionsItem.Status.Published, PlacesContributionsItem.Status.Approved, PlacesContributionsItem.Status.Active, PlacesContributionsItem.Status.Resolved -> Icons.Filled.CheckCircle
+        PlacesContributionsItem.Status.Answered -> Icons.Filled.ChatBubble
+        PlacesContributionsItem.Status.Pending, PlacesContributionsItem.Status.InReview -> Icons.Filled.Visibility
+        PlacesContributionsItem.Status.Draft -> Icons.Filled.Edit
+        PlacesContributionsItem.Status.Open -> Icons.Filled.MoveToInbox
+        PlacesContributionsItem.Status.Rejected, PlacesContributionsItem.Status.Removed -> Icons.Filled.Cancel
+        else -> Icons.Filled.Schedule
+    }
+    Row(
+        Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick).padding(horizontal = Metrics.gutter, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically,
+    ) {
+        GlyphDisc(categoryIcon(item.categoryIcon), tint = Tint.Neutral)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(item.name, style = Type.bodyStrong, color = p.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text("$kind · ${relativeTimeText(item.createdAt)}", style = Type.callout, color = p.ink3)
+            // The team's reason, when they left one.
+            val note = item.note
+            if (!note.isNullOrBlank()) Text(note, style = Type.callout, color = p.ink2, maxLines = 3, modifier = Modifier.padding(top = 2.dp))
         }
-        Hairline(inset = Metrics.gutter + 54.dp)
+        StatusTag(status, color, glyph)
     }
 }
 

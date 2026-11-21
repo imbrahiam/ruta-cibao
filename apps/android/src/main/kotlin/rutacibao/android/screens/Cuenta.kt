@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -78,8 +79,9 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit, onOp
     var signingIn by remember { mutableStateOf(false) }
     val p = Ink.colors
     LaunchedEffect(Unit) { vm.refresh() }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = LocalBarClearance.current + 24.dp)) {
-        ScreenTitle(stringResource(R.string.account_title))
+    Column(Modifier.fillMaxSize().background(p.paper)) {
+      RootHeader(stringResource(R.string.account_title))
+      Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 18.dp, bottom = LocalBarClearance.current + 24.dp)) {
         Column(Modifier.padding(horizontal = Metrics.gutter), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (state.signedIn) {
                 RowGroup(Modifier.rise(0)) {
@@ -88,7 +90,7 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit, onOp
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Text(state.me?.displayName ?: " ", style = Type.heading, color = p.ink)
-                                if (state.me?.residencyVerified == true) Icon(Icons.Filled.Verified, stringResource(R.string.account_resident_verified), Modifier.size(16.dp), tint = p.iris)
+                                if (state.me?.residencyVerified == true) Icon(Icons.Filled.Verified, stringResource(R.string.account_resident_verified), Modifier.size(16.dp), tint = p.brand)
                             }
                             state.municipalityName?.let { Text(stringResource(R.string.account_resident, it), style = Type.callout, color = p.ink3) }
                         }
@@ -96,8 +98,8 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit, onOp
                     }
                 }
                 RowGroup(Modifier.rise(1)) {
-                    RowLabel(stringResource(R.string.account_saved), icon = Icons.Outlined.BookmarkBorder, value = "${state.saved.size}", onClick = { onOpen(AccountPage.Saved) })
-                    RowLabel(stringResource(R.string.account_passport), icon = Icons.Outlined.MenuBook, value = "${state.passport?.total ?: 0}", divider = false, onClick = { onOpen(AccountPage.Passport) })
+                    RowLabel(stringResource(R.string.account_saved), icon = Icons.Outlined.BookmarkBorder, value = state.saved.size.takeIf { it > 0 }?.toString(), onClick = { onOpen(AccountPage.Saved) })
+                    RowLabel(stringResource(R.string.account_passport), icon = Icons.Outlined.MenuBook, value = (state.passport?.total ?: 0).takeIf { it > 0 }?.toString(), divider = false, onClick = { onOpen(AccountPage.Passport) })
                 }
                 state.staffPending?.let { pending ->
                     RowGroup(Modifier.rise(2)) { RowLabel(stringResource(R.string.gestion_title), icon = Icons.Outlined.Checklist, badge = pending, divider = false, onClick = onOpenGestion) }
@@ -124,6 +126,7 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit, onOp
                     modifier = Modifier.fillMaxWidth().clip(CircleShape).clickable { onOpen(AccountPage.Deletion) }.padding(vertical = 12.dp))
             }
         }
+      }
     }
     if (signingIn && !state.signedIn) SignInDialog(onDismiss = { signingIn = false; vm.refresh() })
 }
@@ -167,7 +170,8 @@ private fun ProfilePage(state: AccountUiState, vm: AccountViewModel, onBack: () 
 private fun SavedPage(state: AccountUiState, onBack: () -> Unit, onOpenPlace: (String) -> Unit) {
     val p = Ink.colors
     Page(stringResource(R.string.account_saved), onBack) {
-        if (state.saved.isEmpty()) StateView(stringResource(R.string.explore_saved_empty), Modifier.height(360.dp), icon = Icons.Outlined.BookmarkBorder, message = stringResource(R.string.explore_saved_empty_body))
+        if (state.saved.isEmpty()) StateView(stringResource(R.string.explore_saved_empty), Modifier.height(360.dp), icon = Icons.Outlined.BookmarkBorder, message = stringResource(R.string.explore_saved_empty_body),
+            action = stringResource(R.string.explore_saved_explore), onAction = onBack)
         else RowGroup {
             state.saved.forEachIndexed { index, place ->
                 Row(Modifier.clickable { onOpenPlace(place.slug) }.padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -195,12 +199,14 @@ private fun PassportPage(state: AccountUiState, onBack: () -> Unit) {
             RowGroup {
                 items.forEachIndexed { index, stamp ->
                     Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        GlyphDisc(Icons.Outlined.Place, tint = Tint.Mint)
+                        GlyphDisc(Icons.Filled.Place, tint = stamp.place?.let { Tint.of(it.categoryColor) } ?: Tint.Neutral)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(stamp.place?.name ?: stringResource(R.string.account_passport_removed), style = Type.bodyStrong, color = p.ink)
-                            Text(DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(stamp.stampedAt.toEpochMilliseconds())), style = Type.callout, color = p.ink3)
+                            // Dominican order ("14 oct 2026"), with the town the stamp is from.
+                            val date = java.text.SimpleDateFormat("d MMM yyyy", java.util.Locale.forLanguageTag("es-DO")).format(Date(stamp.stampedAt.toEpochMilliseconds())).replace(".", "")
+                            Text(listOfNotNull(stamp.place?.municipalityName, date).joinToString(" · "), style = Type.callout, color = p.ink3)
                         }
-                        Icon(Icons.Outlined.Verified, null, Modifier.size(20.dp), tint = p.iris)
+                        Icon(Icons.Outlined.Verified, null, Modifier.size(20.dp), tint = p.brand)
                     }
                     if (index < items.lastIndex) Hairline(inset = 70.dp)
                 }
@@ -337,12 +343,15 @@ private fun OfflinePage(onBack: () -> Unit) {
         Pill(stringResource(if (state.downloading) R.string.offline_downloading_action else if (ready) R.string.offline_update_action else R.string.offline_download_action), offline::download, Modifier.fillMaxWidth(), busy = state.downloading, icon = if (justUpdated) Icons.Outlined.Check else null)
         state.error?.let { Text(stringResource(offlineError(it)), style = Type.callout, color = p.danger) }
         if (ready) {
-            Pill(stringResource(R.string.offline_remove_action), offline::removeSnapshot, Modifier.fillMaxWidth(), kind = PillKind.Danger)
+            val number = java.text.NumberFormat.getIntegerInstance(java.util.Locale.forLanguageTag("es-DO"))
             RowGroup(Modifier.padding(top = 6.dp)) {
-                RowLabel(stringResource(R.string.offline_places_row_title), icon = Icons.Outlined.Place, value = "${state.places}", chevron = false)
-                RowLabel(stringResource(R.string.offline_routes_row_title), icon = Icons.Outlined.Hiking, value = "${state.routes}", chevron = false)
-                RowLabel(stringResource(R.string.offline_roads_row_title), icon = Icons.Outlined.Route, value = "${state.roads}", chevron = false, divider = false)
+                RowLabel(stringResource(R.string.offline_places_row_title), icon = Icons.Outlined.Place, value = number.format(state.places), chevron = false)
+                RowLabel(stringResource(R.string.offline_routes_row_title), icon = Icons.Outlined.Hiking, value = number.format(state.routes), chevron = false)
+                RowLabel(stringResource(R.string.offline_roads_row_title), icon = Icons.Outlined.Route, value = number.format(state.roads), chevron = false, divider = false)
             }
+            // Removing the copy is the rare, destructive way out: quiet red text under what it holds.
+            Text(stringResource(R.string.offline_remove_action), style = Type.body, color = p.danger, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().clip(CircleShape).clickable(onClick = offline::removeSnapshot).padding(vertical = 12.dp))
         }
         if (state.pending.isNotEmpty()) {
             FormLabel(stringResource(R.string.offline_outbox_section))

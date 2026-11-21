@@ -23,6 +23,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.MoveToInbox
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.IosShare
@@ -101,16 +106,24 @@ fun statusLabel(status: ConsultationStatus): String = stringResource(
     },
 )
 
-/** A case's standing: a dot in the status colour beside its word. */
+/** A case's standing: a glyph for the step it is at, in that step's colour, beside its word. */
 @Composable
-fun StatusBadge(status: ConsultationStatus) {
+fun StatusBadge(status: ConsultationStatus, solid: Boolean = false) {
     val p = Ink.colors
-    StatusTag(statusLabel(status), when (status) {
-        ConsultationStatus.Open -> p.ink4
+    val color = when (status) {
+        ConsultationStatus.Open -> p.ink3
         ConsultationStatus.InReview -> p.warning
         ConsultationStatus.Answered, ConsultationStatus.Resolved -> p.success
         ConsultationStatus.Rejected -> p.danger
-    })
+    }
+    val glyph = when (status) {
+        ConsultationStatus.Open -> Icons.Filled.MoveToInbox
+        ConsultationStatus.InReview -> Icons.Filled.Visibility
+        ConsultationStatus.Answered -> Icons.Filled.ChatBubble
+        ConsultationStatus.Resolved -> Icons.Filled.CheckCircle
+        ConsultationStatus.Rejected -> Icons.Filled.Cancel
+    }
+    StatusTag(statusLabel(status), color, glyph, solid)
 }
 
 fun shareConsultation(context: Context, title: String, slug: String, label: String) {
@@ -129,7 +142,7 @@ fun PostActions(supported: Boolean, supportCount: Int, replies: Int, slug: Strin
     val beat by animateFloatAsState(if (supported) 1f else 0.92f, spring(dampingRatio = 0.35f), label = "heart")
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         ActionCell(if (supported) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, stringResource(if (supported) R.string.consultations_supported else R.string.consultations_support), onSupport,
-            count = supportCount, tint = if (supported) Ink.colors.danger else Ink.colors.ink3, iconModifier = Modifier.graphicsLayer { scaleX = beat; scaleY = beat })
+            count = supportCount, tint = if (supported) Ink.colors.heart else Ink.colors.ink3, iconModifier = Modifier.graphicsLayer { scaleX = beat; scaleY = beat })
         ActionCell(Icons.Outlined.ChatBubbleOutline, pluralStringResource(R.plurals.consultations_responses, replies, replies), onReply, count = replies)
         Spacer(Modifier.weight(1f))
         ActionCell(Icons.Outlined.IosShare, shareLabel, { shareConsultation(context, title, slug, shareLabel) })

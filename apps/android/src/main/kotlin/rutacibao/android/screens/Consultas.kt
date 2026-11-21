@@ -23,6 +23,12 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -69,29 +75,39 @@ fun ConsultationsScreen(onOpen: (String) -> Unit, onCompose: () -> Unit) {
     val nearEnd by remember { derivedStateOf { (list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >= list.layoutInfo.totalItemsCount - 3 } }
     LaunchedEffect(nearEnd, state.items.size) { if (nearEnd && state.phase == ConsultationsUiState.Phase.Ready) vm.loadMore() }
 
-    PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = vm::refresh, modifier = Modifier.fillMaxSize()) {
-        LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(bottom = LocalBarClearance.current + 24.dp)) {
-            item(key = "title") {
-                ScreenTitle(stringResource(R.string.consultations_title)) { IconDisc(Icons.Outlined.Edit, stringResource(R.string.consultations_new), compose) }
-            }
-            item(key = "filters") {
-                LazyRow(contentPadding = PaddingValues(horizontal = Metrics.gutter), horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 6.dp)) {
-                    item { Chip(stringResource(R.string.consultations_all_tab), state.status == null, { vm.selectStatus(null) }) }
-                    items(ConsultationStatus.entries) { status -> Chip(statusLabel(status), state.status == status, { vm.selectStatus(status) }) }
-                }
-            }
-            when (state.phase) {
-                ConsultationsUiState.Phase.Loading -> item { LoadingDots(Modifier.height(320.dp)) }
-                ConsultationsUiState.Phase.Failed -> item { ErrorView(state.error ?: UiError.Unknown, Modifier.height(360.dp), vm::retry) }
-                ConsultationsUiState.Phase.Empty -> item {
-                    StateView(stringResource(R.string.consultations_empty), Modifier.height(360.dp), icon = Icons.Outlined.ChatBubbleOutline, message = stringResource(R.string.consultations_empty_body), action = stringResource(R.string.consultations_new), onAction = compose)
-                }
-                ConsultationsUiState.Phase.Ready -> {
-                    items(state.items, key = { it.id }) { item ->
-                        PostRow(item, { onOpen(item.slug) }, { vm.toggleSupport(item.id) }, { menuFor = item })
-                        Hairline(inset = Metrics.gutter)
+    // The newest cases with a picture lead the page, only on the unfiltered feed; the list skips them.
+    val featured = if (state.status == null) state.items.filter { !it.photos.isNullOrEmpty() }.take(6) else emptyList()
+    val listed = state.items.filter { item -> featured.none { it.id == item.id } }
+
+    Column(Modifier.fillMaxSize().background(Ink.colors.paper)) {
+        RootHeader(stringResource(R.string.consultations_title)) {
+            Chip(stringResource(R.string.consultations_all_tab), state.status == null, { vm.selectStatus(null) }, onBrand = true)
+            ConsultationStatus.entries.forEach { status -> Chip(statusLabel(status), state.status == status, { vm.selectStatus(status) }, onBrand = true) }
+        }
+        PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = vm::refresh, modifier = Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(bottom = LocalBarClearance.current + 24.dp)) {
+                when (state.phase) {
+                    ConsultationsUiState.Phase.Loading -> item { LoadingDots(Modifier.height(320.dp)) }
+                    ConsultationsUiState.Phase.Failed -> item { ErrorView(state.error ?: UiError.Unknown, Modifier.height(360.dp), vm::retry) }
+                    ConsultationsUiState.Phase.Empty -> item {
+                        StateView(stringResource(R.string.consultations_empty), Modifier.height(360.dp), icon = Icons.Outlined.ChatBubbleOutline, message = stringResource(R.string.consultations_empty_body), action = stringResource(R.string.consultations_new), onAction = compose)
                     }
-                    if (state.loadingMore) item { LoadingDots(Modifier.height(64.dp)) }
+                    ConsultationsUiState.Phase.Ready -> {
+                        if (featured.isNotEmpty()) {
+                            item(key = "featured-title") { SectionTitle(stringResource(R.string.explore_highlights)) }
+                            item(key = "featured") {
+                                LazyRow(Modifier.edgeFade(), contentPadding = PaddingValues(horizontal = Metrics.gutter), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                                    items(featured, key = { it.id }) { item -> FeatureCard(item) { onOpen(item.slug) } }
+                                }
+                            }
+                            item(key = "more-title") { SectionTitle(stringResource(R.string.consultations_more)) }
+                        } else {
+                            item(key = "top") { Spacer(Modifier.height(12.dp)) }
+                        }
+                        // Filtered by a state, every row has it: saying it again on each is noise.
+                        items(listed, key = { it.id }) { item -> CompactRow(item, showsStatus = state.status == null) { onOpen(item.slug) } }
+                        if (state.loadingMore) item { LoadingDots(Modifier.height(64.dp)) }
+                    }
                 }
             }
         }
@@ -101,21 +117,41 @@ fun ConsultationsScreen(onOpen: (String) -> Unit, onCompose: () -> Unit) {
     if (composeAfterSignIn && !signedIn) SignInDialog(onDismiss = { composeAfterSignIn = false })
 }
 
-/** One consultation in the feed: where it stands, what it says, what it shows. */
 @Composable
-private fun PostRow(item: Consultation, onOpen: () -> Unit, onSupport: () -> Unit, onMore: () -> Unit) {
-    Column(Modifier.padding(top = 18.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Column(Modifier.clickable(onClick = onOpen).padding(horizontal = Metrics.gutter), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(categoryIcon(item.categoryIcon), null, Modifier.size(14.dp), tint = Ink.colors.ink3)
-                Text("${item.categoryName} · ${relativeTimeText(item.createdAt)}", style = Type.caption, color = Ink.colors.ink3, modifier = Modifier.weight(1f))
-                StatusBadge(item.statusValue)
-            }
-            Text(item.title, style = Type.heading, color = Ink.colors.ink)
+private fun SectionTitle(text: String) {
+    Text(text, style = Type.title, color = Ink.colors.ink, modifier = Modifier.padding(start = Metrics.gutter, end = Metrics.gutter, top = 26.dp, bottom = 12.dp).semantics { heading() })
+}
+
+/** A case with a picture, as a large card in the opening carousel: words on a scrim at its foot. */
+@Composable
+private fun FeatureCard(item: Consultation, onOpen: () -> Unit) {
+    Box(Modifier.width(264.dp).height(248.dp).clip(RoundedCornerShape(22.dp)).pressable(scale = 0.98f, onClick = onOpen)) {
+        RemoteImage(item.photos?.firstOrNull()?.url, Modifier.fillMaxSize())
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.42f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.78f))))
+        Box(Modifier.align(Alignment.TopStart).padding(12.dp)) { StatusBadge(item.statusValue, solid = true) }
+        Column(Modifier.align(Alignment.BottomStart).padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(item.title, style = Type.heading.copy(fontSize = 19.sp), color = Color.White, maxLines = 3)
+            Text("${item.categoryName} · ${relativeTimeText(item.createdAt)}", style = Type.callout, color = Color.White.copy(alpha = 0.86f))
         }
-        val photos = item.photos.orEmpty()
-        if (photos.isNotEmpty()) PhotoStrip(photos.map { it.url }, onClick = onOpen)
-        PostActions(item.supported, item.supportCount.toInt(), item.responseCount.toInt(), item.slug, item.title, onSupport, onOpen, Modifier.padding(horizontal = Metrics.gutter - 8.dp), onMore)
+    }
+}
+
+/** A case in the list: its picture or category beside its title, where and when, and where it stands. */
+@Composable
+private fun CompactRow(item: Consultation, showsStatus: Boolean, onOpen: () -> Unit) {
+    val p = Ink.colors
+    Row(Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(horizontal = Metrics.gutter, vertical = 9.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        val photo = item.photos?.firstOrNull()?.url
+        Box(Modifier.size(76.dp).clip(RoundedCornerShape(12.dp)).background(p.paper2), Alignment.Center) {
+            if (photo != null) RemoteImage(photo, Modifier.fillMaxSize())
+            else Icon(categoryIcon(item.categoryIcon), null, Modifier.size(26.dp), tint = p.ink2)
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(item.title, style = Type.bodyStrong, color = p.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            // Which ayuntamiento it was raised with matters as much as the topic.
+            Text("${item.categoryName} · ${item.municipalityName} · ${relativeTimeText(item.createdAt)}", style = Type.callout, color = p.ink3, maxLines = 2)
+            if (showsStatus) Box(Modifier.padding(top = 2.dp)) { StatusBadge(item.statusValue) }
+        }
     }
 }
 
@@ -183,28 +219,29 @@ fun ConsultationDetailScreen(slug: String, onBack: () -> Unit) {
 private fun Original(detail: ConsultationDetail, replies: Int, onSupport: () -> Unit, onReply: () -> Unit) {
     val p = Ink.colors
     Column {
-        Row(Modifier.padding(horizontal = Metrics.gutter).rise(0), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Avatar(detail.openedBy, 44.dp)
-            Column(Modifier.weight(1f)) {
-                Text(if (detail.isMine) stringResource(R.string.consultations_you) else detail.openedBy ?: stringResource(R.string.traffic_resident), style = Type.bodyStrong, color = p.ink)
-                Text(detail.municipalityName, style = Type.callout, color = p.ink3)
-            }
+        // Corners, as on iOS: state top-left, time top-right, so the title is the first thing read;
+        // who and where close the block.
+        Row(Modifier.padding(horizontal = Metrics.gutter).padding(top = 4.dp).rise(0), verticalAlignment = Alignment.CenterVertically) {
             StatusBadge(detail.statusValue)
+            Spacer(Modifier.weight(1f))
+            Text(relativeTimeText(detail.createdAt), style = Type.caption, color = p.ink3)
         }
-        Text(detail.title, style = Type.title, color = p.ink, modifier = Modifier.padding(horizontal = Metrics.gutter).padding(top = 18.dp).rise(1))
-        Text(detail.body, style = Type.body.copy(lineHeight = Type.body.lineHeight * 1.08f), color = p.ink2, modifier = Modifier.padding(horizontal = Metrics.gutter).padding(top = 8.dp).rise(2))
-        Row(
-            Modifier.padding(horizontal = Metrics.gutter).padding(top = 14.dp).height(28.dp).border(1.dp, p.line, CircleShape).padding(horizontal = 11.dp).rise(3),
-            horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(categoryIcon(detail.categoryIcon), null, Modifier.size(14.dp), tint = p.ink2)
-            Text(detail.categoryName, style = Type.caption, color = p.ink2)
+        Text(detail.title, style = Type.title, color = p.ink, modifier = Modifier.padding(horizontal = Metrics.gutter).padding(top = 12.dp).rise(1))
+        Text(detail.body, style = Type.body.copy(lineHeight = Type.body.lineHeight * 1.08f), color = p.ink, modifier = Modifier.padding(horizontal = Metrics.gutter).padding(top = 8.dp).rise(2))
+        Row(Modifier.padding(horizontal = Metrics.gutter).padding(top = 16.dp).rise(3), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Avatar(detail.openedBy, 28.dp)
+            Text(
+                listOf(if (detail.isMine) stringResource(R.string.consultations_you) else detail.openedBy ?: stringResource(R.string.traffic_resident), detail.municipalityName).joinToString(" · "),
+                style = Type.callout, color = p.ink2, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            Row(Modifier.height(28.dp).background(p.paper2, CircleShape).padding(horizontal = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(categoryIcon(detail.categoryIcon), null, Modifier.size(13.dp), tint = p.ink2)
+                Text(detail.categoryName, style = Type.caption, color = p.ink2, maxLines = 1)
+            }
         }
         val photos = detail.photos.orEmpty()
         if (photos.isNotEmpty()) PhotoStrip(photos.map { it.url }, Modifier.padding(top = 16.dp).rise(4), height = 240.dp)
-        val date = remember(detail.createdAt) { DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(detail.createdAt.toEpochMilliseconds())) }
-        Text(date, style = Type.caption, color = p.ink3, modifier = Modifier.padding(horizontal = Metrics.gutter).padding(top = 16.dp))
-        PostActions(detail.supported, detail.supportCount.toInt(), replies, detail.slug, detail.title, onSupport, onReply, Modifier.padding(horizontal = Metrics.gutter - 8.dp))
+        PostActions(detail.supported, detail.supportCount.toInt(), replies, detail.slug, detail.title, onSupport, onReply, Modifier.padding(horizontal = Metrics.gutter - 8.dp).padding(top = 2.dp))
         Hairline(Modifier.padding(top = 4.dp, bottom = 10.dp))
     }
 }
@@ -252,17 +289,16 @@ private fun CommentRow(comment: Comment, working: Boolean, vm: CommentsViewModel
                     Text(if (comment.isMine) stringResource(R.string.consultations_you) else comment.author ?: stringResource(R.string.traffic_resident), style = Type.label, color = p.ink)
                     Text(relativeTimeText(comment.createdAt), style = Type.caption, color = p.ink3)
                 }
-                Text(comment.body, style = Type.body, color = p.ink2)
+                Text(comment.body, style = Type.body, color = p.ink)
             }
             Box {
-                Icon(Icons.Outlined.MoreHoriz, stringResource(R.string.comments_options), Modifier.size(36.dp).clip(CircleShape).clickable { menu = true }.padding(9.dp), tint = p.ink3)
+                Icon(Icons.Outlined.MoreHoriz, stringResource(R.string.comments_options), Modifier.size(44.dp).clip(CircleShape).clickable { menu = true }.padding(13.dp), tint = p.ink3)
                 DropdownMenu(menu, { menu = false }, containerColor = p.card) {
                     if (comment.isMine) DropdownMenuItem({ Text(stringResource(R.string.comments_delete), color = p.danger) }, { menu = false; vm.delete(comment.id) })
                     else DropdownMenuItem({ Text(stringResource(R.string.comments_report)) }, { menu = false; reporting = true })
                 }
             }
         }
-        Hairline(inset = Metrics.gutter + 48.dp)
     }
     if (reporting) ReasonDialog(stringResource(R.string.comments_report), { reporting = false }) { vm.report(comment.id, it) }
 }
@@ -304,9 +340,11 @@ private fun ReplySheet(state: ConsultationDetailUiState, vm: ConsultationDetailV
     ModalBottomSheet(onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Ink.colors.paper, shape = RoundedCornerShape(topStart = Metrics.radiusPanel, topEnd = Metrics.radiusPanel)) {
         Column(Modifier.imePadding().navigationBarsPadding().padding(horizontal = Metrics.gutter).padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(if (asStaff) R.string.comments_official_reply else R.string.comments_title), style = Type.heading, color = Ink.colors.ink, modifier = Modifier.weight(1f))
+                Text(stringResource(if (asStaff) R.string.comments_official_reply else R.string.comments_reply_title), style = Type.heading, color = Ink.colors.ink, modifier = Modifier.weight(1f))
                 Pill(stringResource(R.string.common_send), { if (asStaff) vm.respond(official, status) else commentsVm.send() }, compact = true, enabled = canSend, busy = busy)
             }
+            // What the reply answers, so the sheet never loses its context.
+            state.detail?.title?.let { Text(stringResource(R.string.comments_replying_to, "«$it»"), style = Type.callout, color = Ink.colors.ink3, maxLines = 2) }
             Field(if (asStaff) official else comments.draft, { if (asStaff) official = it else commentsVm.updateDraft(it) },
                 stringResource(if (asStaff) R.string.comments_reply_placeholder else R.string.comments_placeholder), minLines = 4, maxLines = 10)
             if (asStaff) {

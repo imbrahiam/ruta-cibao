@@ -70,6 +70,12 @@ import kotlinx.coroutines.launch
 import rutacibao.android.R
 import rutacibao.android.app.LocalBarClearance
 import rutacibao.android.design.*
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.semantics.contentDescription
 import rutacibao.android.platform.calmMapStyle
 import rutacibao.android.platform.hasLocationPermission
 import rutacibao.android.platform.lastKnownLocation
@@ -107,7 +113,8 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
     val dark = isSystemInDarkTheme()
     val density = androidx.compose.ui.platform.LocalDensity.current.density
     val p = Ink.colors
-    var satellite by rememberSaveable { mutableStateOf(false) }
+    // The header's height on screen: the map keeps its centre and Google's logo clear of it.
+    var headerHeight by remember { mutableStateOf(0) }
     var searching by rememberSaveable { mutableStateOf(startSearching) }
     var me by remember { mutableStateOf<LatLng?>(null) }
     var handled by rememberSaveable { mutableStateOf(0L) }
@@ -160,57 +167,66 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = camera,
-                properties = MapProperties(mapStyleOptions = if (satellite) null else calmMapStyle(dark), mapType = if (satellite) MapType.HYBRID else MapType.NORMAL, isMyLocationEnabled = hasLocationPermission(context)),
+                properties = MapProperties(mapStyleOptions = calmMapStyle(dark), mapType = MapType.NORMAL, isMyLocationEnabled = hasLocationPermission(context)),
                 uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false, mapToolbarEnabled = false, tiltGesturesEnabled = false, compassEnabled = false),
-                contentPadding = WindowInsets.statusBars.asPaddingValues(),
+                contentPadding = PaddingValues(top = with(androidx.compose.ui.platform.LocalDensity.current) { headerHeight.toDp() }),
                 onMapClick = { vm.dismissSheet(); vm.dismissRoute(); vm.dismissTraffic() },
             ) {
                 state.visibleRoutes.forEach { route ->
                     val on = state.route?.id == route.id
                     Polyline(points = route.path.map { LatLng(it.lat, it.lng) }, color = p.success, width = if (on) 16f else 10f, clickable = true, onClick = { vm.selectRoute(route.id) })
                     route.path.firstOrNull()?.let { start ->
-                        Marker(state = rememberUpdatedMarkerState(LatLng(start.lat, start.lng)), title = route.name, icon = googlePin(Tint.Mint.solid, density, on), zIndex = 2f, onClick = { vm.selectRoute(route.id); true })
+                        GlyphPin(LatLng(start.lat, start.lng), route.id, Icons.AutoMirrored.Outlined.DirectionsWalk, Tint.Trail.solid, on, dimmed = false, zIndex = 2f) { vm.selectRoute(route.id) }
                     }
                 }
                 state.traffic.forEach { notice ->
                     val color = if (notice.severity == TrafficSeverity.Blocking) p.danger else p.warning
                     val on = state.selectedTraffic?.id == notice.id
                     if (notice.path.size > 1) Polyline(points = notice.path.map { LatLng(it.latitude, it.longitude) }, color = color, width = 12f)
-                    Marker(state = rememberUpdatedMarkerState(LatLng(notice.latitude, notice.longitude)), title = notice.categoryName, icon = googlePin(color, density, on), zIndex = 4f, onClick = { vm.selectTraffic(notice.id); true })
+                    GlyphPin(LatLng(notice.latitude, notice.longitude), "t" + notice.id, categoryIcon(notice.icon), color, on, dimmed = false, zIndex = 4f) { vm.selectTraffic(notice.id) }
                 }
+                val picked = state.sheet?.place?.id
                 places.forEach { place ->
-                    val on = state.sheet?.place?.id == place.id
-                    Marker(state = rememberUpdatedMarkerState(LatLng(place.latitude, place.longitude)), title = place.name, icon = googlePin(place.tint(), density, on), zIndex = if (on) 5f else 1f, onClick = { vm.select(place.id); true })
+                    val on = picked == place.id
+                    // With one in hand, the others step back so it reads first.
+                    GlyphPin(LatLng(place.latitude, place.longitude), "p" + place.id, categoryIcon(place.icon), place.tint(), on, dimmed = picked != null && !on, zIndex = if (on) 5f else 1f) { vm.select(place.id) }
                 }
             }
         } else {
             StateView(stringResource(R.string.map_basemap_unavailable), Modifier.align(Alignment.Center), icon = Icons.Outlined.Map, message = stringResource(R.string.map_basemap_unavailable_body))
         }
 
-        // Search and filters float over the map.
-        Column(Modifier.statusBarsPadding().padding(top = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                Modifier.padding(horizontal = 16.dp).widthIn(max = 440.dp).fillMaxWidth().height(52.dp).floating(CircleShape).clip(CircleShape).pressable(scale = 0.98f) { searching = true }.padding(horizontal = 18.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(Icons.Outlined.Search, null, Modifier.size(20.dp), tint = p.ink)
-                Text(stringResource(R.string.map_search_placeholder), style = Type.body, color = p.ink3)
+        // The header: search and adding on one row, the kinds to filter by under it, on the green.
+        BrandHeader(Modifier.onSizeChanged { headerHeight = it.height }) {
+            Row(Modifier.padding(horizontal = Metrics.gutter), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                val searchLabel = stringResource(R.string.map_search_label)
+                Row(
+                    Modifier.weight(1f).height(48.dp).background(p.paper, CircleShape).clip(CircleShape).pressable(scale = 0.98f) { searching = true }
+                        .semantics { contentDescription = searchLabel }.padding(start = 18.dp, end = 5.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(stringResource(R.string.map_search_placeholder), style = Type.body, color = p.ink3, maxLines = 1, modifier = Modifier.weight(1f))
+                    Box(Modifier.size(38.dp).background(p.brand, CircleShape), Alignment.Center) { Icon(Icons.Outlined.Search, null, Modifier.size(18.dp), tint = Color.White) }
+                }
+                ContributeButton()
             }
-            LazyRow(contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (state.filtering) item(key = "clear") {
-                    Box(Modifier.size(38.dp).background(p.action, CircleShape).clip(CircleShape).pressable(onClick = vm::clearFilters), Alignment.Center) {
-                        Icon(Icons.Outlined.Close, stringResource(R.string.map_clear_filters), Modifier.size(16.dp), tint = p.onInk)
+            // With something in hand the filters step aside and give the map their room.
+            if (selection is MapSelection.None) HeaderFilters {
+                if (state.filtering) {
+                    Box(Modifier.size(44.dp).clip(CircleShape).pressable(onClick = vm::clearFilters), Alignment.Center) {
+                        Box(Modifier.size(34.dp).background(Color.White, CircleShape), Alignment.Center) {
+                            Icon(Icons.Outlined.Close, stringResource(R.string.map_clear_filters), Modifier.size(15.dp), tint = p.brandDeep)
+                        }
                     }
                 }
-                if (state.routes.isNotEmpty()) item(key = "routes") { Chip(stringResource(R.string.map_routes), state.routesSelected, vm::toggleRoutes, icon = Icons.AutoMirrored.Outlined.DirectionsWalk, floating = true) }
-                items(state.categories, key = { it.id }) { category ->
-                    Chip(category.name, category.id in state.selectedCategories, { vm.toggleCategory(category.id) }, icon = categoryIcon(category.icon), floating = true)
+                if (state.routes.isNotEmpty()) Chip(stringResource(R.string.map_routes), state.routesSelected, vm::toggleRoutes, icon = Icons.AutoMirrored.Outlined.DirectionsWalk, onBrand = true)
+                state.categories.forEach { category ->
+                    Chip(category.name, category.id in state.selectedCategories, { vm.toggleCategory(category.id) }, icon = categoryIcon(category.icon), onBrand = true)
                 }
             }
         }
 
-        Column(Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = LocalBarClearance.current + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            IconDisc(if (satellite) Icons.Outlined.Map else Icons.Outlined.Public, stringResource(if (satellite) R.string.map_layers_standard else R.string.map_layers_satellite), { satellite = !satellite }, floating = true)
+        Column(Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             IconDisc(Icons.Outlined.NearMe, stringResource(R.string.map_locate), {
                 if (hasLocationPermission(context)) lastKnownLocation(context)?.let { fly(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 15f)) }
                 else permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
@@ -232,14 +248,20 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
             Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Metrics.gutter).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 when (selection) {
                     is MapSelection.Place -> PlacePanel(selection.sheet, vm)
-                    is MapSelection.Route -> RoutePanel(selection.route)
+                    is MapSelection.Route -> RoutePanel(selection.route, vm::dismissRoute)
                     is MapSelection.Traffic -> state.selectedTraffic?.let { TrafficPanel(it, vm) }
                     else -> Unit
                 }
             }
         }
     }
-    if (searching) MapSearch(state, onDismiss = { searching = false }, onPlace = { searching = false; vm.select(it.id) }, onRoute = { searching = false; vm.selectRoute(it.id) })
+    val contribute = LocalContribute.current
+    if (searching) MapSearch(
+        state, onDismiss = { searching = false }, onPlace = { searching = false; vm.select(it.id) }, onRoute = { searching = false; vm.selectRoute(it.id) },
+        onCategory = { id -> searching = false; vm.clearFilters(); vm.toggleCategory(id) },
+        onRoutes = { searching = false; vm.clearFilters(); vm.toggleRoutes() },
+        onSuggest = { searching = false; contribute() },
+    )
     if (state.signInRequested) SignInDialog(onDismiss = vm::signInHandled)
 }
 
@@ -279,18 +301,47 @@ private fun googlePin(color: Color, density: Float, large: Boolean = false): Bit
     }
 }
 
+/**
+ * A place's marker as on iOS: a disc in the category's colour with its white glyph, standing on
+ * a short point, larger when picked and faded when another one is.
+ */
 @Composable
-private fun PanelHeader(color: Color, icon: ImageVector, title: String, subtitle: String, verified: String? = null) {
+private fun GlyphPin(position: LatLng, key: String, icon: ImageVector, color: Color, selected: Boolean, dimmed: Boolean, zIndex: Float, onClick: () -> Unit) {
+    val size = if (selected) 48.dp else 34.dp
+    androidx.compose.runtime.key(key) {
+        com.google.maps.android.compose.MarkerComposable(
+            keys = arrayOf<Any>(key, selected, dimmed, color.toArgb()),
+            state = rememberUpdatedMarkerState(position),
+            zIndex = zIndex,
+            alpha = if (dimmed) 0.45f else 1f,
+            onClick = { onClick(); true },
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(Modifier.size(size + 4.dp).background(Color.White, CircleShape).padding(2.dp).background(color, CircleShape), Alignment.Center) {
+                    Icon(icon, null, Modifier.size(size * 0.5f), tint = Color.White)
+                }
+                Box(Modifier.size(width = 8.dp, height = 6.dp).background(Color.White, androidx.compose.foundation.shape.GenericShape { box, _ ->
+                    moveTo(0f, 0f); lineTo(box.width, 0f); lineTo(box.width / 2f, box.height); close()
+                }))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PanelHeader(color: Color, icon: ImageVector, title: String, subtitle: String, verified: String? = null, onClose: (() -> Unit)? = null) {
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-        Box(Modifier.size(46.dp).background(color, CircleShape), Alignment.Center) { Icon(icon, null, Modifier.size(22.dp), tint = Color.White) }
+        Box(Modifier.size(40.dp).background(color, CircleShape), Alignment.Center) { Icon(icon, null, Modifier.size(19.dp), tint = Color.White) }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(title, style = Type.title, color = Ink.colors.ink, modifier = Modifier.weight(1f, fill = false))
                 // Verified sits beside the name as a badge, not as a line of its own.
-                if (verified != null) Icon(Icons.Filled.Verified, verified, Modifier.size(19.dp), tint = Ink.colors.iris)
+                if (verified != null) Icon(Icons.Filled.Verified, verified, Modifier.size(19.dp), tint = Ink.colors.brand)
             }
             Text(subtitle, style = Type.callout, color = Ink.colors.ink3)
         }
+        // Close on the right, as everywhere else.
+        if (onClose != null) IconDisc(Icons.Outlined.Close, stringResource(R.string.common_close), onClose, floating = true)
     }
 }
 
@@ -303,7 +354,7 @@ private fun PlacePanel(sheet: PlaceSheet, vm: MapViewModel) {
     val contact = when (val business = sheet.business) { is BusinessState.Listed -> business.contact; is BusinessState.Owned -> business.contact; else -> null }
     val shareLabel = stringResource(R.string.common_share)
     val established = detail != null && !sheet.cached && detail.trust.state == PlacesDetailOutput.Trust.State.Established
-    PanelHeader(place.tint(), categoryIcon(place.icon), place.name, listOfNotNull(place.categoryName, detail?.municipality?.name).joinToString(" · "), if (established) stringResource(R.string.place_trust_established) else null)
+    PanelHeader(place.tint(), categoryIcon(place.icon), place.name, listOfNotNull(place.categoryName, detail?.municipality?.name).joinToString(" · "), if (established) stringResource(R.string.place_trust_established) else null, vm::dismissSheet)
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
         Pill(stringResource(R.string.place_directions), {
             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}")))
@@ -313,6 +364,8 @@ private fun PlacePanel(sheet: PlaceSheet, vm: MapViewModel) {
             context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "${place.name}\nhttps://rutacibao.do/lugares/${place.slug}") }, shareLabel))
         })
     }
+    // Where it is comes first, then what it looks like.
+    detail?.address?.let { Fact(Icons.Outlined.Place, it) }
     (detail?.imageUrl ?: place.thumbnailUrl)?.let { RemoteImage(it, Modifier.fillMaxWidth().height(190.dp).clip(RoundedCornerShape(Metrics.radiusCard))) }
     when {
         sheet.loading && detail == null -> LoadingDots(Modifier.height(60.dp))
@@ -331,7 +384,6 @@ private fun PlacePanel(sheet: PlaceSheet, vm: MapViewModel) {
             }
             detail.description?.takeIf { it.isNotBlank() }?.let { Text(it, style = Type.body, color = p.ink2) }
             // Facts read as plain lines; only what can be tapped gets a surface.
-            detail.address?.let { Fact(Icons.Outlined.Place, it) }
             contact?.hours?.let { Fact(Icons.Outlined.Schedule, it) }
             if (contact?.phoneLink != null || contact?.whatsappLink != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 contact.phoneLink?.let { link -> Pill(stringResource(R.string.place_call), { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link))) }, Modifier.weight(1f), kind = PillKind.Quiet, compact = true, icon = Icons.Outlined.Phone) }
@@ -339,14 +391,28 @@ private fun PlacePanel(sheet: PlaceSheet, vm: MapViewModel) {
             }
             val report = sheet.report
             if (report != null) ReportPlace(report, vm) else if (!detail.isMine) {
-                // Feedback is secondary: one quiet line under a hairline.
-                Box(Modifier.fillMaxWidth().height(1.dp).background(p.line))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.place_still_there), style = Type.callout, color = p.ink3, modifier = Modifier.weight(1f))
-                    Verdict(Icons.Outlined.Check, stringResource(R.string.place_exists), detail.myVerdict == PlacesDetailOutput.MyVerdict.Exists, !sheet.confirming) { vm.confirmPlace(PlacesConfirmInput.Verdict.Exists) }
-                    Verdict(Icons.Outlined.Close, stringResource(R.string.place_gone), detail.myVerdict == PlacesDetailOutput.MyVerdict.Gone, !sheet.confirming) { vm.confirmPlace(PlacesConfirmInput.Verdict.Gone) }
-                    Box(Modifier.size(44.dp).clip(CircleShape).clickable(onClickLabel = stringResource(R.string.place_report), role = Role.Button, onClick = vm::openPlaceReport), Alignment.Center) {
-                        Icon(Icons.Outlined.Flag, stringResource(R.string.place_report), Modifier.size(18.dp), tint = p.ink2)
+                // Verifying is secondary to finding the place: one grey row that opens its answers.
+                var open by rememberSaveable { mutableStateOf(false) }
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(Metrics.radiusCard)).background(p.paper2)) {
+                    Row(Modifier.fillMaxWidth().clickable { open = !open }.heightIn(min = 52.dp).padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Outlined.Checklist, null, Modifier.size(19.dp), tint = p.ink2)
+                        Text(stringResource(R.string.place_verify), style = Type.bodyStrong, color = p.ink, modifier = Modifier.weight(1f))
+                        detail.myVerdict?.let { Text(stringResource(if (it == PlacesDetailOutput.MyVerdict.Exists) R.string.place_exists else R.string.place_gone), style = Type.callout, color = p.ink3) }
+                        Icon(if (open) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null, Modifier.size(20.dp), tint = p.ink3)
+                    }
+                    if (open) {
+                        Column(Modifier.padding(horizontal = 14.dp).padding(bottom = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(stringResource(R.string.place_still_there), style = Type.body, color = p.ink)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Verdict(stringResource(R.string.place_exists), detail.myVerdict == PlacesDetailOutput.MyVerdict.Exists, !sheet.confirming, Modifier.weight(1f)) { vm.confirmPlace(PlacesConfirmInput.Verdict.Exists) }
+                                Verdict(stringResource(R.string.place_gone), detail.myVerdict == PlacesDetailOutput.MyVerdict.Gone, !sheet.confirming, Modifier.weight(1f)) { vm.confirmPlace(PlacesConfirmInput.Verdict.Gone) }
+                            }
+                        }
+                        Row(Modifier.fillMaxWidth().clickable(onClick = vm::openPlaceReport).heightIn(min = 48.dp).padding(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.Flag, null, Modifier.size(17.dp), tint = p.ink2)
+                            Text(stringResource(R.string.place_report), style = Type.callout, color = p.ink, modifier = Modifier.weight(1f))
+                            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(18.dp), tint = p.ink4)
+                        }
                     }
                 }
                 if (sheet.feedbackError != null) Text(stringResource(R.string.common_error_title), style = Type.caption, color = p.danger)
@@ -364,14 +430,18 @@ private fun Fact(icon: ImageVector, text: String) {
     }
 }
 
-/** A glyph in a small disc; the chosen one fills with ink. */
+/** An answer as a plain word pill: the chosen one in the pine's soft wash with a check and a ring. */
 @Composable
-private fun Verdict(icon: ImageVector, label: String, chosen: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun Verdict(label: String, chosen: Boolean, enabled: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val p = Ink.colors
-    Box(Modifier.size(44.dp).clip(CircleShape).clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { selected = chosen }, Alignment.Center) {
-        Box(Modifier.size(36.dp).background(if (chosen) p.action else p.paper2, CircleShape), Alignment.Center) {
-            Icon(icon, label, Modifier.size(17.dp), tint = if (chosen) p.onInk else p.ink)
-        }
+    Row(
+        modifier.height(48.dp).clip(CircleShape).background(if (chosen) p.brandSoft else p.paper)
+            .border(if (chosen) 1.5.dp else 1.dp, if (chosen) p.brand else p.line, CircleShape)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick).semantics { selected = chosen },
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (chosen) Icon(Icons.Outlined.Check, null, Modifier.size(17.dp), tint = p.brandDeep)
+        Text(label, style = Type.bodyStrong, color = if (chosen) p.brandDeep else p.ink)
     }
 }
 
@@ -405,10 +475,10 @@ private fun ReportPlace(report: PlaceReportState, vm: MapViewModel) {
 }
 
 @Composable
-private fun RoutePanel(route: RoutesBrowseOutput.Item) {
+private fun RoutePanel(route: RoutesBrowseOutput.Item, onClose: () -> Unit) {
     val p = Ink.colors
     val context = LocalContext.current
-    PanelHeader(p.success, Icons.AutoMirrored.Outlined.DirectionsWalk, route.name, "${route.categoryName} · ${route.municipalityName}")
+    PanelHeader(Tint.Trail.solid, Icons.AutoMirrored.Outlined.DirectionsWalk, route.name, "${route.categoryName} · ${route.municipalityName}", onClose = onClose)
     Row(Modifier.fillMaxWidth().background(p.paper2, RoundedCornerShape(Metrics.radiusCard)).padding(vertical = 14.dp)) {
         val minutes = route.durationMinutes.toInt()
         Fact(stringResource(R.string.routes_distance), "%.1f km".format(route.distanceMeters / 1000))
@@ -437,7 +507,7 @@ private fun RowScope.Fact(label: String, value: String) {
 @Composable
 private fun TrafficPanel(notice: TrafficNotice, vm: MapViewModel) {
     val p = Ink.colors
-    PanelHeader(if (notice.severity == TrafficSeverity.Blocking) p.danger else p.warning, categoryIcon(notice.icon), notice.categoryName, "${notice.municipality} · ${relativeTimeText(notice.createdAt)}")
+    PanelHeader(if (notice.severity == TrafficSeverity.Blocking) p.danger else p.warning, categoryIcon(notice.icon), notice.categoryName, "${notice.municipality} · ${relativeTimeText(notice.createdAt)}", onClose = vm::dismissTraffic)
     notice.details?.takeIf { it.isNotBlank() }?.let { Text(it, style = Type.body, color = p.ink2) }
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(pluralStringResource(R.plurals.traffic_still_voices, notice.stillCount, notice.stillCount), style = Type.callout, color = p.ink3)
@@ -452,31 +522,61 @@ private fun TrafficPanel(notice: TrafficNotice, vm: MapViewModel) {
     } else notice.myVerdict?.let { Notice(Icons.Outlined.CheckCircle, stringResource(if (it == TrafficVerdict.Still) R.string.traffic_thanks_still else R.string.traffic_thanks_cleared)) }
 }
 
-/** Search across places and eco routes: type, see, tap. */
+/** Search across places and eco routes: type, see, tap (iOS's `MapSearch`). */
 @Composable
-private fun MapSearch(state: MapUiState, onDismiss: () -> Unit, onPlace: (MapPlace) -> Unit, onRoute: (RoutesBrowseOutput.Item) -> Unit) {
+private fun MapSearch(state: MapUiState, onDismiss: () -> Unit, onPlace: (MapPlace) -> Unit, onRoute: (RoutesBrowseOutput.Item) -> Unit, onCategory: (String) -> Unit, onRoutes: () -> Unit, onSuggest: () -> Unit) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         var query by remember { mutableStateOf("") }
         val p = Ink.colors
-        val routes = remember(query, state.routes) { state.routes.filter { query.isBlank() || "${it.name} ${it.municipalityName}".contains(query.trim(), ignoreCase = true) } }
-        val places = remember(query, state.all) {
-            state.all.sortedBy { it.name.lowercase() }.filter { query.isBlank() || "${it.name} ${it.categoryName} ${state.municipalities[it.municipalityId].orEmpty()}".contains(query.trim(), ignoreCase = true) }
+        val typed = query.trim()
+        val routes = remember(typed, state.routes) { state.routes.filter { typed.isEmpty() || "${it.name} ${it.municipalityName}".contains(typed, ignoreCase = true) } }
+        // Names that start with what was typed first, then names that contain it, then matches
+        // on the category or town only, so "co" finds Colmado before every bank.
+        val places = remember(typed, state.all) {
+            fun fold(text: String) = java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replace(Regex("\\p{M}"), "").lowercase()
+            val q = fold(typed)
+            state.all.sortedBy { fold(it.name) }.mapNotNull { place ->
+                val name = fold(place.name)
+                val rank = when {
+                    q.isEmpty() -> 0
+                    name.startsWith(q) || name.contains(" $q") -> 0
+                    name.contains(q) -> 1
+                    fold("${place.categoryName} ${state.municipalities[place.municipalityId].orEmpty()}").contains(q) -> 2
+                    else -> null
+                }
+                rank?.let { place to it }
+            }.sortedBy { it.second }.map { it.first }
         }
         Column(Modifier.fillMaxSize().background(p.paper).systemBarsPadding().imePadding()) {
             Row(Modifier.padding(horizontal = 16.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconDisc(Icons.AutoMirrored.Outlined.ArrowBack, stringResource(R.string.common_close), onDismiss)
                 Box(Modifier.weight(1f)) { Field(query, { query = it }, stringResource(R.string.search_placeholder), icon = Icons.Outlined.Search) }
+                IconDisc(Icons.Outlined.Close, stringResource(R.string.common_close), onDismiss, floating = true)
             }
-            if (routes.isEmpty() && places.isEmpty()) StateView(stringResource(R.string.search_empty_title), Modifier.weight(1f), icon = Icons.Outlined.Search, message = stringResource(R.string.search_empty_body))
-            else LazyColumn(Modifier.weight(1f)) {
-                if (routes.isNotEmpty()) {
-                    item { Box(Modifier.padding(horizontal = Metrics.gutter)) { FormLabel(stringResource(R.string.map_routes)) } }
-                    items(routes, key = { "r${it.id}" }) { route -> SearchRow(Icons.AutoMirrored.Outlined.DirectionsWalk, Tint.Mint, route.name, "${route.categoryName} · ${route.municipalityName}") { onRoute(route) } }
+            when {
+                typed.isEmpty() -> LazyVerticalGrid(
+                    GridCells.Fixed(2), Modifier.weight(1f), contentPadding = PaddingValues(start = Metrics.gutter, end = Metrics.gutter, top = 8.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    // Routes first, as on the map's filter row.
+                    if (state.routes.isNotEmpty()) item(key = "routes") {
+                        CategoryTile(stringResource(R.string.map_routes), Icons.AutoMirrored.Outlined.DirectionsWalk, Tint.Trail.solid, pluralStringResource(R.plurals.map_routes_count, state.routes.size, state.routes.size), onRoutes)
+                    }
+                    items(state.categories, key = { it.id }) { category ->
+                        CategoryTile(category.name, categoryIcon(category.icon), Tint.of(category.color).solid, pluralStringResource(R.plurals.explore_places_count, category.count.toInt(), category.count.toInt())) { onCategory(category.id) }
+                    }
                 }
-                if (places.isNotEmpty()) {
-                    item { Box(Modifier.padding(horizontal = Metrics.gutter).padding(top = 8.dp)) { FormLabel(stringResource(R.string.search_places)) } }
-                    items(places, key = { "p${it.id}" }) { place ->
-                        SearchRow(categoryIcon(place.icon), Tint.of(place.color), place.name, listOfNotNull(place.categoryName, state.municipalities[place.municipalityId]).joinToString(" · ")) { onPlace(place) }
+                routes.isEmpty() && places.isEmpty() -> StateView(stringResource(R.string.search_empty_title), Modifier.weight(1f), icon = Icons.Outlined.Search, message = stringResource(R.string.search_empty_body),
+                    action = stringResource(R.string.contributions_example_place_title), onAction = onSuggest)
+                else -> LazyColumn(Modifier.weight(1f)) {
+                    if (routes.isNotEmpty()) {
+                        item { Box(Modifier.padding(horizontal = Metrics.gutter)) { FormLabel(stringResource(R.string.map_routes)) } }
+                        items(routes, key = { "r${it.id}" }) { route -> SearchRow(Icons.AutoMirrored.Outlined.DirectionsWalk, Tint.Trail, route.name, "${route.categoryName} · ${route.municipalityName}") { onRoute(route) } }
+                    }
+                    if (places.isNotEmpty()) {
+                        item { Box(Modifier.padding(horizontal = Metrics.gutter).padding(top = 8.dp)) { FormLabel(stringResource(R.string.search_places)) } }
+                        items(places, key = { "p${it.id}" }) { place ->
+                            SearchRow(categoryIcon(place.icon), Tint.of(place.color), place.name, listOfNotNull(place.categoryName, state.municipalities[place.municipalityId]).joinToString(" · ")) { onPlace(place) }
+                        }
                     }
                 }
             }
@@ -484,16 +584,28 @@ private fun MapSearch(state: MapUiState, onDismiss: () -> Unit, onPlace: (MapPla
     }
 }
 
+/** A category as a quiet grey tile: its glyph on a disc in the kind's colour, its name and how many places. */
+@Composable
+private fun CategoryTile(name: String, icon: ImageVector, color: Color, detail: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 82.dp).clip(RoundedCornerShape(Metrics.radiusCard)).background(Ink.colors.paper2).pressable(scale = 0.97f, onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(36.dp).background(color, CircleShape), Alignment.Center) { Icon(icon, null, Modifier.size(17.dp), tint = Color.White) }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(name, style = Type.bodyStrong, color = Ink.colors.ink, maxLines = 2)
+            Text(detail, style = Type.caption, color = Ink.colors.ink3)
+        }
+    }
+}
+
 @Composable
 private fun SearchRow(icon: ImageVector, tint: Tint, title: String, detail: String, onClick: () -> Unit) {
-    Column(Modifier.clickable(onClick = onClick)) {
-        Row(Modifier.padding(horizontal = Metrics.gutter, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            GlyphDisc(icon, tint = tint)
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(title, style = Type.bodyStrong, color = Ink.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(detail, style = Type.callout, color = Ink.colors.ink3)
-            }
+    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = Metrics.gutter, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        GlyphDisc(icon, tint = tint)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(title, style = Type.bodyStrong, color = Ink.colors.ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(detail, style = Type.callout, color = Ink.colors.ink3)
         }
-        Hairline(inset = Metrics.gutter + 54.dp)
     }
 }
