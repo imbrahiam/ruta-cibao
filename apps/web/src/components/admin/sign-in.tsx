@@ -191,18 +191,18 @@ export function AdminSignIn({
   return (
     <main
       id="contenido"
-      className="mx-auto flex min-h-dvh w-full max-w-[22rem] flex-col justify-center gap-8 px-5 py-12"
+      className="mx-auto flex min-h-dvh w-full max-w-[21rem] flex-col justify-center gap-7 px-5 py-12"
     >
       <header className="flex animate-rise flex-col items-center gap-5 text-center">
         {/* The mark leads home, as it does in the site header. */}
         <Link href="/" aria-label={t("home")} className="rounded-[14px]">
-          <RoadMark size={56} />
+          <RoadMark size={44} />
         </Link>
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight">
+          <h1 className="text-xl leading-tight font-semibold tracking-tight">
             {t("title")}
           </h1>
-          <p className="text-[0.9375rem] text-pretty text-muted-foreground">
+          <p className="text-sm text-pretty text-muted-foreground">
             {step.kind === "contact"
               ? t("signInBody")
               : t("shell.sentTo", {
@@ -235,7 +235,7 @@ export function AdminSignIn({
           >
             <TabsList
               aria-label={t("contact")}
-              className="grid w-full grid-cols-2 rounded-full p-1 group-data-[orientation=horizontal]/tabs:h-12"
+              className="grid w-full grid-cols-2 rounded-full p-1 group-data-[orientation=horizontal]/tabs:h-10 pointer-coarse:group-data-[orientation=horizontal]/tabs:h-12"
             >
               {METHODS.map((option) => {
                 const Icon = METHOD_ICONS[option];
@@ -245,7 +245,7 @@ export function AdminSignIn({
                     key={option}
                     value={option}
                     disabled={!available}
-                    className="h-full rounded-full text-[0.9375rem] group-data-[variant=default]/tabs-list:data-[state=active]:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.04)]"
+                    className="h-full rounded-full text-sm group-data-[variant=default]/tabs-list:data-[state=active]:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.04)]"
                   >
                     <Icon aria-hidden="true" />
                     {t(option)}
@@ -286,7 +286,7 @@ export function AdminSignIn({
                 autoFocus
                 placeholder={t("shell.phonePlaceholder")}
                 value={phone}
-                className="h-12 px-4 text-base md:text-base"
+                className="h-10 px-3.5 pointer-coarse:h-12"
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? "staff-phone-error" : undefined}
                 onChange={(event) => setPhone(formatPhoneChange(event, phone))}
@@ -307,7 +307,7 @@ export function AdminSignIn({
                 autoFocus
                 placeholder={t("shell.emailPlaceholder")}
                 value={email}
-                className="h-12 px-4 text-base md:text-base"
+                className="h-10 px-3.5 pointer-coarse:h-12"
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? "staff-email-error" : undefined}
                 onChange={(event) => setEmail(event.target.value)}
@@ -319,7 +319,7 @@ export function AdminSignIn({
             type="submit"
             disabled={pending || waitLeft > 0}
             aria-busy={pending}
-            className="h-12 w-full text-base"
+            className="h-10 w-full pointer-coarse:h-12"
           >
             {resumable ? (
               t("shell.useSentCode")
@@ -364,7 +364,7 @@ export function AdminSignIn({
             type="submit"
             disabled={pending}
             aria-busy={pending}
-            className="h-12 w-full text-base"
+            className="h-10 w-full pointer-coarse:h-12"
           >
             {t("verify")}
           </Button>
