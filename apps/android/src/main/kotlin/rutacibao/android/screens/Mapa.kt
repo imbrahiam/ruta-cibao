@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -70,6 +71,11 @@ import kotlinx.coroutines.launch
 import rutacibao.android.R
 import rutacibao.android.app.LocalBarClearance
 import rutacibao.android.design.*
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Gap
+import com.google.android.gms.maps.model.JointType
+import com.google.android.gms.maps.model.RoundCap
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -115,6 +121,9 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
     val p = Ink.colors
     // The header's height on screen: the map keeps its centre and Google's logo clear of it.
     var headerHeight by remember { mutableStateOf(0) }
+    // The map in relief (tilted, with buildings), remembered between launches.
+    val prefs = remember { context.getSharedPreferences("map", android.content.Context.MODE_PRIVATE) }
+    var threeD by remember { mutableStateOf(prefs.getBoolean("threeD", false)) }
     var searching by rememberSaveable { mutableStateOf(startSearching) }
     var me by remember { mutableStateOf<LatLng?>(null) }
     var handled by rememberSaveable { mutableStateOf(0L) }
@@ -123,6 +132,11 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
         position = CameraPosition.fromLatLngZoom(start ?: TownCentre, 14.6f)
     }
     val fly: (com.google.android.gms.maps.CameraUpdate) -> Unit = { update -> scope.launch { runCatching { camera.animate(update, 500) } } }
+    LaunchedEffect(threeD) {
+        prefs.edit().putBoolean("threeD", threeD).apply()
+        val now = camera.position
+        runCatching { camera.animate(CameraUpdateFactory.newCameraPosition(CameraPosition(now.target, now.zoom, if (threeD) 55f else 0f, now.bearing)), 500) }
+    }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
         if (granted.values.any { it }) lastKnownLocation(context)?.let { me = LatLng(it.latitude, it.longitude); fly(CameraUpdateFactory.newLatLngZoom(me!!, 15f)) }
     }
@@ -167,8 +181,8 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = camera,
-                properties = MapProperties(mapStyleOptions = calmMapStyle(dark), mapType = MapType.NORMAL, isMyLocationEnabled = hasLocationPermission(context)),
-                uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false, mapToolbarEnabled = false, tiltGesturesEnabled = false, compassEnabled = false),
+                properties = MapProperties(mapStyleOptions = calmMapStyle(dark), mapType = MapType.NORMAL, isMyLocationEnabled = hasLocationPermission(context), isBuildingEnabled = threeD),
+                uiSettings = MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false, mapToolbarEnabled = false, tiltGesturesEnabled = threeD, compassEnabled = false),
                 contentPadding = PaddingValues(top = with(androidx.compose.ui.platform.LocalDensity.current) { headerHeight.toDp() }),
                 onMapClick = { vm.dismissSheet(); vm.dismissRoute(); vm.dismissTraffic() },
             ) {
@@ -179,14 +193,39 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
                         GlyphPin(LatLng(start.lat, start.lng), route.id, Icons.AutoMirrored.Outlined.DirectionsWalk, Tint.Trail.solid, on, dimmed = false, zIndex = 2f) { vm.selectRoute(route.id) }
                     }
                 }
+                // A notice is drawn on its stretch of road: a white edge, the hazard's colour, white
+                // dashes through it when closed, and its traffic sign at the stretch's middle.
                 state.traffic.forEach { notice ->
-                    val color = if (notice.severity == TrafficSeverity.Blocking) p.danger else p.warning
+                    val sign = TrafficSignKind.of(notice.categoryName, notice.icon)
                     val on = state.selectedTraffic?.id == notice.id
-                    if (notice.path.size > 1) Polyline(points = notice.path.map { LatLng(it.latitude, it.longitude) }, color = color, width = 12f)
-                    GlyphPin(LatLng(notice.latitude, notice.longitude), "t" + notice.id, categoryIcon(notice.icon), color, on, dimmed = false, zIndex = 4f) { vm.selectTraffic(notice.id) }
+                    val points = notice.path.map { LatLng(it.latitude, it.longitude) }
+                    if (points.size > 1) {
+                        Polyline(points = points, color = Color.White, width = 30f, zIndex = 3f, startCap = RoundCap(), endCap = RoundCap(), jointType = JointType.ROUND)
+                        Polyline(points = points, color = sign.line, width = 20f, zIndex = 3.1f, startCap = RoundCap(), endCap = RoundCap(), jointType = JointType.ROUND)
+                        if (sign == TrafficSignKind.Closed) Polyline(points = points, color = Color.White.copy(alpha = 0.9f), width = 7f, zIndex = 3.2f, pattern = listOf(Dash(18f), Gap(22f)))
+                    }
+                    val middle = points.getOrNull(points.size / 2) ?: LatLng(notice.latitude, notice.longitude)
+                    androidx.compose.runtime.key("t" + notice.id) {
+                        com.google.maps.android.compose.MarkerComposable(
+                            keys = arrayOf<Any>("t" + notice.id, on), state = rememberUpdatedMarkerState(middle), anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f), zIndex = 4f,
+                            onClick = { vm.selectTraffic(notice.id); true },
+                        ) { TrafficSign(sign, if (on) 42.dp else 32.dp) }
+                    }
+                }
+                // A route in hand shows its stops in order; the places it passes give way to them.
+                val route = (selection as? MapSelection.Route)?.route
+                val stops = route?.let { trailStops(it, state.all, stringResource(R.string.routes_start), stringResource(R.string.routes_end)) }.orEmpty()
+                val onRoute = stops.mapNotNull { it.place?.id }.toSet()
+                stops.forEachIndexed { index, stop ->
+                    androidx.compose.runtime.key("s" + stop.id) {
+                        com.google.maps.android.compose.MarkerComposable(
+                            keys = arrayOf<Any>(stop.id, index), state = rememberUpdatedMarkerState(LatLng(stop.lat, stop.lng)), anchor = androidx.compose.ui.geometry.Offset(0.5f, 0.5f), zIndex = 6f,
+                            onClick = { stop.place?.let { vm.select(it.id) }; true },
+                        ) { StopDisc(index, stop) }
+                    }
                 }
                 val picked = state.sheet?.place?.id
-                places.forEach { place ->
+                places.filter { it.id !in onRoute }.forEach { place ->
                     val on = picked == place.id
                     // With one in hand, the others step back so it reads first.
                     GlyphPin(LatLng(place.latitude, place.longitude), "p" + place.id, categoryIcon(place.icon), place.tint(), on, dimmed = picked != null && !on, zIndex = if (on) 5f else 1f) { vm.select(place.id) }
@@ -227,6 +266,8 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
         }
 
         Column(Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            // Flat or in relief: the label says what a tap switches to.
+            IconDisc(if (threeD) Icons.Outlined.Map else Icons.Outlined.ViewInAr, stringResource(if (threeD) R.string.map_view2d else R.string.map_view3d), { threeD = !threeD }, floating = true)
             IconDisc(Icons.Outlined.NearMe, stringResource(R.string.map_locate), {
                 if (hasLocationPermission(context)) lastKnownLocation(context)?.let { fly(CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 15f)) }
                 else permission.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
@@ -248,7 +289,10 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
             Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(horizontal = Metrics.gutter).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 when (selection) {
                     is MapSelection.Place -> PlacePanel(selection.sheet, vm)
-                    is MapSelection.Route -> RoutePanel(selection.route, vm::dismissRoute)
+                    is MapSelection.Route -> RoutePanel(
+                        selection.route, trailStops(selection.route, state.all, stringResource(R.string.routes_start), stringResource(R.string.routes_end)),
+                        vm::dismissRoute, onPlace = { vm.select(it) },
+                    )
                     is MapSelection.Traffic -> state.selectedTraffic?.let { TrafficPanel(it, vm) }
                     else -> Unit
                 }
@@ -325,6 +369,17 @@ private fun GlyphPin(position: LatLng, key: String, icon: ImageVector, color: Co
                 }))
             }
         }
+    }
+}
+
+/** A stop on the map: the trail's green disc with its number, or a flag at either end. */
+@Composable
+private fun StopDisc(index: Int, stop: TrailStop) {
+    val trail = Tint.Trail.solid
+    val place = stop.kind == TrailStop.Kind.Place
+    Box(Modifier.size(28.dp).background(if (place) Color.White else trail, CircleShape).border(2.5.dp, if (place) trail else Color.White, CircleShape), Alignment.Center) {
+        if (place) Text("$index", style = Type.caption.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = trail)
+        else Icon(if (stop.kind == TrailStop.Kind.Start) Icons.Filled.Flag else Icons.Outlined.SportsScore, null, Modifier.size(14.dp), tint = Color.White)
     }
 }
 
@@ -475,7 +530,7 @@ private fun ReportPlace(report: PlaceReportState, vm: MapViewModel) {
 }
 
 @Composable
-private fun RoutePanel(route: RoutesBrowseOutput.Item, onClose: () -> Unit) {
+private fun RoutePanel(route: RoutesBrowseOutput.Item, stops: List<TrailStop>, onClose: () -> Unit, onPlace: (String) -> Unit) {
     val p = Ink.colors
     val context = LocalContext.current
     PanelHeader(Tint.Trail.solid, Icons.AutoMirrored.Outlined.DirectionsWalk, route.name, "${route.categoryName} · ${route.municipalityName}", onClose = onClose)
@@ -491,6 +546,43 @@ private fun RoutePanel(route: RoutesBrowseOutput.Item, onClose: () -> Unit) {
     }
     route.path.firstOrNull()?.let { start ->
         Pill(stringResource(R.string.routes_to_start), { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/dir/?api=1&destination=${start.lat},${start.lng}"))) }, Modifier.fillMaxWidth(), icon = Icons.Outlined.Directions)
+    }
+    if (route.services.isNotEmpty()) {
+        Text(stringResource(R.string.routes_services), style = Type.label, color = p.ink)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            route.services.forEach { service ->
+                Text(stringResource(when (service) {
+                    RoutesBrowseOutput.Item.Service.Water -> R.string.routes_service_water
+                    RoutesBrowseOutput.Item.Service.Food -> R.string.routes_service_food
+                    RoutesBrowseOutput.Item.Service.Lodging -> R.string.routes_service_lodging
+                    RoutesBrowseOutput.Item.Service.Guide -> R.string.routes_service_guide
+                    RoutesBrowseOutput.Item.Service.Parking -> R.string.routes_service_parking
+                    RoutesBrowseOutput.Item.Service.Restrooms -> R.string.routes_service_restrooms
+                }), style = Type.callout, color = p.ink, modifier = Modifier.background(p.paper2, CircleShape).padding(horizontal = 12.dp, vertical = 8.dp))
+            }
+        }
+    }
+    if (stops.size > 2) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.routes_stops), style = Type.heading, color = p.ink, modifier = Modifier.weight(1f))
+            Text(pluralStringResource(R.plurals.routes_stops_count, stops.size - 2, stops.size - 2), style = Type.callout, color = p.ink3)
+        }
+        // A timeline: a numbered disc per stop joined by the trail's colour, with how far in it comes.
+        Column {
+            stops.forEachIndexed { index, stop ->
+                Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min).clickable(enabled = stop.place != null) { stop.place?.let { onPlace(it.id) } }, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        StopDisc(index, stop)
+                        if (index < stops.lastIndex) Box(Modifier.width(2.dp).weight(1f).heightIn(min = 18.dp).background(p.paper3))
+                    }
+                    Column(Modifier.padding(top = 4.dp, bottom = if (index < stops.lastIndex) 14.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(stop.name, style = Type.bodyStrong, color = p.ink, maxLines = 2)
+                        Text(if (stop.kind == TrailStop.Kind.Start) stringResource(R.string.routes_start)
+                            else stringResource(R.string.routes_from_start, if (stop.along < 1000) "${(stop.along / 10).toInt() * 10} m" else "%.1f km".format(stop.along / 1000)), style = Type.callout, color = p.ink3)
+                    }
+                }
+            }
+        }
     }
     Text(route.description, style = Type.body, color = p.ink2)
     Notice(Icons.Outlined.Shield, stringResource(R.string.routes_safety_title), stringResource(R.string.routes_safety_body))
