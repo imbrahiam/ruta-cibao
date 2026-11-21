@@ -100,22 +100,32 @@ function useExpiry() {
   const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
   const when = useWhen();
-  return (iso: string) => {
+  return (iso: string, short = false) => {
     const date = new Date(iso);
-    return date.toDateString() === now.toDateString()
-      ? q("until", { time: format.dateTime(date, "time") })
-      : when("expiresAt", iso);
+    const time = format.dateTime(date, "time");
+    const today = date.toDateString() === now.toDateString();
+    // The clock beside it already says "until": a narrow line keeps the hour.
+    if (short) {
+      return today
+        ? time
+        : q("untilDate", {
+            date: format.dateTime(date, { day: "numeric", month: "short" }),
+            time,
+          });
+    }
+    return today ? q("until", { time }) : when("expiresAt", iso);
   };
 }
 
-function Expiry({ iso }: { iso: string }) {
+/** `short` where the line is narrow: the day and the hour, without the year. */
+function Expiry({ iso, short }: { iso: string; short?: boolean }) {
   const q = useTranslations("admin.queue");
   const expiry = useExpiry();
   return (
-    <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground tabular-nums">
+    <span className="inline-flex shrink-0 items-center gap-1 text-xs whitespace-nowrap text-muted-foreground tabular-nums">
       <Clock aria-hidden className="size-3.5" />
       <span className="sr-only">{q("expiresLabel")}: </span>
-      {expiry(iso)}
+      {expiry(iso, short)}
     </span>
   );
 }
@@ -263,7 +273,7 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
       // report; the byline below keeps its room for the decision.
       badge={
         <span className="ml-auto">
-          <Expiry iso={report.expiresAt} />
+          <Expiry iso={report.expiresAt} short />
         </span>
       }
       decision={decisions}
@@ -295,16 +305,14 @@ export function TrafficLine({ report }: { report: LiveTraffic }) {
         className="size-9 rounded-[10px] [&>svg]:size-[18px]"
       />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <div className="flex items-baseline justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => split?.select(report.id)}
-            className="truncate text-left text-[15px] leading-snug font-medium outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
-          >
-            {report.categoryName}
-          </button>
-          <Expiry iso={report.expiresAt} />
-        </div>
+        <button
+          type="button"
+          title={report.categoryName}
+          onClick={() => split?.select(report.id)}
+          className="truncate text-left text-[15px] leading-snug font-medium outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
+        >
+          {report.categoryName}
+        </button>
         <ImpactChips report={report} />
         <TextState report={report} />
         {report.description ? (
@@ -312,7 +320,11 @@ export function TrafficLine({ report }: { report: LiveTraffic }) {
             {report.description}
           </p>
         ) : null}
-        <Reporter report={report} />
+        {/* Who and until when share the foot, whatever the row holds. */}
+        <div className="flex items-center justify-between gap-3">
+          <Reporter report={report} />
+          <Expiry iso={report.expiresAt} short />
+        </div>
       </div>
     </li>
   );
