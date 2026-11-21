@@ -14,17 +14,32 @@ data class TrailStop(val id: String, val kind: Kind, val name: String, val lat: 
 }
 
 private const val REACH = 160.0
+/** Two stops closer than this along the path are one stop: the nearer to the path stays. */
+private const val SPACING = 200.0
+/** A place this close to the start or the end along the path names that end instead. */
+private const val ENDS = 150.0
+/** The kinds of place a walker stops at. Banks, offices and workshops on the way are not stops. */
+private val STOP_KINDS = setOf("comedor", "colmado", "cultura", "hospedaje", "parque", "farmacia", "salud")
 
 fun trailStops(route: RoutesBrowseOutput.Item, places: List<MapPlace>, start: String, end: String): List<TrailStop> {
     val path = route.path
     if (path.size < 2) return emptyList()
     val line = TrailPath(path.map { it.lat to it.lng })
     val stops = mutableListOf(TrailStop("start-${route.id}", TrailStop.Kind.Start, start, path.first().lat, path.first().lng, 0.0))
-    stops += places.mapNotNull { place ->
+    val near = places.mapNotNull { place ->
+        if (place.categoryId !in STOP_KINDS) return@mapNotNull null
         val (along, offset) = line.project(place.latitude, place.longitude)
-        if (offset <= REACH && along > 40 && along < line.length - 40) TrailStop("place-${place.id}", TrailStop.Kind.Place, place.name, place.latitude, place.longitude, along, place) else null
-    }.sortedBy { it.along }
-    stops += TrailStop("end-${route.id}", TrailStop.Kind.End, end, path.last().lat, path.last().lng, line.length)
+        if (offset <= REACH && along > 40 && along < line.length - 40) TrailStop("place-${place.id}", TrailStop.Kind.Place, place.name, place.latitude, place.longitude, along, place) to offset else null
+    }
+    // Nearest to the path first, then each keeps its stretch of the walk to itself.
+    val kept = mutableListOf<TrailStop>()
+    near.sortedBy { it.second }.forEach { (stop, _) -> if (kept.none { kotlin.math.abs(it.along - stop.along) < SPACING }) kept += stop }
+    // A place right at either end is that end: the trail starts at the shop, ends at the dam.
+    var last = TrailStop("end-${route.id}", TrailStop.Kind.End, end, path.last().lat, path.last().lng, line.length)
+    kept.firstOrNull { it.along < ENDS }?.let { place -> kept -= place; stops[0] = stops[0].copy(name = place.name, place = place.place) }
+    kept.firstOrNull { line.length - it.along < ENDS }?.let { place -> kept -= place; last = last.copy(name = place.name, place = place.place) }
+    stops += kept.sortedBy { it.along }
+    stops += last
     return stops
 }
 

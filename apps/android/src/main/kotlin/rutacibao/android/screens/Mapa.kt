@@ -33,6 +33,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -199,6 +200,8 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
                 state.traffic.forEach { notice ->
                     val sign = TrafficSignKind.of(notice.categoryName, notice.icon)
                     val on = state.selectedTraffic?.id == notice.id
+                    // With something else in hand, notices shrink and fade so its own markers read first.
+                    val aside = !on && (selection != null || state.selectedTraffic != null)
                     val points = notice.path.map { LatLng(it.latitude, it.longitude) }
                     if (points.size > 1) {
                         if (sign.striped) {
@@ -211,13 +214,15 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
                         }
                     }
                     val middle = points.getOrNull(points.size / 2) ?: LatLng(notice.latitude, notice.longitude)
-                    val ends = if (sign.striped && points.size > 2) listOf("s" to points.first(), "e" to points.last()) else emptyList()
+                    val ends = if (sign.striped && points.size > 2 && camera.position.zoom >= 15.5f) listOf("s" to points.first(), "e" to points.last()) else emptyList()
                     (listOf("" to middle) + ends).forEach { (end, at) ->
                         androidx.compose.runtime.key("t" + notice.id + end) {
                             com.google.maps.android.compose.MarkerComposable(
-                                keys = arrayOf<Any>("t" + notice.id + end, on), state = rememberUpdatedMarkerState(at), anchor = androidx.compose.ui.geometry.Offset(0.5f, 1f),
+                                keys = arrayOf<Any>("t" + notice.id + end, on, aside), state = rememberUpdatedMarkerState(at), anchor = androidx.compose.ui.geometry.Offset(0.5f, 1f),
                                 zIndex = if (end.isEmpty()) 4.1f else 4f, onClick = { vm.selectTraffic(notice.id); true },
-                            ) { TrafficMarker(sign, selected = on && end.isEmpty(), small = end.isNotEmpty()) }
+                            ) {
+                                Box(Modifier.alpha(if (aside) 0.45f else 1f)) { TrafficMarker(sign, selected = on && end.isEmpty(), small = end.isNotEmpty() || aside) }
+                            }
                         }
                     }
                 }
@@ -573,10 +578,10 @@ private fun RoutePanel(route: RoutesBrowseOutput.Item, stops: List<TrailStop>, o
             }
         }
     }
-    if (stops.size > 2) {
+    if (stops.isNotEmpty()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.routes_stops), style = Type.heading, color = p.ink, modifier = Modifier.weight(1f))
-            Text(pluralStringResource(R.plurals.routes_stops_count, stops.size - 2, stops.size - 2), style = Type.callout, color = p.ink3)
+            if (stops.size > 2) Text(pluralStringResource(R.plurals.routes_stops_count, stops.size - 2, stops.size - 2), style = Type.callout, color = p.ink3)
         }
         // A timeline: a numbered disc per stop joined by the trail's colour, with how far in it comes.
         Column {
@@ -586,11 +591,15 @@ private fun RoutePanel(route: RoutesBrowseOutput.Item, stops: List<TrailStop>, o
                         StopDisc(index, stop)
                         if (index < stops.lastIndex) Box(Modifier.width(2.dp).weight(1f).heightIn(min = 18.dp).background(p.paper3))
                     }
-                    Column(Modifier.padding(top = 4.dp, bottom = if (index < stops.lastIndex) 14.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(Modifier.weight(1f).padding(top = 4.dp, bottom = if (index < stops.lastIndex) 14.dp else 0.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Text(stop.name, style = Type.bodyStrong, color = p.ink, maxLines = 2)
-                        Text(if (stop.kind == TrailStop.Kind.Start) stringResource(R.string.routes_start)
-                            else stringResource(R.string.routes_from_start, if (stop.along < 1000) "${(stop.along / 10).toInt() * 10} m" else "%.1f km".format(stop.along / 1000)), style = Type.callout, color = p.ink3)
+                        // The start is where distances count from: it only says "Inicio" when a place names it.
+                        val startLabel = stringResource(R.string.routes_start)
+                        if (stop.kind != TrailStop.Kind.Start) {
+                            Text(stringResource(R.string.routes_from_start, if (stop.along < 1000) "${(stop.along / 10).toInt() * 10} m" else "%.1f km".format(stop.along / 1000)), style = Type.callout, color = p.ink3)
+                        } else if (stop.name != startLabel) Text(startLabel, style = Type.callout, color = p.ink3)
                     }
+                    if (stop.place != null) Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.padding(top = 6.dp).size(20.dp), tint = p.ink3)
                 }
             }
         }
