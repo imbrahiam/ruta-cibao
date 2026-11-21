@@ -5,9 +5,10 @@ import type {
   DecidePublicationInput,
   RemoveTrafficInput,
 } from "@ruta/contracts";
-import { Clock, EyeOff, ShieldCheck } from "lucide-react";
+import { Clock, EyeOff, MapPin, MoveHorizontal } from "lucide-react";
 import { useId, useMemo } from "react";
 import { useFormatter, useNow, useTranslations } from "use-intl";
+import { CategoryPin } from "@/components/category/category-pin";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/web/api";
 import { MapPreview } from "../map/map-preview";
@@ -15,7 +16,7 @@ import { trafficMapItem } from "../map/queue-items";
 import { useMapCopy } from "../map/use-map-copy";
 import { StatusIndicator } from "../status-indicator";
 import { DecisionBar } from "./decision-bar";
-import { ItemRow, MunicipalityTag, ResidentBadge, useWhen } from "./item-parts";
+import { ItemRow, useWhen } from "./item-parts";
 import { PersonAvatar } from "./person-avatar";
 import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
@@ -24,15 +25,82 @@ export type LiveTraffic = ApiOutputs["moderation"]["queue"]["traffic"][number];
 
 const REASON = { min: 10, max: 500 } as const;
 
-/** "Vía bloqueada · 399 m": what the report costs a driver, and how far. */
-function useImpact() {
+/** How bad, as a colour the eye finds before reading. */
+const SEVERITY_TONE = {
+  blocking: "bg-red-500/10 text-red-700 dark:text-red-300",
+  partial: "bg-amber-500/12 text-amber-800 dark:text-amber-300",
+  minor: "bg-sky-500/10 text-sky-800 dark:text-sky-300",
+} as const;
+
+function Chip({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex h-6 items-center gap-1 rounded-full px-2 text-xs font-medium whitespace-nowrap [&>svg]:size-3.5 [&>svg]:shrink-0",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+/**
+ * What the report costs a driver, how far and where, as chips: the severity in
+ * its colour (left out when the category already names it), the stretch's
+ * length, the town.
+ */
+function ImpactChips({
+  report,
+  town = true,
+}: {
+  report: LiveTraffic;
+  town?: boolean;
+}) {
   const a = useTranslations("admin");
   const format = useFormatter();
-  return (report: LiveTraffic) => {
-    const severity = report.severity ? a(report.severity) : null;
-    return [
-      // A category named after its impact ("Vía bloqueada") says it already.
-      severity === report.categoryName ? null : severity,
+  const severity = report.severity ? a(report.severity) : null;
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {report.severity && severity !== report.categoryName ? (
+        <Chip className={SEVERITY_TONE[report.severity]}>{severity}</Chip>
+      ) : null}
+      {report.lengthMeters !== null ? (
+        <Chip className="bg-muted text-foreground/80">
+          <MoveHorizontal aria-hidden />
+          {format.number(report.lengthMeters, {
+            style: "unit",
+            unit: "meter",
+            maximumFractionDigits: 0,
+          })}
+        </Chip>
+      ) : null}
+      {town ? (
+        <Chip className="bg-muted text-foreground/80">
+          <MapPin aria-hidden />
+          {report.municipalityName}
+        </Chip>
+      ) : null}
+    </span>
+  );
+}
+
+/** The plain words for the expanded map's subtitle and its label. */
+function useImpactText() {
+  const a = useTranslations("admin");
+  const format = useFormatter();
+  return (report: LiveTraffic) =>
+    [
+      report.municipalityName,
+      report.severity && a(report.severity) !== report.categoryName
+        ? a(report.severity)
+        : null,
       report.lengthMeters === null
         ? null
         : format.number(report.lengthMeters, {
@@ -40,11 +108,12 @@ function useImpact() {
             unit: "meter",
             maximumFractionDigits: 0,
           }),
-    ].filter((part) => part !== null);
-  };
+    ]
+      .filter(Boolean)
+      .join(" · ");
 }
 
-/** When the report leaves the map: "Vence hoy, 6:30 p. m." the same day. */
+/** When the report leaves the map: "Hasta 6:30 p. m." the same day. */
 function useExpiry() {
   const q = useTranslations("admin.queue");
   const format = useFormatter();
@@ -53,9 +122,21 @@ function useExpiry() {
   return (iso: string) => {
     const date = new Date(iso);
     return date.toDateString() === now.toDateString()
-      ? q("expiresToday", { time: format.dateTime(date, "time") })
+      ? q("until", { time: format.dateTime(date, "time") })
       : when("expiresAt", iso);
   };
+}
+
+function Expiry({ iso }: { iso: string }) {
+  const q = useTranslations("admin.queue");
+  const expiry = useExpiry();
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground tabular-nums">
+      <Clock aria-hidden className="size-3.5" />
+      <span className="sr-only">{q("expiresLabel")}: </span>
+      {expiry(iso)}
+    </span>
+  );
 }
 
 /**
@@ -75,7 +156,7 @@ function TextState({ report }: { report: LiveTraffic }) {
   );
 }
 
-/** Who reported it, as a person: face, name and their verification together. */
+/** Who reported it, as a person: their face, verified or not, and their name. */
 function Reporter({
   report,
   size = "sm",
@@ -90,26 +171,18 @@ function Reporter({
         name={report.reportedBy}
         image={report.reportedByImage}
         className={size === "md" ? "size-8" : "size-6"}
+        verified={
+          report.reporterResidentVerified ? q("residentBadge") : undefined
+        }
       />
       <span
         className={cn(
           "truncate",
-          size === "md" ? "font-medium" : "text-foreground/80",
+          size === "md" ? "font-medium" : "text-[13px] text-foreground/80",
         )}
       >
         {report.reportedBy ?? q("aNeighbour")}
       </span>
-      {report.reporterResidentVerified ? (
-        size === "md" ? (
-          <ResidentBadge />
-        ) : (
-          <ShieldCheck
-            role="img"
-            aria-label={q("residentBadge")}
-            className="size-3.5 shrink-0 text-foreground"
-          />
-        )
-      ) : null}
     </span>
   );
 }
@@ -188,8 +261,6 @@ function useTrafficDecisions(report: LiveTraffic) {
  */
 export function TrafficRow({ report }: { report: LiveTraffic }) {
   const id = useId();
-  const impact = useImpact();
-  const expiry = useExpiry();
   const decisions = useTrafficDecisions(report);
 
   return (
@@ -197,14 +268,7 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
       titleId={`${id}-title`}
       itemId={report.id}
       title={report.categoryName}
-      meta={
-        <>
-          <MunicipalityTag name={report.municipalityName} />
-          {impact(report).map((part) => (
-            <span key={part}>{part}</span>
-          ))}
-        </>
-      }
+      meta={<ImpactChips report={report} />}
       summary={
         report.description === null ? null : (
           <span className="flex flex-col items-start gap-1.5">
@@ -216,7 +280,7 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
       byline={
         <>
           <Reporter report={report} />
-          <span>{expiry(report.expiresAt)}</span>
+          <Expiry iso={report.expiresAt} />
         </>
       }
       decision={decisions}
@@ -230,40 +294,42 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
  */
 export function TrafficLine({ report }: { report: LiveTraffic }) {
   const split = useSplit();
-  const impact = useImpact();
-  const expiry = useExpiry();
   const selected = split?.selected === report.id;
   return (
     <li
       aria-current={selected ? "true" : undefined}
       className={cn(
-        "relative flex flex-col gap-1 rounded-lg px-3 py-2.5 transition-colors",
+        "relative flex gap-3 rounded-lg px-3 py-3 transition-colors",
         selected
           ? "bg-muted shadow-[inset_3px_0_0_var(--primary)]"
           : "hover:bg-accent/70",
       )}
     >
-      <button
-        type="button"
-        onClick={() => split?.select(report.id)}
-        className="truncate text-left text-[15px] leading-snug font-medium outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
-      >
-        {report.categoryName}
-      </button>
-      <p className="truncate text-[13px] text-muted-foreground">
-        {[report.municipalityName, ...impact(report)].join(" · ")}
-      </p>
-      <TextState report={report} />
-      {report.description ? (
-        <p className="line-clamp-2 text-sm text-pretty break-words">
-          {report.description}
-        </p>
-      ) : null}
-      <div className="mt-1 flex min-w-0 items-center justify-between gap-3 text-[13px]">
+      <CategoryPin
+        icon={report.categoryIcon}
+        color={report.categoryColor}
+        tile
+        className="size-9 rounded-[10px] [&>svg]:size-[18px]"
+      />
+      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+        <div className="flex items-baseline justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => split?.select(report.id)}
+            className="truncate text-left text-[15px] leading-snug font-medium outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
+          >
+            {report.categoryName}
+          </button>
+          <Expiry iso={report.expiresAt} />
+        </div>
+        <ImpactChips report={report} />
+        <TextState report={report} />
+        {report.description ? (
+          <p className="line-clamp-2 text-sm text-pretty break-words text-foreground/80">
+            {report.description}
+          </p>
+        ) : null}
         <Reporter report={report} />
-        <span className="shrink-0 text-muted-foreground">
-          {expiry(report.expiresAt)}
-        </span>
       </div>
     </li>
   );
@@ -277,12 +343,11 @@ export function TrafficLine({ report }: { report: LiveTraffic }) {
 export function TrafficDetail({ report }: { report: LiveTraffic }) {
   const id = useId();
   const when = useWhen();
-  const impact = useImpact();
-  const expiry = useExpiry();
+  const impactText = useImpactText();
   const map = useMapCopy();
   const mapItem = useMemo(() => trafficMapItem(report), [report]);
   const decisions = useTrafficDecisions(report);
-  const subtitle = [report.municipalityName, ...impact(report)].join(" · ");
+  const subtitle = impactText(report);
 
   return (
     <article aria-labelledby={`${id}-title`} className="flex flex-col gap-5">
@@ -295,9 +360,9 @@ export function TrafficDetail({ report }: { report: LiveTraffic }) {
             >
               {report.categoryName}
             </h2>
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
+            <ImpactChips report={report} />
           </div>
-          <p className="text-sm font-medium">{expiry(report.expiresAt)}</p>
+          <Expiry iso={report.expiresAt} />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <Reporter report={report} size="md" />

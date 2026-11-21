@@ -70,8 +70,54 @@ function access(queue: QueueSlug): Access {
   const name = QUEUES[queue].api;
   return {
     key: orpc.moderation.queue.key(),
-    read: (data) => (data as Record<string, Entry[]> | undefined)?.[name],
-    write: (data, items) => ({ ...(data as object), [name]: items }),
+    read: (data) => {
+      if (isPaged(data))
+        return data.pages.flatMap((page) => (page[name] as Entry[]) ?? []);
+      return (data as Record<string, Entry[]> | undefined)?.[name];
+    },
+    write: (data, items) => {
+      if (!isPaged(data)) return { ...(data as object), [name]: items };
+      return writePages(data, name, items);
+    },
+  };
+}
+
+/** A desk's queue as loaded so far: one response per page (`InfiniteData`). */
+type QueuePage = Record<string, unknown> & { total: number };
+type Paged = { pages: QueuePage[]; pageParams: unknown[] };
+
+function isPaged(data: unknown): data is Paged {
+  return Boolean(data && typeof data === "object" && "pages" in data);
+}
+
+/**
+ * Put the changed list back into its pages: every item stays on the page it
+ * came from (one put back after a refused decision joins the page of the item
+ * before it), and each page's total moves by what left or returned. Pages keep
+ * their own lengths, so the next page still starts where the server expects.
+ */
+function writePages(data: Paged, name: string, items: Entry[]): Paged {
+  const owner = new Map<string, number>();
+  data.pages.forEach((page, index) => {
+    for (const entry of (page[name] as Entry[] | undefined) ?? [])
+      owner.set(entry.id, index);
+  });
+  const buckets: Entry[][] = data.pages.map(() => []);
+  let previous = 0;
+  for (const item of items) {
+    const index = owner.get(item.id) ?? previous;
+    buckets[index]?.push(item);
+    previous = index;
+  }
+  const before = owner.size;
+  const moved = before - items.length;
+  return {
+    ...data,
+    pages: data.pages.map((page, index) => ({
+      ...page,
+      [name]: buckets[index] ?? [],
+      total: Math.max(0, page.total - moved),
+    })),
   };
 }
 

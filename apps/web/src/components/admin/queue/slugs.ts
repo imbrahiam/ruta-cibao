@@ -26,5 +26,5 @@ export function isQueueSlug(value: string): value is QueueSlug {
   return Object.hasOwn(QUEUES, value);
 }
 
-/** How many items a desk asks for at once; the contract's ceiling. */
-export const QUEUE_LIMIT = 50;
+/** How many items a desk asks for at once; the next page loads as you scroll. */
+export const QUEUE_LIMIT = 30;

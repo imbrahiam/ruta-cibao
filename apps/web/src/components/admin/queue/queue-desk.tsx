@@ -4,6 +4,7 @@ import type { ApiOutputs } from "@ruta/contracts";
 import {
   keepPreviousData,
   type UseQueryResult,
+  useInfiniteQuery,
   useQuery,
 } from "@tanstack/react-query";
 import {
@@ -17,10 +18,10 @@ import {
   useState,
 } from "react";
 import { useTranslations } from "use-intl";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ListMore } from "../list-more";
 import {
-  moderationQueueOptions,
+  moderationQueuePagesOptions,
   pendingRoutesOptions,
   QUEUE_POLL_MS,
 } from "../list-queries";
@@ -43,7 +44,7 @@ import { PlaceRow } from "./place-row";
 import { QueueEmpty } from "./queue-empty";
 import { ReportRow } from "./report-row";
 import { RouteRow } from "./route-row";
-import { QUEUE_LIMIT, type QueueSlug } from "./slugs";
+import { QUEUES, type QueueSlug } from "./slugs";
 import { SplitContext } from "./split";
 import { TrafficDetail, TrafficLine, TrafficRow } from "./traffic-row";
 import { DeskContext, useDeskState } from "./use-decision";
@@ -132,17 +133,41 @@ export function QueueDesk({ queue }: { queue: QueueSlug }) {
 
 function ModerationDesk({ queue }: { queue: Exclude<QueueSlug, "routes"> }) {
   const municipalityId = useMunicipalityFilter();
-  const query = useQuery({
-    ...moderationQueueOptions(queue, municipalityId),
+  const pages = useInfiniteQuery({
+    ...moderationQueuePagesOptions(queue, municipalityId),
     placeholderData: keepPreviousData,
     refetchInterval: QUEUE_POLL_MS,
   });
+  // The pages read as one list: the desk, its map and its shortcuts never see
+  // where one page ends. An item that slid across a page edge between two
+  // reads appears once.
+  const api = QUEUES[queue].api;
+  const data = useMemo(() => {
+    const loaded = pages.data?.pages;
+    if (!loaded?.[0]) return undefined;
+    const seen = new Set<string>();
+    const items = loaded
+      .flatMap((page) => page[api] as Array<{ id: string }>)
+      .filter((item) => !seen.has(item.id) && Boolean(seen.add(item.id)));
+    return {
+      ...loaded[0],
+      [api]: items,
+      total: loaded.at(-1)?.total ?? 0,
+    } as Moderation;
+  }, [pages.data, api]);
+  const query = { ...pages, data } as UseQueryResult<Moderation, Error>;
 
   return (
     <Desk
       slug={queue}
       scope={`${queue}:${municipalityId ?? ""}`}
       query={query}
+      total={data?.total}
+      more={{
+        hasMore: pages.hasNextPage,
+        loading: pages.isFetchingNextPage,
+        load: () => pages.fetchNextPage(),
+      }}
       map={queue === "places" || queue === "traffic" ? MAPS[queue] : undefined}
       rows={(data): Row[] => {
         switch (queue) {
@@ -308,6 +333,8 @@ function Desk<T>({
   query,
   rows,
   map,
+  total,
+  more,
 }: {
   slug: QueueSlug;
   scope: string;
@@ -315,6 +342,14 @@ function Desk<T>({
   rows: (data: T) => Row[];
   /** Present for the queues that can also be worked on a map. */
   map?: QueueMapSpec<T>;
+  /** The whole queue's size, when it is read a page at a time. */
+  total?: number;
+  /** The next page, for the queues read a page at a time. */
+  more?: {
+    hasMore: boolean;
+    loading: boolean;
+    load: () => Promise<{ isError: boolean; error: unknown }>;
+  };
 }) {
   const t = useTranslations("admin");
   const q = useTranslations("admin.queue");
@@ -347,7 +382,7 @@ function Desk<T>({
   }, []);
 
   const items = query.data ? rows(query.data) : [];
-  const count = query.data ? items.length : undefined;
+  const count = query.data ? (total ?? items.length) : undefined;
   const { shown, finish } = useShownRows(
     items,
     scope,
@@ -631,10 +666,14 @@ function Desk<T>({
                         </div>
                       ) : null}
                     </div>
-                    {items.length >= QUEUE_LIMIT ? (
-                      <p className="text-xs text-muted-foreground">
-                        {q("mayBeMore", { count: QUEUE_LIMIT })}
-                      </p>
+                    {more ? (
+                      <ListMore
+                        shown={items.length}
+                        total={count ?? items.length}
+                        hasMore={more.hasMore}
+                        loading={more.loading}
+                        onMore={more.load}
+                      />
                     ) : null}
                   </ListOrMap>
                 )

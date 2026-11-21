@@ -36,6 +36,8 @@ export const queueInput = z.object({
   /** Omitted means every municipality the moderator is scoped to. */
   municipalityId: z.string().min(1).max(80).optional(),
   limit: z.number().int().min(1).max(50).default(20),
+  /** Items to skip, for the next page: the previous offset plus what it held. */
+  offset: z.number().int().min(0).max(100_000).default(0),
 });
 
 export const decidePlaceInput = z
@@ -212,6 +214,8 @@ export const moderationQueueOutput = z.object({
   consultations: z.array(pendingCaseShape),
   traffic: z.array(liveTrafficShape),
   contentReports: z.array(contentReportShape),
+  /** How many the requested queue holds in all, across pages. */
+  total: z.number().int().min(0).default(0),
 });
 
 export const decideContentReportInput = z.object({

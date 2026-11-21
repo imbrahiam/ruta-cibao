@@ -133,7 +133,7 @@ public class ModerationApi internal constructor(private val transport: ApiTransp
             path = "/moderation/queue",
             input = transport.encode(ModerationQueueInput.serializer(), input),
             pathKeys = emptySet(),
-            queryKeys = setOf("queue", "municipalityId", "limit"),
+            queryKeys = setOf("queue", "municipalityId", "limit", "offset"),
             hasBody = false,
             output = serializer<ModerationQueueOutput>(),
         )

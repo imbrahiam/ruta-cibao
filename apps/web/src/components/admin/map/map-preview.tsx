@@ -100,20 +100,30 @@ export function MapPreview({
           label={label}
           className={cn("aspect-[16/10] w-full", mapClassName)}
           overlay={
-            <DialogTrigger asChild>
-              <button
-                type="button"
-                aria-label={t("expandLabel", { title })}
-                className="group absolute inset-0 z-10 cursor-zoom-in outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60 focus-visible:ring-inset"
-              >
-                {/* Top corner: the bottom one is Google's attribution, which
+            <>
+              <DialogTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={t("expandLabel", { title })}
+                  className="group absolute inset-0 z-10 cursor-zoom-in outline-none focus-visible:ring-[3px] focus-visible:ring-ring/60 focus-visible:ring-inset"
+                >
+                  {/* Top corner: the bottom one is Google's attribution, which
                     the chip used to cover. */}
-                <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full border bg-card/95 px-2.5 py-1 text-xs font-medium shadow-(--shadow-elevated) group-hover:bg-card">
-                  <Maximize2 aria-hidden className="size-3" />
-                  {t("expand")}
-                </span>
-              </button>
-            </DialogTrigger>
+                  <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full border bg-card/95 px-2.5 py-1 text-xs font-medium shadow-(--shadow-elevated) group-hover:bg-card">
+                    <Maximize2 aria-hidden className="size-3" />
+                    {t("expand")}
+                  </span>
+                </button>
+              </DialogTrigger>
+              {/* What the marks mean, on the map they explain: a chip in the
+                free top corner, so the line under the map is only the point. */}
+              {facts && legend.length > 0 ? (
+                <MapLegend
+                  entries={legend}
+                  className="pointer-events-none absolute top-2 left-2 z-20 max-w-[calc(100%-7.5rem)] rounded-full border bg-card/95 px-2.5 py-1 shadow-(--shadow-elevated)"
+                />
+              ) : null}
+            </>
           }
         />
         <DialogContent
@@ -273,10 +283,12 @@ function PointFacts({
 }): ReactNode {
   return (
     <div className="flex flex-col gap-1 text-sm">
-      <MapLegend entries={legend} />
+      {/* The small map carries its legend on itself; elsewhere it leads. */}
+      {compact ? null : <MapLegend entries={legend} />}
+      {/* One quiet line: the point to copy on the left, the way out on the right. */}
       <div
         className={cn(
-          "flex flex-wrap items-center gap-x-4 gap-y-0.5",
+          "flex flex-wrap items-center justify-between gap-x-4 gap-y-0.5 text-muted-foreground",
           compact && "text-xs",
         )}
       >

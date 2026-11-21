@@ -1,4 +1,5 @@
 import { ORPCError } from "@orpc/server";
+import type { ApiOutputs } from "@ruta/contracts";
 import { consumeRateLimit, getRequestClientKey } from "@/lib/rate-limit";
 import { setResidencyVerified } from "@/modules/access/profile";
 import {
@@ -62,36 +63,30 @@ export const moderationRouter = {
     // One procedure, seven queues, and only the requested one is read. The empty
     // arrays keep the response shape constant, so the client renders from one
     // type rather than six optional ones.
-    .handler(async ({ context, input }) => ({
-      places:
-        input.queue === "places"
-          ? await pendingPlaces(context.viewer, input)
-          : [],
-      reports:
-        input.queue === "reports"
-          ? await pendingReports(context.viewer, input)
-          : [],
-      photos:
-        input.queue === "photos"
-          ? await pendingPhotos(context.viewer, input)
-          : [],
-      claims:
-        input.queue === "claims"
-          ? await pendingClaims(context.viewer, input)
-          : [],
-      consultations:
-        input.queue === "consultations"
-          ? await pendingConsultations(context.viewer, input)
-          : [],
-      traffic:
-        input.queue === "traffic"
-          ? await liveTrafficReports(context.viewer, input)
-          : [],
-      contentReports:
-        input.queue === "contentReports"
-          ? await pendingContentReports(context.viewer, input)
-          : [],
-    })),
+    .handler(async ({ context, input }) => {
+      const read = {
+        places: pendingPlaces,
+        reports: pendingReports,
+        photos: pendingPhotos,
+        claims: pendingClaims,
+        consultations: pendingConsultations,
+        traffic: liveTrafficReports,
+        contentReports: pendingContentReports,
+      }[input.queue];
+      const { items, total } = await read(context.viewer, input);
+      return {
+        places: [],
+        reports: [],
+        photos: [],
+        claims: [],
+        consultations: [],
+        traffic: [],
+        contentReports: [],
+        // The requested queue's page; the other six stay empty.
+        [input.queue]: items,
+        total,
+      } as ApiOutputs["moderation"]["queue"];
+    }),
 
   decidePlace: impl.moderation.decidePlace
     .use(moderator)

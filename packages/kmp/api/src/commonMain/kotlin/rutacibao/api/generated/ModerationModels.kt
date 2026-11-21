@@ -31,6 +31,7 @@ public data class ModerationQueueInput(
     val queue: ModerationQueueInput.Queue,
     val municipalityId: String? = null,
     val limit: Int? = null,
+    val offset: Int? = null,
 ) {
     @Serializable
     public enum class Queue {
@@ -53,6 +54,7 @@ public data class ModerationQueueOutput(
     val consultations: List<ModerationQueueOutput.Consultation>,
     val traffic: List<ModerationQueueOutput.TrafficItem>,
     val contentReports: List<ModerationQueueOutput.ContentReport>,
+    val total: Long,
 ) {
     @Serializable
     public data class Place(

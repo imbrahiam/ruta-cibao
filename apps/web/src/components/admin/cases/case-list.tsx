@@ -7,9 +7,8 @@ import {
 } from "@tanstack/react-query";
 import { ArrowRight, MessagesSquare } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 import { useTranslations } from "use-intl";
-import { ErrorPanel, InlineError } from "@/components/admin/error-panel";
+import { ErrorPanel } from "@/components/admin/error-panel";
 import {
   consultationListOptions,
   consultationStatus,
@@ -39,6 +38,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { orpc } from "@/lib/web/api";
+import { ListMore } from "../list-more";
 import { CaseInboxRow } from "./case-inbox-row";
 import { CASE_STATUSES } from "./case-tags";
 
@@ -105,7 +105,6 @@ export function CaseList() {
   const municipality = useMunicipalityFilter();
   const [rawStatus, setStatus] = useUrlParam("status", "open");
   const [category, setCategory] = useUrlParam("category");
-  const [moreError, setMoreError] = useState<unknown>(null);
   const status = consultationStatus(rawStatus);
 
   const categories = useQuery(orpc.consultations.categories.queryOptions());
@@ -275,30 +274,13 @@ export function CaseList() {
           )}
 
           {list.data ? (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-                <p
-                  className="text-xs text-muted-foreground tabular-nums"
-                  aria-live="polite"
-                >
-                  {c("shown", { shown: items.length, total })}
-                </p>
-                {list.hasNextPage ? (
-                  <Button
-                    variant="outline"
-                    disabled={list.isFetchingNextPage}
-                    onClick={async () => {
-                      setMoreError(null);
-                      const next = await list.fetchNextPage();
-                      if (next.isError) setMoreError(next.error);
-                    }}
-                  >
-                    {list.isFetchingNextPage ? c("loadingMore") : c("more")}
-                  </Button>
-                ) : null}
-              </div>
-              <InlineError error={moreError} />
-            </>
+            <ListMore
+              shown={items.length}
+              total={total}
+              hasMore={list.hasNextPage}
+              loading={list.isFetchingNextPage}
+              onMore={() => list.fetchNextPage()}
+            />
           ) : null}
         </div>
       )}

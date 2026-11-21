@@ -430,6 +430,18 @@
             },
             "allowEmptyValue": true,
             "allowReserved": true
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "allowEmptyValue": true,
+            "allowReserved": true
           }
         ],
         "responses": {
@@ -1029,6 +1041,12 @@
                         ],
                         "additionalProperties": false
                       }
+                    },
+                    "total": {
+                      "default": 0,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
@@ -1038,7 +1056,8 @@
                     "claims",
                     "consultations",
                     "traffic",
-                    "contentReports"
+                    "contentReports",
+                    "total"
                   ],
                   "additionalProperties": false
                 }

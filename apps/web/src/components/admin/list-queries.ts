@@ -37,6 +37,32 @@ export function moderationQueueOptions(
   });
 }
 
+/**
+ * A moderation queue a page at a time, as its desk reads it. The next page
+ * starts where the last one ended; on a refetch TanStack re-reads the pages in
+ * order from the first, so items decided meanwhile shift every later page
+ * rather than being skipped.
+ */
+export function moderationQueuePagesOptions(
+  queue: Exclude<QueueSlug, "routes">,
+  municipalityId?: string,
+) {
+  const api = QUEUES[queue].api;
+  return orpc.moderation.queue.infiniteOptions({
+    input: (offset: number) => ({
+      queue: api,
+      municipalityId,
+      limit: QUEUE_LIMIT,
+      offset,
+    }),
+    initialPageParam: 0,
+    getNextPageParam: (last, _pages, lastOffset) => {
+      const next = lastOffset + last[api].length;
+      return next < last.total ? next : undefined;
+    },
+  });
+}
+
 export function pendingRoutesOptions(municipalityId?: string) {
   return orpc.routes.browse.queryOptions({
     input: { scope: "pending", municipalityId, limit: QUEUE_LIMIT },
@@ -117,7 +143,9 @@ export function prefetchAdminRoute(
     if (isQueueSlug(queue)) {
       return queue === "routes"
         ? client.prefetchQuery(pendingRoutesOptions(municipalityId))
-        : client.prefetchQuery(moderationQueueOptions(queue, municipalityId));
+        : client.prefetchInfiniteQuery(
+            moderationQueuePagesOptions(queue, municipalityId),
+          );
     }
   }
   const detail = url.pathname.match(

@@ -13,7 +13,7 @@ import { ContactValue } from "../contact/contact-value";
 import { MapPreview } from "../map/map-preview";
 import type { MapItem } from "../map/map-types";
 import { DecisionBar } from "./decision-bar";
-import { ClampedText, LeadImage, ResidentBadge, useWhen } from "./item-parts";
+import { ClampedText, LeadImage, useWhen } from "./item-parts";
 import { PersonAvatar } from "./person-avatar";
 import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
@@ -54,6 +54,9 @@ export function ClaimLine({ claim }: { claim: PendingClaim }) {
         name={claim.claimedBy}
         image={claim.claimedByImage}
         className="size-10"
+        verified={
+          claim.claimantResidentVerified ? q("residentBadge") : undefined
+        }
       />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <button
@@ -167,11 +170,13 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
             name={claim.claimedBy}
             image={claim.claimedByImage}
             className="size-8"
+            verified={
+              claim.claimantResidentVerified ? q("residentBadge") : undefined
+            }
           />
           <span className="font-medium">
             {claim.claimedBy ?? q("claimedByAnon")}
           </span>
-          {claim.claimantResidentVerified ? <ResidentBadge /> : null}
           <span className="ml-auto text-[13px] text-muted-foreground">
             {when("receivedAt", claim.createdAt)}
           </span>
