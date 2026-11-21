@@ -240,6 +240,48 @@ enum VehicleModels {
             let pane = add(SCNCylinder(radius: 0.29, height: 0.03), glassTint, at: center)
             pane.eulerAngles.x = .pi / 2
             root.addChildNode(rod(from: SCNVector3(0.53, -0.25, 0.42), to: SCNVector3(0.84, -0.62, 0.42), radius: 0.075, brown))
+        case .water:
+            // A drop of water landing on its own ripple.
+            let pool = paint(UIColor(red: 0.70, green: 0.86, blue: 0.95, alpha: 1))
+            let ripple = add(SCNTorus(ringRadius: 0.62, pipeRadius: 0.05), pool, at: SCNVector3(0, -0.62, 0))
+            ripple.scale = SCNVector3(1, 1, 0.75)
+            _ = add(SCNCylinder(radius: 0.45, height: 0.04), pool, at: SCNVector3(0, -0.64, 0))
+            _ = add(SCNSphere(radius: 0.42), blue, at: SCNVector3(0, -0.12, 0))
+            _ = add(SCNCone(topRadius: 0, bottomRadius: 0.38, height: 0.78), blue, at: SCNVector3(0, 0.45, 0))
+        case .road:
+            // A stretch of street: asphalt, its centre line, and a cone on the shoulder.
+            let asphalt = paint(UIColor(white: 0.36, alpha: 1))
+            let orange = paint(UIColor(red: 0.96, green: 0.48, blue: 0.16, alpha: 1))
+            block(1.20, 0.14, 1.70, asphalt, -0.10, -0.55, 0, chamfer: 0.05)
+            for z: Float in [-0.62, -0.10, 0.42] {
+                block(0.09, 0.02, 0.32, gold, -0.10, -0.47, z, chamfer: 0.01)
+            }
+            block(0.05, 0.02, 1.70, cream, -0.62, -0.47, 0, chamfer: 0.01)
+            block(0.05, 0.02, 1.70, cream, 0.42, -0.47, 0, chamfer: 0.01)
+            block(0.42, 0.05, 0.42, dark, 0.72, -0.58, 0.45, chamfer: 0.02)
+            _ = add(SCNCone(topRadius: 0.03, bottomRadius: 0.17, height: 0.55), orange, at: SCNVector3(0.72, -0.30, 0.45))
+            _ = add(SCNCylinder(radius: 0.125, height: 0.07), cream, at: SCNVector3(0.72, -0.30, 0.45))
+        case .trash:
+            // A green wheelie bin with its lid, handle and a wheel.
+            block(0.95, 1.20, 0.85, pine, 0, -0.05, 0, chamfer: 0.10)
+            block(1.05, 0.12, 0.95, paint(UIColor(red: 0.18, green: 0.48, blue: 0.32, alpha: 1)), 0, 0.60, -0.02, chamfer: 0.05)
+            block(0.55, 0.07, 0.10, dark, 0, 0.70, -0.40, chamfer: 0.03)
+            for x: Float in [-0.24, 0, 0.24] {
+                block(0.08, 0.80, 0.03, cream, x, -0.05, 0.43, chamfer: 0.02)
+            }
+            root.addChildNode(wheel(radius: 0.13, width: 0.10, at: SCNVector3(-0.40, -0.70, -0.32)))
+            root.addChildNode(wheel(radius: 0.13, width: 0.10, at: SCNVector3(0.40, -0.70, -0.32)))
+        case .bulb:
+            // A lit bulb: warm glass, a silver screw base, a dark tip.
+            let glow = paint(UIColor(red: 1.0, green: 0.82, blue: 0.30, alpha: 1), metal: 0, rough: 0.2)
+            glow.emission.contents = UIColor(red: 0.55, green: 0.40, blue: 0.05, alpha: 1)
+            let silver = paint(UIColor(white: 0.82, alpha: 1), metal: 0.6, rough: 0.3)
+            _ = add(SCNSphere(radius: 0.55), glow, at: SCNVector3(0, 0.25, 0))
+            _ = add(SCNCone(topRadius: 0.40, bottomRadius: 0.24, height: 0.35), glow, at: SCNVector3(0, -0.25, 0))
+            for (index, y) in [-0.47, -0.58, -0.69].enumerated() {
+                _ = add(SCNCylinder(radius: index == 1 ? 0.235 : 0.25, height: 0.10), silver, at: SCNVector3(0, Float(y), 0))
+            }
+            _ = add(SCNCone(topRadius: 0.20, bottomRadius: 0.07, height: 0.12), dark, at: SCNVector3(0, -0.80, 0))
         case .places:
             // Places on the map: a coral marker standing on a square of map
             // with two streets and a tree.
@@ -577,6 +619,8 @@ enum PlaceModel: String {
     case camera, cone, chat, chart
     /// Places and businesses as a whole: a marker on a square of map.
     case places
+    /// Consultation topics: drinking water, streets, rubbish, street lighting.
+    case water, road, trash, bulb
 
     init?(icon: String) {
         switch icon {
@@ -591,6 +635,10 @@ enum PlaceModel: String {
         case "church": self = .church
         case "wheat": self = .farm
         case "shopping-basket": self = .market
+        case "droplets": self = .water
+        case "route": self = .road
+        case "trash-2": self = .trash
+        case "lightbulb": self = .bulb
         case "store": self = .store
         case "utensils": self = .food
         case "bed-double": self = .lodging

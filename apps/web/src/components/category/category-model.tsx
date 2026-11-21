@@ -13,6 +13,7 @@ export type ModelName =
   | "adventure"
   | "bike"
   | "buildings"
+  | "bulb"
   | "bus"
   | "camera"
   | "car"
@@ -34,15 +35,18 @@ export type ModelName =
   | "pharmacy"
   | "places"
   | "repair"
+  | "road"
   | "school"
   | "sports"
   | "store"
-  | "swimming";
+  | "swimming"
+  | "trash"
+  | "water";
 
 /**
  * A category icon's model, as the apps pick it (`PlaceModel(icon:)`). A water
- * drop keeps its glyph (drinking water, not a swimming spot), and so does a
- * route (streets and roads, not an eco trail).
+ * drop is drinking water (not a swimming spot) and a route is streets (not an
+ * eco trail): the consultation topics have models of their own.
  */
 const CATEGORY_MODELS: Record<string, ModelName> = {
   waves: "swimming",
@@ -69,6 +73,10 @@ const CATEGORY_MODELS: Record<string, ModelName> = {
   footprints: "hiker",
   bike: "bike",
   mountain: "adventure",
+  droplets: "water",
+  route: "road",
+  "trash-2": "trash",
+  lightbulb: "bulb",
 };
 
 /** The model for a category icon, or `null` when it keeps its glyph. */

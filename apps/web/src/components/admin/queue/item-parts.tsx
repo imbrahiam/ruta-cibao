@@ -15,6 +15,11 @@ import { useFormatter, useTranslations } from "use-intl";
 import { MetaList, PropertyList, PropertyRow } from "@/components/admin/facts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { itemDomId, useItemFrame } from "../map/item-frame";
 import { MediaViewer } from "../media-viewer";
@@ -108,19 +113,38 @@ export function ItemRow({
             </p>
           ) : null}
           {/* One quieter line of the same kind as the facts above, not a
-              stack of differently sized sentences. */}
-          <MetaList className="text-[13px]">{facts(byline)}</MetaList>
-          {linked ? (
-            <Button
-              variant="link"
-              aria-pressed={selected}
-              onClick={() => frame.onSelect(itemId)}
-              className="h-auto w-fit p-0 has-[>svg]:px-0 pointer-coarse:min-h-11"
-            >
-              <LocateFixed aria-hidden />
-              {t("showOnMap")}
-            </Button>
-          ) : null}
+              stack of differently sized sentences. With nothing else to read
+              (no detail below), the map shortcut and the decision share it,
+              on the right, so the card stays short; they wrap under it when
+              the column is narrow or a reason is being written. */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div className="min-w-0 flex-1 basis-48">
+              <MetaList className="text-[13px]">{facts(byline)}</MetaList>
+            </div>
+            {linked ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("showOnMap")}
+                    aria-pressed={selected}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      frame.onSelect(itemId);
+                    }}
+                    className="size-8 shrink-0 text-primary pointer-coarse:size-11"
+                  >
+                    <LocateFixed aria-hidden />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t("showOnMap")}</TooltipContent>
+              </Tooltip>
+            ) : null}
+            {detail ? null : (
+              <div className="ml-auto min-w-0 max-w-full">{decision}</div>
+            )}
+          </div>
         </div>
         {aside ? <div className="shrink-0">{aside}</div> : null}
       </div>
@@ -130,7 +154,7 @@ export function ItemRow({
         </div>
       ) : null}
       {/* After the evidence, in reading and tab order: read, then decide. */}
-      <div className="min-w-0 pt-1">{decision}</div>
+      {detail ? <div className="min-w-0 pt-1">{decision}</div> : null}
     </li>
   );
 }

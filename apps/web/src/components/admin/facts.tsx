@@ -26,8 +26,9 @@ export function MetaList({
   return (
     // The list is pulled left by one gutter and the wrapper clips it, so the
     // separator drawn in front of a line's first item is never visible, even
-    // when the facts wrap.
-    <div data-slot="meta-list" className="overflow-hidden">
+    // when the facts wrap. The clip gets room above and below (padding taken
+    // back by a margin), so a seal on an avatar is not cut.
+    <div data-slot="meta-list" className="-my-1 overflow-hidden py-1">
       <ul
         className={cn(
           "-ml-3 flex flex-wrap gap-y-1 text-sm text-muted-foreground",
