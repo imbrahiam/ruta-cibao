@@ -70,8 +70,10 @@ export function QueueMapLayout({
 
   return (
     <ItemFrameProvider value={frame}>
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)]">
-        <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-(--radius-card) bg-background pb-1 lg:top-4 lg:pb-0">
+      {/* On a desk the map fills the queue's height beside a list that
+          scrolls on its own; on a phone the map sticks above the cards. */}
+      <div className="grid min-h-0 flex-1 items-start gap-4 lg:h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-stretch">
+        <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-(--radius-card) bg-background pb-1 lg:static lg:min-h-0 lg:pb-0">
           <AdminMap
             interactive
             items={items}
@@ -79,7 +81,7 @@ export function QueueMapLayout({
             label={label}
             selectedId={selected}
             onSelect={select}
-            className="h-56 sm:h-80 lg:h-[calc(100dvh-13rem)] lg:min-h-96"
+            className="h-56 sm:h-80 lg:h-auto lg:min-h-0 lg:flex-1"
           />
           <MapLegend entries={legend} />
           {context.length > 0 ? (
@@ -90,7 +92,9 @@ export function QueueMapLayout({
             </span>
           ) : null}
         </div>
-        <div className="flex min-w-0 flex-col gap-3">{children}</div>
+        <div className="flex min-h-0 min-w-0 flex-col gap-3 lg:h-full">
+          {children}
+        </div>
       </div>
     </ItemFrameProvider>
   );

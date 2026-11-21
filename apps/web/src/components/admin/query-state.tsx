@@ -50,7 +50,10 @@ export function QueryState<T>({
   }
 
   return (
-    <div aria-busy={query.isFetching} className="flex min-w-0 flex-col gap-3">
+    <div
+      aria-busy={query.isFetching}
+      className="flex min-h-0 min-w-0 flex-1 flex-col gap-3"
+    >
       {query.isRefetchError ? (
         <p
           role="alert"

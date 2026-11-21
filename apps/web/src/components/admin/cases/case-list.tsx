@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { ArrowRight, MessagesSquare } from "lucide-react";
 import Link from "next/link";
+import { useRef } from "react";
 import { useTranslations } from "use-intl";
 import { ErrorPanel } from "@/components/admin/error-panel";
 import {
@@ -39,6 +40,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { orpc } from "@/lib/web/api";
 import { ListMore } from "../list-more";
+import { useViewportFill } from "../use-viewport-fill";
 import { CaseInboxRow } from "./case-inbox-row";
 import { CASE_STATUSES } from "./case-tags";
 
@@ -102,6 +104,8 @@ export function CaseList() {
   const c = useTranslations("admin.cases");
   // The tabs speak the same words as the status tags in the rows.
   const statusLabel = useTranslations("consultations.statusLabel");
+  const region = useRef<HTMLDivElement>(null);
+  const fill = useViewportFill(region);
   const municipality = useMunicipalityFilter();
   const [rawStatus, setStatus] = useUrlParam("status", "open");
   const [category, setCategory] = useUrlParam("category");
@@ -215,75 +219,82 @@ export function CaseList() {
         </Tabs>
       </AdminToolbar>
 
-      {list.isError && !list.data ? (
-        <ErrorPanel error={list.error} onRetry={() => list.refetch()} />
-      ) : list.data && items.length === 0 ? (
-        <AdminEmpty
-          icon={MessagesSquare}
-          title={t("empty")}
-          description={c("emptyHint")}
-        />
-      ) : (
-        <div className="flex flex-col gap-3" aria-busy={list.isFetching}>
-          {list.data ? null : (
-            <span role="status" className="sr-only">
-              {t("loading")}
-            </span>
-          )}
-          {!list.data ? (
-            <InboxSkeleton />
-          ) : (
-            <div className="flex max-w-3xl flex-col gap-8">
-              {groupByRecency(items).map((group) => (
-                <section
-                  key={group.key}
-                  aria-labelledby={`cases-${group.key}`}
-                  className="flex flex-col gap-1"
-                >
-                  <h2
-                    id={`cases-${group.key}`}
-                    className="text-[13px] font-medium text-muted-foreground"
+      <div
+        ref={region}
+        style={fill}
+        data-scroll-root
+        className="scroll-fade-y min-h-0 lg:h-(--desk-fill) lg:min-h-96 lg:overflow-y-auto lg:pr-1"
+      >
+        {list.isError && !list.data ? (
+          <ErrorPanel error={list.error} onRetry={() => list.refetch()} />
+        ) : list.data && items.length === 0 ? (
+          <AdminEmpty
+            icon={MessagesSquare}
+            title={t("empty")}
+            description={c("emptyHint")}
+          />
+        ) : (
+          <div className="flex flex-col gap-3" aria-busy={list.isFetching}>
+            {list.data ? null : (
+              <span role="status" className="sr-only">
+                {t("loading")}
+              </span>
+            )}
+            {!list.data ? (
+              <InboxSkeleton />
+            ) : (
+              <div className="flex max-w-3xl flex-col gap-8">
+                {groupByRecency(items).map((group) => (
+                  <section
+                    key={group.key}
+                    aria-labelledby={`cases-${group.key}`}
+                    className="flex flex-col gap-1"
                   >
-                    {c(`groups.${group.key}`)}
-                  </h2>
-                  <InboxList>
-                    {group.items.map((item) => {
-                      const href = `/admin/consultations/${item.slug}`;
-                      return (
-                        <CaseInboxRow
-                          key={item.id}
-                          item={item}
-                          href={href}
-                          // Two cases with the same words get a short
-                          // reference, so they can be told apart.
-                          reference={
-                            duplicated.has(item.title)
-                              ? item.id.slice(-6)
-                              : undefined
-                          }
-                          onPrefetch={() => prefetch(href)}
-                          // Under a status tab every row has that status.
-                          showStatus={status === "all"}
-                        />
-                      );
-                    })}
-                  </InboxList>
-                </section>
-              ))}
-            </div>
-          )}
+                    <h2
+                      id={`cases-${group.key}`}
+                      className="text-[13px] font-medium text-muted-foreground"
+                    >
+                      {c(`groups.${group.key}`)}
+                    </h2>
+                    <InboxList>
+                      {group.items.map((item) => {
+                        const href = `/admin/consultations/${item.slug}`;
+                        return (
+                          <CaseInboxRow
+                            key={item.id}
+                            item={item}
+                            href={href}
+                            // Two cases with the same words get a short
+                            // reference, so they can be told apart.
+                            reference={
+                              duplicated.has(item.title)
+                                ? item.id.slice(-6)
+                                : undefined
+                            }
+                            onPrefetch={() => prefetch(href)}
+                            // Under a status tab every row has that status.
+                            showStatus={status === "all"}
+                          />
+                        );
+                      })}
+                    </InboxList>
+                  </section>
+                ))}
+              </div>
+            )}
 
-          {list.data ? (
-            <ListMore
-              shown={items.length}
-              total={total}
-              hasMore={list.hasNextPage}
-              loading={list.isFetchingNextPage}
-              onMore={() => list.fetchNextPage()}
-            />
-          ) : null}
-        </div>
-      )}
+            {list.data ? (
+              <ListMore
+                shown={items.length}
+                total={total}
+                hasMore={list.hasNextPage}
+                loading={list.isFetchingNextPage}
+                onMore={() => list.fetchNextPage()}
+              />
+            ) : null}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

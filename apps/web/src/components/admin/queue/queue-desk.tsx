@@ -36,6 +36,7 @@ import {
 import { AdminPageHeader, AdminTableCard, AdminToolbar } from "../page-frame";
 import { QueryState } from "../query-state";
 import { QueueSkeleton } from "../skeletons";
+import { useViewportFill } from "../use-viewport-fill";
 import { CaseRow } from "./case-row";
 import { ClaimDetail, ClaimLine, ClaimRow } from "./claim-row";
 import { ContentReportRow } from "./content-report-row";
@@ -360,6 +361,7 @@ function Desk<T>({
   const desk = useDeskState();
   const [view, setView] = useQueueView();
   const [position, setPosition] = useState("");
+  const fill = useViewportFill(region);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [wide, setWide] = useState(false);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -610,11 +612,15 @@ function Desk<T>({
             aria-keyshortcuts="J K P R"
             tabIndex={-1}
             inert={query.isPlaceholderData}
-            className={
-              query.isPlaceholderData
-                ? "flex flex-col gap-3 opacity-60 outline-none transition-opacity delay-150"
-                : "flex flex-col gap-3 outline-none"
-            }
+            // On a desk-sized screen the queue fills what the window has left
+            // below the header, and its list, pane and map scroll inside it:
+            // the page itself stays put.
+            style={fill}
+            className={cn(
+              "flex flex-col gap-3 outline-none lg:h-(--desk-fill) lg:min-h-96",
+              query.isPlaceholderData &&
+                "opacity-60 transition-opacity delay-150",
+            )}
           >
             <QueryState
               query={query}
@@ -631,50 +637,59 @@ function Desk<T>({
                     map={view === "map" ? map : undefined}
                     data={query.data}
                   >
-                    <div
-                      className={
-                        split
-                          ? "grid items-start gap-6 grid-cols-[minmax(0,22rem)_minmax(0,1fr)]"
-                          : undefined
-                      }
-                    >
-                      {/* No frame and no rules: each item is its own soft block. */}
-                      <AdminTableCard className="overflow-visible rounded-none border-0 bg-transparent">
-                        <ul
-                          ref={list}
-                          className={cn(
-                            "flex flex-col [&>li:focus-visible]:ring-2 [&>li:focus-visible]:ring-ring/50 [&>li:focus-visible]:outline-none [&>li:focus-visible]:ring-inset",
-                            split ? "gap-1" : "gap-3",
-                          )}
-                          onFocus={onListFocus}
-                          onBlur={onListBlur}
-                        >
-                          {shown.map((row) => (
-                            <Fragment key={row.key}>
-                              {split ? row.compact : row.node}
-                            </Fragment>
-                          ))}
-                        </ul>
-                      </AdminTableCard>
-                      {split && selected ? (
+                    {(() => {
+                      const listColumn = (
                         <div
-                          ref={pane}
-                          key={selected.key}
-                          className="sticky top-6 min-w-0 animate-fade"
+                          data-scroll-root
+                          className="scroll-fade-y min-h-0 min-w-0 flex-1 lg:h-full lg:overflow-y-auto lg:pr-1"
                         >
-                          {selected.pane}
+                          {/* No frame and no rules: each item is its own soft block. */}
+                          <AdminTableCard className="overflow-visible rounded-none border-0 bg-transparent">
+                            <ul
+                              ref={list}
+                              className={cn(
+                                "flex flex-col [&>li:focus-visible]:ring-2 [&>li:focus-visible]:ring-ring/50 [&>li:focus-visible]:outline-none [&>li:focus-visible]:ring-inset",
+                                split ? "gap-1" : "gap-3",
+                              )}
+                              onFocus={onListFocus}
+                              onBlur={onListBlur}
+                            >
+                              {shown.map((row) => (
+                                <Fragment key={row.key}>
+                                  {split ? row.compact : row.node}
+                                </Fragment>
+                              ))}
+                            </ul>
+                          </AdminTableCard>
+                          {more ? (
+                            <div className="pt-3">
+                              <ListMore
+                                shown={items.length}
+                                total={count ?? items.length}
+                                hasMore={more.hasMore}
+                                loading={more.loading}
+                                onMore={more.load}
+                              />
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
-                    </div>
-                    {more ? (
-                      <ListMore
-                        shown={items.length}
-                        total={count ?? items.length}
-                        hasMore={more.hasMore}
-                        loading={more.loading}
-                        onMore={more.load}
-                      />
-                    ) : null}
+                      );
+                      if (!split) return listColumn;
+                      return (
+                        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,22rem)_minmax(0,1fr)] gap-6 lg:h-full">
+                          {listColumn}
+                          {selected ? (
+                            <div
+                              ref={pane}
+                              key={selected.key}
+                              className="scroll-fade-y min-h-0 min-w-0 animate-fade lg:h-full lg:overflow-y-auto lg:pr-1"
+                            >
+                              {selected.pane}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   </ListOrMap>
                 )
               }

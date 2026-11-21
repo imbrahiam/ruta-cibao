@@ -44,13 +44,19 @@ export function ListMore({
   useEffect(() => {
     const element = foot.current;
     if (!element || !automatic) return;
+    // Inside a list that scrolls on its own, watch that box; else the page.
+    const scroller = element.closest<HTMLElement>("[data-scroll-root]");
+    const root =
+      scroller && getComputedStyle(scroller).overflowY !== "visible"
+        ? scroller
+        : null;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting))
           void moreRef.current();
       },
       // Start a screen early, so the rows are there by the time they are reached.
-      { rootMargin: "0px 0px 600px 0px" },
+      { root, rootMargin: "0px 0px 600px 0px" },
     );
     observer.observe(element);
     return () => observer.disconnect();
