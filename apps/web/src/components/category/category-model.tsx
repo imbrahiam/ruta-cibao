@@ -41,7 +41,8 @@ export type ModelName =
 
 /**
  * A category icon's model, as the apps pick it (`PlaceModel(icon:)`). A water
- * drop keeps its glyph: it means drinking water, not a swimming spot.
+ * drop keeps its glyph (drinking water, not a swimming spot), and so does a
+ * route (streets and roads, not an eco trail).
  */
 const CATEGORY_MODELS: Record<string, ModelName> = {
   waves: "swimming",
@@ -68,7 +69,6 @@ const CATEGORY_MODELS: Record<string, ModelName> = {
   footprints: "hiker",
   bike: "bike",
   mountain: "adventure",
-  route: "adventure",
 };
 
 /** The model for a category icon, or `null` when it keeps its glyph. */

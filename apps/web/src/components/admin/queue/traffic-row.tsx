@@ -336,9 +336,10 @@ export function TrafficLine({ report }: { report: LiveTraffic }) {
 }
 
 /**
- * Everything needed to decide one report, in reading order: what, where and
- * how bad; who reported it and when; their words; the stretch on the map with
- * its coordinates and a way out to Google Maps; the decision last.
+ * Everything needed to decide one report, beside the list that already shows
+ * its chips: the title and when it leaves, who reported it, their words, the
+ * decision while it is still in view, and the stretch on the map last, as
+ * support (with its coordinates and a way out to Google Maps).
  */
 export function TrafficDetail({ report }: { report: LiveTraffic }) {
   const id = useId();
@@ -347,21 +348,17 @@ export function TrafficDetail({ report }: { report: LiveTraffic }) {
   const map = useMapCopy();
   const mapItem = useMemo(() => trafficMapItem(report), [report]);
   const decisions = useTrafficDecisions(report);
-  const subtitle = impactText(report);
 
   return (
-    <article aria-labelledby={`${id}-title`} className="flex flex-col gap-5">
-      <header className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2
-              id={`${id}-title`}
-              className="text-xl leading-tight font-semibold"
-            >
-              {report.categoryName}
-            </h2>
-            <ImpactChips report={report} />
-          </div>
+    <article aria-labelledby={`${id}-title`} className="flex flex-col gap-4">
+      <header className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2
+            id={`${id}-title`}
+            className="text-xl leading-tight font-semibold"
+          >
+            {report.categoryName}
+          </h2>
           <Expiry iso={report.expiresAt} />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -381,21 +378,19 @@ export function TrafficDetail({ report }: { report: LiveTraffic }) {
         </div>
       ) : null}
 
+      {/* The decision sits before the map, so it is on screen with the report. */}
+      <div className="rounded-(--radius-card) bg-muted/60 p-3">{decisions}</div>
+
       <MapPreview
         className="max-w-none"
-        mapClassName="aspect-[16/9]"
+        mapClassName="aspect-[2/1]"
         item={mapItem}
         label={map.trafficAlt(report)}
         title={report.categoryName}
-        subtitle={subtitle}
+        subtitle={impactText(report)}
         legend={map.trafficLegend([report])}
         anchor={report}
       />
-
-      {/* The end of the review: its own band, after everything to read. */}
-      <footer className="rounded-(--radius-card) bg-muted/60 p-4">
-        {decisions}
-      </footer>
     </article>
   );
 }

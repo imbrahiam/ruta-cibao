@@ -28,15 +28,6 @@ export function resolveMunicipalityFilter(
  */
 export const QUEUE_POLL_MS = 30_000;
 
-export function moderationQueueOptions(
-  queue: Exclude<QueueSlug, "routes">,
-  municipalityId?: string,
-) {
-  return orpc.moderation.queue.queryOptions({
-    input: { queue: QUEUES[queue].api, municipalityId, limit: QUEUE_LIMIT },
-  });
-}
-
 /**
  * A moderation queue a page at a time, as its desk reads it. The next page
  * starts where the last one ended; on a refetch TanStack re-reads the pages in

@@ -892,7 +892,12 @@
       "live": "En el mapa ahora",
       "activeNotices": "{count, plural, one {# aviso activo} other {# avisos activos}}",
       "expiringToday": "{count, plural, one {# vence hoy} other {# vencen hoy}}",
-      "upToDate": "Al día:"
+      "upToDate": "Al día",
+      "upToDateBody": "Nada espera una decisión en estas secciones.",
+      "viewAll": "Ver todos",
+      "viewAllIn": "Ver todo en {section}",
+      "viewAllCount": "Ver todos ({count})",
+      "anonymous": "Un vecino"
     }
   },
   "app": {
