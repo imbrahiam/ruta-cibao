@@ -228,6 +228,54 @@ enum VehicleModels {
             let lens = add(SCNTorus(ringRadius: 0.34, pipeRadius: 0.079), gold, at: SCNVector3(0.33, 0.12, 0.49))
             lens.eulerAngles.x = .pi / 2
             root.addChildNode(rod(from: SCNVector3(0.57, -0.13, 0.49), to: SCNVector3(0.85, -0.53, 0.49), radius: 0.095, brown))
+        case .store:
+            // A cream shop with a dark door and window, under a coral and white
+            // striped awning, a green sign on the roof line.
+            block(1.50, 1.05, 0.95, cream, 0, -0.10)
+            block(0.36, 0.62, 0.05, dark, -0.38, -0.31, 0.49, chamfer: 0.03)
+            block(0.52, 0.36, 0.05, blue, 0.30, -0.12, 0.49, chamfer: 0.03)
+            for index in 0..<6 {
+                let x = -0.70 + Float(index) * 0.28
+                let stripe = add(SCNBox(width: 0.28, height: 0.07, length: 0.50, chamferRadius: 0.02),
+                                 index.isMultiple(of: 2) ? coral : cream, at: SCNVector3(x, 0.46, 0.58))
+                stripe.eulerAngles.x = 0.42
+            }
+            block(1.10, 0.26, 0.10, pine, 0, 0.62, 0.05, chamfer: 0.04)
+        case .camera:
+            let slate = paint(UIColor(red: 0.22, green: 0.25, blue: 0.28, alpha: 1))
+            let silver = paint(UIColor(white: 0.85, alpha: 1), metal: 0.6, rough: 0.25)
+            block(1.50, 0.95, 0.55, slate, 0, 0, 0, chamfer: 0.14)
+            block(0.55, 0.22, 0.45, slate, -0.30, 0.55, 0, chamfer: 0.06)
+            let ring = add(SCNCylinder(radius: 0.36, height: 0.22), silver, at: SCNVector3(0.05, -0.02, 0.36))
+            ring.eulerAngles.x = .pi / 2
+            let glassNode = add(SCNCylinder(radius: 0.26, height: 0.24), blue, at: SCNVector3(0.05, -0.02, 0.38))
+            glassNode.eulerAngles.x = .pi / 2
+            _ = add(SCNCylinder(radius: 0.09, height: 0.10), coral, at: SCNVector3(0.50, 0.50, 0))
+            block(0.22, 0.12, 0.05, gold, -0.52, 0.25, 0.28, chamfer: 0.02)
+        case .cone:
+            let orange = paint(UIColor(red: 0.96, green: 0.48, blue: 0.16, alpha: 1))
+            block(1.10, 0.12, 1.10, dark, 0, -0.72, 0, chamfer: 0.04)
+            _ = add(SCNCone(topRadius: 0.07, bottomRadius: 0.44, height: 1.35), orange, at: SCNVector3(0, 0, 0))
+            for (y, radius) in [(-0.18, 0.33), (0.20, 0.215)] as [(Float, CGFloat)] {
+                _ = add(SCNCylinder(radius: radius + 0.012, height: 0.15), cream, at: SCNVector3(0, y, 0))
+            }
+        case .chat:
+            // Two speech bubbles: a blue one behind, a green one answering in front.
+            block(1.15, 0.75, 0.22, blue, -0.25, 0.30, -0.20, chamfer: 0.30)
+            let backTail = add(SCNPyramid(width: 0.26, height: 0.26, length: 0.18), blue, at: SCNVector3(-0.55, -0.05, -0.20))
+            backTail.eulerAngles.z = .pi
+            block(1.15, 0.75, 0.22, pine, 0.25, -0.20, 0.12, chamfer: 0.30)
+            let frontTail = add(SCNPyramid(width: 0.26, height: 0.26, length: 0.18), pine, at: SCNVector3(0.55, -0.55, 0.12))
+            frontTail.eulerAngles.z = .pi
+            for x: Float in [0.03, 0.25, 0.47] {
+                _ = add(SCNSphere(radius: 0.065), cream, at: SCNVector3(x, -0.20, 0.25))
+            }
+        case .chart:
+            // A summary: three bars of a chart on a cream board.
+            block(1.55, 0.10, 1.10, cream, 0, -0.60, 0, chamfer: 0.04)
+            for (x, height, material) in [(-0.45, 0.55, coral), (0.0, 0.95, gold), (0.45, 1.30, pine)] as [(Float, CGFloat, SCNMaterial)] {
+                block(0.32, height, 0.40, material, x, -0.55 + Float(height) / 2, 0, chamfer: 0.05)
+            }
         case .adventure:
             let lime = paint(UIColor(red: 0.52, green: 0.78, blue: 0.36, alpha: 1))
             let forest = paint(UIColor(red: 0.16, green: 0.46, blue: 0.31, alpha: 1))
@@ -501,6 +549,10 @@ enum PlaceModel: String {
     case food, lodging, pharmacy, fuel, buildings, repair, car, coffee, hiker, bike, flag, finishFlag, placeCheck
     /// Eco routes as a whole: a peak with a flag on top and a pine at its foot.
     case adventure
+    /// A shop with a striped awning: stores, and a business's ownership.
+    case store
+    /// Kinds of work rather than of places, for the staff desk's sections.
+    case camera, cone, chat, chart
 
     init?(icon: String) {
         switch icon {
@@ -514,7 +566,8 @@ enum PlaceModel: String {
         case "trophy": self = .sports
         case "church": self = .church
         case "wheat": self = .farm
-        case "shopping-basket", "store": self = .market
+        case "shopping-basket": self = .market
+        case "store": self = .store
         case "utensils": self = .food
         case "bed-double": self = .lodging
         case "pill": self = .pharmacy
@@ -534,7 +587,7 @@ enum PlaceModel: String {
     /// the brightest kinds first so the row opens with colour.
     var vividness: Int {
         switch self {
-        case .adventure, .swimming, .church, .bus, .fuel, .pharmacy: 3
+        case .adventure, .swimming, .church, .bus, .fuel, .pharmacy, .store: 3
         case .medical, .market, .sports, .buildings, .coffee, .food, .hiker: 2
         case .park, .farm, .civic, .school, .lodging, .flag: 1
         default: 0

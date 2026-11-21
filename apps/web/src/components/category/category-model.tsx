@@ -14,10 +14,14 @@ export type ModelName =
   | "bike"
   | "buildings"
   | "bus"
+  | "camera"
   | "car"
+  | "chart"
+  | "chat"
   | "church"
   | "civic"
   | "coffee"
+  | "cone"
   | "farm"
   | "flag"
   | "food"
@@ -32,6 +36,7 @@ export type ModelName =
   | "repair"
   | "school"
   | "sports"
+  | "store"
   | "swimming";
 
 /**
@@ -50,7 +55,7 @@ const CATEGORY_MODELS: Record<string, ModelName> = {
   church: "church",
   wheat: "farm",
   "shopping-basket": "market",
-  store: "market",
+  store: "store",
   utensils: "food",
   "bed-double": "lodging",
   bed: "lodging",

@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronsUpDown, Globe, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslations } from "use-intl";
 import { LogoMark } from "@/components/brand/logo";
 import { ModelIcon } from "@/components/category/category-model";
@@ -39,6 +39,9 @@ import {
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
@@ -301,65 +304,155 @@ function AdminSidebar({
                 <SidebarGroupContent>
                   {/* Rows sit close within a group; the groups keep their gap. */}
                   <SidebarMenu className="gap-0.5">
-                    {sections.map((section) => {
-                      const Icon = section.icon;
-                      const count = section.countKey
-                        ? counts?.[section.countKey]
-                        : undefined;
-                      const href = destination(section.href);
-                      return (
-                        <SidebarMenuItem key={section.href}>
-                          <SidebarMenuButton
-                            asChild
-                            isActive={activeHref === section.href}
-                            tooltip={t(section.label)}
+                    {(() => {
+                      // One row of the menu; `collapsedOnly` is a sub-section
+                      // repeated as a plain icon for the collapsed rail, where
+                      // the nested list is hidden.
+                      const entry = (
+                        section: (typeof sections)[number],
+                        collapsedOnly = false,
+                      ) => {
+                        const Icon = section.icon;
+                        const count = section.countKey
+                          ? counts?.[section.countKey]
+                          : undefined;
+                        const href = destination(section.href);
+                        return (
+                          <SidebarMenuItem
+                            key={section.href}
+                            className={
+                              collapsedOnly
+                                ? "hidden group-data-[collapsible=icon]:block"
+                                : undefined
+                            }
                           >
-                            <Link
-                              href={href}
-                              aria-label={
-                                count
-                                  ? `${t(section.label)}, ${t("shell.pendingCount", { count })}`
-                                  : t(section.label)
-                              }
-                              aria-current={
-                                activeHref === section.href ? "page" : undefined
-                              }
-                              onPointerEnter={() => prefetch(href)}
-                              onFocus={() => prefetch(href)}
-                              onTouchStart={() => prefetch(href)}
-                              onClick={() => setOpenMobile(false)}
+                            <SidebarMenuButton
+                              asChild
+                              isActive={activeHref === section.href}
+                              tooltip={t(section.label)}
                             >
-                              {section.model ? (
-                                // The glyphs' 18 px box, so every label starts
-                                // at the same place; the model spills over it.
-                                <span className="relative size-[18px] shrink-0">
-                                  <ModelIcon
-                                    name={section.model}
-                                    size={22}
-                                    className="absolute -top-0.5 -left-0.5"
-                                  />
+                              <Link
+                                href={href}
+                                aria-label={
+                                  count
+                                    ? `${t(section.label)}, ${t("shell.pendingCount", { count })}`
+                                    : t(section.label)
+                                }
+                                aria-current={
+                                  activeHref === section.href
+                                    ? "page"
+                                    : undefined
+                                }
+                                onPointerEnter={() => prefetch(href)}
+                                onFocus={() => prefetch(href)}
+                                onTouchStart={() => prefetch(href)}
+                                onClick={() => setOpenMobile(false)}
+                              >
+                                {section.model ? (
+                                  // The glyphs' 18 px box, so every label starts
+                                  // at the same place; the model spills over it.
+                                  <span className="relative size-[18px] shrink-0">
+                                    <ModelIcon
+                                      name={section.model}
+                                      size={22}
+                                      className="absolute -top-0.5 -left-0.5"
+                                    />
+                                  </span>
+                                ) : (
+                                  <Icon aria-hidden="true" />
+                                )}
+                                <span className="truncate">
+                                  {t(section.label)}
                                 </span>
-                              ) : (
-                                <Icon aria-hidden="true" />
-                              )}
-                              <span className="truncate">
-                                {t(section.label)}
-                              </span>
-                            </Link>
-                          </SidebarMenuButton>
-                          {count ? (
-                            <SidebarMenuBadge
-                              aria-hidden="true"
-                              // Secondary to the label, and right-aligned on
-                              // the last digit so 5 and 14 line up.
-                              className="justify-end text-muted-foreground peer-hover/menu-button:text-muted-foreground peer-data-[active=true]/menu-button:text-muted-foreground"
+                              </Link>
+                            </SidebarMenuButton>
+                            {count ? (
+                              <SidebarMenuBadge
+                                aria-hidden="true"
+                                // Secondary to the label, and right-aligned on
+                                // the last digit so 5 and 14 line up.
+                                className="justify-end text-muted-foreground peer-hover/menu-button:text-muted-foreground peer-data-[active=true]/menu-button:text-muted-foreground"
+                              >
+                                {count}
+                              </SidebarMenuBadge>
+                            ) : null}
+                          </SidebarMenuItem>
+                        );
+                      };
+                      /** A sub-section under its parent: smaller, on the guide line. */
+                      const subEntry = (section: (typeof sections)[number]) => {
+                        const count = section.countKey
+                          ? counts?.[section.countKey]
+                          : undefined;
+                        const href = destination(section.href);
+                        const Icon = section.icon;
+                        return (
+                          <SidebarMenuSubItem key={section.href}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={activeHref === section.href}
                             >
-                              {count}
-                            </SidebarMenuBadge>
-                          ) : null}
-                        </SidebarMenuItem>
-                      );
-                    })}
+                              <Link
+                                href={href}
+                                aria-label={
+                                  count
+                                    ? `${t(section.label)}, ${t("shell.pendingCount", { count })}`
+                                    : t(section.label)
+                                }
+                                aria-current={
+                                  activeHref === section.href
+                                    ? "page"
+                                    : undefined
+                                }
+                                onPointerEnter={() => prefetch(href)}
+                                onFocus={() => prefetch(href)}
+                                onTouchStart={() => prefetch(href)}
+                                onClick={() => setOpenMobile(false)}
+                              >
+                                {section.model ? (
+                                  <ModelIcon name={section.model} size={18} />
+                                ) : (
+                                  <Icon aria-hidden="true" />
+                                )}
+                                <span className="min-w-0 flex-1 truncate">
+                                  {t(section.shortLabel ?? section.label)}
+                                </span>
+                                {count ? (
+                                  <span
+                                    aria-hidden="true"
+                                    className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                                  >
+                                    {count}
+                                  </span>
+                                ) : null}
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      };
+                      return sections
+                        .filter((section) => !section.parent)
+                        .map((section) => {
+                          const children = sections.filter(
+                            (child) => child.parent === section.href,
+                          );
+                          return (
+                            <Fragment key={section.href}>
+                              {entry(section)}
+                              {children.length > 0 ? (
+                                <>
+                                  <li className="group-data-[collapsible=icon]:hidden">
+                                    <SidebarMenuSub className="mt-0.5 mb-1">
+                                      {children.map(subEntry)}
+                                    </SidebarMenuSub>
+                                  </li>
+                                  {children.map((child) => entry(child, true))}
+                                </>
+                              ) : null}
+                            </Fragment>
+                          );
+                        });
+                    })()}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </SidebarGroup>

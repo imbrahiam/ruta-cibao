@@ -16,12 +16,19 @@ import {
 import type { ModelName } from "@/components/category/category-model";
 
 /** The overview stands alone: a label over a single link is noise. */
+/**
+ * Grouped by what the work is about: the map (places, with what people add to
+ * them nested under it, then routes and road reports), the community (cases
+ * and reports about content), and the desk's own management, which keeps plain
+ * line glyphs: it is the serious part.
+ */
 export const ADMIN_GROUPS: readonly {
-  id: "workspace" | "moderation" | "management";
+  id: "workspace" | "map" | "community" | "management";
   label: string | null;
 }[] = [
   { id: "workspace", label: null },
-  { id: "moderation", label: "shell.groupModeration" },
+  { id: "map", label: "shell.groupMap" },
+  { id: "community", label: "shell.groupCommunity" },
   { id: "management", label: "shell.groupManagement" },
 ];
 
@@ -32,6 +39,10 @@ export type AdminSection = {
   /** Shown instead of the glyph where an object reads better than a line. */
   model?: ModelName;
   group: (typeof ADMIN_GROUPS)[number]["id"];
+  /** Listed under this section's `href`, on the menu's guide line. */
+  parent?: string;
+  /** A shorter name for the narrower nested row. */
+  shortLabel?: string;
   countKey?: keyof ApiOutputs["moderation"]["counts"];
   adminOnly?: boolean;
   relatedPath?: string;
@@ -42,6 +53,7 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     href: "/admin",
     label: "shell.overview",
     icon: LayoutDashboard,
+    model: "chart",
     group: "workspace",
   },
   {
@@ -49,22 +61,26 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     label: "places",
     icon: MapPin,
     model: "place-check",
-    group: "moderation",
+    group: "map",
     countKey: "places",
   },
   {
     href: "/admin/queue/claims",
     label: "claims",
     icon: Building2,
-    model: "market",
-    group: "moderation",
+    model: "store",
+    parent: "/admin/queue/places",
+    shortLabel: "shell.claimsShort",
+    group: "map",
     countKey: "claims",
   },
   {
     href: "/admin/queue/photos",
     label: "photos",
     icon: Camera,
-    group: "moderation",
+    model: "camera",
+    parent: "/admin/queue/places",
+    group: "map",
     countKey: "photos",
   },
   {
@@ -72,7 +88,8 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     label: "reports",
     icon: Wrench,
     model: "repair",
-    group: "moderation",
+    parent: "/admin/queue/places",
+    group: "map",
     countKey: "reports",
   },
   {
@@ -80,30 +97,32 @@ export const ADMIN_SECTIONS: readonly AdminSection[] = [
     label: "routes",
     icon: Route,
     model: "adventure",
-    group: "moderation",
+    group: "map",
   },
   {
     href: "/admin/queue/traffic",
     label: "traffic",
     icon: TriangleAlert,
-    group: "moderation",
+    model: "cone",
+    group: "map",
     countKey: "traffic",
+  },
+  {
+    href: "/admin/consultations",
+    label: "consultations",
+    icon: MessagesSquare,
+    model: "chat",
+    group: "community",
+    countKey: "consultations",
+    relatedPath: "/admin/queue/consultations",
   },
   {
     href: "/admin/queue/content-reports",
     label: "safety",
     icon: Flag,
     model: "flag",
-    group: "moderation",
+    group: "community",
     countKey: "contentReports",
-  },
-  {
-    href: "/admin/consultations",
-    label: "consultations",
-    icon: MessagesSquare,
-    group: "management",
-    countKey: "consultations",
-    relatedPath: "/admin/queue/consultations",
   },
   {
     href: "/admin/reports",
