@@ -105,6 +105,7 @@ export function CaseList() {
   // The tabs speak the same words as the status tags in the rows.
   const statusLabel = useTranslations("consultations.statusLabel");
   const region = useRef<HTMLDivElement>(null);
+  const listEnd = useRef<HTMLDivElement>(null);
   const fill = useViewportFill(region);
   const municipality = useMunicipalityFilter();
   const [rawStatus, setStatus] = useUrlParam("status", "open");
@@ -219,11 +220,13 @@ export function CaseList() {
         </Tabs>
       </AdminToolbar>
 
+      {/* On a desk-sized screen the list takes the rest of the window: its
+          groups scroll inside, and the count and "Ver más" stay in view
+          under them. */}
       <div
         ref={region}
         style={fill}
-        data-scroll-root
-        className="scroll-fade-y min-h-0 lg:-mb-(--desk-bleed) lg:h-(--desk-fill) lg:min-h-96 lg:-mx-3 lg:overflow-y-auto lg:px-3 lg:pb-(--desk-bleed) lg:[--fade-inset-end:var(--desk-bleed)]"
+        className="flex min-h-0 flex-col lg:-mb-(--desk-bleed) lg:h-(--desk-fill) lg:min-h-96 lg:pb-(--desk-bleed)"
       >
         {list.isError && !list.data ? (
           <ErrorPanel error={list.error} onRetry={() => list.refetch()} />
@@ -234,57 +237,68 @@ export function CaseList() {
             description={c("emptyHint")}
           />
         ) : (
-          <div className="flex flex-col gap-3" aria-busy={list.isFetching}>
+          <div
+            className="flex min-h-0 flex-1 flex-col gap-3"
+            aria-busy={list.isFetching}
+          >
             {list.data ? null : (
               <span role="status" className="sr-only">
                 {t("loading")}
               </span>
             )}
-            {!list.data ? (
-              <InboxSkeleton />
-            ) : (
-              <div className="flex max-w-3xl flex-col gap-8">
-                {groupByRecency(items).map((group) => (
-                  <section
-                    key={group.key}
-                    aria-labelledby={`cases-${group.key}`}
-                    className="flex flex-col gap-1"
-                  >
-                    <h2
-                      id={`cases-${group.key}`}
-                      className="text-[13px] font-medium text-muted-foreground"
+            <div
+              data-scroll-root
+              className="scroll-fade-y min-h-0 flex-1 lg:-mx-3 lg:overflow-y-auto lg:px-3"
+            >
+              {!list.data ? (
+                <InboxSkeleton />
+              ) : (
+                <div className="flex max-w-3xl flex-col gap-8">
+                  {groupByRecency(items).map((group) => (
+                    <section
+                      key={group.key}
+                      aria-labelledby={`cases-${group.key}`}
+                      className="flex flex-col gap-1"
                     >
-                      {c(`groups.${group.key}`)}
-                    </h2>
-                    <InboxList>
-                      {group.items.map((item) => {
-                        const href = `/admin/consultations/${item.slug}`;
-                        return (
-                          <CaseInboxRow
-                            key={item.id}
-                            item={item}
-                            href={href}
-                            // Two cases with the same words get a short
-                            // reference, so they can be told apart.
-                            reference={
-                              duplicated.has(item.title)
-                                ? item.id.slice(-6)
-                                : undefined
-                            }
-                            onPrefetch={() => prefetch(href)}
-                            // Under a status tab every row has that status.
-                            showStatus={status === "all"}
-                          />
-                        );
-                      })}
-                    </InboxList>
-                  </section>
-                ))}
-              </div>
-            )}
+                      <h2
+                        id={`cases-${group.key}`}
+                        className="text-[13px] font-medium text-muted-foreground"
+                      >
+                        {c(`groups.${group.key}`)}
+                      </h2>
+                      <InboxList>
+                        {group.items.map((item) => {
+                          const href = `/admin/consultations/${item.slug}`;
+                          return (
+                            <CaseInboxRow
+                              key={item.id}
+                              item={item}
+                              href={href}
+                              // Two cases with the same words get a short
+                              // reference, so they can be told apart.
+                              reference={
+                                duplicated.has(item.title)
+                                  ? item.id.slice(-6)
+                                  : undefined
+                              }
+                              onPrefetch={() => prefetch(href)}
+                              // Under a status tab every row has that status.
+                              showStatus={status === "all"}
+                            />
+                          );
+                        })}
+                      </InboxList>
+                    </section>
+                  ))}
+                </div>
+              )}
+              {/* The next page loads as this end of the list nears view. */}
+              <div ref={listEnd} aria-hidden />
+            </div>
 
             {list.data ? (
               <ListMore
+                sentinel={listEnd}
                 shown={items.length}
                 total={total}
                 hasMore={list.hasNextPage}

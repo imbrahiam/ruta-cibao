@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { InlineError } from "./error-panel";
@@ -19,6 +19,7 @@ export function ListMore({
   hasMore,
   loading,
   onMore,
+  sentinel,
 }: {
   shown: number;
   total: number;
@@ -26,6 +27,12 @@ export function ListMore({
   loading: boolean;
   /** Loads the next page and resolves to its error, if it failed. */
   onMore: () => Promise<{ isError: boolean; error: unknown }>;
+  /**
+   * The end of the list, when this foot sits outside the box that scrolls it
+   * (always in view, under the list): that end, not the foot, decides when the
+   * next page loads.
+   */
+  sentinel?: RefObject<HTMLElement | null>;
 }) {
   const t = useTranslations("admin.shell");
   const foot = useRef<HTMLDivElement>(null);
@@ -42,7 +49,7 @@ export function ListMore({
   moreRef.current = more;
 
   useEffect(() => {
-    const element = foot.current;
+    const element = sentinel?.current ?? foot.current;
     if (!element || !automatic) return;
     // Inside a list that scrolls on its own, watch that box; else the page.
     const scroller = element.closest<HTMLElement>("[data-scroll-root]");
@@ -60,7 +67,7 @@ export function ListMore({
     );
     observer.observe(element);
     return () => observer.disconnect();
-  }, [automatic]);
+  }, [automatic, sentinel]);
 
   if (total === 0) return null;
 
