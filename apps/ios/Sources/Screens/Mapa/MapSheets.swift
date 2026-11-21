@@ -415,17 +415,16 @@ private struct RoutePanel: View {
                     }
                 }
 
-                if stops.count > 2 {
+                if !stops.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text(L10n.Routes.stops).type(.heading)
                             Spacer()
-                            Text(L10n.Routes.stopsCount(count: stops.count - 2)).type(.callout, .ink3)
+                            if stops.count > 2 { Text(L10n.Routes.stopsCount(count: stops.count - 2)).type(.callout, .ink3) }
                         }
                         StopTimeline(stops: preview, open: { if let id = $0.placeId { openPlace(id) } })
-                        if stops.count > preview.count {
-                            Button(L10n.Routes.seeRoute) { showingAll = true }.buttonStyle(.pill(.quiet, compact: true))
-                        }
+                        // The whole trail on its own page, every stop in order.
+                        Button(L10n.Routes.seeRoute) { showingAll = true }.buttonStyle(.pill(.quiet, compact: true))
                     }
                 }
 

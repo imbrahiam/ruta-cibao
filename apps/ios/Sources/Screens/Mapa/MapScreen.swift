@@ -120,10 +120,14 @@ private struct MapBody: View {
             .overlay(alignment: .top) { if !routing { topBar.transition(.move(edge: .top).combined(with: .opacity)) } }
             .overlay(alignment: .bottomTrailing) { if !routing { controls.transition(.opacity) } }
             .overlay(alignment: .bottom) {
-                if navigator.phase != .idle, !guiding { RoutePreview(navigator: navigator).hidesTabBar().transition(.move(edge: .bottom).combined(with: .opacity)) }
+                if navigator.phase != .idle, !guiding { RoutePreview(navigator: navigator, closures: closures).hidesTabBar().transition(.move(edge: .bottom).combined(with: .opacity)) }
             }
             .overlay { if guiding { Guidance(navigator: navigator).hidesTabBar().transition(.opacity) } }
-            .overlay { if trail.active { TrailGuidance(guide: trail).hidesTabBar().transition(.opacity) } }
+            .overlay { if trail.active { TrailGuidance(guide: trail, directions: {
+                guard let start = trail.stops.first, let name = trail.route?.name else { return }
+                trail.stop()
+                navigate(Destination(name: name, coordinate: start.coordinate))
+            }).hidesTabBar().transition(.opacity) } }
             .overlay {
                 if state.phase == .failed {
                     StateView(error: state.error ?? .unknown) { vm.retry() }
@@ -206,6 +210,11 @@ private struct MapBody: View {
             // On the trail the map follows you, close in, as you walk.
             .onChange(of: trail.location) { _, here in
                 guard trail.active, let here else { return }
+                // Still on the way to the trail and far from it: you and its start, both in view.
+                if !trail.started, trail.toStart > 300, let route = trail.route {
+                    frame(route.coordinates + [here.coordinate], cover: 150)
+                    return
+                }
                 look(.follow(center: GeoPoint(here.coordinate), distance: 360, heading: trail.course), animated: true)
             }
             .onChange(of: trail.active) { was, now in
@@ -257,7 +266,7 @@ private struct MapBody: View {
         stops.enumerated().map { index, stop in
             let symbol = stop.kind == .place ? (index <= 50 ? "\(index).circle.fill" : "circle.fill") : stop.symbol
             return MapPin(key: stop.placeId.map { "p" + $0 } ?? "s" + stop.id, latitude: stop.coordinate.latitude, longitude: stop.coordinate.longitude,
-                          title: stop.name, symbol: symbol, tone: .trail)
+                          title: stop.name, symbol: symbol, tone: .trail, prominent: true)
         }
     }
 
@@ -276,7 +285,8 @@ private struct MapBody: View {
                 let key = "t" + notice.id
                 var pins = [MapPin(key: key, latitude: middle?.latitude ?? notice.latitude, longitude: middle?.longitude ?? notice.longitude,
                                    title: notice.categoryName, symbol: Glyph.symbol(notice.icon, filled: true), tone: notice.tone, sign: sign)]
-                if sign.striped, notice.path.count > 2, let first = notice.path.first, let last = notice.path.last {
+                if sign.striped, notice.path.count > 2, spansOnScreen(notice.path.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }),
+                   let first = notice.path.first, let last = notice.path.last {
                     for (end, point) in [("s", first), ("e", last)] {
                         pins.append(MapPin(key: key + end, latitude: point.latitude, longitude: point.longitude, title: notice.categoryName,
                                            symbol: Glyph.symbol(notice.icon, filled: true), tone: notice.tone, sign: sign, selects: key, small: true))
@@ -289,6 +299,26 @@ private struct MapBody: View {
             }
     }
 
+    /// A barrier bar's length on the ground: about ten points on screen at the current zoom.
+    private var stripeMetres: Double {
+        guard let viewport else { return 12 }
+        return max(viewport.latitudeSpan * 111_000 / Double(max(mapHeight, 1)) * 10, 3)
+    }
+
+    /// Closed roads as their stretches, for a route to be checked against.
+    private var closures: [[CLLocationCoordinate2D]] {
+        state.traffic.filter { TrafficSignKind.of(category: $0.categoryName, icon: $0.icon) == .closed && $0.path.count > 1 }
+            .map { $0.path.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } }
+    }
+
+    /// Whether a stretch is long enough on screen for markers at its ends to stand apart from
+    /// the one at its middle; zoomed out they would pile up on each other.
+    private func spansOnScreen(_ path: [CLLocationCoordinate2D]) -> Bool {
+        guard let viewport else { return false }
+        let metresPerPoint = viewport.latitudeSpan * 111_000 / Double(max(mapHeight, 1))
+        return TrailPath(path).length / metresPerPoint > 140
+    }
+
     private var lines: [MapLine] {
         (trail.route.map { [MapLine(id: "trail", path: $0.coordinates.map(GeoPoint.init), color: PinTone.trail.css, width: 7)] } ?? [])
         // The affected stretch drawn on the road itself: in the hazard's colour on a white edge,
@@ -296,7 +326,7 @@ private struct MapBody: View {
         + state.traffic.filter { $0.path.count > 1 }.map { notice in
             let sign = TrafficSignKind.of(category: notice.categoryName, icon: notice.icon)
             return MapLine(id: "t" + notice.id, path: notice.path.map { GeoPoint(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) },
-                           color: sign.lineCSS, width: 7, casing: true, stripes: sign.striped)
+                           color: sign.lineCSS, width: 7, casing: true, stripeMetres: sign.striped ? stripeMetres : nil)
         }
             + state.visibleRoutes.map { MapLine(id: "r" + $0.id, path: $0.coordinates.map(GeoPoint.init), color: PinTone.trail.css, width: state.route?.id == $0.id ? 6 : 4) }
             + (navigator.route.map { [MapLine(id: "way", path: $0.polyline.path, color: PinTone.pine.css, width: 7)] } ?? [])
@@ -466,7 +496,9 @@ private struct MapBody: View {
         if beforeRoute == nil { beforeRoute = viewport }
         dismissSelection()
         trail.start(route, stops: stops)
-        frame(route.coordinates, cover: Self.previewCover)
+        // Where you are counts too: standing away from the trail, you and it both show.
+        let here = CLLocationManager().location.map { [$0.coordinate] } ?? []
+        frame(route.coordinates + here, cover: 150)
     }
 
     private func navigate(_ destination: Destination) {

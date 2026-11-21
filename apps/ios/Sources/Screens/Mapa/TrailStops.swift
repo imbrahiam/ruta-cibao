@@ -27,6 +27,12 @@ struct TrailStop: Identifiable, Equatable {
 enum TrailStops {
     /// How far off the path a place may stand and still count as a stop.
     static let reach: CLLocationDistance = 160
+    /// Two stops closer than this along the path are one stop: the nearer to the path stays.
+    static let spacing: CLLocationDistance = 200
+    /// A place this close to the start or the end along the path names that end instead.
+    static let ends: CLLocationDistance = 150
+    /// The kinds of place a walker stops at. Banks, offices and workshops on the way are not stops.
+    static let stopKinds: Set<String> = ["comedor", "colmado", "cultura", "hospedaje", "parque", "farmacia", "salud"]
 
     static func of(_ route: EcoRoute, places: [MapPlace]) -> [TrailStop] {
         let path = route.coordinates
@@ -34,14 +40,30 @@ enum TrailStops {
         let total = TrailPath(path).length
         var stops = [TrailStop(id: "start-" + route.id, kind: .start, name: L10n.Routes.start, coordinate: first, along: 0, symbol: "flag.fill")]
         let line = TrailPath(path)
-        let onTheWay = places.compactMap { place -> TrailStop? in
+        let near = places.compactMap { place -> (stop: TrailStop, offset: CLLocationDistance)? in
+            guard stopKinds.contains(place.categoryId) else { return nil }
             let point = line.project(place.coordinate)
             guard point.offset <= reach, point.along > 40, point.along < total - 40 else { return nil }
-            return TrailStop(id: "place-" + place.id, kind: .place, name: place.name, coordinate: place.coordinate, along: point.along,
-                             symbol: Glyph.symbol(place.icon, filled: true), tint: place.tint, placeId: place.id)
+            return (TrailStop(id: "place-" + place.id, kind: .place, name: place.name, coordinate: place.coordinate, along: point.along,
+                              symbol: Glyph.symbol(place.icon, filled: true), tint: place.tint, placeId: place.id), point.offset)
         }
-        stops += onTheWay.sorted { $0.along < $1.along }
-        stops.append(TrailStop(id: "end-" + route.id, kind: .end, name: L10n.Routes.end, coordinate: last, along: total, symbol: "flag.checkered"))
+        // Nearest to the path first, then each keeps its stretch of the walk to itself.
+        var kept: [TrailStop] = []
+        for candidate in near.sorted(by: { $0.offset < $1.offset }) where !kept.contains(where: { abs($0.along - candidate.stop.along) < spacing }) {
+            kept.append(candidate.stop)
+        }
+        // A place right at either end is that end: the trail starts at the shop, ends at the dam.
+        var end = TrailStop(id: "end-" + route.id, kind: .end, name: L10n.Routes.end, coordinate: last, along: total, symbol: "flag.checkered")
+        if let index = kept.firstIndex(where: { $0.along < ends }) {
+            let place = kept.remove(at: index)
+            stops[0] = TrailStop(id: stops[0].id, kind: .start, name: place.name, coordinate: first, along: 0, symbol: "flag.fill", placeId: place.placeId)
+        }
+        if let index = kept.firstIndex(where: { total - $0.along < ends }) {
+            let place = kept.remove(at: index)
+            end = TrailStop(id: end.id, kind: .end, name: place.name, coordinate: last, along: total, symbol: "flag.checkered", placeId: place.placeId)
+        }
+        stops += kept.sorted { $0.along < $1.along }
+        stops.append(end)
         return stops
     }
 }
@@ -83,6 +105,35 @@ struct TrailPath {
             }
         }
         return best
+    }
+
+    /// The path cut into pieces of `length` metres; every other piece, starting with the first.
+    /// A closure's red bars are these, drawn solid, so they keep their size when the map tilts.
+    func alternate(every length: CLLocationDistance) -> [[CLLocationCoordinate2D]] {
+        guard points.count > 1, length > 0 else { return [] }
+        var pieces: [[CLLocationCoordinate2D]] = []
+        var from: CLLocationDistance = 0
+        while from < self.length {
+            let to = min(from + length, self.length)
+            pieces.append(slice(from, to))
+            from += length * 2
+        }
+        return pieces
+    }
+
+    private func point(at distance: CLLocationDistance) -> CLLocationCoordinate2D {
+        guard let index = cumulative.lastIndex(where: { $0 <= distance }), index < points.count - 1 else { return points.last ?? CLLocationCoordinate2D() }
+        let span = cumulative[index + 1] - cumulative[index]
+        let t = span > 0 ? (distance - cumulative[index]) / span : 0
+        let a = points[index], b = points[index + 1]
+        return CLLocationCoordinate2D(latitude: a.latitude + (b.latitude - a.latitude) * t, longitude: a.longitude + (b.longitude - a.longitude) * t)
+    }
+
+    private func slice(_ from: CLLocationDistance, _ to: CLLocationDistance) -> [CLLocationCoordinate2D] {
+        var piece = [point(at: from)]
+        for index in points.indices where cumulative[index] > from && cumulative[index] < to { piece.append(points[index]) }
+        piece.append(point(at: to))
+        return piece
     }
 
     static func metres(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> CLLocationDistance {
@@ -139,7 +190,7 @@ struct RoutePage: View {
                 HStack {
                     Text(L10n.Routes.stops).type(.heading)
                     Spacer()
-                    Text(L10n.Routes.stopsCount(count: max(stops.count - 2, 0))).type(.callout, .ink3)
+                    if stops.count > 2 { Text(L10n.Routes.stopsCount(count: stops.count - 2)).type(.callout, .ink3) }
                 }
                 .padding(.top, 4)
                 StopTimeline(stops: stops, open: { stop in if let id = stop.placeId { dismiss(); openPlace(id) } })

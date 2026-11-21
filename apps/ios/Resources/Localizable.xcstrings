@@ -3511,6 +3511,17 @@
         }
       }
     },
+    "directions.crossesClosure": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La ruta pasa por una vía que reportaron cerrada."
+          }
+        }
+      }
+    },
     "directions.destination": {
       "extractionState": "manual",
       "localizations": {
@@ -8836,6 +8847,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ desde el inicio"
+          }
+        }
+      }
+    },
+    "routes.headToStart": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ve al inicio de la ruta"
           }
         }
       }

@@ -577,6 +577,7 @@ enum L10n {
     }
 
     enum Directions {
+        static var crossesClosure: String { String(localized: LocalizedStringResource("directions.crossesClosure")) }
         static var close: String { String(localized: LocalizedStringResource("directions.close")) }
         static var destination: String { String(localized: LocalizedStringResource("directions.destination")) }
         static var mode: String { String(localized: LocalizedStringResource("directions.mode")) }
@@ -1256,6 +1257,7 @@ enum L10n {
         static var seeRoute: String { String(localized: LocalizedStringResource("routes.seeRoute")) }
         static var startTrail: String { String(localized: LocalizedStringResource("routes.startTrail")) }
         static var nextStop: String { String(localized: LocalizedStringResource("routes.nextStop")) }
+        static var headToStart: String { String(localized: LocalizedStringResource("routes.headToStart")) }
         static func toGo(distance: String) -> String {
             String.localizedStringWithFormat(
                 NSLocalizedString("routes.toGo", comment: ""), distance

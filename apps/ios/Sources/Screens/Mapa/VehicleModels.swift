@@ -152,9 +152,8 @@ struct VehiclePuck: View {
     @State private var holder = SCNNode()
 
     var body: some View {
-        SceneView(scene: scene, pointOfView: nil, options: [.autoenablesDefaultLighting], antialiasingMode: .multisampling4X)
+        ClearScene(scene: scene)
             .frame(width: size, height: size)
-            .background(Color.clear)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
             .onAppear { scene = makeScene() }
@@ -210,6 +209,27 @@ struct VehiclePuck: View {
         sun.eulerAngles = SCNVector3(-Float.pi / 3, Float.pi / 4, 0)
         scene.rootNode.addChildNode(sun)
         return scene
+    }
+}
+
+/// A SceneKit view with a see-through background, so the model stands on the map itself
+/// (SwiftUI's `SceneView` paints an opaque white square behind it).
+private struct ClearScene: UIViewRepresentable {
+    let scene: SCNScene?
+
+    func makeUIView(context: Context) -> SCNView {
+        let view = SCNView()
+        view.backgroundColor = .clear
+        view.isOpaque = false
+        view.antialiasingMode = .multisampling4X
+        view.autoenablesDefaultLighting = true
+        view.isUserInteractionEnabled = false
+        view.scene = scene
+        return view
+    }
+
+    func updateUIView(_ view: SCNView, context: Context) {
+        if view.scene !== scene { view.scene = scene }
     }
 }
 

@@ -165,9 +165,13 @@ final class RouteNavigator: NSObject, CLLocationManagerDelegate {
     }
 
     private func update(with here: CLLocation) {
+        if here.course >= 0 {
+            course = here.course
+        } else if let last = location, here.distance(from: last) > 3 {
+            course = TrailGuide.bearing(from: last.coordinate, to: here.coordinate)
+        }
         location = here
         resolveWaiters(with: here)
-        if here.course >= 0 { course = here.course }
         guard phase == .navigating, let route else { return }
 
         // Progress along the current step: done when we reach its end.

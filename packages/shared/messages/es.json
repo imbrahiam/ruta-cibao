@@ -1073,6 +1073,7 @@
     "more": "Más consultas"
   },
   "directions": {
+    "crossesClosure": "La ruta pasa por una vía que reportaron cerrada.",
     "close": "Cerrar ruta",
     "destination": "Destino",
     "mode": "Cómo viajar",
@@ -1509,6 +1510,7 @@
     "seeRoute": "Ver la ruta completa",
     "startTrail": "Iniciar recorrido",
     "nextStop": "Próxima parada",
+    "headToStart": "Ve al inicio de la ruta",
     "toGo": "{distance} por recorrer",
     "finish": "Terminar",
     "arrived": "Llegaste al final de la ruta",

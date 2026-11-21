@@ -11,6 +11,8 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
     /// Metres walked along the trail, as projected from the last position.
     private(set) var along: CLLocationDistance = 0
     private(set) var offTrail = false
+    /// Whether you have reached the trail yet. Until then the next stop is its start.
+    private(set) var started = false
     private(set) var location: CLLocation?
     private(set) var course: CLLocationDirection = 0
     var active: Bool { route != nil }
@@ -30,9 +32,23 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
     var remaining: CLLocationDistance { max(path.length - along, 0) }
     var arrived: Bool { active && remaining < 25 }
     /// Stops already reached (the start counts once you are on the way).
-    var reached: Int { stops.filter { $0.along <= along + 20 }.count }
-    var next: TrailStop? { stops.first { $0.along > along + 20 } }
-    var toNext: CLLocationDistance { max((next?.along ?? path.length) - along, 0) }
+    var reached: Int { started ? stops.filter { $0.along <= along + 20 }.count : 0 }
+    var next: TrailStop? { started ? stops.first { $0.along > along + 20 } : stops.first }
+    var toNext: CLLocationDistance {
+        guard started else { return toStart }
+        return max((next?.along ?? path.length) - along, 0)
+    }
+    /// Straight-line metres from where you are to the trail's start.
+    var toStart: CLLocationDistance {
+        guard let location, let first = path.points.first else { return 0 }
+        return TrailPath.metres(location.coordinate, first)
+    }
+
+    static func bearing(from a: CLLocationCoordinate2D, to b: CLLocationCoordinate2D) -> CLLocationDirection {
+        let lat1 = a.latitude * .pi / 180, lat2 = b.latitude * .pi / 180, dLon = (b.longitude - a.longitude) * .pi / 180
+        let y = sin(dLon) * cos(lat2), x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
+        return (atan2(y, x) * 180 / .pi + 360).truncatingRemainder(dividingBy: 360)
+    }
 
     func start(_ route: EcoRoute, stops: [TrailStop]) {
         self.route = route
@@ -40,6 +56,7 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
         path = TrailPath(route.coordinates)
         along = 0
         offTrail = false
+        started = false
         if manager.authorizationStatus == .notDetermined { manager.requestWhenInUseAuthorization() }
         manager.startUpdatingLocation()
         manager.startUpdatingHeading()
@@ -53,6 +70,7 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
         path = TrailPath([])
         along = 0
         offTrail = false
+        started = false
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
@@ -66,9 +84,17 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
     }
 
     private func update(_ here: CLLocation) {
+        // Without a course from the fix (standing still, or a fix that jumped), the way you moved
+        // since the last one is the heading.
+        if here.course >= 0 {
+            course = here.course
+        } else if let last = location, here.distance(from: last) > 3 {
+            course = Self.bearing(from: last.coordinate, to: here.coordinate)
+        }
         location = here
-        if here.course >= 0 { course = here.course }
         let point = path.project(here.coordinate)
+        if !started, point.offset <= 60 { started = true }
+        guard started else { return }
         // Never walk backwards on the trail because of a noisy fix.
         along = max(along, point.along)
         offTrail = point.offset > 60
@@ -87,7 +113,8 @@ struct StopTimeline: View {
             ForEach(Array(stops.enumerated()), id: \.element.id) { index, stop in
                 let done = index < reached
                 let isNext = index == reached
-                Button { open?(stop) } label: {
+                let opens = open != nil && stop.placeId != nil
+                Button { if opens { open?(stop) } } label: {
                     HStack(alignment: .top, spacing: 14) {
                         VStack(spacing: 0) {
                             ZStack {
@@ -105,16 +132,26 @@ struct StopTimeline: View {
                         }
                         VStack(alignment: .leading, spacing: 2) {
                             Text(stop.name).type(.bodyStrong).lineLimit(2).multilineTextAlignment(.leading)
-                            Text(stop.kind == .start ? L10n.Routes.start : L10n.Routes.fromStart(distance: TripText.distance(stop.along))).type(.callout, .ink3)
+                            // The start is where the distances count from: it needs no line of its own.
+                            if stop.kind != .start {
+                                Text(L10n.Routes.fromStart(distance: TripText.distance(stop.along))).type(.callout, .ink3)
+                            } else if stop.name != L10n.Routes.start {
+                                Text(L10n.Routes.start).type(.callout, .ink3)
+                            }
                         }
                         .padding(.top, 4)
                         .padding(.bottom, index < stops.count - 1 ? 14 : 0)
                         Spacer(minLength: 0)
+                        if opens {
+                            Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(Color.ink3)
+                                .padding(.top, 8)
+                        }
                     }
                     .contentShape(Rectangle())
                 }
+                // Ends that open nothing stay at full strength, never greyed like a disabled row.
                 .buttonStyle(.plain)
-                .disabled(open == nil || stop.placeId == nil)
+                .allowsHitTesting(opens)
                 .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(isNext ? .isSelected : [])
             }
@@ -125,6 +162,8 @@ struct StopTimeline: View {
 /// On the trail: the next stop in large type above, the walk's progress and a way to stop below.
 struct TrailGuidance: View {
     let guide: TrailGuide
+    /// Directions to the trail's start, offered while it is too far to walk to.
+    var directions: (() -> Void)?
 
     var body: some View {
         VStack {
@@ -137,12 +176,22 @@ struct TrailGuidance: View {
                     if guide.arrived {
                         Text(L10n.Routes.arrived).font(.system(size: 20, weight: .semibold))
                     } else {
-                        Text(L10n.Routes.nextStop).font(.system(size: 13, weight: .medium)).opacity(0.8)
+                        Text(guide.started ? L10n.Routes.nextStop : L10n.Routes.headToStart).font(.system(size: 13, weight: .medium)).opacity(0.8)
                         Text(guide.next?.name ?? L10n.Routes.end).font(.system(size: 20, weight: .semibold)).lineLimit(1)
                         Text(TripText.distance(guide.toNext)).font(.system(size: 15)).opacity(0.85).contentTransition(.numericText())
                     }
                 }
                 Spacer(minLength: 0)
+                // Kilometres from the trail: the way there is a drive, not part of the walk.
+                if !guide.started, guide.toStart > 1000, let directions {
+                    Button(action: directions) {
+                        Text(L10n.Map.directions).font(.system(size: 15, weight: .semibold)).foregroundStyle(PinTone.trail.color)
+                            .padding(.horizontal, 14).frame(height: 36)
+                            .background(Color.paper, in: Capsule())
+                    }
+                    .buttonStyle(Pressable())
+                    .fixedSize()
+                }
             }
             .foregroundStyle(Color.onInk)
             .padding(18)

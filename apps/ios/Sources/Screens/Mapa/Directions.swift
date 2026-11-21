@@ -4,12 +4,27 @@ import SwiftUI
 /// Before leaving: how long, how far, by car or on foot, and one button to go.
 struct RoutePreview: View {
     let navigator: RouteNavigator
+    /// Reported closures, each as its stretch of road. Directions don't know about them, so a
+    /// route that runs along one says so.
+    var closures: [[CLLocationCoordinate2D]] = []
     @Environment(\.openURL) private var openURL
 
     /// No starting point: the fix is in Settings, and the travel modes mean nothing yet.
     private var needsLocation: Bool {
         if case .failed(let message) = navigator.phase { return message == L10n.Directions.locationError || message == L10n.Directions.permissionBody }
         return false
+    }
+
+    /// Whether the route runs along a closed stretch for more than a crossing: two of its points
+    /// within a few metres of the closure's line.
+    private var crossesClosure: Bool {
+        guard let route = navigator.route, !closures.isEmpty else { return false }
+        let points = route.polyline.points()
+        let path = (0..<route.polyline.pointCount).map { points[$0].coordinate }
+        return closures.contains { closure in
+            let line = TrailPath(closure)
+            return path.filter { line.project($0).offset < 15 }.count >= 2
+        }
     }
 
     var body: some View {
@@ -35,6 +50,17 @@ struct RoutePreview: View {
                 }
                 Spacer(minLength: 8)
                 IconButton(symbol: "xmark", label: L10n.Directions.close, glass: true) { navigator.stop() }
+            }
+
+            if crossesClosure {
+                HStack(spacing: 10) {
+                    TrafficSign(kind: .closed, size: 24)
+                    Text(L10n.Directions.crossesClosure).type(.callout, .ink2).fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(TrafficSignKind.closed.wash.opacity(0.45), in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
+                .accessibilityElement(children: .combine)
             }
 
             if needsLocation {

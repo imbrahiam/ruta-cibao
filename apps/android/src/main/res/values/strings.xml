@@ -355,6 +355,7 @@
     <string name="contributions_status_in_review">En revisión</string>
     <string name="contributions_status_answered">Respondido</string>
     <string name="contributions_status_approved">Aprobado</string>
+    <string name="directions_crosses_closure">La ruta pasa por una vía que reportaron cerrada.</string>
     <string name="directions_close">Cerrar ruta</string>
     <string name="directions_destination">Destino</string>
     <string name="directions_mode">Cómo viajar</string>
@@ -852,6 +853,7 @@
     <string name="routes_see_route">Ver la ruta completa</string>
     <string name="routes_start_trail">Iniciar recorrido</string>
     <string name="routes_next_stop">Próxima parada</string>
+    <string name="routes_head_to_start">Ve al inicio de la ruta</string>
     <string name="routes_to_go">%1$s por recorrer</string>
     <string name="routes_finish">Terminar</string>
     <string name="routes_arrived">Llegaste al final de la ruta</string>

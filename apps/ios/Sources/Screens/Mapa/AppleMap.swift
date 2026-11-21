@@ -27,14 +27,18 @@ struct AppleMap: View {
             // Lines first, so markers and signs sit on top of them.
             ForEach(lines, id: \.id) { line in
                 let path = line.path.map(\.coordinate)
-                if line.stripes {
-                    // A barrier on the road: a thin dark edge, white, and red bars across it.
+                if let stripe = line.stripeMetres {
+                    // A barrier on the road: a thin dark edge, white, and red bars across it,
+                    // each bar its own solid stroke so it keeps its size when the map tilts.
+                    let width = line.width + 3
                     MapPolyline(coordinates: path)
-                        .stroke(Color.solid(0x2B2B2E).opacity(0.85), style: StrokeStyle(lineWidth: line.width + 3, lineCap: .butt, lineJoin: .round))
+                        .stroke(Color.solid(0x2B2B2E).opacity(0.7), style: StrokeStyle(lineWidth: width + 3, lineCap: .butt, lineJoin: .round))
                     MapPolyline(coordinates: path)
-                        .stroke(Color.white, style: StrokeStyle(lineWidth: line.width, lineCap: .butt, lineJoin: .round))
-                    MapPolyline(coordinates: path)
-                        .stroke(Color(hex: line.color) ?? .danger, style: StrokeStyle(lineWidth: line.width, lineCap: .butt, lineJoin: .round, dash: [line.width * 1.3, line.width * 1.3]))
+                        .stroke(Color.white, style: StrokeStyle(lineWidth: width, lineCap: .butt, lineJoin: .round))
+                    ForEach(Array(TrailPath(path).alternate(every: stripe).enumerated()), id: \.offset) { _, bar in
+                        MapPolyline(coordinates: bar)
+                            .stroke(Color(hex: line.color) ?? .danger, style: StrokeStyle(lineWidth: width, lineCap: .butt, lineJoin: .round))
+                    }
                 } else {
                     if line.casing {
                         MapPolyline(coordinates: path)
@@ -54,22 +58,25 @@ struct AppleMap: View {
                     let picks = pin.selects ?? pin.key
                     // The marker's point stands on the road.
                     Annotation(pin.title, coordinate: coordinate, anchor: .bottom) {
-                        TrafficMarker(kind: sign, selected: selected == pin.key, small: pin.small)
-                            .opacity(selected == nil || selected == picks ? 1 : 0.5)
+                        // With something else in hand, notices shrink and fade so they don't
+                        // cover its own markers (annotations draw above them).
+                        let aside = selected != nil && selected != picks
+                        TrafficMarker(kind: sign, selected: selected == pin.key, small: pin.small || aside)
+                            .opacity(aside ? 0.45 : 1)
                     }
                     .annotationTitles(.hidden)
                     .tag(picks)
                 } else {
                     Marker(pin.title, systemImage: pin.symbol, coordinate: coordinate)
                         // With one in hand, the others step back so it reads first.
-                        .tint(selected == nil || selected == pin.key ? pin.tone.color : pin.tone.color.opacity(0.45))
+                        .tint(selected == nil || selected == pin.key || pin.prominent ? pin.tone.color : pin.tone.color.opacity(0.45))
                         .tag(pin.key)
                 }
             }
-            if let traveller {
-                UserAnnotation(anchor: .center) { _ in VehiclePuck(mode: traveller) }
-            } else {
-                UserAnnotation()
+            // One user annotation whose content changes: swapping the system's dot for a custom
+            // one inside the map's content did not take, so the dot is drawn here too.
+            UserAnnotation(anchor: .center) { _ in
+                if let traveller { VehiclePuck(mode: traveller) } else { LocationDot() }
             }
         }
         .mapStyle(.standard(elevation: threeD ? .realistic : .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
@@ -111,5 +118,17 @@ struct AppleMap: View {
         case .user:
             .userLocation(fallback: position)
         }
+    }
+}
+
+/// Where you are when not travelling: the system's blue dot with its white ring.
+private struct LocationDot: View {
+    var body: some View {
+        Circle().fill(Color.blue)
+            .frame(width: 16, height: 16)
+            .padding(3)
+            .background(Circle().fill(Color.white))
+            .shadow(color: .black.opacity(0.25), radius: 3, y: 1)
+            .accessibilityHidden(true)
     }
 }

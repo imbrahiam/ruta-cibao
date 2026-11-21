@@ -16,6 +16,8 @@ struct MapPin: Equatable {
     var selects: String?
     /// A quieter marker, as at either end of a closed stretch.
     var small = false
+    /// Keeps its full tone while something else is selected (a route's own stops).
+    var prominent = false
 }
 
 /// A stroke on the map: a reported stretch, an eco route, the way you were given.
@@ -28,8 +30,8 @@ struct MapLine: Equatable {
     var dash: [Double] = []
     /// A white edge under the line so it reads over any street.
     var casing = false
-    /// Drawn as a barrier: a dark edge, white, and red stripes across it.
-    var stripes = false
+    /// Drawn as a barrier: a dark edge, white, and red bars this many metres long along it.
+    var stripeMetres: Double?
 }
 
 struct GeoPoint: Hashable {
