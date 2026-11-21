@@ -33,7 +33,7 @@ private struct Thread: View {
     var body: some View {
         VStack(spacing: 0) {
             switch state.phase {
-            case .loading: LoadingDots()
+            case .loading: detailSkeleton
             case .notFound: StateView(symbol: "bubble.left", title: L10n.Consultations.missing)
             case .failed: StateView(error: state.error ?? .unknown) { vm.retry() }
             case .ready:
@@ -80,21 +80,56 @@ private struct Thread: View {
         ), onDismiss: { vm.refresh(); comments.vm.refresh() }) { SignInScreen() }
     }
 
+    private var detailSkeleton: some View {
+        ScrollView {
+            Skeleton {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack {
+                        Capsule().frame(width: 76, height: 21)
+                        Spacer()
+                        Capsule().frame(width: 56, height: 12)
+                    }
+                    SkeletonLine(264, lineHeight: 29, barHeight: 17, relativeTo: .title2)
+                        .padding(.top, 12)
+                    VStack(alignment: .leading, spacing: 3) {
+                        SkeletonLine(360)
+                        SkeletonLine(316)
+                        SkeletonLine(190)
+                    }
+                    .padding(.top, 8)
+                    HStack(spacing: 10) {
+                        Circle().frame(width: 28, height: 28)
+                        Capsule().frame(width: 86, height: 13)
+                        Spacer()
+                        Capsule().frame(width: 80, height: 28)
+                    }
+                    .padding(.top, 16)
+                }
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.top, 8)
+            }
+        }
+        .readable()
+    }
+
     private func startReply() {
         if state.canRespond || comments.state.signedIn { replying = true } else { comments.vm.requestSignIn() }
     }
 
     private func byline(_ detail: ConsultationDetail) -> some View {
-        HStack(spacing: 10) {
-            Avatar(name: detail.openedBy, size: 28)
-            Text([detail.isMine ? L10n.Consultations.you : (detail.openedBy ?? L10n.Traffic.resident), detail.municipalityName].joined(separator: " · "))
-                .type(.callout, .ink2)
+        PublicProfileButton(name: detail.openedBy, image: detail.openedByImage) {
+            HStack(spacing: 10) {
+                PersonAvatar(name: detail.openedBy, image: detail.openedByImage, size: 28)
+                Text([detail.isMine ? L10n.Consultations.you : (detail.openedBy ?? L10n.Traffic.resident), detail.municipalityName].joined(separator: " · "))
+                    .type(.callout, .ink2)
+            }
+            .accessibilityElement(children: .combine)
         }
     }
 
     private func category(_ detail: ConsultationDetail) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: Glyph.symbol(detail.categoryIcon)).font(.system(size: 12))
+            CategoryArtwork(icon: detail.categoryIcon, size: 15)
             Text(detail.categoryName)
         }
         .type(.caption, .ink2)
@@ -113,8 +148,8 @@ private struct Thread: View {
                 HStack(spacing: 8) {
                     StatusBadge(status: detail.statusValue)
                     Spacer(minLength: 8)
-                    Text(CompactTime.since(detail.createdAt.date)).type(.caption, .ink3)
-                        .accessibilityLabel(detail.createdAt.date.formatted(date: .long, time: .shortened))
+                    Text(detail.createdAt.relativeText).type(.caption, .ink3)
+                        .accessibilityValue(detail.createdAt.date.formatted(date: .long, time: .shortened))
                 }
                 .padding(.horizontal, Metrics.gutter)
                 .padding(.top, 8)
@@ -148,7 +183,7 @@ private struct Thread: View {
 
                 if !detail.responses.isEmpty {
                     VStack(spacing: 10) {
-                        ForEach(detail.responses, id: \.id) { OfficialReply(author: $0.author ?? L10n.Comments.officialBadge, text: $0.body, date: $0.createdAt.date) }
+                        ForEach(detail.responses, id: \.id) { OfficialReply(author: $0.author ?? L10n.Comments.officialBadge, text: $0.body, date: $0.createdAt) }
                     }
                     .padding(.horizontal, Metrics.gutter)
                     .padding(.top, 18)
@@ -177,7 +212,7 @@ private struct Thread: View {
 private struct OfficialReply: View {
     let author: String
     let text: String
-    let date: Date
+    let date: KotlinInstant
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -187,7 +222,7 @@ private struct OfficialReply: View {
                 Text(author).type(.label)
                 Text(L10n.Comments.officialBadge).type(.caption, .success)
                 Spacer(minLength: 4)
-                Text(CompactTime.since(date)).type(.caption, .ink3)
+                Text(date.relativeText).type(.caption, .ink3)
             }
             Text(text).type(.body).lineSpacing(3)
         }
@@ -209,7 +244,22 @@ struct CommentThread: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if state.loading && state.items.isEmpty {
-                LoadingDots().frame(height: 80)
+                Skeleton {
+                    VStack(alignment: .leading, spacing: 16) {
+                        ForEach(0..<2) { _ in
+                            HStack(alignment: .top, spacing: 12) {
+                                Circle().frame(width: 36, height: 36)
+                                    .frame(width: 44, height: 44)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    SkeletonLine(116, lineHeight: 18, barHeight: 11, relativeTo: .callout)
+                                    SkeletonLine(214)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                        }
+                    }
+                    .padding(.vertical, 10)
+                }
             } else if state.loadError != nil && state.items.isEmpty {
                 StateView(error: state.loadError ?? .unknown) { comments.vm.retryLoad() }.frame(height: 200)
             } else if state.items.isEmpty {
@@ -217,11 +267,15 @@ struct CommentThread: View {
             } else {
                 ForEach(state.items, id: \.id) { comment in
                     HStack(alignment: .top, spacing: 12) {
-                        Avatar(name: comment.author, size: 36)
+                        PublicProfileButton(name: comment.author, image: comment.authorImage) {
+                            PersonAvatar(name: comment.author, image: comment.authorImage, size: 36)
+                                .frame(width: 44, height: 44)
+                                .contentShape(Rectangle())
+                        }
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(spacing: 6) {
                                 Text(comment.isMine ? L10n.Consultations.you : (comment.author ?? L10n.Traffic.resident)).type(.label)
-                                Text(CompactTime.since(comment.createdAt.date)).type(.caption, .ink3)
+                                Text(comment.createdAt.relativeText).type(.caption, .ink3)
                             }
                             Text(comment.body).type(.body, .ink2).lineSpacing(2)
                         }

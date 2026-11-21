@@ -18,7 +18,13 @@ import { isStaffViewer, StaffProvider } from "./staff-context";
 import { AdminWorkspace } from "./workspace";
 
 /** Presentation gate only; every procedure still enforces staff authorization. */
-export function AdminShell({ children }: { children: ReactNode }) {
+export function AdminShell({
+  children,
+  phoneSignInEnabled,
+}: {
+  children: ReactNode;
+  phoneSignInEnabled: boolean;
+}) {
   const t = useTranslations("admin");
   const resetSession = useResetAdminSession();
   const me = useQuery(orpc.me.get.queryOptions());
@@ -71,7 +77,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }
 
   const viewer = me.data;
-  if (viewer.kind === "anonymous") return <AdminSignIn />;
+  if (viewer.kind === "anonymous")
+    return <AdminSignIn phoneSignInEnabled={phoneSignInEnabled} />;
 
   if (!isStaffViewer(viewer)) {
     return (

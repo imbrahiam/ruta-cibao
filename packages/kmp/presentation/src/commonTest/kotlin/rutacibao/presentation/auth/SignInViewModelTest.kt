@@ -48,7 +48,7 @@ class SignInViewModelTest {
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun phoneFlowFormatsRejectsAWrongCodeThenSignsIn() = runTest(dispatcher) {
+    fun emailFlowRejectsAWrongCodeThenSignsIn() = runTest(dispatcher) {
         val paths = mutableListOf<String>()
         var verifyCalls = 0
         val session = Session(MemoryStore())
@@ -56,9 +56,9 @@ class SignInViewModelTest {
             paths += request.url.encodedPath
             val json = headersOf(HttpHeaders.ContentType, "application/json")
             when {
-                request.url.encodedPath.endsWith("/verify") && verifyCalls++ == 0 ->
+                request.url.encodedPath.endsWith("/sign-in/email-otp") && verifyCalls++ == 0 ->
                     respond("""{"code":"INVALID_OTP","message":"bad"}""", HttpStatusCode.BadRequest, json)
-                request.url.encodedPath.endsWith("/verify") -> respond(
+                request.url.encodedPath.endsWith("/sign-in/email-otp") -> respond(
                     """{"status":true}""",
                     HttpStatusCode.OK,
                     headersOf(
@@ -74,8 +74,8 @@ class SignInViewModelTest {
         }
         val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
 
-        vm.updatePhone("(829) 555 0123")
-        assertEquals("829-555-0123", vm.state.value.phone)
+        assertEquals(SignInUiState.Method.Email, vm.state.value.method)
+        vm.updateEmail(" Ana@Ejemplo.do ")
         assertTrue(vm.state.value.canSubmit)
 
         vm.submit()
@@ -91,19 +91,60 @@ class SignInViewModelTest {
         vm.await { it.step == Step.Done }
         assertEquals(Step.Done, vm.state.value.step)
         assertTrue(session.isSignedIn.value)
-        assertEquals(listOf("/api/auth/phone-number/send-otp", "/api/auth/phone-number/verify", "/api/auth/phone-number/verify"), paths)
+        assertEquals(listOf("/api/auth/email-otp/send-verification-otp", "/api/auth/sign-in/email-otp", "/api/auth/sign-in/email-otp"), paths)
         advanceTimeBy(61_000)
     }
 
     @Test
-    fun anInvalidNumberNeverLeavesTheDevice() = runTest(dispatcher) {
+    fun phoneCanBePickedAndValidatesTheNumber() = runTest(dispatcher) {
         val engine = MockEngine { error("no request expected") }
         val session = Session(MemoryStore())
         val client = io.ktor.client.HttpClient(engine)
         val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
-        vm.updatePhone("305-555-0123")
+        assertEquals(listOf(SignInUiState.Method.Email, SignInUiState.Method.Phone), vm.state.value.methods)
+        assertTrue(vm.state.value.isAvailable(SignInUiState.Method.Phone))
+        vm.selectMethod(SignInUiState.Method.Phone)
+        assertEquals(SignInUiState.Method.Phone, vm.state.value.method)
+        vm.updatePhone("809")
         vm.submit(); runCurrent()
         assertEquals(SignInError.PhoneInvalid, vm.state.value.error)
         assertEquals(Step.Enter, vm.state.value.step)
+    }
+
+    @Test
+    fun aRefusedSendWaitsAsLongAsTheServerAsksForThatAddressOnly() = runTest(dispatcher) {
+        val engine = MockEngine {
+            respond(
+                """{"code":"OTP_RATE_LIMITED","message":"wait","retryAfter":24}""",
+                HttpStatusCode.TooManyRequests,
+                headersOf(HttpHeaders.ContentType, "application/json"),
+            )
+        }
+        val session = Session(MemoryStore())
+        val client = io.ktor.client.HttpClient(engine)
+        val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
+
+        vm.updateEmail("ana@ejemplo.do")
+        vm.submit()
+        vm.await { it.error != null }
+        runCurrent()
+        assertEquals(SignInError.RateLimited, vm.state.value.error)
+        assertEquals(Step.Enter, vm.state.value.step)
+        // Virtual time may tick while the response is awaited, so the count is checked by range.
+        assertTrue(vm.state.value.resendIn in 1..24)
+        assertTrue(!vm.state.value.canSubmit)
+
+        // Another address is not held by this wait.
+        vm.updateEmail("luis@ejemplo.do")
+        assertEquals(0, vm.state.value.resendIn)
+        assertTrue(vm.state.value.canSubmit)
+
+        // Refused again: once the wait runs out, the button is back and the message is gone.
+        vm.submit()
+        vm.await { it.error != null }
+        advanceTimeBy(30_000); runCurrent()
+        assertEquals(0, vm.state.value.resendIn)
+        assertEquals(null, vm.state.value.error)
+        assertTrue(vm.state.value.canSubmit)
     }
 }

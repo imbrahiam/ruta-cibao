@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAdminTheme } from "@/lib/web/admin-theme";
-import { useCopy } from "../contact/use-copy";
+import { useCopy } from "@/lib/web/use-copy";
 import { useOutcome } from "../outcome";
 import { AdminMap } from "./admin-map";
 import { useItemFrame } from "./item-frame";

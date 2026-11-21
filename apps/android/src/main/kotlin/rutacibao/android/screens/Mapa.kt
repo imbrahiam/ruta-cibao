@@ -52,6 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.material.icons.outlined.Flag
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -215,7 +216,16 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
                     val aside = !on && selection !is MapSelection.None
                     val points = notice.path.map { LatLng(it.latitude, it.longitude) }
                     if (points.size > 1) {
-                        if (sign.striped) {
+                        if (sign == TrafficSignKind.Flood) {
+                            // Water over the road: a pale band past the kerb, a deep channel, and a
+                            // white wave riding along it, sized to the zoom like the barrier's bars.
+                            val metresPerPixel = 156_543.03 * kotlin.math.cos(Math.toRadians(points[0].latitude)) / Math.pow(2.0, camera.position.zoom.toDouble()) / 2.625
+                            val wavelength = metresPerPixel * 64
+                            Polyline(points = points, color = sign.line.copy(alpha = 0.28f), width = 56f, zIndex = 3f, startCap = RoundCap(), endCap = RoundCap(), jointType = JointType.ROUND)
+                            Polyline(points = points, color = Color.White, width = 32f, zIndex = 3.05f, startCap = RoundCap(), endCap = RoundCap(), jointType = JointType.ROUND)
+                            Polyline(points = points, color = sign.line, width = 24f, zIndex = 3.1f, startCap = RoundCap(), endCap = RoundCap(), jointType = JointType.ROUND)
+                            Polyline(points = floodWave(points, wavelength * 0.18, wavelength), color = Color.White.copy(alpha = 0.95f), width = 5f, zIndex = 3.2f, jointType = JointType.ROUND)
+                        } else if (sign.striped) {
                             Polyline(points = points, color = Color(0xD92B2B2E), width = 27f, zIndex = 3f, jointType = JointType.ROUND)
                             Polyline(points = points, color = Color.White, width = 20f, zIndex = 3.1f, jointType = JointType.ROUND)
                             Polyline(points = points, color = sign.line, width = 20f, zIndex = 3.2f, jointType = JointType.ROUND, pattern = listOf(Dash(26f), Gap(26f)))
@@ -272,7 +282,7 @@ fun MapScreen(openPlace: String?, openRoute: String?, openTraffic: String?, requ
                     Text(stringResource(R.string.map_search_placeholder), style = Type.body, color = p.ink3, maxLines = 1, modifier = Modifier.weight(1f))
                     Box(Modifier.size(38.dp).background(p.brand, CircleShape), Alignment.Center) { Icon(Icons.Outlined.Search, null, Modifier.size(18.dp), tint = Color.White) }
                 }
-                ContributeButton()
+                HeaderActions()
             }
             // With something in hand the filters step aside and give the map their room.
             if (selection is MapSelection.None) HeaderFilters {
@@ -447,10 +457,19 @@ private fun PlacePanel(sheet: PlaceSheet, vm: MapViewModel) {
         })
     }
     // Where it is comes first, then what it looks like.
-    detail?.address?.let { Fact(Icons.Outlined.Place, it) }
+    detail?.address?.let { Fact(Icons.Outlined.Place, it) } ?: run { if (sheet.loading) Skeleton { BoneLine(166.dp, lineHeight = 18.dp, barHeight = 11.dp) } }
     (detail?.imageUrl ?: place.thumbnailUrl)?.let { RemoteImage(it, Modifier.fillMaxWidth().height(190.dp).clip(RoundedCornerShape(Metrics.radiusCard))) }
     when {
-        sheet.loading && detail == null -> LoadingDots(Modifier.height(60.dp))
+        sheet.loading && detail == null -> Skeleton {
+            // The check row, in its own size, so the sheet does not grow when it lands.
+            Row(Modifier.fillMaxWidth().height(62.dp).background(p.paper2, RoundedCornerShape(Metrics.radiusCard)).padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Bone(Modifier.size(36.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    BoneLine(140.dp)
+                    BoneLine(105.dp, lineHeight = 18.dp, barHeight = 10.dp)
+                }
+            }
+        }
         detail != null -> {
             if (!sheet.cached && !established) {
                 val (icon, text, color) = when (detail.trust.state) {
@@ -632,19 +651,20 @@ private fun TrafficPanel(notice: TrafficNotice, vm: MapViewModel) {
     val p = Ink.colors
     PanelHeader(if (notice.severity == TrafficSeverity.Blocking) p.danger else p.warning, categoryIcon(notice.icon), notice.categoryName, "${notice.municipality} · ${relativeTimeText(notice.createdAt)}", sign = TrafficSignKind.of(notice.categoryName, notice.icon), onClose = vm::dismissTraffic)
     notice.details?.takeIf { it.isNotBlank() }?.let { Text(it, style = Type.body, color = p.ink2) }
-    // A blocked road is asked about in its own words; a side nobody has taken is left out, not shown as zero.
+    // The answers carry their own tallies, so the panel never says "bloqueada" three times;
+    // a side nobody has taken shows no number rather than a zero.
     val blocking = notice.severity == TrafficSeverity.Blocking
-    if (notice.stillCount > 0 || notice.clearedCount > 0) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (notice.stillCount > 0) Text(pluralStringResource(if (blocking) R.plurals.traffic_still_blocked_voices else R.plurals.traffic_still_voices, notice.stillCount, notice.stillCount), style = Type.callout, color = p.ink2)
-        if (notice.clearedCount > 0) Text(pluralStringResource(if (blocking) R.plurals.traffic_gone_blocked_voices else R.plurals.traffic_cleared_voices, notice.clearedCount, notice.clearedCount), style = Type.callout, color = p.ink2)
-    }
+    val still = if (notice.stillCount > 0) pluralStringResource(if (blocking) R.plurals.traffic_still_blocked_voices else R.plurals.traffic_still_voices, notice.stillCount, notice.stillCount) else null
+    val cleared = if (notice.clearedCount > 0) pluralStringResource(if (blocking) R.plurals.traffic_gone_blocked_voices else R.plurals.traffic_cleared_voices, notice.clearedCount, notice.clearedCount) else null
     if (notice.canConfirm) {
-        Text(stringResource(if (blocking) R.string.traffic_ask_blocked else R.string.traffic_ask), style = Type.label, color = p.ink)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Pill(stringResource(if (blocking) R.string.traffic_still_blocked else R.string.traffic_still), { vm.confirmTraffic(TrafficVerdict.Still) }, Modifier.weight(1f), kind = if (notice.myVerdict == TrafficVerdict.Still) PillKind.Ink else PillKind.Quiet, compact = true)
-            Pill(stringResource(if (blocking) R.string.traffic_gone_blocked else R.string.traffic_gone), { vm.confirmTraffic(TrafficVerdict.Cleared) }, Modifier.weight(1f), kind = if (notice.myVerdict == TrafficVerdict.Cleared) PillKind.Ink else PillKind.Quiet, compact = true)
+            Pill(stringResource(if (blocking) R.string.traffic_still_blocked else R.string.traffic_still), { vm.confirmTraffic(TrafficVerdict.Still) }, Modifier.weight(1f).semantics { still?.let { stateDescription = it } }, kind = if (notice.myVerdict == TrafficVerdict.Still) PillKind.Ink else PillKind.Quiet, compact = true, trailing = notice.stillCount.takeIf { it > 0 }?.toString())
+            Pill(stringResource(if (blocking) R.string.traffic_gone_blocked else R.string.traffic_gone), { vm.confirmTraffic(TrafficVerdict.Cleared) }, Modifier.weight(1f).semantics { cleared?.let { stateDescription = it } }, kind = if (notice.myVerdict == TrafficVerdict.Cleared) PillKind.Ink else PillKind.Quiet, compact = true, trailing = notice.clearedCount.takeIf { it > 0 }?.toString())
         }
-    } else notice.myVerdict?.let { Notice(Icons.Outlined.CheckCircle, stringResource(if (it == TrafficVerdict.Still) R.string.traffic_thanks_still else R.string.traffic_thanks_cleared)) }
+    } else {
+        listOfNotNull(still, cleared).takeIf { it.isNotEmpty() }?.let { Text(it.joinToString(" · "), style = Type.callout, color = p.ink3) }
+        notice.myVerdict?.let { Notice(Icons.Outlined.CheckCircle, stringResource(if (it == TrafficVerdict.Still) R.string.traffic_thanks_still else R.string.traffic_thanks_cleared)) }
+    }
 }
 
 /** Search across places and eco routes: type, see, tap (iOS's `MapSearch`). */
@@ -733,4 +753,44 @@ private fun SearchRow(icon: ImageVector, tint: Tint, title: String, detail: Stri
             Text(detail, style = Type.callout, color = Ink.colors.ink3)
         }
     }
+}
+
+/**
+ * A path as a wave riding along it: offset to either side by [amplitude] metres, one full swing
+ * every [wavelength] metres. Water on a flooded street.
+ */
+private fun floodWave(points: List<LatLng>, amplitude: Double, wavelength: Double): List<LatLng> {
+    if (points.size < 2 || wavelength <= 0) return points
+    val cumulative = DoubleArray(points.size)
+    for (i in 1 until points.size) cumulative[i] = cumulative[i - 1] + metres(points[i - 1], points[i])
+    val length = cumulative.last()
+    if (length <= 0) return points
+    fun at(d: Double): LatLng {
+        val i = (cumulative.indexOfLast { it <= d }).coerceIn(0, points.size - 2)
+        val span = cumulative[i + 1] - cumulative[i]
+        val t = if (span > 0) (d - cumulative[i]) / span else 0.0
+        val a = points[i]; val b = points[i + 1]
+        return LatLng(a.latitude + (b.latitude - a.latitude) * t, a.longitude + (b.longitude - a.longitude) * t)
+    }
+    val step = wavelength / 12
+    val out = mutableListOf<LatLng>()
+    var along = 0.0
+    while (along <= length) {
+        val here = at(along)
+        val ahead = at(minOf(along + step, length))
+        val behind = at(maxOf(along - step, 0.0))
+        val perLon = 111_320 * kotlin.math.cos(Math.toRadians(here.latitude))
+        val dx = (ahead.longitude - behind.longitude) * perLon
+        val dy = (ahead.latitude - behind.latitude) * 111_320
+        val norm = maxOf(kotlin.math.hypot(dx, dy), 0.0001)
+        val side = amplitude * kotlin.math.sin(along / wavelength * 2 * Math.PI)
+        out += LatLng(here.latitude + (dx / norm) * side / 111_320, here.longitude - (dy / norm) * side / perLon)
+        along += step
+    }
+    return out
+}
+
+private fun metres(a: LatLng, b: LatLng): Double {
+    val perLon = 111_320 * kotlin.math.cos(Math.toRadians((a.latitude + b.latitude) / 2))
+    return kotlin.math.hypot((b.longitude - a.longitude) * perLon, (b.latitude - a.latitude) * 111_320)
 }

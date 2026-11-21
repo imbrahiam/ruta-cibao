@@ -24,28 +24,32 @@ private struct SignInFlow: View {
     private var vm: SignInViewModel { model.vm }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Going back a step is at the leading edge; leaving is at the trailing one.
-            HStack {
-                if state.step == .verify { IconButton(symbol: "chevron.left", label: L10n.SignIn.change, glass: true) { vm.editDestination() } }
-                Spacer()
-                if state.step != .verify { IconButton(symbol: "xmark", label: L10n.Common.close, glass: true) { close() } }
+        // With the keyboard up the page scrolls rather than squeezing its copy.
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                // Going back a step is at the leading edge; leaving is at the trailing one.
+                HStack {
+                    if state.step == .verify { IconButton(symbol: "chevron.left", label: L10n.SignIn.change, glass: true) { vm.editDestination() } }
+                    Spacer()
+                    if state.step != .verify { IconButton(symbol: "xmark", label: L10n.Common.close, glass: true) { close() } }
+                }
+                .padding(.top, 10)
+
+                Mark(size: 44).padding(.top, 28).rise(0)
+
+                Group {
+                    if state.step == .verify { verify } else { enter }
+                }
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .offset(x: reduceMotion ? 0 : 24)),
+                    removal: .opacity.combined(with: .offset(x: reduceMotion ? 0 : -24))
+                ))
+
+                Spacer(minLength: 0)
             }
-            .padding(.top, 10)
-
-            Mark(size: 44).padding(.top, 28).rise(0)
-
-            Group {
-                if state.step == .verify { verify } else { enter }
-            }
-            .transition(.asymmetric(
-                insertion: .opacity.combined(with: .offset(x: reduceMotion ? 0 : 24)),
-                removal: .opacity.combined(with: .offset(x: reduceMotion ? 0 : -24))
-            ))
-
-            Spacer(minLength: 0)
+            .padding(.horizontal, Metrics.gutter)
         }
-        .padding(.horizontal, Metrics.gutter)
+        .scrollBounceBehavior(.basedOnSize)
         .readable(480)
         .animation(Motion.settle, value: state.step)
         .onChange(of: state.step, initial: true) { _, step in
@@ -64,20 +68,42 @@ private struct SignInFlow: View {
     private var enter: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(L10n.SignIn.title).type(.display).padding(.top, 22).rise(1)
-            Text(L10n.SignIn.lede).type(.body, .ink2).padding(.top, 8).rise(2)
+            Text(L10n.SignIn.lede).type(.body, .ink2).fixedSize(horizontal: false, vertical: true).padding(.top, 8).rise(2)
 
-            HStack(spacing: 8) {
-                Chip(title: L10n.SignIn.phone, symbol: "phone", selected: state.method == .phone) { vm.selectMethod(method: .phone) }
-                Chip(title: L10n.SignIn.email, symbol: "envelope", selected: state.method == .email) { vm.selectMethod(method: .email) }
+            HStack(spacing: 4) {
+                ForEach(state.methods, id: \.self) { method in
+                    let selected = state.method == method
+                    Button { vm.selectMethod(method: method) } label: {
+                        Label(
+                            method == .email ? L10n.SignIn.email : L10n.SignIn.phone,
+                            systemImage: method == .email ? "envelope" : "text.bubble"
+                        )
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(selected ? Color.ink : Color.ink2)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background {
+                            if selected {
+                                Capsule().fill(Color.paper)
+                                    .shadow(color: .black.opacity(0.1), radius: 2, y: 1)
+                            }
+                        }
+                        .contentShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(state.busy || !state.isAvailable(method: method))
+                    .accessibilityAddTraits(selected ? .isSelected : [])
+                }
             }
+            .padding(4)
+            .background(Color.paper2, in: Capsule())
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel(L10n.SignIn.methodLabel)
             .padding(.top, 28)
             .rise(3)
 
             Group {
                 if state.method == .phone {
-                    Field(placeholder: L10n.SignIn.phonePlaceholder, text: Binding(get: { state.phone }, set: { vm.updatePhone(input: $0) }))
-                        .keyboardType(.phonePad)
-                        .textContentType(.telephoneNumber)
+                    PhoneField(placeholder: L10n.SignIn.phonePlaceholder, text: Binding(get: { state.phone }, set: { vm.updatePhone(input: $0) }))
                 } else {
                     Field(placeholder: L10n.SignIn.emailPlaceholder, text: Binding(get: { state.email }, set: { vm.updateEmail(input: $0) }))
                         .keyboardType(.emailAddress)
@@ -91,15 +117,29 @@ private struct SignInFlow: View {
             .padding(.top, 12)
             .rise(4)
 
-            problem
+            // A wait is about the button, not the address: it shows beside the button, which
+            // stays off until the wait is over.
+            if state.error != .rateLimited { problem }
 
             Button { vm.submit() } label: { busyLabel(L10n.SignIn.sendCode) }
                 .buttonStyle(.ink)
-                .disabled(!state.canSubmit || state.busy)
+                .disabled(!state.canSubmit || state.busy || state.resendIn > 0)
                 .padding(.top, 16)
                 .rise(5)
 
-            Text(L10n.SignIn.terms).type(.caption, .ink3).padding(.top, 14).rise(6)
+            if state.resendIn > 0 {
+                Label(waitText(Int(state.resendIn)), systemImage: "clock")
+                    .type(.callout, .ink2)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+            } else if state.error == .rateLimited {
+                problem
+            }
+
+            // Copy never truncates to make room for the keyboard; the page scrolls instead.
+            Text(L10n.SignIn.terms).type(.caption, .ink3).fixedSize(horizontal: false, vertical: true).padding(.top, 14).rise(6)
         }
     }
 
@@ -143,6 +183,11 @@ private struct SignInFlow: View {
                 .padding(.top, 10)
                 .transition(.opacity.combined(with: .offset(y: -4)))
         }
+    }
+
+    /// "Puedes pedir otro código en 24 s", or in minutes once the wait is that long.
+    private func waitText(_ seconds: Int) -> String {
+        seconds < 60 ? L10n.SignIn.waitSeconds(seconds: seconds) : L10n.SignIn.waitMinutes(minutes: String((seconds + 59) / 60))
     }
 
     private func busyLabel(_ title: String) -> some View {
@@ -190,7 +235,8 @@ struct CodeBoxes: View {
                         .font(.system(size: 26, weight: .regular).monospacedDigit())
                         .foregroundStyle(Color.ink)
                         .frame(maxWidth: .infinity, minHeight: 60)
-                        .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
+                        // The box you are typing into is white with the green outline; the rest rest on the quiet fill.
+                        .background(focused && index == min(code.count, 5) ? Color.paper : Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous)
                                 .strokeBorder(failed ? Color.danger : Color.brand, lineWidth: focused && index == min(code.count, 5) ? 1.5 : 0)

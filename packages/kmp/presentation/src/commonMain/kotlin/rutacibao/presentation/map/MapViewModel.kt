@@ -145,6 +145,7 @@ public class MapViewModel(
     private var linkJob: Job? = null
 
     /** Ids the person has saved, so a sheet opens with the right bookmark. */
+    private var pendingSaveId: String? = null
     private var savedIds: Set<String> = emptySet()
 
     init {
@@ -433,14 +434,28 @@ public class MapViewModel(
         }
     }
 
-    /** Optimistic save; signed out it asks for sign-in instead. */
+    /** Resume the save from the same detail after its sign-in cover closes. */
+    public fun finishPlaceSignIn() {
+        val id = pendingSaveId
+        pendingSaveId = null
+        val open = _state.value.sheet ?: return
+        if (open.place.id == id && session.isSignedIn.value && !open.saved) {
+            setSaved(open, next = true)
+        }
+    }
+
+    /** Optimistic save; signed out it asks for sign-in first. */
     public fun toggleSaved() {
         val sheet = _state.value.sheet ?: return
         if (!session.isSignedIn.value) {
+            pendingSaveId = sheet.place.id
             _state.update { it.copy(signInRequested = true) }
             return
         }
-        val next = !sheet.saved
+        setSaved(sheet, next = !sheet.saved)
+    }
+
+    private fun setSaved(sheet: PlaceSheet, next: Boolean) {
         savedIds = if (next) savedIds + sheet.place.id else savedIds - sheet.place.id
         _state.update { it.updatingSheet(sheet.place.id) { open -> open.copy(saved = next) } }
         viewModelScope.launch {

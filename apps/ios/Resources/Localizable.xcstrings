@@ -3808,6 +3808,249 @@
         }
       }
     },
+    "discover.all": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo"
+          }
+        }
+      }
+    },
+    "discover.categories": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explorar por tipo"
+          }
+        }
+      }
+    },
+    "discover.count": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld lugar"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld lugares"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "discover.difficulty.easy": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fácil"
+          }
+        }
+      }
+    },
+    "discover.difficulty.hard": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Difícil"
+          }
+        }
+      }
+    },
+    "discover.difficulty.moderate": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moderada"
+          }
+        }
+      }
+    },
+    "discover.eat": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dónde comer"
+          }
+        }
+      }
+    },
+    "discover.empty": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todavía no hay lugares aquí."
+          }
+        }
+      }
+    },
+    "discover.emptyBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prueba con otro municipio o mira el mapa."
+          }
+        }
+      }
+    },
+    "discover.km": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ km"
+          }
+        }
+      }
+    },
+    "discover.minutes": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ min"
+          }
+        }
+      }
+    },
+    "discover.openMap": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver en el mapa"
+          }
+        }
+      }
+    },
+    "discover.routes": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rutas para caminar"
+          }
+        }
+      }
+    },
+    "discover.routesBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Senderos con su recorrido, su tiempo y su dificultad."
+          }
+        }
+      }
+    },
+    "discover.seeAll": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver todo"
+          }
+        }
+      }
+    },
+    "discover.services": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Servicios útiles"
+          }
+        }
+      }
+    },
+    "discover.shop": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compras del día"
+          }
+        }
+      }
+    },
+    "discover.stay": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dónde dormir"
+          }
+        }
+      }
+    },
+    "discover.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descubrir"
+          }
+        }
+      }
+    },
+    "discover.todo": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qué hacer"
+          }
+        }
+      }
+    },
+    "discover.verified": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmado por vecinos"
+          }
+        }
+      }
+    },
     "errors.deletion.last_administrator": {
       "extractionState": "manual",
       "localizations": {
@@ -6992,6 +7235,17 @@
         }
       }
     },
+    "permissions.contacts": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruta Cibao muestra tus contactos para que elijas a quién invitar. No salen de tu teléfono."
+          }
+        }
+      }
+    },
     "permissions.location": {
       "extractionState": "manual",
       "localizations": {
@@ -7285,6 +7539,29 @@
           "stringUnit": {
             "state": "translated",
             "value": "¿Es tu negocio?"
+          }
+        }
+      }
+    },
+    "place.confirmationCount": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Un vecino lo confirmó"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld vecinos lo confirmaron"
+                }
+              }
+            }
           }
         }
       }
@@ -8774,6 +9051,1103 @@
         }
       }
     },
+    "reputation.account": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu cuenta"
+          }
+        }
+      }
+    },
+    "reputation.badge.civicVoice.how": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abre una consulta que se publique."
+          }
+        }
+      }
+    },
+    "reputation.badge.civicVoice.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voz del barrio"
+          }
+        }
+      }
+    },
+    "reputation.badge.firstContribution.how": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Publica tu primer lugar, ruta, consulta o aviso."
+          }
+        }
+      }
+    },
+    "reputation.badge.firstContribution.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primer aporte"
+          }
+        }
+      }
+    },
+    "reputation.badge.host.how": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invita a alguien que se una con tu código."
+          }
+        }
+      }
+    },
+    "reputation.badge.host.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anfitrión"
+          }
+        }
+      }
+    },
+    "reputation.badge.roadWatch.how": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avisa 5 veces cómo están las vías."
+          }
+        }
+      }
+    },
+    "reputation.badge.roadWatch.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vigía del camino"
+          }
+        }
+      }
+    },
+    "reputation.badge.threeTowns.how": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sella lugares en Sabaneta, Monción y Villa Los Almácigos."
+          }
+        }
+      }
+    },
+    "reputation.badge.threeTowns.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Los tres municipios"
+          }
+        }
+      }
+    },
+    "reputation.badge.traveller.how": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sella 5 lugares en tu pasaporte."
+          }
+        }
+      }
+    },
+    "reputation.badge.traveller.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Viajero"
+          }
+        }
+      }
+    },
+    "reputation.badge.watchful.how": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirma 10 lugares del mapa."
+          }
+        }
+      }
+    },
+    "reputation.badge.watchful.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ojo vecinal"
+          }
+        }
+      }
+    },
+    "reputation.badgeEarned": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conseguida"
+          }
+        }
+      }
+    },
+    "reputation.badgeLocked": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Por desbloquear"
+          }
+        }
+      }
+    },
+    "reputation.badgeProgress": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ de %2$@"
+          }
+        }
+      }
+    },
+    "reputation.badgesCount": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ de %2$lld desbloqueadas"
+          }
+        }
+      }
+    },
+    "reputation.badgesTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insignias"
+          }
+        }
+      }
+    },
+    "reputation.chooseContacts": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elegir contactos"
+          }
+        }
+      }
+    },
+    "reputation.chooseNumber": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿A qué número se lo envías?"
+          }
+        }
+      }
+    },
+    "reputation.codeCopied": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código copiado"
+          }
+        }
+      }
+    },
+    "reputation.codeLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu código"
+          }
+        }
+      }
+    },
+    "reputation.contactsDeniedBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permite el acceso en Ajustes o comparte tu enlace."
+          }
+        }
+      }
+    },
+    "reputation.contactsDeniedTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sin acceso a tus contactos"
+          }
+        }
+      }
+    },
+    "reputation.contactsEmpty": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No tienes contactos con número."
+          }
+        }
+      }
+    },
+    "reputation.contactsPrivate": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tus contactos no salen de este teléfono."
+          }
+        }
+      }
+    },
+    "reputation.contactsSection": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contactos"
+          }
+        }
+      }
+    },
+    "reputation.contactsTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige a quién invitar"
+          }
+        }
+      }
+    },
+    "reputation.copy": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar"
+          }
+        }
+      }
+    },
+    "reputation.copyCode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copiar código"
+          }
+        }
+      }
+    },
+    "reputation.editProfile": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editar perfil"
+          }
+        }
+      }
+    },
+    "reputation.errorAlreadyRedeemed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya canjeaste un código antes."
+          }
+        }
+      }
+    },
+    "reputation.errorInvalidCode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El código tiene 8 letras y números."
+          }
+        }
+      }
+    },
+    "reputation.errorOwnCode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ese es tu propio código."
+          }
+        }
+      }
+    },
+    "reputation.errorUnknownCode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ese código no existe. Revísalo."
+          }
+        }
+      }
+    },
+    "reputation.haveCode": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ingresar código de invitación"
+          }
+        }
+      }
+    },
+    "reputation.hostEarned": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insignia Anfitrión conseguida"
+          }
+        }
+      }
+    },
+    "reputation.hostPending": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gana la insignia Anfitrión"
+          }
+        }
+      }
+    },
+    "reputation.inviteAction": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitar"
+          }
+        }
+      }
+    },
+    "reputation.inviteBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cuando se una con tu código, ganas 10 puntos y la insignia Anfitrión."
+          }
+        }
+      }
+    },
+    "reputation.inviteBySms": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitar por SMS"
+          }
+        }
+      }
+    },
+    "reputation.inviteCard": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invita a un vecino"
+          }
+        }
+      }
+    },
+    "reputation.inviteCardBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gana 10 puntos y la insignia Anfitrión."
+          }
+        }
+      }
+    },
+    "reputation.inviteContacts": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitar contactos"
+          }
+        }
+      }
+    },
+    "reputation.invitePoints": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+10 puntos por cada vecino que se una"
+          }
+        }
+      }
+    },
+    "reputation.inviteTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invita a un vecino."
+          }
+        }
+      }
+    },
+    "reputation.invited": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invitado"
+          }
+        }
+      }
+    },
+    "reputation.invitedBy": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te invitó"
+          }
+        }
+      }
+    },
+    "reputation.joined": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "zero": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Nadie se ha unido todavía."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld vecino se unió con tu código."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld vecinos se unieron con tu código."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "reputation.kind.confirmation": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lugar confirmado"
+          }
+        }
+      }
+    },
+    "reputation.kind.consultation": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consulta publicada"
+          }
+        }
+      }
+    },
+    "reputation.kind.invite": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vecino invitado"
+          }
+        }
+      }
+    },
+    "reputation.kind.place": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lugar publicado"
+          }
+        }
+      }
+    },
+    "reputation.kind.route": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruta publicada"
+          }
+        }
+      }
+    },
+    "reputation.kind.stamp": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sello del pasaporte"
+          }
+        }
+      }
+    },
+    "reputation.kind.support": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apoyo a una consulta"
+          }
+        }
+      }
+    },
+    "reputation.kind.traffic": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aviso de vía"
+          }
+        }
+      }
+    },
+    "reputation.knowMore": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cómo subir de rango"
+          }
+        }
+      }
+    },
+    "reputation.memberSince": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde %1$@"
+          }
+        }
+      }
+    },
+    "reputation.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te invito a Ruta Cibao, el mapa de Sabaneta, Monción y Villa Los Almácigos. Mi código es %1$@: %2$@"
+          }
+        }
+      }
+    },
+    "reputation.noMatches": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nadie con ese nombre."
+          }
+        }
+      }
+    },
+    "reputation.openSettings": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Ajustes"
+          }
+        }
+      }
+    },
+    "reputation.points": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld punto"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld puntos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "reputation.pointsEach": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "+%1$@"
+          }
+        }
+      }
+    },
+    "reputation.pointsLabel": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "puntos"
+          }
+        }
+      }
+    },
+    "reputation.prepareMessage": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preparar mensaje"
+          }
+        }
+      }
+    },
+    "reputation.progressTo": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ de %2$@ puntos hacia %3$@"
+          }
+        }
+      }
+    },
+    "reputation.progressTop": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llegaste al rango más alto"
+          }
+        }
+      }
+    },
+    "reputation.rangeFrom": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde %1$@"
+          }
+        }
+      }
+    },
+    "reputation.rank.explorador": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Explorador"
+          }
+        }
+      }
+    },
+    "reputation.rank.guia": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Guía"
+          }
+        }
+      }
+    },
+    "reputation.rank.leyenda": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leyenda"
+          }
+        }
+      }
+    },
+    "reputation.rank.vecino": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vecino"
+          }
+        }
+      }
+    },
+    "reputation.rankLine.explorador": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sale a descubrir."
+          }
+        }
+      }
+    },
+    "reputation.rankLine.guia": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lleva a otros."
+          }
+        }
+      }
+    },
+    "reputation.rankLine.leyenda": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El Cibao lo conoce."
+          }
+        }
+      }
+    },
+    "reputation.rankLine.vecino": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conoce su calle."
+          }
+        }
+      }
+    },
+    "reputation.rankSheetBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ganas puntos cuando lo que aportas se publica o se acepta."
+          }
+        }
+      }
+    },
+    "reputation.rankSheetTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cómo subir de rango"
+          }
+        }
+      }
+    },
+    "reputation.redeemAction": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Canjear"
+          }
+        }
+      }
+    },
+    "reputation.redeemBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escribe su código de 8 letras y números."
+          }
+        }
+      }
+    },
+    "reputation.redeemPlaceholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Código"
+          }
+        }
+      }
+    },
+    "reputation.redeemTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Te invitó alguien?"
+          }
+        }
+      }
+    },
+    "reputation.redeemedAlready": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ya indicaste quién te invitó."
+          }
+        }
+      }
+    },
+    "reputation.redeemedThanks": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Listo. %1$@ ganó puntos por invitarte."
+          }
+        }
+      }
+    },
+    "reputation.residentBody": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El ayuntamiento confirmó en persona que vives en %1$@. No te da más votos; ayuda a que tus aportes se lean con más confianza."
+          }
+        }
+      }
+    },
+    "reputation.residentBodyNoPlace": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "El ayuntamiento confirmó en persona que vives en el municipio que elegiste."
+          }
+        }
+      }
+    },
+    "reputation.rewardsTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recompensas"
+          }
+        }
+      }
+    },
+    "reputation.searchContacts": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Buscar por nombre"
+          }
+        }
+      }
+    },
+    "reputation.shareLink": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Compartir enlace"
+          }
+        }
+      }
+    },
+    "reputation.since": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desde %1$@"
+          }
+        }
+      }
+    },
+    "reputation.toNext": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te faltan %1$@ para %2$@."
+          }
+        }
+      }
+    },
+    "reputation.top": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llegaste al rango más alto."
+          }
+        }
+      }
+    },
+    "reputation.youAre": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eres %1$@."
+          }
+        }
+      }
+    },
+    "reputation.yours": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tú: %1$@"
+          }
+        }
+      }
+    },
     "routes.arrived": {
       "extractionState": "manual",
       "localizations": {
@@ -9855,7 +11229,7 @@
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "809-555-0123"
+            "value": "(809) 555-0123"
           }
         }
       }
@@ -9959,6 +11333,17 @@
         }
       }
     },
+    "signIn.unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No disponible por ahora."
+          }
+        }
+      }
+    },
     "signIn.verify": {
       "extractionState": "manual",
       "localizations": {
@@ -9988,6 +11373,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Escribe el código"
+          }
+        }
+      }
+    },
+    "signIn.waitMinutes": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes pedir otro código en %1$@ min"
+          }
+        }
+      }
+    },
+    "signIn.waitSeconds": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puedes pedir otro código en %1$lld s"
           }
         }
       }
@@ -10032,6 +11439,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Aportes"
+          }
+        }
+      }
+    },
+    "tabs.discover": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Descubrir"
           }
         }
       }
@@ -10138,28 +11556,6 @@
         }
       }
     },
-    "traffic.ask": {
-      "extractionState": "manual",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "¿Sigue ahí?"
-          }
-        }
-      }
-    },
-    "traffic.askBlocked": {
-      "extractionState": "manual",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "¿La vía sigue bloqueada?"
-          }
-        }
-      }
-    },
     "traffic.cleared": {
       "extractionState": "manual",
       "localizations": {
@@ -10180,13 +11576,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld persona dice que ya no está."
+                  "value": "%1$lld dice que ya no está"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld personas dicen que ya no está."
+                  "value": "%1$lld dicen que ya no está"
                 }
               }
             }
@@ -10236,13 +11632,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld persona dice que ya se puede pasar."
+                  "value": "%1$lld dice que ya se puede pasar"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld personas dicen que ya se puede pasar."
+                  "value": "%1$lld dicen que ya se puede pasar"
                 }
               }
             }
@@ -10381,13 +11777,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld persona confirma que la vía sigue bloqueada."
+                  "value": "%1$lld persona lo confirma"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld personas confirman que la vía sigue bloqueada."
+                  "value": "%1$lld personas lo confirman"
                 }
               }
             }
@@ -10404,13 +11800,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld persona confirma que sigue ahí."
+                  "value": "%1$lld persona lo confirma"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%1$lld personas confirman que sigue ahí."
+                  "value": "%1$lld personas lo confirman"
                 }
               }
             }

@@ -11,3 +11,7 @@ extension RelativeTime {
         }
     }
 }
+
+extension KotlinInstant {
+    var relativeText: String { RelativeTime.companion.since(instant: self).text }
+}

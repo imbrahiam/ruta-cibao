@@ -21,9 +21,54 @@ struct AppleMap: View {
 
     @State private var position: MapCameraPosition = .automatic
     @State private var placed = false
+    @State private var visibleCamera: MapCamera?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        Map(position: $position, selection: Binding(get: { selected }, set: { onPick($0) })) {
+        MapReader { proxy in
+            map
+                .simultaneousGesture(SpatialTapGesture(coordinateSpace: .global).onEnded { tap in
+                    guard let key = trafficLine(at: tap.location, using: proxy) else { return }
+                    onPick(key)
+                })
+        }
+    }
+
+    private func trafficLine(at point: CGPoint, using proxy: MapProxy) -> String? {
+        for pin in pins {
+            let coordinate = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
+            if let anchor = proxy.convert(coordinate, to: .global) {
+                let lift: CGFloat = pin.sign != nil ? MapMarkerBadgeMetrics.height : 24
+                if abs(point.x - anchor.x) < 19 && point.y > anchor.y - lift && point.y < anchor.y + 8 {
+                    return nil
+                }
+            }
+        }
+        var closest: (key: String, distance: CGFloat)?
+        for line in lines where line.id.hasPrefix("t") {
+            let points = line.path.map { proxy.convert($0.coordinate, to: .global) }
+            for (start, end) in zip(points, points.dropFirst()) {
+                guard let start, let end else { continue }
+                let dx = end.x - start.x, dy = end.y - start.y
+                let length = dx * dx + dy * dy
+                guard length > 0 else { continue }
+                let fraction = min(max(((point.x - start.x) * dx + (point.y - start.y) * dy) / length, 0), 1)
+                let distance = hypot(point.x - start.x - fraction * dx, point.y - start.y - fraction * dy)
+                if distance <= max(16, line.width / 2 + 8), distance < (closest?.distance ?? .infinity) {
+                    closest = (line.id, distance)
+                }
+            }
+        }
+        return closest?.key
+    }
+
+    private var map: some View {
+        Map(position: $position, selection: Binding(get: { selected }, set: { key in
+            // MapKit clears its marker selection when the camera moves off an endpoint.
+            // The incident detail stays open until the user dismisses it or picks another item.
+            if key == nil, selected?.hasPrefix("t") == true { return }
+            onPick(key.flatMap { value in pins.first(where: { $0.key == value })?.selects ?? value })
+        })) {
             // Lines first, so markers and signs sit on top of them.
             ForEach(lines, id: \.id) { line in
                 let path = line.path.map(\.coordinate)
@@ -39,6 +84,19 @@ struct AppleMap: View {
                         MapPolyline(coordinates: bar)
                             .stroke(Color(hex: line.color) ?? .danger, style: StrokeStyle(lineWidth: width, lineCap: .butt, lineJoin: .round))
                     }
+                } else if let wave = line.waveMetres {
+                    // Water over the road: it spreads past the kerb in a pale band, runs deep
+                    // down the middle, and a white wave rides along it so it never reads as a
+                    // plain blue line or as one of the routes.
+                    let tone = Color(hex: line.color) ?? .blue
+                    MapPolyline(coordinates: path)
+                        .stroke(tone.opacity(0.28), style: StrokeStyle(lineWidth: line.width + 12, lineCap: .round, lineJoin: .round))
+                    MapPolyline(coordinates: path)
+                        .stroke(Color.white, style: StrokeStyle(lineWidth: line.width + 4, lineCap: .round, lineJoin: .round))
+                    MapPolyline(coordinates: path)
+                        .stroke(tone, style: StrokeStyle(lineWidth: line.width + 1, lineCap: .round, lineJoin: .round))
+                    MapPolyline(coordinates: TrailPath(path).wave(amplitude: wave * 0.18, wavelength: wave))
+                        .stroke(Color.white.opacity(0.95), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
                 } else {
                     if line.casing {
                         MapPolyline(coordinates: path)
@@ -58,18 +116,16 @@ struct AppleMap: View {
                     let picks = pin.selects ?? pin.key
                     // The marker's point stands on the road.
                     Annotation(pin.title, coordinate: coordinate, anchor: .bottom) {
-                        // With something else in hand, notices shrink and fade so they don't
-                        // cover its own markers (annotations draw above them).
                         let aside = selected != nil && selected != picks
-                        TrafficMarker(kind: sign, selected: selected == pin.key, small: pin.small || aside)
+                        TrafficMarker(kind: sign, selected: selected == pin.key)
                             .opacity(aside ? 0.45 : 1)
                     }
                     .annotationTitles(.hidden)
-                    .tag(picks)
+                    .tag(pin.key)
                 } else {
                     Marker(pin.title, systemImage: pin.symbol, coordinate: coordinate)
                         // With one in hand, the others step back so it reads first.
-                        .tint(selected == nil || selected == pin.key || pin.prominent ? pin.tone.color : pin.tone.color.opacity(0.45))
+                        .tint(pin.tone.color.markerTint.opacity(selected == nil || selected == pin.key || pin.prominent ? 1 : 0.45))
                         .tag(pin.key)
                 }
             }
@@ -88,12 +144,20 @@ struct AppleMap: View {
         .safeAreaPadding(.top, topInset)
         .safeAreaPadding(.bottom, bottomInset)
         .onMapCameraChange(frequency: .onEnd) { context in
+            visibleCamera = context.camera
             let box = context.region
             onMove(Viewport(
                 west: box.center.longitude - box.span.longitudeDelta / 2, south: box.center.latitude - box.span.latitudeDelta / 2,
                 east: box.center.longitude + box.span.longitudeDelta / 2, north: box.center.latitude + box.span.latitudeDelta / 2
             ))
             onFollowing(position.followsUserLocation)
+        }
+        .onChange(of: threeD) { _, enabled in
+            guard var camera = visibleCamera ?? position.camera else { return }
+            camera.pitch = enabled ? 55 : 0
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.6)) {
+                position = .camera(camera)
+            }
         }
         .onChange(of: camera.id, initial: true) { _, _ in
             let next = target(camera.move)

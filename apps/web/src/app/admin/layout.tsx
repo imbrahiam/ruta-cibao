@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AdminProviders } from "@/components/admin/providers";
 import { AdminShell } from "@/components/admin/shell";
 import { AdminThemeScope } from "@/components/admin/theme-scope";
+import { canDeliverSms, isDemoPhoneSignInEnabled } from "@/lib/sms";
 import { ADMIN_THEME_SCRIPT } from "@/lib/web/admin-theme-script";
 import { getT, pickMessages } from "@/lib/web/i18n";
 
@@ -53,7 +54,11 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
       />
       <AdminThemeScope>
         <Suspense>
-          <AdminShell>{children}</AdminShell>
+          <AdminShell
+            phoneSignInEnabled={canDeliverSms() || isDemoPhoneSignInEnabled()}
+          >
+            {children}
+          </AdminShell>
         </Suspense>
       </AdminThemeScope>
     </AdminProviders>

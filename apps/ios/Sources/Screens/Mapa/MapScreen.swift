@@ -18,6 +18,11 @@ extension EcoRoute {
 
 extension TrafficNotice {
     var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: latitude, longitude: longitude) }
+
+    var markerCoordinates: [CLLocationCoordinate2D] {
+        guard path.count > 1, let first = path.first, let last = path.last else { return [coordinate] }
+        return [first, last].map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+    }
     var tone: PinTone { severity == .blocking ? .blocked : .caution }
     var tint: Color { tone.color }
 }
@@ -79,6 +84,16 @@ private struct MapBody: View {
     private var state: MapUiState { model.state }
     private var vm: MapViewModel { model.vm }
     private var routing: Bool { navigator.phase != .idle || trail.active }
+
+    /// The header's categories, the most colourful models first; ties keep the server's order.
+    private func vividFirst(_ categories: [MapCategory]) -> [MapCategory] {
+        categories.enumerated()
+            .sorted { lhs, rhs in
+                let l = PlaceModel(icon: lhs.element.icon)?.vividness ?? 0, r = PlaceModel(icon: rhs.element.icon)?.vividness ?? 0
+                return l == r ? lhs.offset < rhs.offset : l > r
+            }
+            .map(\.element)
+    }
     private var guiding: Bool { navigator.phase == .navigating || navigator.phase == .arrived }
 
     /// Pins that would sit on top of each other give way until the zoom separates them.
@@ -88,7 +103,7 @@ private struct MapBody: View {
         let cell = perPoint * 46
         let gridded = Clustering.shared.declutter(places: state.places, cellLatitude: cell, cellLongitude: cell, keep: state.sheet?.place.id)
         // Road notices are live and few: they always show, and places give way around them.
-        let notices = state.traffic.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+        let notices = state.traffic.flatMap(\.markerCoordinates)
         return spaced(gridded, around: notices, perPoint: perPoint, keep: state.sheet?.place.id)
     }
 
@@ -138,6 +153,7 @@ private struct MapBody: View {
             .animation(reduceMotion ? nil : Motion.settle, value: navigator.phase)
             .sheet(isPresented: Binding(get: { selected && !routing && !searching }, set: { if !$0 { dismissSelection() } })) {
                 SelectionSheet(model: model, close: dismissSelection, directions: navigate, startTrail: walk)
+                    .fullScreenCover(isPresented: signIn, onDismiss: { vm.finishPlaceSignIn() }) { SignInScreen() }
             }
             // A result opens once search has fully left: presenting the next sheet while this
             // one is still dismissing with the keyboard up crashes UIKit's keyboard layout guide.
@@ -149,7 +165,6 @@ private struct MapBody: View {
                           pickRoutes: { afterSearch = { vm.clearFilters(); vm.toggleRoutes() }; searching = false },
                           suggest: { afterSearch = { chrome?.requested = .place }; searching = false })
             }
-            .fullScreenCover(isPresented: Binding(get: { state.signInRequested }, set: { if !$0 { vm.signInHandled() } })) { SignInScreen() }
             .onAppear { vm.setMapVisible(visible: true) }
             .onDisappear { vm.setMapVisible(visible: false) }
             .task {
@@ -200,12 +215,12 @@ private struct MapBody: View {
             // the filter would otherwise leave an empty map.
             .onChange(of: state.routesSelected) { _, on in
                 guard on, !selected else { return }
-                frame(state.routes.flatMap(\.coordinates))
+                frame(state.routes.compactMap(\.start))
             }
             // Closing a route's sheet under the Rutas filter frames every route again.
             .onChange(of: selected) { _, now in
                 guard !now, !routing, beforeRoute == nil, state.routesSelected else { return }
-                frame(state.routes.flatMap(\.coordinates))
+                frame(state.routes.compactMap(\.start))
             }
             // On the trail the map follows you, close in, as you walk.
             .onChange(of: trail.location) { _, here in
@@ -252,11 +267,8 @@ private struct MapBody: View {
     private var pins: [MapPin] {
         if trail.active { return stopPins(trail.stops) }
         guard !routing else { return allPins.filter { $0.key == routeTarget } }
-        // A route in hand shows its stops in order; the places it passes give way to them.
         if case .route(let route) = onEnum(of: state.selection) {
-            let stops = TrailStops.of(route.route, places: state.all)
-            let onRoute = Set(stops.compactMap(\.placeId).map { "p" + $0 })
-            return allPins.filter { !onRoute.contains($0.key) && !$0.key.hasPrefix("r") } + stopPins(stops)
+            return stopPins(TrailStops.of(route.route, places: state.all))
         }
         return allPins
     }
@@ -277,22 +289,14 @@ private struct MapBody: View {
 
     private var allPins: [MapPin] {
         places.map { MapPin(key: "p" + $0.id, latitude: $0.latitude, longitude: $0.longitude, title: $0.name, symbol: Glyph.symbol($0.icon, filled: true), tone: $0.tone) }
-            // A notice stands on its stretch of road as its marker, at the stretch's middle; a
-            // closed road also gets a smaller one at either end, so where it starts and stops reads.
             + state.traffic.flatMap { notice -> [MapPin] in
                 let sign = TrafficSignKind.of(category: notice.categoryName, icon: notice.icon)
-                let middle = notice.path.count > 1 ? notice.path[notice.path.count / 2] : nil
                 let key = "t" + notice.id
-                var pins = [MapPin(key: key, latitude: middle?.latitude ?? notice.latitude, longitude: middle?.longitude ?? notice.longitude,
-                                   title: notice.categoryName, symbol: Glyph.symbol(notice.icon, filled: true), tone: notice.tone, sign: sign)]
-                if sign.striped, notice.path.count > 2, spansOnScreen(notice.path.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }),
-                   let first = notice.path.first, let last = notice.path.last {
-                    for (end, point) in [("s", first), ("e", last)] {
-                        pins.append(MapPin(key: key + end, latitude: point.latitude, longitude: point.longitude, title: notice.categoryName,
-                                           symbol: Glyph.symbol(notice.icon, filled: true), tone: notice.tone, sign: sign, selects: key, small: true))
-                    }
+                return notice.markerCoordinates.enumerated().map { index, point in
+                    MapPin(key: index == 0 ? key : key + "e", latitude: point.latitude, longitude: point.longitude,
+                           title: notice.categoryName, symbol: Glyph.symbol(notice.icon, filled: true),
+                           tone: notice.tone, sign: sign, selects: index == 0 ? nil : key)
                 }
-                return pins
             }
             + state.visibleRoutes.compactMap { route in
                 route.start.map { MapPin(key: "r" + route.id, latitude: $0.latitude, longitude: $0.longitude, title: route.name, symbol: "figure.hiking", tone: .trail) }
@@ -311,14 +315,6 @@ private struct MapBody: View {
             .map { $0.path.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) } }
     }
 
-    /// Whether a stretch is long enough on screen for markers at its ends to stand apart from
-    /// the one at its middle; zoomed out they would pile up on each other.
-    private func spansOnScreen(_ path: [CLLocationCoordinate2D]) -> Bool {
-        guard let viewport else { return false }
-        let metresPerPoint = viewport.latitudeSpan * 111_000 / Double(max(mapHeight, 1))
-        return TrailPath(path).length / metresPerPoint > 140
-    }
-
     private var lines: [MapLine] {
         (trail.route.map { [MapLine(id: "trail", path: $0.coordinates.map(GeoPoint.init), color: PinTone.trail.css, width: 7)] } ?? [])
         // The affected stretch drawn on the road itself: in the hazard's colour on a white edge,
@@ -326,9 +322,10 @@ private struct MapBody: View {
         + state.traffic.filter { $0.path.count > 1 }.map { notice in
             let sign = TrafficSignKind.of(category: notice.categoryName, icon: notice.icon)
             return MapLine(id: "t" + notice.id, path: notice.path.map { GeoPoint(CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude)) },
-                           color: sign.lineCSS, width: 7, casing: true, stripeMetres: sign.striped ? stripeMetres : nil)
+                           color: sign.lineCSS, width: 7, casing: true, stripeMetres: sign.striped ? stripeMetres : nil,
+                           waveMetres: sign == .flood ? stripeMetres * 2.4 : nil)
         }
-            + state.visibleRoutes.map { MapLine(id: "r" + $0.id, path: $0.coordinates.map(GeoPoint.init), color: PinTone.trail.css, width: state.route?.id == $0.id ? 6 : 4) }
+            + (state.route.map { [MapLine(id: "r" + $0.id, path: $0.coordinates.map(GeoPoint.init), color: PinTone.trail.css, width: 6)] } ?? [])
             + (navigator.route.map { [MapLine(id: "way", path: $0.polyline.path, color: PinTone.pine.css, width: 7)] } ?? [])
     }
 
@@ -358,7 +355,7 @@ private struct MapBody: View {
                 }
                 .buttonStyle(Pressable(scale: 0.98))
                 .accessibilityLabel(L10n.Map.searchLabel)
-                ContributeButton()
+                HeaderActions()
             }
             .padding(.horizontal, Metrics.gutter)
 
@@ -373,11 +370,21 @@ private struct MapBody: View {
                     .accessibilityLabel(L10n.Map.clearFilters)
                     .transition(.scale.combined(with: .opacity))
                 }
-                if !state.routes.isEmpty {
-                    Chip(title: L10n.Map.routes, symbol: "figure.hiking", selected: state.routesSelected, onBrand: true) { vm.toggleRoutes() }
+                if state.phase == .loading, state.categories.isEmpty {
+                    Skeleton {
+                        HStack(spacing: 8) {
+                            ForEach([76.0, 112, 91, 114], id: \.self) { width in
+                                Capsule().fill(Color.onInk.opacity(0.18)).frame(width: width, height: 34)
+                            }
+                        }
+                        .frame(minHeight: 44)
+                    }
                 }
-                ForEach(state.categories, id: \.id) { category in
-                    Chip(title: category.name, symbol: Glyph.symbol(category.icon), selected: state.selectedCategories.contains(category.id), onBrand: true) { vm.toggleCategory(id: category.id) }
+                if !state.routes.isEmpty {
+                    Chip(title: L10n.Map.routes, symbol: "figure.hiking", model: .adventure, selected: state.routesSelected, onBrand: true) { vm.toggleRoutes() }
+                }
+                ForEach(vividFirst(state.categories), id: \.id) { category in
+                    Chip(title: category.name, symbol: Glyph.symbol(category.icon), model: PlaceModel(icon: category.icon), selected: state.selectedCategories.contains(category.id), onBrand: true) { vm.toggleCategory(id: category.id) }
                 }
             }
             .accessibilityLabel(L10n.Map.filterPlaces)
@@ -399,14 +406,10 @@ private struct MapBody: View {
     private var controls: some View {
         VStack(spacing: 10) {
             // Flat or in relief: the label says what a tap switches to.
-            IconButton(symbol: threeD ? "map" : "view.3d", label: threeD ? L10n.Map.view2d : L10n.Map.view3d, floating: true) {
+            IconButton(symbol: threeD ? "map" : "view.3d", label: threeD ? L10n.Map.view2d : L10n.Map.view3d, glass: true) {
                 threeD.toggle()
-                if let viewport {
-                    look(.region(center: GeoPoint(CLLocationCoordinate2D(latitude: (viewport.north + viewport.south) / 2, longitude: (viewport.east + viewport.west) / 2)),
-                                 latitudeSpan: viewport.latitudeSpan, longitudeSpan: viewport.east - viewport.west))
-                }
             }
-            IconButton(symbol: following ? "location.fill" : "location", label: L10n.Map.locate, floating: true) {
+            IconButton(symbol: following ? "location.fill" : "location", label: L10n.Map.locate, glass: true) {
                 if location.authorizationStatus == .notDetermined { location.requestWhenInUseAuthorization() }
                 look(.user)
             }
@@ -416,6 +419,10 @@ private struct MapBody: View {
     }
 
     // MARK: Selection and camera
+
+    private var signIn: Binding<Bool> {
+        Binding(get: { state.signInRequested }, set: { if !$0 { vm.signInHandled() } })
+    }
 
     private var selected: Bool { if case .none = onEnum(of: state.selection) { false } else { true } }
 
@@ -442,7 +449,10 @@ private struct MapBody: View {
         switch onEnum(of: state.selection) {
         case .none: break
         case .place(let place): focus(place.sheet.place.coordinate)
-        case .traffic(let traffic): if let notice = state.traffic.first(where: { $0.id == traffic.id }) { focus(notice.coordinate) }
+        case .traffic(let traffic):
+            if let pin = allPins.first(where: { $0.key == "t" + traffic.id }) {
+                focus(CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude))
+            }
         case .route(let route): frame(route.route.coordinates, lower: true)
         }
     }

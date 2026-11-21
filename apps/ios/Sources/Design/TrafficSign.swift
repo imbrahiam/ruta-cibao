@@ -74,22 +74,38 @@ struct TrafficBadge: View {
 struct TrafficMarker: View {
     let kind: TrafficSignKind
     var selected = false
-    /// The quieter markers at either end of a closed stretch.
-    var small = false
+    var body: some View {
+        MapMarkerBadge(fill: kind.wash, selected: selected) {
+            TrafficSign(kind: kind, size: MapMarkerBadgeMetrics.diameter * (kind == .pothole ? 0.57 : 0.66))
+                .offset(y: kind == .pothole ? -0.5 : 0)
+        }
+    }
+}
+
+enum MapMarkerBadgeMetrics {
+    static let diameter: CGFloat = 30
+    static let tipHeight: CGFloat = 5
+    static let height = diameter + tipHeight - 1
+}
+
+struct MapMarkerBadge<Icon: View>: View {
+    let fill: Color
+    let selected: Bool
+    @ViewBuilder var icon: () -> Icon
 
     var body: some View {
-        let size: CGFloat = selected ? 50 : (small ? 30 : 40)
+        let diameter = MapMarkerBadgeMetrics.diameter
         VStack(spacing: -1) {
             ZStack {
                 Circle().fill(Color.white)
-                Circle().fill(kind.wash).padding(size > 32 ? 3 : 2.5)
-                TrafficSign(kind: kind, size: size * 0.62)
+                Circle().fill(fill).padding(2.5)
+                icon()
             }
-            .frame(width: size, height: size)
-            Triangle().fill(Color.white).frame(width: size * 0.26, height: size * 0.18)
+            .frame(width: diameter, height: diameter)
+            Triangle().fill(Color.white).frame(width: 8, height: MapMarkerBadgeMetrics.tipHeight)
         }
         .compositingGroup()
-        .shadow(color: .black.opacity(0.24), radius: 3, y: 2)
+        .shadow(color: .black.opacity(selected ? 0.32 : 0.24), radius: 3, y: 2)
         .animation(Motion.quick, value: selected)
     }
 }

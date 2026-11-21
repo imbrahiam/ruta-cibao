@@ -19,7 +19,16 @@ struct TrailStop: Identifiable, Equatable {
     let along: CLLocationDistance
     var symbol: String = "mappin"
     var tint: Color = PinTone.trail.color
+    var model: PlaceModel?
     var placeId: String?
+
+    var artwork: PlaceModel? {
+        switch kind {
+        case .start: .flag
+        case .end: .finishFlag
+        case .place: model
+        }
+    }
 
     static func == (a: TrailStop, b: TrailStop) -> Bool { a.id == b.id && a.along == b.along }
 }
@@ -45,7 +54,7 @@ enum TrailStops {
             let point = line.project(place.coordinate)
             guard point.offset <= reach, point.along > 40, point.along < total - 40 else { return nil }
             return (TrailStop(id: "place-" + place.id, kind: .place, name: place.name, coordinate: place.coordinate, along: point.along,
-                              symbol: Glyph.symbol(place.icon, filled: true), tint: place.tint, placeId: place.id), point.offset)
+                              symbol: Glyph.symbol(place.icon, filled: true), tint: place.tint, model: PlaceModel(icon: place.icon), placeId: place.id), point.offset)
         }
         // Nearest to the path first, then each keeps its stretch of the walk to itself.
         var kept: [TrailStop] = []
@@ -121,6 +130,32 @@ struct TrailPath {
         return pieces
     }
 
+    /// The path as a wave that rides along it: offset to either side by `amplitude` metres,
+    /// one full swing every `wavelength` metres. Water on a flooded street.
+    func wave(amplitude: CLLocationDistance, wavelength: CLLocationDistance) -> [CLLocationCoordinate2D] {
+        guard points.count > 1, wavelength > 0, length > 0 else { return points }
+        let step = wavelength / 12
+        var out: [CLLocationCoordinate2D] = []
+        var along: CLLocationDistance = 0
+        while along <= length {
+            let here = point(at: along)
+            let ahead = point(at: min(along + step, length))
+            let behind = point(at: max(along - step, 0))
+            // The direction of travel in metres, turned a quarter to find "sideways".
+            let metresPerLon = 111_320 * cos(here.latitude * .pi / 180)
+            let dx = (ahead.longitude - behind.longitude) * metresPerLon
+            let dy = (ahead.latitude - behind.latitude) * 111_320
+            let norm = max(hypot(dx, dy), 0.0001)
+            let side = amplitude * sin(along / wavelength * 2 * .pi)
+            out.append(CLLocationCoordinate2D(
+                latitude: here.latitude + (dx / norm) * side / 111_320,
+                longitude: here.longitude - (dy / norm) * side / metresPerLon
+            ))
+            along += step
+        }
+        return out
+    }
+
     private func point(at distance: CLLocationDistance) -> CLLocationCoordinate2D {
         guard let index = cumulative.lastIndex(where: { $0 <= distance }), index < points.count - 1 else { return points.last ?? CLLocationCoordinate2D() }
         let span = cumulative[index + 1] - cumulative[index]
@@ -151,17 +186,6 @@ enum RouteService {
         case "guide": L10n.Routes.Service.guide
         case "parking": L10n.Routes.Service.parking
         default: L10n.Routes.Service.restrooms
-        }
-    }
-
-    static func symbol(_ name: String) -> String {
-        switch name.lowercased() {
-        case "water": "drop"
-        case "food": "fork.knife"
-        case "lodging": "bed.double"
-        case "guide": "person.badge.shield.checkmark"
-        case "parking": "parkingsign"
-        default: "toilet"
         }
     }
 }
@@ -244,7 +268,7 @@ struct StopDisc: View {
             if stop.kind == .place {
                 Text("\(index)").font(.system(size: 12, weight: .bold).monospacedDigit()).foregroundStyle(PinTone.trail.color)
             } else {
-                Image(systemName: stop.symbol).font(.system(size: 11, weight: .bold)).foregroundStyle(Color.onInk)
+                CategoryArtwork(model: stop.artwork, symbol: stop.symbol, size: 15).foregroundStyle(Color.onInk)
             }
         }
         .frame(width: 26, height: 26)

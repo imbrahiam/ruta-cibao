@@ -630,6 +630,45 @@ enum L10n {
         static var openSettings: String { String(localized: LocalizedStringResource("directions.openSettings")) }
     }
 
+    enum Discover {
+        static var title: String { String(localized: LocalizedStringResource("discover.title")) }
+        static var all: String { String(localized: LocalizedStringResource("discover.all")) }
+        static var categories: String { String(localized: LocalizedStringResource("discover.categories")) }
+        static var routes: String { String(localized: LocalizedStringResource("discover.routes")) }
+        static var routesBody: String { String(localized: LocalizedStringResource("discover.routesBody")) }
+        static var todo: String { String(localized: LocalizedStringResource("discover.todo")) }
+        static var eat: String { String(localized: LocalizedStringResource("discover.eat")) }
+        static var shop: String { String(localized: LocalizedStringResource("discover.shop")) }
+        static var stay: String { String(localized: LocalizedStringResource("discover.stay")) }
+        static var services: String { String(localized: LocalizedStringResource("discover.services")) }
+        static var seeAll: String { String(localized: LocalizedStringResource("discover.seeAll")) }
+        static func minutes(minutes: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("discover.minutes", comment: ""), minutes
+            )
+        }
+        static func km(km: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("discover.km", comment: ""), km
+            )
+        }
+        static var empty: String { String(localized: LocalizedStringResource("discover.empty")) }
+        static var emptyBody: String { String(localized: LocalizedStringResource("discover.emptyBody")) }
+        static var openMap: String { String(localized: LocalizedStringResource("discover.openMap")) }
+        static func count(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("discover.count", comment: ""), count
+            )
+        }
+        static var verified: String { String(localized: LocalizedStringResource("discover.verified")) }
+
+        enum Difficulty {
+            static var easy: String { String(localized: LocalizedStringResource("discover.difficulty.easy")) }
+            static var moderate: String { String(localized: LocalizedStringResource("discover.difficulty.moderate")) }
+            static var hard: String { String(localized: LocalizedStringResource("discover.difficulty.hard")) }
+        }
+    }
+
     enum Errors {
 
         enum Deletion {
@@ -992,6 +1031,7 @@ enum L10n {
         static var location: String { String(localized: LocalizedStringResource("permissions.location")) }
         static var camera: String { String(localized: LocalizedStringResource("permissions.camera")) }
         static var photos: String { String(localized: LocalizedStringResource("permissions.photos")) }
+        static var contacts: String { String(localized: LocalizedStringResource("permissions.contacts")) }
     }
 
     enum Picker {
@@ -1030,6 +1070,11 @@ enum L10n {
         static var hoursHelper: String { String(localized: LocalizedStringResource("place.hoursHelper")) }
         static var call: String { String(localized: LocalizedStringResource("place.call")) }
         static var stillThere: String { String(localized: LocalizedStringResource("place.stillThere")) }
+        static func confirmationCount(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("place.confirmationCount", comment: ""), count
+            )
+        }
         static var verify: String { String(localized: LocalizedStringResource("place.verify")) }
         static var exists: String { String(localized: LocalizedStringResource("place.exists")) }
         static var gone: String { String(localized: LocalizedStringResource("place.gone")) }
@@ -1232,6 +1277,199 @@ enum L10n {
         }
     }
 
+    enum Reputation {
+        static func points(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.points", comment: ""), count
+            )
+        }
+        static func toNext(points: String, rank: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.toNext", comment: ""), points, rank
+            )
+        }
+        static var top: String { String(localized: LocalizedStringResource("reputation.top")) }
+        static func since(date: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.since", comment: ""), date
+            )
+        }
+        static var knowMore: String { String(localized: LocalizedStringResource("reputation.knowMore")) }
+        static var haveCode: String { String(localized: LocalizedStringResource("reputation.haveCode")) }
+        static var editProfile: String { String(localized: LocalizedStringResource("reputation.editProfile")) }
+        static func rangeFrom(min: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.rangeFrom", comment: ""), min
+            )
+        }
+        static var badgesTitle: String { String(localized: LocalizedStringResource("reputation.badgesTitle")) }
+        static var badgeEarned: String { String(localized: LocalizedStringResource("reputation.badgeEarned")) }
+        static func badgeProgress(current: String, target: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.badgeProgress", comment: ""), current, target
+            )
+        }
+        static var rewardsTitle: String { String(localized: LocalizedStringResource("reputation.rewardsTitle")) }
+        static var inviteCard: String { String(localized: LocalizedStringResource("reputation.inviteCard")) }
+        static var inviteCardBody: String { String(localized: LocalizedStringResource("reputation.inviteCardBody")) }
+        static var inviteAction: String { String(localized: LocalizedStringResource("reputation.inviteAction")) }
+        static var rankSheetTitle: String { String(localized: LocalizedStringResource("reputation.rankSheetTitle")) }
+        static var rankSheetBody: String { String(localized: LocalizedStringResource("reputation.rankSheetBody")) }
+        static func pointsEach(points: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.pointsEach", comment: ""), points
+            )
+        }
+        static func yours(count: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.yours", comment: ""), count
+            )
+        }
+        static var inviteTitle: String { String(localized: LocalizedStringResource("reputation.inviteTitle")) }
+        static var inviteBody: String { String(localized: LocalizedStringResource("reputation.inviteBody")) }
+        static var chooseContacts: String { String(localized: LocalizedStringResource("reputation.chooseContacts")) }
+        static var shareLink: String { String(localized: LocalizedStringResource("reputation.shareLink")) }
+        static var codeLabel: String { String(localized: LocalizedStringResource("reputation.codeLabel")) }
+        static var copyCode: String { String(localized: LocalizedStringResource("reputation.copyCode")) }
+        static var codeCopied: String { String(localized: LocalizedStringResource("reputation.codeCopied")) }
+        static func joined(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.joined", comment: ""), count
+            )
+        }
+        static func message(code: String, url: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.message", comment: ""), code, url
+            )
+        }
+        static var contactsTitle: String { String(localized: LocalizedStringResource("reputation.contactsTitle")) }
+        static var searchContacts: String { String(localized: LocalizedStringResource("reputation.searchContacts")) }
+        static var contactsSection: String { String(localized: LocalizedStringResource("reputation.contactsSection")) }
+        static var invited: String { String(localized: LocalizedStringResource("reputation.invited")) }
+        static var contactsPrivate: String { String(localized: LocalizedStringResource("reputation.contactsPrivate")) }
+        static var contactsDeniedTitle: String { String(localized: LocalizedStringResource("reputation.contactsDeniedTitle")) }
+        static var contactsDeniedBody: String { String(localized: LocalizedStringResource("reputation.contactsDeniedBody")) }
+        static var contactsEmpty: String { String(localized: LocalizedStringResource("reputation.contactsEmpty")) }
+        static var noMatches: String { String(localized: LocalizedStringResource("reputation.noMatches")) }
+        static var openSettings: String { String(localized: LocalizedStringResource("reputation.openSettings")) }
+        static var redeemTitle: String { String(localized: LocalizedStringResource("reputation.redeemTitle")) }
+        static var redeemBody: String { String(localized: LocalizedStringResource("reputation.redeemBody")) }
+        static var redeemPlaceholder: String { String(localized: LocalizedStringResource("reputation.redeemPlaceholder")) }
+        static var redeemAction: String { String(localized: LocalizedStringResource("reputation.redeemAction")) }
+        static func redeemedThanks(name: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.redeemedThanks", comment: ""), name
+            )
+        }
+        static var redeemedAlready: String { String(localized: LocalizedStringResource("reputation.redeemedAlready")) }
+        static var errorUnknownCode: String { String(localized: LocalizedStringResource("reputation.errorUnknownCode")) }
+        static var errorOwnCode: String { String(localized: LocalizedStringResource("reputation.errorOwnCode")) }
+        static var errorAlreadyRedeemed: String { String(localized: LocalizedStringResource("reputation.errorAlreadyRedeemed")) }
+        static var errorInvalidCode: String { String(localized: LocalizedStringResource("reputation.errorInvalidCode")) }
+        static func youAre(rank: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.youAre", comment: ""), rank
+            )
+        }
+        static var pointsLabel: String { String(localized: LocalizedStringResource("reputation.pointsLabel")) }
+        static func progressTo(current: String, target: String, rank: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.progressTo", comment: ""), current, target, rank
+            )
+        }
+        static var progressTop: String { String(localized: LocalizedStringResource("reputation.progressTop")) }
+        static func badgesCount(earned: String, total: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.badgesCount", comment: ""), earned, total
+            )
+        }
+        static var badgeLocked: String { String(localized: LocalizedStringResource("reputation.badgeLocked")) }
+        static var hostEarned: String { String(localized: LocalizedStringResource("reputation.hostEarned")) }
+        static var hostPending: String { String(localized: LocalizedStringResource("reputation.hostPending")) }
+        static var invitePoints: String { String(localized: LocalizedStringResource("reputation.invitePoints")) }
+        static var invitedBy: String { String(localized: LocalizedStringResource("reputation.invitedBy")) }
+        static var inviteContacts: String { String(localized: LocalizedStringResource("reputation.inviteContacts")) }
+        static var inviteBySms: String { String(localized: LocalizedStringResource("reputation.inviteBySms")) }
+        static var prepareMessage: String { String(localized: LocalizedStringResource("reputation.prepareMessage")) }
+        static var chooseNumber: String { String(localized: LocalizedStringResource("reputation.chooseNumber")) }
+        static func residentBody(place: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.residentBody", comment: ""), place
+            )
+        }
+        static var residentBodyNoPlace: String { String(localized: LocalizedStringResource("reputation.residentBodyNoPlace")) }
+        static func memberSince(date: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("reputation.memberSince", comment: ""), date
+            )
+        }
+        static var account: String { String(localized: LocalizedStringResource("reputation.account")) }
+        static var copy: String { String(localized: LocalizedStringResource("reputation.copy")) }
+
+        enum Rank {
+            static var vecino: String { String(localized: LocalizedStringResource("reputation.rank.vecino")) }
+            static var explorador: String { String(localized: LocalizedStringResource("reputation.rank.explorador")) }
+            static var guia: String { String(localized: LocalizedStringResource("reputation.rank.guia")) }
+            static var leyenda: String { String(localized: LocalizedStringResource("reputation.rank.leyenda")) }
+        }
+
+        enum Badge {
+
+            enum FirstContribution {
+                static var title: String { String(localized: LocalizedStringResource("reputation.badge.firstContribution.title")) }
+                static var how: String { String(localized: LocalizedStringResource("reputation.badge.firstContribution.how")) }
+            }
+
+            enum Traveller {
+                static var title: String { String(localized: LocalizedStringResource("reputation.badge.traveller.title")) }
+                static var how: String { String(localized: LocalizedStringResource("reputation.badge.traveller.how")) }
+            }
+
+            enum ThreeTowns {
+                static var title: String { String(localized: LocalizedStringResource("reputation.badge.threeTowns.title")) }
+                static var how: String { String(localized: LocalizedStringResource("reputation.badge.threeTowns.how")) }
+            }
+
+            enum Watchful {
+                static var title: String { String(localized: LocalizedStringResource("reputation.badge.watchful.title")) }
+                static var how: String { String(localized: LocalizedStringResource("reputation.badge.watchful.how")) }
+            }
+
+            enum CivicVoice {
+                static var title: String { String(localized: LocalizedStringResource("reputation.badge.civicVoice.title")) }
+                static var how: String { String(localized: LocalizedStringResource("reputation.badge.civicVoice.how")) }
+            }
+
+            enum RoadWatch {
+                static var title: String { String(localized: LocalizedStringResource("reputation.badge.roadWatch.title")) }
+                static var how: String { String(localized: LocalizedStringResource("reputation.badge.roadWatch.how")) }
+            }
+
+            enum Host {
+                static var title: String { String(localized: LocalizedStringResource("reputation.badge.host.title")) }
+                static var how: String { String(localized: LocalizedStringResource("reputation.badge.host.how")) }
+            }
+        }
+
+        enum Kind {
+            static var place: String { String(localized: LocalizedStringResource("reputation.kind.place")) }
+            static var route: String { String(localized: LocalizedStringResource("reputation.kind.route")) }
+            static var consultation: String { String(localized: LocalizedStringResource("reputation.kind.consultation")) }
+            static var traffic: String { String(localized: LocalizedStringResource("reputation.kind.traffic")) }
+            static var confirmation: String { String(localized: LocalizedStringResource("reputation.kind.confirmation")) }
+            static var stamp: String { String(localized: LocalizedStringResource("reputation.kind.stamp")) }
+            static var support: String { String(localized: LocalizedStringResource("reputation.kind.support")) }
+            static var invite: String { String(localized: LocalizedStringResource("reputation.kind.invite")) }
+        }
+
+        enum RankLine {
+            static var vecino: String { String(localized: LocalizedStringResource("reputation.rankLine.vecino")) }
+            static var explorador: String { String(localized: LocalizedStringResource("reputation.rankLine.explorador")) }
+            static var guia: String { String(localized: LocalizedStringResource("reputation.rankLine.guia")) }
+            static var leyenda: String { String(localized: LocalizedStringResource("reputation.rankLine.leyenda")) }
+        }
+    }
+
     enum Routes {
         static var missing: String { String(localized: LocalizedStringResource("routes.missing")) }
         static var distance: String { String(localized: LocalizedStringResource("routes.distance")) }
@@ -1375,6 +1613,7 @@ enum L10n {
         static var methodLabel: String { String(localized: LocalizedStringResource("signIn.methodLabel")) }
         static var phone: String { String(localized: LocalizedStringResource("signIn.phone")) }
         static var email: String { String(localized: LocalizedStringResource("signIn.email")) }
+        static var unavailable: String { String(localized: LocalizedStringResource("signIn.unavailable")) }
         static var phoneLabel: String { String(localized: LocalizedStringResource("signIn.phoneLabel")) }
         static var phoneHelper: String { String(localized: LocalizedStringResource("signIn.phoneHelper")) }
         static var phonePlaceholder: String { String(localized: LocalizedStringResource("signIn.phonePlaceholder")) }
@@ -1405,6 +1644,16 @@ enum L10n {
         static var tooManyAttempts: String { String(localized: LocalizedStringResource("signIn.tooManyAttempts")) }
         static var sendFailed: String { String(localized: LocalizedStringResource("signIn.sendFailed")) }
         static var rateLimited: String { String(localized: LocalizedStringResource("signIn.rateLimited")) }
+        static func waitSeconds(seconds: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("signIn.waitSeconds", comment: ""), seconds
+            )
+        }
+        static func waitMinutes(minutes: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("signIn.waitMinutes", comment: ""), minutes
+            )
+        }
         static var welcome: String { String(localized: LocalizedStringResource("signIn.welcome")) }
         static var close: String { String(localized: LocalizedStringResource("signIn.close")) }
     }
@@ -1415,6 +1664,7 @@ enum L10n {
         static var consultations: String { String(localized: LocalizedStringResource("tabs.consultations")) }
         static var contributions: String { String(localized: LocalizedStringResource("tabs.contributions")) }
         static var account: String { String(localized: LocalizedStringResource("tabs.account")) }
+        static var discover: String { String(localized: LocalizedStringResource("tabs.discover")) }
     }
 
     enum Time {
@@ -1465,10 +1715,8 @@ enum L10n {
                 NSLocalizedString("traffic.clearedVoices", comment: ""), count
             )
         }
-        static var ask: String { String(localized: LocalizedStringResource("traffic.ask")) }
         static var still: String { String(localized: LocalizedStringResource("traffic.still")) }
         static var gone: String { String(localized: LocalizedStringResource("traffic.gone")) }
-        static var askBlocked: String { String(localized: LocalizedStringResource("traffic.askBlocked")) }
         static var stillBlocked: String { String(localized: LocalizedStringResource("traffic.stillBlocked")) }
         static var goneBlocked: String { String(localized: LocalizedStringResource("traffic.goneBlocked")) }
         static func stillBlockedVoices(count: Int) -> String {

@@ -5,9 +5,9 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material.icons.filled.Layers
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.outlined.Layers
-import androidx.compose.material.icons.outlined.AccountCircle
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import rutacibao.android.design.LocalContribute
@@ -92,7 +92,12 @@ import rutacibao.android.design.pressable
 import rutacibao.android.design.rootViewModel
 import rutacibao.android.screens.AccountPage
 import rutacibao.android.screens.AccountPageScreen
+import rutacibao.android.screens.AccountButton
 import rutacibao.android.screens.AccountScreen
+import rutacibao.android.screens.DiscoverCategoryScreen
+import rutacibao.android.screens.DiscoverScreen
+import rutacibao.android.design.LocalAccountButton
+import rutacibao.presentation.account.AccountViewModel
 import rutacibao.android.screens.ConsultationDetailScreen
 import rutacibao.android.screens.ConsultationsScreen
 import rutacibao.android.screens.ContributeAction
@@ -109,9 +114,9 @@ data class LinkRequest(val id: Long, val href: String, val target: AppTarget)
 
 enum class Tab(val label: Int, val icon: ImageVector, val iconSelected: ImageVector, val root: NavKey) {
     Map(R.string.tabs_map, Icons.Outlined.Map, Icons.Filled.Map, Route.Home),
+    Discover(R.string.tabs_discover, Icons.Outlined.GridView, Icons.Filled.GridView, Route.Discover),
     Consultations(R.string.tabs_consultations, Icons.Outlined.ChatBubbleOutline, Icons.Filled.ChatBubble, Route.Consultations),
     Contributions(R.string.tabs_contributions, Icons.Outlined.Layers, Icons.Filled.Layers, Route.Contributions),
-    Account(R.string.tabs_account, Icons.Outlined.AccountCircle, Icons.Filled.AccountCircle, Route.Account),
 }
 
 /** Navigation 3 keys. Saveable, so each tab's stack survives process death. */
@@ -119,6 +124,8 @@ sealed interface Route : NavKey {
     @Serializable data object Home : Route
     @Serializable data object Consultations : Route
     @Serializable data object Contributions : Route
+    @Serializable data object Discover : Route
+    @Serializable data class DiscoverCategory(val id: String) : Route
     @Serializable data object Account : Route
     @Serializable data class Consultation(val slug: String) : Route
     @Serializable data object NewConsultation : Route
@@ -154,9 +161,9 @@ fun AppRoot(
     onLinkHandled: (LinkRequest) -> Unit = {},
 ) {
     val initial = when (debugTab) {
+        "discover" -> Tab.Discover
         "consultations" -> Tab.Consultations
         "contributions" -> Tab.Contributions
-        "account", "gestion" -> Tab.Account
         else -> if (debugSlug != null) Tab.Consultations else Tab.Map
     }
     var selected by rememberSaveable { mutableStateOf(initial) }
@@ -181,10 +188,7 @@ fun AppRoot(
                 selected = Tab.Consultations
                 stacks.getValue(Tab.Consultations).add(Route.Consultation(target.ref!!))
             }
-            "report" -> {
-                selected = Tab.Account
-                stacks.getValue(Tab.Account).add(Route.Gestion)
-            }
+            "report" -> stacks.getValue(selected).add(Route.Gestion)
             "contributions" -> {
                 selected = Tab.Contributions
                 stacks.getValue(Tab.Contributions).popToRoot()
@@ -199,7 +203,8 @@ fun AppRoot(
         onLinkHandled(request)
     }
     LaunchedEffect(Unit) {
-        if (debugTab == "gestion") stacks.getValue(Tab.Account).add(Route.Gestion)
+        if (debugTab == "account") stacks.getValue(selected).add(Route.Account)
+        if (debugTab == "gestion") stacks.getValue(selected).add(Route.Gestion)
         if (debugSlug != null) stacks.getValue(Tab.Consultations).add(Route.Consultation(debugSlug))
         val route: Route? = when (debugCompose) {
             "consultation" -> Route.NewConsultation
@@ -209,9 +214,9 @@ fun AppRoot(
             else -> null
         }
         if (route != null) {
-            val tab = if (route is Route.AccountSub) Tab.Account else Tab.Contributions
-            selected = tab
-            stacks.getValue(tab).add(route)
+            if (route is Route.AccountSub) stacks.getValue(selected).add(Route.Account)
+            else selected = Tab.Contributions
+            stacks.getValue(selected).add(route)
         }
     }
 
@@ -244,7 +249,23 @@ fun AppRoot(
     // Leaving a tab's root from another tab goes back to the map before leaving the app.
     BackHandler(enabled = stack.size == 1 && selected != Tab.Map) { selected = Tab.Map }
 
-    CompositionLocalProvider(LocalBarClearance provides clearance, LocalTabChrome provides chrome, LocalContribute provides { contributing = true }) {
+    // The face in every header: the one account model, opened as a page on whichever tab you are on.
+    val account: AccountViewModel = rootViewModel("account") { graph.viewModels.account() }
+    val accountState by account.state.collectAsStateWithLifecycle()
+    val accountButton: @Composable () -> Unit = {
+        AccountButton(
+            name = accountState.me?.displayName,
+            image = accountState.me?.image,
+            rank = accountState.reputation?.rank,
+            signedIn = accountState.signedIn,
+            onClick = { if (stack.lastOrNull() !is Route.Account) stack.add(Route.Account) },
+        )
+    }
+
+    CompositionLocalProvider(
+        LocalBarClearance provides clearance, LocalTabChrome provides chrome, LocalContribute provides { contributing = true },
+        LocalAccountButton provides accountButton,
+    ) {
         Column(Modifier.fillMaxSize().background(Ink.colors.paper)) {
             Box(Modifier.weight(1f).fillMaxWidth().padding(padding).consumeWindowInsets(padding)) {
                 fun push(route: Route) { stack.add(route) }
@@ -264,9 +285,21 @@ fun AppRoot(
                                 onOpenHref = { href -> AppTarget.parse(href, BuildConfig.API_ORIGIN, BuildConfig.APP_SCHEME)?.let { openTarget(it, System.nanoTime()) } },
                             )
                         }
+                        entry<Route.Discover> {
+                            DiscoverScreen(
+                                onOpenPlace = { slug -> openTarget(AppTarget("place", slug), System.nanoTime()) },
+                                onOpenRoute = { id -> openTarget(AppTarget("route", id), System.nanoTime()) },
+                                onOpenCategory = { push(Route.DiscoverCategory(it.id)) },
+                            )
+                        }
+                        entry<Route.DiscoverCategory> {
+                            DiscoverCategoryScreen(it.id, onBack = ::pop, onOpenPlace = { slug ->
+                                openTarget(AppTarget("place", slug), System.nanoTime())
+                            })
+                        }
                         entry<Route.Account> {
-                            AccountScreen(onOpen = { push(Route.AccountSub(it)) }, onOpenGestion = { push(Route.Gestion) }, onOpenPlace = { slug ->
-                                AppTarget.parse("/lugares/$slug", BuildConfig.API_ORIGIN, BuildConfig.APP_SCHEME)?.let { openTarget(it, System.nanoTime()) }
+                            AccountScreen(onBack = ::pop, onOpen = { push(Route.AccountSub(it)) }, onOpenGestion = { push(Route.Gestion) }, onOpenPlace = { slug ->
+                                openTarget(AppTarget("place", slug), System.nanoTime())
                             })
                         }
                         entry<Route.Gestion> { GestionScreen(onBack = ::pop, onOpenConsultation = { push(Route.Consultation(it)) }) }
@@ -281,7 +314,7 @@ fun AppRoot(
                         entry<Route.TrafficReport> { TrafficReportScreen(onBack = ::pop, onSent = contributions::refresh) }
                         entry<Route.SuggestPlace> { SuggestPlaceScreen(onBack = ::pop, onSent = contributions::refresh) }
                         entry<Route.AccountSub> { AccountPageScreen(it.page, onBack = ::pop, onOpenPlace = { slug ->
-                            AppTarget.parse("/lugares/$slug", BuildConfig.API_ORIGIN, BuildConfig.APP_SCHEME)?.let { target -> openTarget(target, System.nanoTime()) }
+                            openTarget(AppTarget("place", slug), System.nanoTime())
                         }) }
                     },
                 )

@@ -10,10 +10,19 @@ import { RoadMark } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { authClient } from "@/lib/web/auth-client";
+import { formatPhoneChange } from "@/lib/web/phone-input";
 import { FormField } from "./form-field";
 
 type Method = "phone" | "email";
+
+const METHODS = ["email", "phone"] as const;
+const METHOD_ICONS = { email: Mail, phone: MessageSquareText } as const;
 type Step = { kind: "contact" } | { kind: "code"; method: Method; to: string };
 
 const RESEND_SECONDS = 60;
@@ -32,11 +41,15 @@ function failureCode(error: unknown): string | undefined {
  * Signing in grants nothing by itself. What a person may do here is decided by
  * the staff role on their account, which the shell reads afterwards.
  */
-export function AdminSignIn() {
+export function AdminSignIn({
+  phoneSignInEnabled,
+}: {
+  phoneSignInEnabled: boolean;
+}) {
   const t = useTranslations("admin");
   const queryClient = useQueryClient();
   const [pending, startTransition] = useTransition();
-  const [method, setMethod] = useState<Method>("phone");
+  const [method, setMethod] = useState<Method>("email");
   const [step, setStep] = useState<Step>({ kind: "contact" });
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -144,7 +157,12 @@ export function AdminSignIn() {
           <Tabs
             value={method}
             onValueChange={(value) => {
-              setMethod(value as Method);
+              if (
+                value !== "email" &&
+                (value !== "phone" || !phoneSignInEnabled)
+              )
+                return;
+              setMethod(value);
               setError(null);
             }}
           >
@@ -152,20 +170,37 @@ export function AdminSignIn() {
               aria-label={t("contact")}
               className="grid w-full grid-cols-2 rounded-full p-1 group-data-[orientation=horizontal]/tabs:h-12"
             >
-              <TabsTrigger
-                value="phone"
-                className="h-full rounded-full text-[0.9375rem] group-data-[variant=default]/tabs-list:data-[state=active]:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.04)]"
-              >
-                <MessageSquareText aria-hidden="true" />
-                {t("phone")}
-              </TabsTrigger>
-              <TabsTrigger
-                value="email"
-                className="h-full rounded-full text-[0.9375rem] group-data-[variant=default]/tabs-list:data-[state=active]:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.04)]"
-              >
-                <Mail aria-hidden="true" />
-                {t("email")}
-              </TabsTrigger>
+              {METHODS.map((option) => {
+                const Icon = METHOD_ICONS[option];
+                const available = option === "email" || phoneSignInEnabled;
+                const trigger = (
+                  <TabsTrigger
+                    key={option}
+                    value={option}
+                    disabled={!available}
+                    className="h-full rounded-full text-[0.9375rem] group-data-[variant=default]/tabs-list:data-[state=active]:shadow-[0_1px_2px_rgb(0_0_0/0.08),0_0_0_1px_rgb(0_0_0/0.04)]"
+                  >
+                    <Icon aria-hidden="true" />
+                    {t(option)}
+                    {!available && (
+                      <span className="sr-only">{t("methodUnavailable")}</span>
+                    )}
+                  </TabsTrigger>
+                );
+                if (available) return trigger;
+                // A disabled button gets no pointer events, so the wrapper
+                // carries the hover that explains why it is off.
+                return (
+                  <Tooltip key={option}>
+                    <TooltipTrigger asChild>
+                      <span className="flex h-full cursor-not-allowed">
+                        {trigger}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{t("methodUnavailable")}</TooltipContent>
+                  </Tooltip>
+                );
+              })}
             </TabsList>
           </Tabs>
 
@@ -177,19 +212,17 @@ export function AdminSignIn() {
             >
               <Input
                 id="staff-phone"
-                key="phone"
                 type="tel"
                 inputMode="tel"
                 autoComplete="tel-national"
+                key="phone"
                 autoFocus
                 placeholder={t("shell.phonePlaceholder")}
                 value={phone}
                 className="h-12 px-4 text-base md:text-base"
                 aria-invalid={Boolean(error)}
                 aria-describedby={error ? "staff-phone-error" : undefined}
-                onChange={(event) =>
-                  setPhone(formatPhoneInput(event.target.value))
-                }
+                onChange={(event) => setPhone(formatPhoneChange(event, phone))}
               />
             </FormField>
           ) : (

@@ -94,7 +94,7 @@ describe("renderNotification", () => {
           status: keyParam("consultations.status.resolved"),
         },
       ),
-    ).toBe("Tu caso «El agua no llega» pasó a resuelto");
+    ).toBe("Tu consulta «El agua no llega» pasó a resuelta");
   });
 
   test("leaves an ordinary parameter alone even when it reads like a key", () => {

@@ -11,6 +11,8 @@ import rutacibao.api.generated.NotificationsGetPreferencesOutput
 import rutacibao.api.generated.NotificationsSetPreferencesInput
 import rutacibao.api.generated.PassportListOutput
 import rutacibao.api.generated.PlacesSavedItem
+import rutacibao.api.generated.ReputationGetOutput
+import rutacibao.api.generated.ReputationRedeemInviteInput
 import rutacibao.api.generated.RutaApi
 
 /** The signed-in person's own data. Every write sends a fresh idempotency id. */
@@ -25,6 +27,11 @@ public class AccountRepository(private val api: RutaApi, private val session: Se
     public suspend fun passport(): PassportListOutput = api.passport.list()
     public suspend fun municipalities(): List<MunicipalitiesListItem> = api.municipalities.list()
     public suspend fun preferences(): NotificationsGetPreferencesOutput = api.notifications.getPreferences()
+    public suspend fun reputation(): ReputationGetOutput = api.reputation.get()
+
+    /** Names who invited this account; returns the inviter's display name. */
+    public suspend fun redeemInvite(code: String): String =
+        api.reputation.redeemInvite(ReputationRedeemInviteInput(requestId = id(), code = code)).inviterName
 
     public suspend fun updateProfile(displayName: String, municipalityId: String?) {
         api.me.updateProfile(MeUpdateProfileInput(requestId = id(), displayName = displayName, municipalityId = municipalityId))

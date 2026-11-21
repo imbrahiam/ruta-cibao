@@ -38,7 +38,7 @@ private struct Form: View {
                     .onChange(of: text) { _, value in vm.updateBody(value: value) }
 
                 FormLabel(text: L10n.Consultations.category, problem: state.problems.contains(.category))
-                ChoiceFlow(items: state.categories.map(\.id), selected: state.categoryId, title: { id in state.categories.first { $0.id == id }?.name ?? "" }, symbol: { id in state.categories.first { $0.id == id }.map { Glyph.symbol($0.icon) } }) { vm.selectCategory(id: $0) }
+                ChoiceFlow(items: state.categories.map(\.id), selected: state.categoryId, title: { id in state.categories.first { $0.id == id }?.name ?? "" }, symbol: { id in state.categories.first { $0.id == id }.map { Glyph.symbol($0.icon) } }, model: { id in state.categories.first { $0.id == id }.flatMap { PlaceModel(icon: $0.icon) } }) { vm.selectCategory(id: $0) }
 
                 FormLabel(text: L10n.Consultations.municipality, problem: state.problems.contains(.municipality))
                 ChoiceFlow(items: state.municipalities.map(\.id), selected: state.municipalityId, title: { id in state.municipalities.first { $0.id == id }?.name ?? "" }) { vm.selectMunicipality(id: $0) }

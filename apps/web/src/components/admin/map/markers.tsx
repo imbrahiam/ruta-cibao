@@ -1,7 +1,7 @@
 import { Flag, Play } from "lucide-react";
 import type { ReactNode } from "react";
+import { categoryIcon } from "@/components/category/category-glyph";
 import { cn } from "@/lib/utils";
-import { categoryIcon } from "./category-glyph";
 import { MAP_INK, type Scheme } from "./palette";
 
 /*

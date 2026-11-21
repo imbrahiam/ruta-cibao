@@ -1,8 +1,9 @@
 import { appTargetHref } from "@ruta/shared/app-target";
+import { BRAND_COLORS } from "@ruta/shared/brand";
 import { directionsUrl } from "@ruta/shared/directions";
-import { Clock, MapPin, Mountain, Navigation, Users } from "lucide-react";
-import Link from "next/link";
+import { Check, CircleAlert, MapPin, Navigation } from "lucide-react";
 import type { ReactNode } from "react";
+import { CategoryPin } from "@/components/category/category-pin";
 import { QrCode } from "@/components/landing/qr-code";
 import { buttonStyles } from "@/components/site/button";
 import { Tag } from "@/components/site/tag";
@@ -11,6 +12,9 @@ import { getFormatter, getT } from "@/lib/web/i18n";
 import { pathPoints } from "@/lib/web/path-preview";
 import type { ShareContent } from "@/lib/web/share";
 import { APP_SCHEME, site } from "@/lib/web/site";
+import { CopyLink } from "./copy-link";
+import { ShareRow } from "./share-row";
+import { TrustBadge } from "./trust-badge";
 
 type Tone = "neutral" | "accent" | "success" | "warning" | "danger";
 
@@ -27,78 +31,196 @@ function appLink(kind: ShareContent["kind"], ref: string): string {
   return `${APP_SCHEME}:/${appTargetHref({ kind, ref })}`;
 }
 
+/** The main action beside the title: directions, when there is somewhere to go. */
+type Primary = { href: string; label: string };
+
 /**
- * A shared link, read-only: what it points at, and a way into the app.
- * No account, no map, no form: the full experience lives in the app.
+ * A shared link, read-only: what it points at, how to get there, and a way
+ * into the app. No account, no map, no form: the full experience lives in the
+ * app. One column unless there is a photo or a route drawing worth a second.
  */
 export function ShareView({ content }: { content: ShareContent }) {
+  switch (content.kind) {
+    case "place":
+      return <PlaceSheet content={content} />;
+    case "route":
+      return <RouteSheet content={content} />;
+    case "consultation":
+      return <ConsultationSheet content={content} />;
+    case "traffic":
+      return <TrafficSheet content={content} />;
+  }
+}
+
+function Sheet({
+  content,
+  title,
+  meta,
+  metaIcon,
+  badge,
+  status,
+  primary,
+  media,
+  children,
+}: {
+  content: ShareContent;
+  title: string;
+  /** Short facts, read as one line: "Monción · Comedor". */
+  meta: string[];
+  /** What leads the facts line; a place shows its category's map pin. */
+  metaIcon?: ReactNode;
+  /** Sits beside the facts on a wide screen, under them on a phone. */
+  badge?: ReactNode;
+  status?: ReactNode;
+  primary?: Primary;
+  media?: ReactNode;
+  children?: ReactNode;
+}) {
   const t = getT("share");
   const canonical = `${site.origin}${appTargetHref({ kind: content.kind, ref: content.ref })}`;
 
   return (
-    <div className="container-page grid gap-8 py-10 md:grid-cols-[minmax(0,1fr)_280px] md:py-16">
-      <article className="flex min-w-0 flex-col gap-6">
-        <p className="t-label text-accent">{t(content.kind)}</p>
-        {content.kind === "place" ? <PlaceBody content={content} /> : null}
-        {content.kind === "route" ? <RouteBody content={content} /> : null}
-        {content.kind === "consultation" ? (
-          <ConsultationBody content={content} />
-        ) : null}
-        {content.kind === "traffic" ? <TrafficBody content={content} /> : null}
-      </article>
+    <div className="container-page py-10 md:py-16">
+      <div
+        className={cx(
+          "grid gap-8",
+          media
+            ? "md:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] md:items-start md:gap-12"
+            : "max-w-2xl",
+        )}
+      >
+        <article className="flex min-w-0 flex-col">
+          <h1 className="t-h2 font-[family-name:var(--font-fraunces)] text-balance">
+            {title}
+          </h1>
+          <div className="mt-3 flex flex-col items-start gap-2 md:flex-row md:flex-wrap md:items-center md:gap-x-4">
+            <p className="t-body flex items-center gap-2 text-ink-2">
+              {metaIcon ?? <MapPin aria-hidden className="size-4 shrink-0" />}
+              <span>{meta.join(" · ")}</span>
+            </p>
+            {badge}
+          </div>
+          {status ? <div className="mt-2">{status}</div> : null}
 
-      <aside className="flex flex-col gap-4 md:sticky md:top-24 md:self-start">
-        <div className="flex flex-col gap-3 rounded-card bg-card p-5 shadow-ring">
-          <a
-            href={appLink(content.kind, content.ref)}
-            className={buttonStyles({
-              variant: "accent",
-              size: "lg",
-              block: true,
-            })}
-          >
-            {t("open")}
-          </a>
-          <Link
-            href="/download"
-            className={buttonStyles({
-              variant: "secondary",
-              size: "lg",
-              block: true,
-            })}
-          >
-            {t("download")}
-          </Link>
-        </div>
-        <div className="hidden flex-col items-center gap-3 rounded-card bg-card p-5 shadow-ring md:flex">
-          <QrCode value={canonical} label={t("universal")} />
-          <p className="t-small text-center text-ink-3">{t("universal")}</p>
-        </div>
-      </aside>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {primary ? (
+              <a
+                href={primary.href}
+                rel="noopener"
+                className={buttonStyles({ variant: "brand", size: "lg" })}
+              >
+                <Navigation aria-hidden />
+                {primary.label}
+              </a>
+            ) : null}
+            <a
+              href={appLink(content.kind, content.ref)}
+              className={buttonStyles({
+                variant: primary ? "secondary" : "brand",
+                size: "lg",
+              })}
+            >
+              {t("open")}
+            </a>
+          </div>
+
+          {children ? (
+            <div className="mt-10 flex flex-col gap-6">{children}</div>
+          ) : null}
+
+          <TakeAlong content={content} canonical={canonical} />
+        </article>
+
+        {/* Before the title on a phone, beside it on a wider screen. */}
+        {media ? <div className="-order-1 md:order-none">{media}</div> : null}
+      </div>
     </div>
   );
 }
 
-function Facts({ children }: { children: ReactNode }) {
-  return <ul className="flex flex-wrap items-center gap-2">{children}</ul>;
-}
-
-function Fact({
-  icon: Icon,
-  children,
+/**
+ * Handing the link to a phone. On a desktop the code sits in view, forest green
+ * straight on the page's ivory with a clear margin; on a phone, where scanning
+ * your own screen makes no sense, copying is the shortcut and the code waits
+ * behind "Compartir" for someone else's camera.
+ */
+function TakeAlong({
+  content,
+  canonical,
 }: {
-  icon: typeof MapPin;
-  children: ReactNode;
+  content: ShareContent;
+  canonical: string;
 }) {
+  const t = getT("share");
+  const code = (size: number) => (
+    <QrCode
+      value={canonical}
+      label={t(`scan.${content.kind}`)}
+      size={size}
+      color={BRAND_COLORS.pine}
+      background={BRAND_COLORS.paper}
+      margin={4}
+    />
+  );
+
   return (
-    <li className="inline-flex items-center gap-2 rounded-full bg-paper-2 px-3.5 py-1.5 text-[14px] text-ink-2">
-      <Icon aria-hidden className="size-4" />
-      {children}
-    </li>
+    <section
+      aria-labelledby="take-along"
+      className="mt-12 flex items-center gap-4"
+    >
+      <div className="-ml-3 hidden shrink-0 md:block">{code(128)}</div>
+      <div className="flex min-w-0 flex-col items-start">
+        <h2 id="take-along" className="text-[16px] font-medium max-md:sr-only">
+          {t("takeAlong")}
+        </h2>
+        <p className="t-small mt-0.5 text-ink-2 max-md:hidden">
+          {t(`scan.${content.kind}`)}
+        </p>
+        <div className="mt-1">
+          <ShareRow
+            label={t("share")}
+            copy={
+              <CopyLink
+                value={canonical}
+                labels={{
+                  copy: t("copyLink"),
+                  copied: t("linkCopied"),
+                  failed: t("copyFailed"),
+                }}
+              />
+            }
+            panel={
+              <div className="flex flex-col items-start gap-1">
+                <div className="-ml-3">{code(168)}</div>
+                <p className="t-small text-ink-2">
+                  {t(`scan.${content.kind}`)}
+                </p>
+              </div>
+            }
+          />
+        </div>
+      </div>
+    </section>
   );
 }
 
-function PlaceBody({
+/** A quiet status line: icon and words, never colour alone. */
+function StatusLine({
+  icon: Icon,
+  children,
+}: {
+  icon: typeof Check;
+  children: ReactNode;
+}) {
+  return (
+    <p className="t-small inline-flex items-center gap-1.5 text-ink-2">
+      <Icon aria-hidden className="size-4" />
+      {children}
+    </p>
+  );
+}
+
+function PlaceSheet({
   content,
 }: {
   content: Extract<ShareContent, { kind: "place" }>;
@@ -106,110 +228,145 @@ function PlaceBody({
   const place = getT("place");
   const { data } = content;
   const photo = data.photos[0] ?? data.imageUrl;
+  const trust = data.trust.state;
+  const t = getT("share");
 
   return (
-    <>
-      {photo ? (
-        // Signed or first-party URL from the API; its size is not known here.
-        // biome-ignore lint/performance/noImgElement: dynamic API image URL
-        <img
-          src={photo}
-          alt={data.name}
-          className="aspect-[16/10] w-full rounded-panel bg-paper-3 object-cover"
-        />
-      ) : null}
-      <h1 className="t-h2">{data.name}</h1>
-      <Facts>
-        <Fact icon={MapPin}>{data.municipality.name}</Fact>
-        <li>
-          <Tag tone="accent">{data.category.name}</Tag>
-        </li>
-        <li>
-          <Tag>{place(`trust.${data.trust.state}`)}</Tag>
-        </li>
-      </Facts>
-      {data.description ? (
-        <p className="t-body-lg whitespace-pre-line text-ink-2">
-          {data.description}
-        </p>
-      ) : null}
-      {data.address ? (
-        <p className="t-body text-ink-2">
-          <span className="font-medium text-ink">{place("address")}: </span>
-          {data.address}
-        </p>
-      ) : null}
-      <a
-        href={directionsUrl(
+    <Sheet
+      content={content}
+      title={data.name}
+      meta={[data.municipality.name, data.category.name]}
+      metaIcon={
+        <CategoryPin icon={data.category.icon} color={data.category.color} />
+      }
+      badge={
+        trust === "confirmed" ? (
+          <TrustBadge
+            label={place("trust.confirmed")}
+            detail={t("confirmedDetail", {
+              count: data.trust.confirmations,
+            })}
+          />
+        ) : null
+      }
+      // Doubt and age still say so, quietly, under the facts.
+      status={
+        trust === "doubted" || trust === "established" ? (
+          <StatusLine icon={trust === "doubted" ? CircleAlert : Check}>
+            {place(`trust.${trust}`)}
+          </StatusLine>
+        ) : null
+      }
+      primary={{
+        href: directionsUrl(
           { lat: data.location.lat, lng: data.location.lng, label: data.name },
           "other",
-        )}
-        rel="noopener"
-        className={cx(buttonStyles({ variant: "secondary" }), "self-start")}
-      >
-        <Navigation aria-hidden />
-        {place("directions")}
-      </a>
-    </>
+        ),
+        label: place("directions"),
+      }}
+      media={
+        photo ? (
+          // Signed or first-party URL from the API; its size is not known here.
+          // biome-ignore lint/performance/noImgElement: dynamic API image URL
+          <img
+            src={photo}
+            alt={data.name}
+            className="aspect-[4/3] w-full rounded-panel bg-paper-3 object-cover"
+          />
+        ) : null
+      }
+    >
+      {data.description || data.address ? (
+        <>
+          {data.description ? (
+            <p className="t-body-lg whitespace-pre-line text-ink-2">
+              {data.description}
+            </p>
+          ) : null}
+          {data.address ? (
+            <p className="t-body text-ink-2">
+              <span className="font-medium text-ink">{place("address")}: </span>
+              {data.address}
+            </p>
+          ) : null}
+        </>
+      ) : null}
+    </Sheet>
   );
 }
 
-function RouteBody({
+function RouteSheet({
   content,
 }: {
   content: Extract<ShareContent, { kind: "route" }>;
 }) {
   const t = getT("share");
   const routes = getT("routes");
+  const place = getT("place");
   const format = getFormatter();
   const { data } = content;
-  const preview = pathPoints(data.path, 640, 360);
+  const preview = pathPoints(data.path, 640, 480, 72);
+  const start = data.path[0];
   const km = format.number(data.distanceMeters / 1000, {
     maximumFractionDigits: 1,
   });
 
   return (
-    <>
-      <h1 className="t-h2">{data.name}</h1>
-      <Facts>
-        <Fact icon={MapPin}>{data.municipalityName}</Fact>
-        <Fact icon={Mountain}>{t(data.difficulty)}</Fact>
-        <Fact icon={Clock}>
-          {t("duration", { minutes: data.durationMinutes })}
-        </Fact>
-        <Fact icon={Navigation}>{t("distance", { distance: km })}</Fact>
-      </Facts>
-      {preview ? (
-        <svg
-          viewBox="0 0 640 360"
-          role="img"
-          aria-label={`${data.name}: ${t("distance", { distance: km })}`}
-          className="w-full rounded-panel bg-paper-2"
-        >
-          <polyline
-            points={preview.points}
-            fill="none"
-            stroke="var(--accent)"
-            strokeWidth={5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle
-            cx={preview.start[0]}
-            cy={preview.start[1]}
-            r={8}
-            fill="var(--card)"
-            stroke="var(--accent)"
-            strokeWidth={4}
-          />
-          <circle
-            cx={preview.end[0]}
-            cy={preview.end[1]}
-            r={8}
-            fill="var(--accent)"
-          />
-        </svg>
-      ) : null}
+    <Sheet
+      content={content}
+      title={data.name}
+      meta={[
+        data.municipalityName,
+        t(data.difficulty),
+        t("duration", { minutes: data.durationMinutes }),
+        t("distance", { distance: km }),
+      ]}
+      // Directions go to the trailhead: the walk itself is the app's job.
+      primary={
+        start
+          ? {
+              href: directionsUrl(
+                { lat: start.lat, lng: start.lng, label: data.name },
+                "other",
+              ),
+              label: place("directions"),
+            }
+          : undefined
+      }
+      media={
+        preview ? (
+          <svg
+            viewBox="0 0 640 480"
+            role="img"
+            aria-label={`${data.name}: ${t("distance", { distance: km })}`}
+            className="w-full rounded-panel bg-paper-2"
+          >
+            <polyline
+              points={preview.points}
+              fill="none"
+              stroke="var(--accent)"
+              strokeWidth={5}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <circle
+              cx={preview.start[0]}
+              cy={preview.start[1]}
+              r={8}
+              fill="var(--card)"
+              stroke="var(--accent)"
+              strokeWidth={4}
+            />
+            <circle
+              cx={preview.end[0]}
+              cy={preview.end[1]}
+              r={8}
+              fill="var(--accent)"
+            />
+          </svg>
+        ) : null
+      }
+    >
       <p className="t-body-lg whitespace-pre-line text-ink-2">
         {data.description}
       </p>
@@ -229,11 +386,11 @@ function RouteBody({
         <h2 className="text-[16px] font-medium">{routes("safetyTitle")}</h2>
         <p className="t-body text-ink-2">{routes("safetyBody")}</p>
       </section>
-    </>
+    </Sheet>
   );
 }
 
-function ConsultationBody({
+function ConsultationSheet({
   content,
 }: {
   content: Extract<ShareContent, { kind: "consultation" }>;
@@ -244,22 +401,21 @@ function ConsultationBody({
   const { data } = content;
 
   return (
-    <>
-      <h1 className="t-h2">{data.title}</h1>
-      <Facts>
-        <Fact icon={MapPin}>{data.municipalityName}</Fact>
-        <li>
-          <Tag tone={STATUS_TONE[data.status] ?? "neutral"}>
-            {consultations(`statusLabel.${data.status}`)}
-          </Tag>
-        </li>
-        <li>
-          <Tag tone="accent">{data.categoryName}</Tag>
-        </li>
-        <Fact icon={Users}>
-          {consultations("supports", { count: data.supportCount })}
-        </Fact>
-      </Facts>
+    <Sheet
+      content={content}
+      title={data.title}
+      meta={[
+        data.municipalityName,
+        t("consultation"),
+        data.categoryName,
+        consultations("supports", { count: data.supportCount }),
+      ]}
+      status={
+        <Tag tone={STATUS_TONE[data.status] ?? "neutral"}>
+          {consultations(`statusLabel.${data.status}`)}
+        </Tag>
+      }
+    >
       <section className="flex flex-col gap-4">
         <h2 className="t-h3">{t("responses")}</h2>
         {data.responses.length === 0 ? (
@@ -288,11 +444,11 @@ function ConsultationBody({
           </ol>
         )}
       </section>
-    </>
+    </Sheet>
   );
 }
 
-function TrafficBody({
+function TrafficSheet({
   content,
 }: {
   content: Extract<ShareContent, { kind: "traffic" }>;
@@ -304,33 +460,34 @@ function TrafficBody({
   const cleared = data.state === "cleared";
 
   return (
-    <>
-      <h1 className="t-h2">{data.categoryName}</h1>
-      <Facts>
-        <Fact icon={MapPin}>{data.municipalityName}</Fact>
-        {data.severity ? (
-          <li>
-            <Tag tone={cleared ? "success" : "warning"}>
-              {cleared
-                ? traffic("cleared")
-                : traffic(`severity.${data.severity}`)}
-            </Tag>
-          </li>
-        ) : null}
-        {cleared ? null : (
-          <Fact icon={Clock}>
-            {t("validUntil", {
-              date: format.dateTime(new Date(data.expiresAt), {
-                day: "numeric",
-                month: "short",
-                hour: "numeric",
-                minute: "2-digit",
+    <Sheet
+      content={content}
+      title={data.categoryName}
+      meta={[
+        data.municipalityName,
+        t("traffic"),
+        ...(cleared
+          ? []
+          : [
+              t("validUntil", {
+                date: format.dateTime(new Date(data.expiresAt), {
+                  day: "numeric",
+                  month: "short",
+                  hour: "numeric",
+                  minute: "2-digit",
+                }),
               }),
-            })}
-          </Fact>
-        )}
-      </Facts>
+            ]),
+      ]}
+      status={
+        cleared ? (
+          <Tag tone="success">{traffic("cleared")}</Tag>
+        ) : data.severity ? (
+          <Tag tone="warning">{traffic(`severity.${data.severity}`)}</Tag>
+        ) : null
+      }
+    >
       <p className="t-body-lg text-ink-2">{t("trafficNotice")}</p>
-    </>
+    </Sheet>
   );
 }

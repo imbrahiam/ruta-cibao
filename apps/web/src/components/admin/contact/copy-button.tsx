@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "use-intl";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useCopy } from "@/lib/web/use-copy";
 import { useOutcome } from "../outcome";
-import { useCopy } from "./use-copy";
 
 const FEEDBACK_MS = 2000;
 

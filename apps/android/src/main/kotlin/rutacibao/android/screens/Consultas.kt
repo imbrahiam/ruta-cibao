@@ -87,7 +87,14 @@ fun ConsultationsScreen(onOpen: (String) -> Unit, onCompose: () -> Unit) {
         PullToRefreshBox(isRefreshing = state.refreshing, onRefresh = vm::refresh, modifier = Modifier.weight(1f).fillMaxWidth()) {
             LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(bottom = LocalBarClearance.current + 24.dp)) {
                 when (state.phase) {
-                    ConsultationsUiState.Phase.Loading -> item { LoadingDots(Modifier.height(320.dp)) }
+                    ConsultationsUiState.Phase.Loading -> {
+                        if (state.status == null) {
+                            item { SectionTitle(stringResource(R.string.explore_highlights)) }
+                            item { FeaturedSkeleton() }
+                            item { SectionTitle(stringResource(R.string.consultations_more)) }
+                        } else item { Spacer(Modifier.height(12.dp)) }
+                        item { RowSkeleton(4, showsStatus = state.status == null) }
+                    }
                     ConsultationsUiState.Phase.Failed -> item { ErrorView(state.error ?: UiError.Unknown, Modifier.height(360.dp), vm::retry) }
                     ConsultationsUiState.Phase.Empty -> item {
                         StateView(stringResource(R.string.consultations_empty), Modifier.height(360.dp), icon = Icons.Outlined.ChatBubbleOutline, message = stringResource(R.string.consultations_empty_body), action = stringResource(R.string.consultations_new), onAction = compose)
@@ -106,7 +113,7 @@ fun ConsultationsScreen(onOpen: (String) -> Unit, onCompose: () -> Unit) {
                         }
                         // Filtered by a state, every row has it: saying it again on each is noise.
                         items(listed, key = { it.id }) { item -> CompactRow(item, showsStatus = state.status == null) { onOpen(item.slug) } }
-                        if (state.loadingMore) item { LoadingDots(Modifier.height(64.dp)) }
+                        if (state.loadingMore) item { RowSkeleton(1, showsStatus = state.status == null) }
                     }
                 }
             }
@@ -177,7 +184,7 @@ fun ConsultationDetailScreen(slug: String, onBack: () -> Unit) {
         TopRow("", onBack) { if (detail != null) IconDisc(Icons.Outlined.MoreHoriz, stringResource(R.string.safety_ui_menu_label), { menu = true }) }
         Box(Modifier.weight(1f)) {
             when (state.phase) {
-                ConsultationDetailUiState.Phase.Loading -> LoadingDots(Modifier.fillMaxSize())
+                ConsultationDetailUiState.Phase.Loading -> DetailSkeleton()
                 ConsultationDetailUiState.Phase.NotFound -> StateView(stringResource(R.string.consultations_missing), Modifier.fillMaxSize(), icon = Icons.Outlined.ChatBubbleOutline)
                 ConsultationDetailUiState.Phase.Failed -> ErrorView(state.error ?: UiError.Unknown, Modifier.fillMaxSize(), vm::retry)
                 ConsultationDetailUiState.Phase.Ready -> if (detail != null) {
@@ -264,7 +271,7 @@ private fun OfficialReply(author: String, body: String, age: String) {
 /** Neighbours' replies, flat, with delete on your own and report on the rest. */
 private fun androidx.compose.foundation.lazy.LazyListScope.commentRows(state: CommentsUiState, vm: CommentsViewModel, emptyNote: Boolean) {
     when {
-        state.loading && state.items.isEmpty() -> item { LoadingDots(Modifier.height(80.dp)) }
+        state.loading && state.items.isEmpty() -> item { CommentSkeleton() }
         state.loadError != null && state.items.isEmpty() -> item { ErrorView(state.loadError ?: UiError.Unknown, Modifier.height(200.dp), vm::retryLoad) }
         state.items.isEmpty() -> if (emptyNote) item {
             Text(stringResource(R.string.comments_empty), style = Type.callout, color = Ink.colors.ink3, modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
@@ -453,6 +460,89 @@ fun StepUpSheet(state: StepUpState, onVerify: (String) -> Unit, onUseRecovery: (
                 }
                 if (error != null) Text(stringResource(if (error == StepUpError.Offline) R.string.common_offline_body else R.string.gestion_step_up_invalid), style = Type.callout, color = Ink.colors.danger)
                 Pill(stringResource(if (recovery) R.string.gestion_use_authenticator else R.string.gestion_use_recovery), { code = ""; onUseRecovery(!recovery) }, kind = PillKind.Outline, compact = true, enabled = !busy)
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- loading
+
+/** Two feature cards, in the carousel's own sizes. */
+@Composable
+private fun FeaturedSkeleton() {
+    Skeleton {
+        Row(Modifier.padding(horizontal = Metrics.gutter), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            repeat(2) {
+                Box(Modifier.size(264.dp, 248.dp)) {
+                    Bone(Modifier.matchParentSize(), RoundedCornerShape(22.dp))
+                    Box(Modifier.padding(12.dp).size(78.dp, 23.dp).background(Ink.colors.paper2, CircleShape))
+                    Column(Modifier.align(Alignment.BottomStart).padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Box(Modifier.size(150.dp, 15.dp).background(Ink.colors.paper2, CircleShape))
+                        Box(Modifier.padding(top = 6.dp).size(96.dp, 10.dp).background(Ink.colors.paper2, CircleShape))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Rows shaped like [CompactRow]: the square, two lines and, unfiltered, the state. */
+@Composable
+private fun RowSkeleton(count: Int, showsStatus: Boolean) {
+    Skeleton {
+        Column {
+            repeat(count) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = Metrics.gutter, vertical = 9.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Bone(Modifier.size(76.dp), RoundedCornerShape(12.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        BoneLine(178.dp)
+                        BoneLine(148.dp, lineHeight = 18.dp, barHeight = 11.dp)
+                        if (showsStatus) Bone(Modifier.padding(top = 2.dp).size(72.dp, 20.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The case itself: state and time, title, three lines of text, who and where. */
+@Composable
+private fun DetailSkeleton() {
+    Skeleton(Modifier.fillMaxSize()) {
+        Column(Modifier.padding(horizontal = Metrics.gutter).padding(top = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Bone(Modifier.size(76.dp, 21.dp))
+                Spacer(Modifier.weight(1f))
+                Bone(Modifier.size(56.dp, 12.dp))
+            }
+            Spacer(Modifier.height(12.dp))
+            BoneLine(264.dp, lineHeight = 29.dp, barHeight = 17.dp)
+            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                BoneLine(360.dp); BoneLine(316.dp); BoneLine(190.dp)
+            }
+            Row(Modifier.padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Bone(Modifier.size(28.dp))
+                Bone(Modifier.size(86.dp, 13.dp))
+                Spacer(Modifier.weight(1f))
+                Bone(Modifier.size(80.dp, 28.dp))
+            }
+        }
+    }
+}
+
+/** Two replies on their way: avatar, name, a line. */
+@Composable
+private fun CommentSkeleton() {
+    Skeleton {
+        Column(Modifier.padding(horizontal = Metrics.gutter, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            repeat(2) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(Modifier.size(44.dp), Alignment.TopCenter) { Bone(Modifier.size(36.dp)) }
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        BoneLine(116.dp, lineHeight = 18.dp, barHeight = 11.dp)
+                        BoneLine(214.dp)
+                    }
+                }
             }
         }
     }

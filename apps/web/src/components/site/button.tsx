@@ -5,6 +5,7 @@ import { cx } from "@/lib/web/cx";
 export type ButtonVariant =
   | "primary"
   | "accent"
+  | "brand"
   | "secondary"
   | "ghost"
   | "danger";
@@ -13,6 +14,7 @@ export type ButtonSize = "sm" | "md" | "lg";
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-ink text-paper hover:opacity-90",
   accent: "bg-accent text-on-accent hover:bg-accent-hover",
+  brand: "bg-brand text-on-brand hover:bg-brand-hover",
   secondary: "bg-card text-ink shadow-ring hover:bg-paper-2",
   ghost: "text-ink-2 hover:bg-paper-3 hover:text-ink",
   danger: "bg-card text-danger-ink shadow-ring hover:bg-paper-2",

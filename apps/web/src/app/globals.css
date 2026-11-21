@@ -31,6 +31,10 @@
   /* Near-black monochrome band (territory section, footer). */
   --pine: #121211;
   --on-pine: #f3f2ee;
+  /* The Vínculo green (`BRAND_COLORS.pine`): the brand's action on public pages. */
+  --brand: #28594a;
+  --brand-hover: #214a3d;
+  --on-brand: #ffffff;
 
   --success: #2e9e6b;
   --warning: #c98a1b;
@@ -98,6 +102,9 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-soft: var(--accent-soft);
   --color-on-accent: var(--on-accent);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-on-brand: var(--on-brand);
   --color-pine: var(--pine);
   --color-on-pine: var(--on-pine);
   --color-success: var(--success);

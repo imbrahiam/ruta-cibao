@@ -1,5 +1,5 @@
-import { categoryIcon } from "@/components/admin/map/category-glyph";
 import { cn } from "@/lib/utils";
+import { categoryIcon } from "./category-glyph";
 
 /**
  * A category as the map draws it: its glyph on its colour. `tile` is the

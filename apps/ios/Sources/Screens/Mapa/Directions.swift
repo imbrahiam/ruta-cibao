@@ -40,7 +40,12 @@ struct RoutePreview: View {
                             Text(message).type(.body).fixedSize(horizontal: false, vertical: true)
                         }
                     case .loading:
-                        Text(L10n.Directions.loading).type(.heading)
+                        Skeleton {
+                            VStack(alignment: .leading, spacing: 2) {
+                                SkeletonLine(128, lineHeight: 48, barHeight: 24, relativeTo: .largeTitle)
+                                SkeletonLine(164, lineHeight: 18, barHeight: 11, relativeTo: .callout)
+                            }
+                        }
                     default:
                         if let route = navigator.route {
                             Text(TripText.duration(route.expectedTravelTime)).type(.display).contentTransition(.numericText())
@@ -87,7 +92,7 @@ struct RoutePreview: View {
             }
 
             if navigator.phase == .loading {
-                LoadingDots().frame(height: 52)
+                Skeleton { Capsule().frame(height: 52) }
             } else if navigator.phase == .preview {
                 Button { navigator.start() } label: { Label(L10n.Directions.start, systemImage: "location.north.fill") }.buttonStyle(.ink)
             }

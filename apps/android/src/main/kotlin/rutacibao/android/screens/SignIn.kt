@@ -37,6 +37,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -96,17 +103,52 @@ private fun Enter(state: SignInUiState, vm: SignInViewModel) {
     Column {
         Text(stringResource(R.string.sign_in_title), style = Type.display, color = Ink.colors.ink, modifier = Modifier.padding(top = 22.dp).rise(1))
         Text(stringResource(R.string.sign_in_lede), style = Type.body, color = Ink.colors.ink2, modifier = Modifier.padding(top = 8.dp).rise(2))
+        // A method that is not offered yet still looks like an option; tapping it explains
+        // instead of doing nothing, and the note leaves after a moment.
+        var unavailableTapped by remember { mutableStateOf(0) }
+        LaunchedEffect(unavailableTapped) { if (unavailableTapped > 0) { kotlinx.coroutines.delay(3_000); unavailableTapped = 0 } }
+        val unavailable = stringResource(R.string.sign_in_unavailable)
         Row(Modifier.padding(top = 28.dp).rise(3), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Chip(stringResource(R.string.sign_in_phone), state.method == SignInUiState.Method.Phone, { vm.selectMethod(SignInUiState.Method.Phone) }, icon = Icons.Outlined.Phone)
-            Chip(stringResource(R.string.sign_in_email), state.method == SignInUiState.Method.Email, { vm.selectMethod(SignInUiState.Method.Email) }, icon = Icons.Outlined.MailOutline)
+            // Order and availability come from the shared sign-in state (`SignInUiState.PRIMARY`).
+            state.methods.forEach { method ->
+                val email = method == SignInUiState.Method.Email
+                val available = state.isAvailable(method)
+                Chip(
+                    stringResource(if (email) R.string.sign_in_email else R.string.sign_in_phone),
+                    state.method == method,
+                    { if (available) vm.selectMethod(method) else unavailableTapped++ },
+                    modifier = if (available) Modifier else Modifier.semantics { stateDescription = unavailable },
+                    icon = if (email) Icons.Outlined.MailOutline else Icons.Outlined.Phone,
+                )
+            }
+        }
+        if (unavailableTapped > 0) {
+            Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Info, null, Modifier.size(18.dp), tint = Ink.colors.ink2)
+                Text(unavailable, style = Type.callout, color = Ink.colors.ink2)
+            }
         }
         if (state.method == SignInUiState.Method.Phone) {
-            Field(state.phone, vm::updatePhone, stringResource(R.string.sign_in_phone_placeholder), Modifier.padding(top = 12.dp).rise(4), keyboard = KeyboardOptions(keyboardType = KeyboardType.Phone), onDone = vm::submit)
+            Field(state.phone, vm::updatePhone, stringResource(R.string.sign_in_phone_placeholder), Modifier.padding(top = 12.dp).rise(4), keyboard = KeyboardOptions(keyboardType = KeyboardType.Phone), onDone = vm::submit, phoneInput = true)
         } else {
             Field(state.email, vm::updateEmail, stringResource(R.string.sign_in_email_placeholder), Modifier.padding(top = 12.dp).rise(4), keyboard = KeyboardOptions(keyboardType = KeyboardType.Email), onDone = vm::submit)
         }
-        Problem(state.error)
+        // A wait is about the button, not the address: it shows beside the button, which stays off
+        // until the wait is over.
+        if (state.error != SignInError.RateLimited) Problem(state.error)
         Pill(stringResource(R.string.sign_in_send_code), vm::submit, Modifier.padding(top = 16.dp).fillMaxWidth().rise(5), enabled = state.canSubmit, busy = state.busy)
+        val wait = state.resendIn.toInt()
+        if (wait > 0) {
+            Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.Schedule, null, Modifier.size(18.dp), tint = Ink.colors.ink2)
+                Text(
+                    if (wait < 60) stringResource(R.string.sign_in_wait_seconds, wait) else stringResource(R.string.sign_in_wait_minutes, ((wait + 59) / 60).toString()),
+                    style = Type.callout, color = Ink.colors.ink2,
+                )
+            }
+        } else if (state.error == SignInError.RateLimited) {
+            Problem(state.error)
+        }
         Text(stringResource(R.string.sign_in_terms), style = Type.caption, color = Ink.colors.ink3, modifier = Modifier.padding(top = 14.dp).rise(6))
         Spacer(Modifier.height(24.dp))
     }
@@ -168,7 +210,8 @@ fun CodeBoxes(code: String, failed: Boolean, modifier: Modifier = Modifier, onCh
                     val shape = RoundedCornerShape(Metrics.radiusField)
                     val active = index == code.length.coerceAtMost(5)
                     Box(
-                        Modifier.weight(1f).height(60.dp).background(p.paper2, shape).border(1.5.dp, if (failed) p.danger else if (active) p.ink else androidx.compose.ui.graphics.Color.Transparent, shape),
+                        // The box you are typing into is white with the green outline; the rest rest on the quiet fill.
+                        Modifier.weight(1f).height(60.dp).background(if (active && !failed) p.paper else p.paper2, shape).border(1.5.dp, if (failed) p.danger else if (active) p.action else androidx.compose.ui.graphics.Color.Transparent, shape),
                         Alignment.Center,
                     ) { Text(code.getOrNull(index)?.toString().orEmpty(), style = Type.title.copy(fontSize = 26.sp), color = p.ink, textAlign = TextAlign.Center) }
                 }

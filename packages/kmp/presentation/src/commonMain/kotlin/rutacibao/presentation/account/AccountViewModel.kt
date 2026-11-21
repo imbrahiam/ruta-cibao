@@ -31,6 +31,9 @@ public data class AccountUiState(
     val saved: List<PlacesSavedItem> = emptyList(),
     val passport: PassportListOutput? = null,
     val preferences: NotificationsGetPreferencesOutput? = null,
+    /** Points, rank, badges and invite link; null until loaded or if it failed. */
+    val reputation: Reputation? = null,
+    val redeem: Redeem = Redeem.Idle,
     val savingProfile: Boolean = false,
     val profileSaved: Boolean = false,
     val deletion: Deletion = Deletion.Idle,
@@ -68,7 +71,9 @@ public class AccountViewModel(
     }
 
     public fun refresh() {
-        if (session.isSignedIn.value) viewModelScope.launch { load() }
+        if (!session.isSignedIn.value || _state.value.loading) return
+        _state.update { it.copy(loading = true) }
+        viewModelScope.launch { load() }
     }
 
     public fun saveProfile(displayName: String, municipalityId: String?) {
@@ -87,6 +92,27 @@ public class AccountViewModel(
     }
 
     public fun profileSavedHandled() { _state.update { it.copy(profileSaved = false) } }
+
+    /** Names who invited this account. The code is checked here first, so a typo never leaves the phone. */
+    public fun redeemInvite(raw: String) {
+        if (_state.value.redeem == Redeem.Working) return
+        val code = raw.trim().uppercase()
+        if (!INVITE_CODE.matches(code)) {
+            _state.update { it.copy(redeem = Redeem.Failed(RedeemError.InvalidCode)) }
+            return
+        }
+        _state.update { it.copy(redeem = Redeem.Working) }
+        viewModelScope.launch {
+            runCatching { account.redeemInvite(code) }
+                .onSuccess { name ->
+                    _state.update { it.copy(redeem = Redeem.Done(name), reputation = it.reputation?.copy(redeemed = true, invitedBy = Person(name, null))) }
+                }
+                .onFailure { e -> _state.update { it.copy(redeem = Redeem.Failed(redeemError(e))) } }
+        }
+    }
+
+    /** Back to idle once the sheet closes or the person edits the code. */
+    public fun redeemReset() { _state.update { it.copy(redeem = Redeem.Idle) } }
 
     /** Optimistic toggle of the three switches the app exposes. */
     public fun setPreferences(caseUpdates: Boolean, traffic: Boolean, email: Boolean) {
@@ -129,6 +155,7 @@ public class AccountViewModel(
                 val saved = async { runCatching { account.saved() }.getOrDefault(emptyList()) }
                 val passport = async { runCatching { account.passport() }.getOrNull() }
                 val preferences = async { runCatching { account.preferences() }.getOrNull() }
+                val reputation = async { runCatching { Reputation.from(account.reputation()) }.getOrNull() }
                 val signedMe = me.await()
                 val pending = if (signedMe.staffRole == MeGetOutput.StaffRole.None) {
                     null
@@ -144,10 +171,28 @@ public class AccountViewModel(
                         saved = saved.await(),
                         passport = passport.await(),
                         preferences = preferences.await(),
+                        reputation = reputation.await(),
                         error = null,
                     )
                 }
             }
         }.onFailure { e -> _state.update { it.copy(loading = false, error = UiError.from(e)) } }
+    }
+}
+
+private val INVITE_CODE = Regex("^[0-9A-F]{8}$")
+
+/** The server's `data.reason` decides; the status is the fallback. */
+private fun redeemError(e: Throwable): RedeemError {
+    if (e !is ApiError) return RedeemError.Failed
+    val reason = (e.data as? kotlinx.serialization.json.JsonObject)?.get("reason")
+        ?.let { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
+    return when {
+        reason == "own_code" -> RedeemError.OwnCode
+        reason == "unknown_code" || e.status == 404 -> RedeemError.UnknownCode
+        reason == "already_redeemed" || e.status == 409 -> RedeemError.AlreadyRedeemed
+        e.isRateLimited -> RedeemError.RateLimited
+        e.status == 400 -> RedeemError.InvalidCode
+        else -> RedeemError.Failed
     }
 }

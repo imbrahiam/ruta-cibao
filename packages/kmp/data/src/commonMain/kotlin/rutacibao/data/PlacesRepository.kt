@@ -32,6 +32,21 @@ public data class MapPlace(
     val thumbnailUrl: String?,
 )
 
+/** A place as the discovery feed shows it: a card's picture, name, kind and town. */
+public data class DiscoverPlace(
+    val id: String,
+    val slug: String,
+    val name: String,
+    val description: String?,
+    /** Absolute URL, or null when the place has no picture. */
+    val imageUrl: String?,
+    val categoryId: String,
+    val categoryName: String,
+    val categoryIcon: String,
+    val categoryColor: String,
+    val municipalityName: String,
+)
+
 /**
  * Places for the map. The collection comes from `/api/places/geojson`, a
  * cached GeoJSON route outside the oRPC contract, so its (small, stable)
@@ -67,6 +82,20 @@ public class PlacesRepository(
                 place.municipality.id, place.category.color, place.category.icon, place.location.lat, place.location.lng, null)
         }
     }
+
+    /** A page of published places of one category, for the discovery feed. Pictures come back absolute. */
+    public suspend fun browse(category: String, municipality: String?, limit: Int): List<DiscoverPlace> =
+        api.places.browse(rutacibao.api.generated.PlacesBrowseInput(category = category, municipality = municipality, limit = limit)).items.map {
+            DiscoverPlace(
+                id = it.id, slug = it.slug, name = it.name, description = it.description,
+                imageUrl = (it.thumbnailUrl ?: it.imageUrl)?.let(config::absolute),
+                categoryId = it.categoryId, categoryName = it.categoryName, categoryIcon = it.categoryIcon, categoryColor = it.categoryColor,
+                municipalityName = it.municipalityName,
+            )
+        }
+
+    /** The kinds of place, with their glyph and colour. */
+    public suspend fun placeCategories(): List<rutacibao.api.generated.PlacesCategoriesItem> = api.places.categories()
 
     /** Published eco routes (hiking, cycling), with their paths, for the map. */
     public suspend fun routes(): List<RoutesBrowseOutput.Item> = try {

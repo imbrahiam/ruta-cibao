@@ -34,6 +34,17 @@
           }
         }
       }
+    },
+    "NSContactsUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ruta Cibao muestra tus contactos para que elijas a quién invitar. No salen de tu teléfono."
+          }
+        }
+      }
     }
   }
 }

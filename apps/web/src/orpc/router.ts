@@ -12,6 +12,7 @@ import { offlineRouter } from "./routers/offline";
 import { passportRouter } from "./routers/passport";
 import { placesRouter } from "./routers/places";
 import { reportsRouter } from "./routers/reports";
+import { reputationRouter } from "./routers/reputation";
 import { routesRouter } from "./routers/routes";
 import { safetyRouter } from "./routers/safety";
 import { staffRouter } from "./routers/staff";
@@ -36,6 +37,7 @@ export const router = impl.router({
   offline: offlineRouter,
   places: placesRouter,
   passport: passportRouter,
+  reputation: reputationRouter,
   traffic: trafficRouter,
   consultations: consultationsRouter,
   comments: commentsRouter,

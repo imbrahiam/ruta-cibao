@@ -122,7 +122,7 @@ private struct PlaceForm: View {
                 Field(placeholder: L10n.Contribute.Place.description, text: $detail, lines: 3...8).onChange(of: detail) { _, v in vm.updateDescription(value: v) }
                 problem(.theDescription, L10n.Contribute.Place.Errors.description)
 
-                MenuField(placeholder: L10n.Contribute.Place.category, items: state.categories.map(\.id), selected: state.categoryId, title: { id in state.categories.first { $0.id == id }?.name ?? "" }, symbol: { id in state.categories.first { $0.id == id }.map { Glyph.symbol($0.icon) } }, problem: state.problems.contains(.category)) { vm.selectCategory(id: $0) }
+                MenuField(placeholder: L10n.Contribute.Place.category, items: state.categories.map(\.id), selected: state.categoryId, title: { id in state.categories.first { $0.id == id }?.name ?? "" }, symbol: { id in state.categories.first { $0.id == id }.map { Glyph.symbol($0.icon) } }, model: { id in state.categories.first { $0.id == id }.flatMap { PlaceModel(icon: $0.icon) } }, problem: state.problems.contains(.category)) { vm.selectCategory(id: $0) }
 
                 LocationField(latitude: state.latitude?.doubleValue, longitude: state.longitude?.doubleValue, required: true, title: L10n.Contribute.Place.location) { vm.setLocation(latitude: $0.latitude, longitude: $0.longitude) }
                 Field(placeholder: L10n.Contribute.Place.address, text: $address).onChange(of: address) { _, v in vm.updateAddress(value: v) }

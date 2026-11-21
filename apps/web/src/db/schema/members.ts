@@ -73,6 +73,16 @@ export const memberProfiles = pgTable(
       onDelete: "set null",
     }),
 
+    /**
+     * The person's invite code, on the link they share. Eight characters from
+     * 0-9 and A-F, so it survives being read aloud or typed from a screenshot.
+     * Not a secret: it only says who invited whom.
+     */
+    inviteCode: text()
+      .notNull()
+      .unique()
+      .default(sql`upper(substr(md5(gen_random_uuid()::text), 1, 8))`),
+
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -90,4 +100,29 @@ export const memberProfiles = pgTable(
 );
 
 export type MemberProfile = typeof memberProfiles.$inferSelect;
+
+/**
+ * Who joined through whose invite. One row per invited account, ever: a
+ * person can name one inviter, once, and never themselves. The inviter earns
+ * recognition only; nothing here is money or a claim on anything.
+ */
+export const invitations = pgTable(
+  "invitations",
+  {
+    inviteeUserId: text()
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    inviterUserId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("invitations_inviter_idx").on(table.inviterUserId),
+    check(
+      "invitations_not_self_check",
+      sql`${table.inviteeUserId} <> ${table.inviterUserId}`,
+    ),
+  ],
+);
 export type StaffRole = (typeof staffRole.enumValues)[number];

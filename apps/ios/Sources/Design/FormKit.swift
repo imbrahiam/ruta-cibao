@@ -63,12 +63,13 @@ struct ChoiceFlow<Item: Hashable>: View {
     let selected: Item?
     let title: (Item) -> String
     var symbol: (Item) -> String? = { _ in nil }
+    var model: (Item) -> PlaceModel? = { _ in nil }
     let pick: (Item) -> Void
 
     var body: some View {
         FlowLayout(spacing: 8) {
             ForEach(items, id: \.self) { item in
-                Chip(title: title(item), symbol: symbol(item), selected: item == selected) { pick(item) }
+                Chip(title: title(item), symbol: symbol(item), model: model(item), selected: item == selected) { pick(item) }
             }
         }
     }
@@ -81,6 +82,7 @@ struct MenuField<Item: Hashable>: View {
     let selected: Item?
     let title: (Item) -> String
     var symbol: (Item) -> String? = { _ in nil }
+    var model: (Item) -> PlaceModel? = { _ in nil }
     var problem = false
     let pick: (Item) -> Void
 
@@ -88,12 +90,29 @@ struct MenuField<Item: Hashable>: View {
         Menu {
             Picker(placeholder, selection: Binding(get: { selected }, set: { if let value = $0 { pick(value) } })) {
                 ForEach(items, id: \.self) { item in
-                    if let symbol = symbol(item) { Label(title(item), systemImage: symbol).tag(Optional(item)) } else { Text(title(item)).tag(Optional(item)) }
+                    if let model = model(item) {
+                        Label {
+                            Text(title(item))
+                        } icon: {
+                            CategoryArtwork(model: model, symbol: "", size: 17)
+                        }
+                        .tag(Optional(item))
+                    } else if let symbol = symbol(item) {
+                        Label(title(item), systemImage: symbol).tag(Optional(item))
+                    } else {
+                        Text(title(item)).tag(Optional(item))
+                    }
                 }
             }
         } label: {
             HStack(spacing: 10) {
-                if let selected, let symbol = symbol(selected) { Image(systemName: symbol).font(.system(size: 16)).foregroundStyle(Color.ink) }
+                if let selected {
+                    if let model = model(selected) {
+                        CategoryArtwork(model: model, symbol: "", size: 19)
+                    } else if let symbol = symbol(selected) {
+                        Image(systemName: symbol).font(.system(size: 16)).foregroundStyle(Color.ink)
+                    }
+                }
                 Text(selected.map(title) ?? placeholder).type(.body, selected == nil ? .ink3 : .ink)
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.up.chevron.down").font(.system(size: 12, weight: .medium)).foregroundStyle(Color.ink3)

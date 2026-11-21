@@ -15,6 +15,13 @@
       "when": 1793765413672,
       "tag": "0001_consultation-photo-uploads",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795273896210,
+      "tag": "0002_member-invites",
+      "breakpoints": true
     }
   ]
 }

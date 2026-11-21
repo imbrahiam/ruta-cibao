@@ -1,4 +1,6 @@
+import ActivityKit
 import CoreLocation
+import OSLog
 import SwiftUI
 
 /// Walking an eco route stop by stop: where you are on the trail, the next stop and how far it
@@ -19,6 +21,9 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
 
     @ObservationIgnored private let manager = CLLocationManager()
     @ObservationIgnored private var path = TrailPath([])
+    @ObservationIgnored private var activity: Activity<NavigationAttributes>?
+    @ObservationIgnored private var lastActivityUpdate = Date.distantPast
+    private static let log = Logger(subsystem: "do.rutacibao.app", category: "trail")
 
     override init() {
         super.init()
@@ -57,6 +62,10 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
         along = 0
         offTrail = false
         started = false
+        location = nil
+        course = 0
+        manager.allowsBackgroundLocationUpdates = true
+        startActivity(for: route)
         if manager.authorizationStatus == .notDetermined { manager.requestWhenInUseAuthorization() }
         manager.startUpdatingLocation()
         manager.startUpdatingHeading()
@@ -65,6 +74,8 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
     func stop() {
         manager.stopUpdatingLocation()
         manager.stopUpdatingHeading()
+        manager.allowsBackgroundLocationUpdates = false
+        endActivity(arrived: false)
         route = nil
         stops = []
         path = TrailPath([])
@@ -84,6 +95,8 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
     }
 
     private func update(_ here: CLLocation) {
+        guard active else { return }
+        let previousStop = next?.id
         // Without a course from the fix (standing still, or a fix that jumped), the way you moved
         // since the last one is the heading.
         if here.course >= 0 {
@@ -94,10 +107,53 @@ final class TrailGuide: NSObject, CLLocationManagerDelegate {
         location = here
         let point = path.project(here.coordinate)
         if !started, point.offset <= 60 { started = true }
-        guard started else { return }
-        // Never walk backwards on the trail because of a noisy fix.
-        along = max(along, point.along)
-        offTrail = point.offset > 60
+        if started {
+            // Never walk backwards on the trail because of a noisy fix.
+            along = max(along, point.along)
+            offTrail = point.offset > 60
+        }
+        if arrived { endActivity(arrived: true) }
+        else { updateActivity(force: previousStop != next?.id) }
+    }
+
+    private var activityState: NavigationAttributes.ContentState {
+        NavigationAttributes.ContentState(
+            symbol: arrived ? "flag.checkered" : (next?.symbol ?? "figure.hiking"),
+            stepDistance: location == nil ? "" : TripText.distance(toNext),
+            instruction: arrived ? L10n.Routes.arrived : (next?.name ?? L10n.Routes.end),
+            remaining: TripText.distance(remaining),
+            arrival: arrived ? "" : (started ? L10n.Routes.nextStop : L10n.Routes.headToStart),
+            arrived: arrived
+        )
+    }
+
+    private func startActivity(for route: EcoRoute) {
+        guard activity == nil, ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        do {
+            activity = try Activity.request(
+                attributes: NavigationAttributes(destination: route.name, walking: true),
+                content: ActivityContent(state: activityState, staleDate: nil)
+            )
+        } catch {
+            Self.log.error("Trail activity request failed: \(String(describing: error), privacy: .public)")
+        }
+    }
+
+    private func updateActivity(force: Bool) {
+        guard let activity, force || Date().timeIntervalSince(lastActivityUpdate) >= 5 else { return }
+        lastActivityUpdate = Date()
+        let content = ActivityContent(state: activityState, staleDate: nil)
+        nonisolated(unsafe) let live = activity
+        Task { await live.update(content) }
+    }
+
+    private func endActivity(arrived: Bool) {
+        guard let activity else { return }
+        self.activity = nil
+        let content = ActivityContent(state: activityState, staleDate: nil)
+        let policy: ActivityUIDismissalPolicy = arrived ? .after(Date().addingTimeInterval(120)) : .immediate
+        nonisolated(unsafe) let live = activity
+        Task { await live.end(content, dismissalPolicy: policy) }
     }
 }
 
@@ -123,7 +179,7 @@ struct StopTimeline: View {
                                 if stop.kind == .place {
                                     Text("\(index)").font(.system(size: 13, weight: .semibold).monospacedDigit()).foregroundStyle(done ? Color.onInk : PinTone.trail.color)
                                 } else {
-                                    Image(systemName: stop.symbol).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.onInk)
+                                    CategoryArtwork(model: stop.artwork, symbol: stop.symbol, size: 18).foregroundStyle(Color.onInk)
                                 }
                             }
                             if index < stops.count - 1 {
@@ -168,8 +224,8 @@ struct TrailGuidance: View {
     var body: some View {
         VStack {
             HStack(spacing: 14) {
-                Image(systemName: guide.arrived ? "flag.checkered" : (guide.next?.symbol ?? "figure.hiking"))
-                    .font(.system(size: 24, weight: .medium))
+                CategoryArtwork(model: guide.arrived ? .finishFlag : (guide.next?.artwork ?? .hiker),
+                                symbol: guide.next?.symbol ?? "figure.hiking", size: 28)
                     .frame(width: 48, height: 48)
                     .background(Color.onInk.opacity(0.16), in: Circle())
                 VStack(alignment: .leading, spacing: 2) {

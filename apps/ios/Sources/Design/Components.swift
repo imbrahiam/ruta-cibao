@@ -131,6 +131,7 @@ struct RowPress: ButtonStyle {
 struct Chip: View {
     let title: String
     var symbol: String?
+    var model: PlaceModel?
     let selected: Bool
     /// Over the map: a white pill with a shadow, filled green when picked.
     var floating = false
@@ -138,12 +139,18 @@ struct Chip: View {
     var onBrand = false
     /// A count beside the title (unread notices), in its own small pill.
     var badge: Int?
+    /// Off: still shown, dimmed and not tappable.
+    var enabled = true
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: onBrand ? 5 : 7) {
-                if let symbol { Image(systemName: symbol).font(.system(size: onBrand ? 12 : 13, weight: .regular)) }
+                if let model {
+                    CategoryArtwork(model: model, symbol: symbol ?? "", size: 16)
+                } else if let symbol {
+                    Image(systemName: symbol).font(.system(size: onBrand ? 12 : 13, weight: .regular))
+                }
                 Text(title)
                 if let badge, badge > 0 {
                     Text("\(badge)")
@@ -164,19 +171,21 @@ struct Chip: View {
             .contentShape(Capsule())
         }
         .buttonStyle(Pressable())
+        .disabled(!enabled)
         .accessibilityAddTraits(selected ? .isSelected : [])
         .sensoryFeedback(.selection, trigger: selected)
     }
 
     private var foreground: Color {
+        if !enabled { return .ink3 }
         if onBrand { return selected ? .brandDeep : .onInk }
         if selected { return floating ? .onInk : .brandDeep }
         return .ink
     }
 }
 
-/// A chip rests on the quiet fill; the pick takes the soft green, a green ring and a heavier
-/// weight. Over the map it floats in white and the pick fills green.
+/// A chip rests on the page with a hairline; the pick takes the sage fill, dark green ink and a
+/// heavier weight. Over the map it floats in white and the pick fills green.
 private struct ChipSurface: ViewModifier {
     let selected: Bool
     let floating: Bool
@@ -190,16 +199,20 @@ private struct ChipSurface: ViewModifier {
         } else if floating {
             content.floating(in: Capsule())
         } else {
+            // One treatment per state: the pick is a sage fill with dark green ink; the rest sit on
+            // the page with a hairline and dark ink, so they still read as available. A green
+            // outline is kept for focus (fields), never for selection.
             content
-                .background(selected ? Color.brandSoft : Color.paper2, in: Capsule())
-                .overlay { if selected { Capsule().strokeBorder(Color.brand, lineWidth: 1.5) } }
+                .background(selected ? Color.brandSoft : Color.paper, in: Capsule())
+                .overlay { if !selected { Capsule().strokeBorder(Color.line, lineWidth: 1) } }
         }
     }
 }
 
 // MARK: - Fields
 
-/// A text field: a quiet fill that takes a green ring when focused; the placeholder is the label.
+/// A text field: a quiet fill that turns white with a green outline while you type in it; the
+/// placeholder is the label.
 struct Field: View {
     let placeholder: String
     @Binding var text: String
@@ -218,7 +231,9 @@ struct Field: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 15)
         .frame(minHeight: 52, alignment: .top)
-        .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
+        // Resting: the quiet fill. Typing: white with the green outline, so the outline only
+        // ever means "you are typing here".
+        .background(focused ? Color.paper : Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous))
         .overlay {
             if focused { RoundedRectangle(cornerRadius: Metrics.radiusField, style: .continuous).strokeBorder(Color.action, lineWidth: 1.5) }
         }
@@ -242,12 +257,16 @@ struct Hairline: View {
 struct GlyphDisc: View {
     var icon: String = ""
     var symbol: String?
+    var model: PlaceModel?
     var size: CGFloat = 40
     var tint: Tint = .neutral
 
     var body: some View {
-        Image(systemName: symbol ?? Glyph.symbol(icon))
-            .font(.system(size: size * 0.42, weight: .regular))
+        CategoryArtwork(
+            model: model ?? PlaceModel(icon: icon),
+            symbol: symbol ?? Glyph.symbol(icon),
+            size: size * 0.62
+        )
             .foregroundStyle(tint.ink)
             .frame(width: size, height: size)
             .background(tint.fill, in: Circle())
@@ -369,30 +388,51 @@ struct Mark: View {
 
 // MARK: - States
 
-/// Three quiet dots: the app is fetching. No grey boxes pretending to be content.
-struct LoadingDots: View {
+struct Skeleton<Content: View>: View {
+    @ViewBuilder var content: () -> Content
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var on = false
+    @State private var pulse = false
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<3, id: \.self) { index in
-                Circle()
-                    .fill(Color.ink3)
-                    .frame(width: 6, height: 6)
-                    .opacity(on ? 0.9 : 0.25)
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.7).repeatForever().delay(Double(index) * 0.16), value: on)
+        content()
+            .foregroundStyle(pulse ? Color.line.mix(with: .paper, by: 0.42) : Color.line)
+            .task(id: reduceMotion) {
+                pulse = false
+                guard !reduceMotion else { return }
+                do { try await Task.sleep(for: .milliseconds(180)) } catch { return }
+                withAnimation(.easeInOut(duration: 0.95).repeatForever(autoreverses: true)) {
+                    pulse = true
+                }
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .onAppear { on = true }
-        .accessibilityLabel(L10n.Common.loading)
+            .allowsHitTesting(false)
+            .accessibilityRepresentation { Text(L10n.Common.loading) }
+    }
+}
+
+/// An adaptable run of text in a loading layout, with the real line height around the bar.
+struct SkeletonLine: View {
+    let width: CGFloat
+    @ScaledMetric private var lineHeight: CGFloat
+    @ScaledMetric private var barHeight: CGFloat
+
+    init(_ width: CGFloat, lineHeight: CGFloat = 22, barHeight: CGFloat = 13, relativeTo: Font.TextStyle = .body) {
+        self.width = width
+        _lineHeight = ScaledMetric(wrappedValue: lineHeight, relativeTo: relativeTo)
+        _barHeight = ScaledMetric(wrappedValue: barHeight, relativeTo: relativeTo)
+    }
+
+    var body: some View {
+        Capsule()
+            .frame(maxWidth: width)
+            .frame(height: barHeight)
+            .frame(height: lineHeight)
     }
 }
 
 /// Empty, offline or failed: one symbol, one line, one way forward.
 struct StateView: View {
     var symbol: String?
+    var model: PlaceModel?
     let title: String
     var message: String?
     var actionTitle: String?
@@ -402,7 +442,9 @@ struct StateView: View {
 
     var body: some View {
         VStack(spacing: 14) {
-            if let symbol {
+            if let model {
+                CategoryArtwork(model: model, symbol: symbol ?? "", size: 38)
+            } else if let symbol {
                 Image(systemName: symbol).font(.system(size: 30, weight: .light)).foregroundStyle(Color.ink3)
             } else {
                 Mark(size: 44)
@@ -444,17 +486,18 @@ extension StateView {
 
 /// Adding to the map, from any tab's header: the one solid white button on the green, like
 /// the search's green one on white.
+/// Adding to the map, from every header: present but quiet, a translucent disc on the green so
+/// it never outshines the screen's own content.
 struct ContributeButton: View {
     @Environment(AppChrome.self) private var chrome: AppChrome?
 
     var body: some View {
         Button { chrome?.contributing = true } label: {
-            // As tall as the search pill beside it, so the header's row reads as one line.
             Image(systemName: "plus")
-                .font(.system(size: 19, weight: .bold))
-                .foregroundStyle(Color.brand)
-                .frame(width: 48, height: 48)
-                .background(Color.onInk, in: Circle())
+                .font(.system(size: 19, weight: .semibold))
+                .foregroundStyle(Color.brandDeep)
+                .frame(width: HeaderActions.size, height: HeaderActions.size)
+                .background(Color.paper, in: Circle())
                 .contentShape(Circle())
         }
         .buttonStyle(Pressable())
@@ -462,15 +505,66 @@ struct ContributeButton: View {
     }
 }
 
+/// Your account, from every header: your face on a white ring once signed in, a person outline
+/// before that.
+struct AccountButton: View {
+    @Environment(AppChrome.self) private var chrome: AppChrome?
+    @Environment(\.account) private var account
+
+    var body: some View {
+        Button { chrome?.accountPath = [.settings] } label: {
+            // A white disc the same size as the add button and the search field; the face sits
+            // inside it, and the rank's emblem on its edge.
+            Group {
+                if let state = account?.state, state.signedIn {
+                    PersonAvatar(name: state.me?.displayName, image: state.me?.image, size: HeaderActions.size - 16)
+                        .padding(2)
+                        .background(Color.paper, in: Circle())
+                } else {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.brandDeep)
+                }
+            }
+            .frame(width: HeaderActions.size, height: HeaderActions.size)
+            .background(Color.brandSoft, in: Circle())
+            .overlay(alignment: .bottomTrailing) {
+                if let state = account?.state, state.signedIn, let rank = state.reputation?.rank {
+                    RankEmblem(rank: rank, size: 17, ring: false)
+                        .padding(3)
+                        .background(Color.paper, in: Circle())
+                        .offset(x: 3, y: 3)
+                }
+            }
+            .contentShape(Circle())
+        }
+        .buttonStyle(Pressable())
+        .accessibilityLabel(L10n.Reputation.account)
+    }
+}
+
+/// The header's trailing pair: adding to the map, then your account.
+struct HeaderActions: View {
+    /// Both buttons match the search field's height.
+    static let size: CGFloat = 48
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ContributeButton()
+            AccountButton()
+        }
+    }
+}
+
 extension View {
     /// A sideways row that runs past an edge fades into its background instead of being cut by
     /// it. The fade is as wide as the row's own inset, so the first item is whole at rest.
-    func edgeFade(_ width: CGFloat = Metrics.gutter) -> some View {
+    func edgeFade(_ width: CGFloat = Metrics.gutter, leading: Bool = true, trailing: Bool = true) -> some View {
         mask {
             HStack(spacing: 0) {
-                LinearGradient(colors: [.clear, .black], startPoint: .leading, endPoint: .trailing).frame(width: width)
+                LinearGradient(colors: [leading ? .clear : .black, .black], startPoint: .leading, endPoint: .trailing).frame(width: width)
                 Color.black
-                LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing).frame(width: width)
+                LinearGradient(colors: [.black, trailing ? .clear : .black], startPoint: .leading, endPoint: .trailing).frame(width: width)
             }
         }
     }
@@ -486,7 +580,7 @@ extension View {
                         Text(title).font(.system(size: 28, weight: .bold)).tracking(-0.6).foregroundStyle(Color.onInk).accessibilityAddTraits(.isHeader)
                         Spacer(minLength: 8)
                         trailing()
-                        ContributeButton()
+                        HeaderActions()
                     }
                     .padding(.horizontal, Metrics.gutter)
                     accessory()

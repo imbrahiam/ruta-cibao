@@ -1,14 +1,5 @@
 {
   "landing": {
-    "pinComparison": {
-      "title": "Dos formas de decir aquí.",
-      "intro": "Dos siluetas como acento de la í de aquí.",
-      "classic": "Pin clásico",
-      "lollipop": "Pin lollipop",
-      "classicNote": "La opción elegida: una punta clara para marcar la ubicación.",
-      "lollipopNote": "La alternativa redonda, usada como acento de la misma letra.",
-      "back": "Ver en la landing"
-    },
     "studio": {
       "headline": "Tu provincia, más cerca.",
       "headlineLead": "Tu próxima historia,",
@@ -252,9 +243,10 @@
     "scanHint": "Abre la cámara de tu teléfono y apunta al código.",
     "downloadTitle": "Llévala en el bolsillo.",
     "downloadBody": "Funciona con poca señal: guarda lo que necesitas y envía tus aportes cuando vuelva la conexión.",
-    "notFoundTitle": "Esta página no existe.",
-    "notFoundBody": "Puede que el enlace esté incompleto o que el contenido haya cambiado de lugar.",
-    "errorTitle": "No pudimos cargar esta página.",
+    "notFoundTitle": "No encontramos esta página",
+    "notFoundBody": "Revisa el enlace o vuelve al inicio.",
+    "errorTitle": "No pudimos cargar esta página",
+    "errorBody": "Revisa tu conexión e inténtalo de nuevo.",
     "navLabel": "Principal",
     "footerLabel": "Información y ayuda",
     "deleteWebTitle": "Desde la web",
@@ -270,15 +262,30 @@
   },
   "share": {
     "open": "Abrir en la app",
-    "universal": "Enlace para compartir",
-    "download": "Ver descargas",
+    "copyLink": "Copiar enlace",
+    "linkCopied": "Enlace copiado",
+    "copyFailed": "No se pudo copiar",
+    "share": "Compartir",
+    "takeAlong": "Llévalo en tu celular",
+    "invite": {
+      "title": "{name} te invita a Ruta Cibao",
+      "body": "Descarga la app, entra con tu correo y escribe este código en Cuenta, en «Tengo un código».",
+      "codeLabel": "Código de invitación",
+      "copyCode": "Copiar código",
+      "codeCopied": "Código copiado"
+    },
+    "confirmedDetail": "{count, plural, one {Un vecino confirmó} other {# vecinos confirmaron}} que el lugar sigue ahí.",
+    "scan": {
+      "place": "Escanea el código para abrir este lugar.",
+      "route": "Escanea el código para abrir esta ruta.",
+      "consultation": "Escanea el código para abrir esta consulta.",
+      "traffic": "Escanea el código para abrir este aviso."
+    },
     "unavailableTitle": "Este contenido no está disponible.",
     "unavailableBody": "Puede que el enlace no exista o que el contenido ya no sea público. No mostramos avisos de tránsito vencidos como si siguieran activos.",
     "loading": "Buscando contenido público…",
     "error": "No pudimos consultar este contenido. Inténtalo de nuevo.",
     "retry": "Volver a intentar",
-    "place": "Lugar de la provincia",
-    "route": "Ruta para explorar",
     "consultation": "Consulta comunitaria",
     "traffic": "Aviso de tránsito",
     "trafficNotice": "Las condiciones pueden cambiar. Revisa la fecha y confirma el estado en la app antes de desplazarte.",
@@ -300,8 +307,9 @@
     "title": "Mesa municipal",
     "intro": "Revisa aportes y da seguimiento a tu municipio.",
     "signIn": "Acceso del equipo municipal",
-    "signInBody": "Entra con el teléfono o correo de tu cuenta autorizada.",
+    "signInBody": "Entra con el correo de tu cuenta autorizada.",
     "phone": "Teléfono",
+    "methodUnavailable": "No disponible por ahora",
     "email": "Correo",
     "contact": "Teléfono o correo",
     "send": "Enviar código",
@@ -805,8 +813,8 @@
       "gone": "Este elemento ya no está disponible. La lista muestra lo que sigue pendiente.",
       "resend": "Reenviar código",
       "resendIn": "Reenviar en {seconds} s",
-      "phoneHint": "Número dominicano de 10 dígitos, por ejemplo 809 555 0100.",
-      "phonePlaceholder": "809 555 0100",
+      "phoneHint": "Número dominicano de 10 dígitos, por ejemplo (809) 555-0100.",
+      "phonePlaceholder": "(809) 555-0100",
       "emailPlaceholder": "nombre@ayuntamiento.gob.do",
       "emailHint": "El correo asociado a tu cuenta autorizada.",
       "codeHint": "Seis dígitos, válidos por diez minutos.",
@@ -1391,16 +1399,14 @@
     "reportedBy": "Reportado por {name}",
     "reportedAnon": "Reportado por un vecino",
     "resident": "residente verificado",
-    "stillVoices": "{count, plural, one {# persona confirma que sigue ahí.} other {# personas confirman que sigue ahí.}}",
-    "clearedVoices": "{count, plural, one {# persona dice que ya no está.} other {# personas dicen que ya no está.}}",
-    "ask": "¿Sigue ahí?",
+    "stillVoices": "{count, plural, one {# persona lo confirma} other {# personas lo confirman}}",
+    "clearedVoices": "{count, plural, one {# dice que ya no está} other {# dicen que ya no está}}",
     "still": "Sigue ahí",
     "gone": "Ya no está",
-    "askBlocked": "¿La vía sigue bloqueada?",
     "stillBlocked": "Sigue bloqueada",
     "goneBlocked": "Ya se puede pasar",
-    "stillBlockedVoices": "{count, plural, one {# persona confirma que la vía sigue bloqueada.} other {# personas confirman que la vía sigue bloqueada.}}",
-    "goneBlockedVoices": "{count, plural, one {# persona dice que ya se puede pasar.} other {# personas dicen que ya se puede pasar.}}",
+    "stillBlockedVoices": "{count, plural, one {# persona lo confirma} other {# personas lo confirman}}",
+    "goneBlockedVoices": "{count, plural, one {# dice que ya se puede pasar} other {# dicen que ya se puede pasar}}",
     "yourAnswer": "Tu respuesta",
     "sheetLabel": "Aviso de tránsito: {category}",
     "thanksStill": "Gracias, lo mantendremos en el mapa",
@@ -1415,7 +1421,8 @@
   "permissions": {
     "location": "Ruta Cibao usa tu ubicación para mostrarte lo que tienes cerca y ubicar tus reportes. Puedes elegir el lugar en el mapa sin compartirla.",
     "camera": "Ruta Cibao usa la cámara para que puedas añadir fotos a un lugar o a un reporte, y para mostrarte en ella los lugares que tienes cerca.",
-    "photos": "Ruta Cibao abre tus fotos solo para que elijas las que quieres añadir."
+    "photos": "Ruta Cibao abre tus fotos solo para que elijas las que quieres añadir.",
+    "contacts": "Ruta Cibao muestra tus contactos para que elijas a quién invitar. No salen de tu teléfono."
   },
   "common": {
     "cancel": "Cancelar",
@@ -1444,7 +1451,8 @@
     "search": "Buscar",
     "consultations": "Consultas",
     "contributions": "Aportes",
-    "account": "Cuenta"
+    "account": "Cuenta",
+    "discover": "Descubrir"
   },
   "map": {
     "searchPlaceholder": "Buscar lugares y rutas",
@@ -1570,6 +1578,7 @@
     "hoursHelper": "Por ejemplo: lunes a sábado, 8:00 a 6:00",
     "call": "Llamar",
     "stillThere": "¿Sigue existiendo?",
+    "confirmationCount": "{count, plural, one {Un vecino lo confirmó} other {# vecinos lo confirmaron}}",
     "verify": "Verificar este lugar",
     "exists": "Sigue aquí",
     "gone": "Ya no está",
@@ -1643,9 +1652,10 @@
     "methodLabel": "Cómo quieres entrar",
     "phone": "Celular",
     "email": "Correo",
+    "unavailable": "No disponible por ahora.",
     "phoneLabel": "Número de celular",
     "phoneHelper": "Números que empiezan por 809, 829 o 849.",
-    "phonePlaceholder": "809-555-0123",
+    "phonePlaceholder": "(809) 555-0123",
     "phoneInvalid": "Escribe un número dominicano de 10 dígitos que empiece por 809, 829 o 849.",
     "emailLabel": "Correo electrónico",
     "emailPlaceholder": "tu@correo.com",
@@ -1665,6 +1675,8 @@
     "tooManyAttempts": "Demasiados intentos. Pide un código nuevo.",
     "sendFailed": "No pudimos enviar el código. Inténtalo de nuevo en un momento.",
     "rateLimited": "Espera un momento antes de pedir otro código.",
+    "waitSeconds": "Puedes pedir otro código en {seconds} s",
+    "waitMinutes": "Puedes pedir otro código en {minutes} min",
     "welcome": "Sesión iniciada",
     "close": "Cerrar"
   },
@@ -1966,5 +1978,151 @@
     "replySend": "Enviar respuesta",
     "replyTooShort": "La respuesta necesita al menos 10 caracteres.",
     "staffOnly": "Esta sección es para el personal del ayuntamiento."
+  },
+  "reputation": {
+    "rank": {
+      "vecino": "Vecino",
+      "explorador": "Explorador",
+      "guia": "Guía",
+      "leyenda": "Leyenda"
+    },
+    "points": "{count, plural, one {# punto} other {# puntos}}",
+    "toNext": "Te faltan {points} para {rank}.",
+    "top": "Llegaste al rango más alto.",
+    "since": "Desde {date}",
+    "knowMore": "Cómo subir de rango",
+    "haveCode": "Ingresar código de invitación",
+    "editProfile": "Editar perfil",
+    "rangeFrom": "Desde {min}",
+    "badgesTitle": "Insignias",
+    "badgeEarned": "Conseguida",
+    "badgeProgress": "{current} de {target}",
+    "badge": {
+      "firstContribution": {
+        "title": "Primer aporte",
+        "how": "Publica tu primer lugar, ruta, consulta o aviso."
+      },
+      "traveller": {
+        "title": "Viajero",
+        "how": "Sella 5 lugares en tu pasaporte."
+      },
+      "threeTowns": {
+        "title": "Los tres municipios",
+        "how": "Sella lugares en Sabaneta, Monción y Villa Los Almácigos."
+      },
+      "watchful": {
+        "title": "Ojo vecinal",
+        "how": "Confirma 10 lugares del mapa."
+      },
+      "civicVoice": {
+        "title": "Voz del barrio",
+        "how": "Abre una consulta que se publique."
+      },
+      "roadWatch": {
+        "title": "Vigía del camino",
+        "how": "Avisa 5 veces cómo están las vías."
+      },
+      "host": {
+        "title": "Anfitrión",
+        "how": "Invita a alguien que se una con tu código."
+      }
+    },
+    "rewardsTitle": "Recompensas",
+    "inviteCard": "Invita a un vecino",
+    "inviteCardBody": "Gana 10 puntos y la insignia Anfitrión.",
+    "inviteAction": "Invitar",
+    "rankSheetTitle": "Cómo subir de rango",
+    "rankSheetBody": "Ganas puntos cuando lo que aportas se publica o se acepta.",
+    "pointsEach": "+{points}",
+    "kind": {
+      "place": "Lugar publicado",
+      "route": "Ruta publicada",
+      "consultation": "Consulta publicada",
+      "traffic": "Aviso de vía",
+      "confirmation": "Lugar confirmado",
+      "stamp": "Sello del pasaporte",
+      "support": "Apoyo a una consulta",
+      "invite": "Vecino invitado"
+    },
+    "yours": "Tú: {count}",
+    "inviteTitle": "Invita a un vecino.",
+    "inviteBody": "Cuando se una con tu código, ganas 10 puntos y la insignia Anfitrión.",
+    "chooseContacts": "Elegir contactos",
+    "shareLink": "Compartir enlace",
+    "codeLabel": "Tu código",
+    "copyCode": "Copiar código",
+    "codeCopied": "Código copiado",
+    "joined": "{count, plural, =0 {Nadie se ha unido todavía.} one {# vecino se unió con tu código.} other {# vecinos se unieron con tu código.}}",
+    "message": "Te invito a Ruta Cibao, el mapa de Sabaneta, Monción y Villa Los Almácigos. Mi código es {code}: {url}",
+    "contactsTitle": "Elige a quién invitar",
+    "searchContacts": "Buscar por nombre",
+    "contactsSection": "Contactos",
+    "invited": "Invitado",
+    "contactsPrivate": "Tus contactos no salen de este teléfono.",
+    "contactsDeniedTitle": "Sin acceso a tus contactos",
+    "contactsDeniedBody": "Permite el acceso en Ajustes o comparte tu enlace.",
+    "contactsEmpty": "No tienes contactos con número.",
+    "noMatches": "Nadie con ese nombre.",
+    "openSettings": "Abrir Ajustes",
+    "redeemTitle": "¿Te invitó alguien?",
+    "redeemBody": "Escribe su código de 8 letras y números.",
+    "redeemPlaceholder": "Código",
+    "redeemAction": "Canjear",
+    "redeemedThanks": "Listo. {name} ganó puntos por invitarte.",
+    "redeemedAlready": "Ya indicaste quién te invitó.",
+    "errorUnknownCode": "Ese código no existe. Revísalo.",
+    "errorOwnCode": "Ese es tu propio código.",
+    "errorAlreadyRedeemed": "Ya canjeaste un código antes.",
+    "errorInvalidCode": "El código tiene 8 letras y números.",
+    "youAre": "Eres {rank}.",
+    "rankLine": {
+      "vecino": "Conoce su calle.",
+      "explorador": "Sale a descubrir.",
+      "guia": "Lleva a otros.",
+      "leyenda": "El Cibao lo conoce."
+    },
+    "pointsLabel": "puntos",
+    "progressTo": "{current} de {target} puntos hacia {rank}",
+    "progressTop": "Llegaste al rango más alto",
+    "badgesCount": "{earned} de {total} desbloqueadas",
+    "badgeLocked": "Por desbloquear",
+    "hostEarned": "Insignia Anfitrión conseguida",
+    "hostPending": "Gana la insignia Anfitrión",
+    "invitePoints": "+10 puntos por cada vecino que se una",
+    "invitedBy": "Te invitó",
+    "inviteContacts": "Invitar contactos",
+    "inviteBySms": "Invitar por SMS",
+    "prepareMessage": "Preparar mensaje",
+    "chooseNumber": "¿A qué número se lo envías?",
+    "residentBody": "El ayuntamiento confirmó en persona que vives en {place}. No te da más votos; ayuda a que tus aportes se lean con más confianza.",
+    "residentBodyNoPlace": "El ayuntamiento confirmó en persona que vives en el municipio que elegiste.",
+    "memberSince": "Desde {date}",
+    "account": "Tu cuenta",
+    "copy": "Copiar"
+  },
+  "discover": {
+    "title": "Descubrir",
+    "all": "Todo",
+    "categories": "Explorar por tipo",
+    "routes": "Rutas para caminar",
+    "routesBody": "Senderos con su recorrido, su tiempo y su dificultad.",
+    "todo": "Qué hacer",
+    "eat": "Dónde comer",
+    "shop": "Compras del día",
+    "stay": "Dónde dormir",
+    "services": "Servicios útiles",
+    "seeAll": "Ver todo",
+    "minutes": "{minutes} min",
+    "km": "{km} km",
+    "difficulty": {
+      "easy": "Fácil",
+      "moderate": "Moderada",
+      "hard": "Difícil"
+    },
+    "empty": "Todavía no hay lugares aquí.",
+    "emptyBody": "Prueba con otro municipio o mira el mapa.",
+    "openMap": "Ver en el mapa",
+    "count": "{count, plural, one {# lugar} other {# lugares}}",
+    "verified": "Confirmado por vecinos"
   }
 }

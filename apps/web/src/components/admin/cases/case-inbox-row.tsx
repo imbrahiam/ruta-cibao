@@ -2,8 +2,8 @@
 
 import type { ApiOutputs } from "@ruta/contracts";
 import { useFormatter, useNow, useTranslations } from "use-intl";
-import { CategoryPin } from "@/components/admin/category-pin";
 import { InboxRow } from "@/components/admin/page-frame";
+import { CategoryPin } from "@/components/category/category-pin";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CaseStatusTag, PublicationTag } from "./case-tags";
 

@@ -44,6 +44,9 @@ import rutacibao.android.R
 /** Opens the three ways to add something (consultation, road report, place) from any header. */
 val LocalContribute = staticCompositionLocalOf<() -> Unit> { {} }
 
+/** The face that opens the account, drawn by the app shell beside the add button in every header. */
+val LocalAccountButton = staticCompositionLocalOf<@Composable () -> Unit> { {} }
+
 /**
  * A tab's header, as on iOS (`brandHeader`): the brand pine running under the status bar, with
  * rounded bottom corners. The title (or the map's search) and the add button share the first
@@ -69,21 +72,33 @@ fun RootHeader(title: String, modifier: Modifier = Modifier, filters: (@Composab
     BrandHeader(modifier) {
         Row(Modifier.fillMaxWidth().padding(horizontal = Metrics.gutter), verticalAlignment = Alignment.CenterVertically) {
             Text(title, style = Type.display.copy(fontSize = 32.sp), color = Color.White, modifier = Modifier.weight(1f).semantics { heading() })
-            ContributeButton()
+            HeaderActions()
         }
         if (filters != null) HeaderFilters(content = filters)
     }
 }
 
-/** Adding to the map, from any tab's header: the one solid white button on the green. */
+/** The header's trailing pair: your account behind your face, then adding to the map. */
+@Composable
+fun HeaderActions(modifier: Modifier = Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        LocalAccountButton.current()
+        ContributeButton()
+    }
+}
+
+/** Both header buttons match the search field's height. */
+val HeaderButtonSize = 48.dp
+
+/** Adding to the map, from any tab's header: a white disc with the green plus. */
 @Composable
 fun ContributeButton(modifier: Modifier = Modifier) {
     val open = LocalContribute.current
     val label = stringResource(R.string.contributions_contribute)
     Box(
-        modifier.size(48.dp).background(Color.White, CircleShape).clip(CircleShape).pressable(haptic = true, onClick = open).semantics { contentDescription = label },
+        modifier.size(HeaderButtonSize).clip(CircleShape).background(Color.White).pressable(haptic = true, onClick = open).semantics { contentDescription = label },
         Alignment.Center,
-    ) { Icon(Icons.Outlined.Add, null, Modifier.size(24.dp), tint = Ink.colors.brand) }
+    ) { Icon(Icons.Outlined.Add, null, Modifier.size(24.dp), tint = Ink.colors.brandDeep) }
 }
 
 /** A sideways row of chips on the header that fades at both edges instead of being cut. */

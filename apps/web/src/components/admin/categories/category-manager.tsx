@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { EyeOff, FolderCog, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "use-intl";
-import { CategoryPin } from "@/components/admin/category-pin";
 import { ErrorPanel } from "@/components/admin/error-panel";
 import { catalogKind, catalogOptions } from "@/components/admin/list-queries";
 import {
@@ -18,6 +17,7 @@ import { QueryState } from "@/components/admin/query-state";
 import { useStaff } from "@/components/admin/staff-context";
 import { StatusIndicator } from "@/components/admin/status-indicator";
 import { useUrlParam } from "@/components/admin/use-url-param";
+import { CategoryPin } from "@/components/category/category-pin";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";

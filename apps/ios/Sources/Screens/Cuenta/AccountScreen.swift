@@ -1,47 +1,49 @@
 import RutaKit
 import SwiftUI
 
-enum AccountRoute: Hashable { case profile, saved, passport, notifications, privacy, about, deletion, gestion, offline, consultation(String) }
+enum AccountRoute: Hashable {
+    case settings, profile, saved, passport, notifications, privacy, about, deletion, gestion, offline, consultation(String)
+}
 
-/// Who you are here, what you keep, and how the app behaves for you.
-struct AccountScreen: View {
-    @Environment(DeepLinks.self) private var links
-    @State private var path: [AccountRoute] = {
-        if DebugHook.value("RUTA_DEBUG_COMPOSE") == "offline" { return [.offline] }
-        return DebugHook.value("RUTA_DEBUG_TAB") == "gestion" ? [.gestion] : []
-    }()
-    @State private var signingIn = false
+struct AccountDestination: View {
+    let model: Screen<AccountViewModel, AccountUiState>
+    let route: AccountRoute
+    let close: () -> Void
+    let openConsultation: (String) -> Void
 
     var body: some View {
-        NavigationStack(path: $path) {
-            Host(make: { $0.account() }, flow: { $0.state }) { model in
-                root(model)
-                    .navigationDestination(for: AccountRoute.self) { route in
-                        switch route {
-                        case .profile: ProfilePage(model: model)
-                        case .saved: SavedPage(items: model.state.saved)
-                        case .passport: PassportPage(passport: model.state.passport)
-                        case .notifications: NotificationsPage(model: model)
-                        case .privacy: PrivacyPage()
-                        case .about: AboutPage()
-                        case .deletion: DeletionPage(model: model)
-                        case .gestion: GestionScreen { path.append(.consultation($0)) }
-                        case .offline: OfflinePage()
-                        case .consultation(let slug): ConsultationDetailScreen(slug: slug)
-                        }
-                    }
-                    .onChange(of: model.state.signedIn) { _, signedIn in if !signedIn { path = [] } }
-                    .fullScreenCover(isPresented: $signingIn, onDismiss: { model.vm.refresh() }) { SignInScreen() }
-                    .onChange(of: links.requestId, initial: true) { _, _ in
-                        guard case .report = links.pending else { return }
-                        links.pending = nil
-                        path = [.gestion]
-                    }
+        switch route {
+        case .settings: AccountScreen(model: model)
+        case .profile: ProfilePage(model: model)
+        case .saved: SavedPage(items: model.state.saved, leave: close)
+        case .passport: PassportPage(passport: model.state.passport, leave: close)
+        case .notifications: NotificationsPage(model: model)
+        case .privacy: PrivacyPage()
+        case .about: AboutPage()
+        case .deletion: DeletionPage(model: model)
+        case .gestion: GestionScreen(openConsultation: openConsultation)
+        case .offline: OfflinePage()
+        case .consultation(let slug): ConsultationDetailScreen(slug: slug)
+        }
+    }
+}
+
+private struct AccountScreen: View {
+    let model: Screen<AccountViewModel, AccountUiState>
+    @State private var signingIn = false
+    @State private var showingProfile = false
+
+    var body: some View {
+        root(model)
+            .fullScreenCover(isPresented: $signingIn, onDismiss: { model.vm.refresh() }) { SignInScreen() }
+            .sheet(isPresented: $showingProfile) {
+                OwnProfileSheet(model: model)
+                    .presentationCornerRadius(Metrics.radiusPanel)
             }
             .navigationTitle(L10n.Account.title)
-            .rootHeader(L10n.Account.title) { EmptyView() }
+            .navigationBarTitleDisplayMode(.large)
             .paperBackground()
-        }
+            .onAppear { model.vm.refresh() }
     }
 
     private func root(_ model: Screen<AccountViewModel, AccountUiState>) -> some View {
@@ -49,27 +51,13 @@ struct AccountScreen: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 if state.signedIn {
-                    NavigationLink(value: AccountRoute.profile) {
-                        HStack(spacing: 14) {
-                            Avatar(name: state.me?.displayName, size: 56)
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack(spacing: 6) {
-                                    Text(state.me?.displayName ?? " ").type(.heading)
-                                    if state.me?.residencyVerified == true {
-                                        Image(systemName: "checkmark.seal.fill").font(.system(size: 14)).foregroundStyle(Color.brand)
-                                            .accessibilityLabel(L10n.Account.residentVerified)
-                                    }
-                                }
-                                if let place = state.municipalityName { Text(L10n.Account.resident(place: place)).type(.callout, .ink3) }
-                            }
-                            Spacer(minLength: 8)
-                            Image(systemName: "chevron.right").font(.system(size: 12, weight: .medium)).foregroundStyle(Color.ink4)
+                    RowGroup {
+                        Button { showingProfile = true } label: {
+                            RowLabel(symbol: "person.crop.circle", title: L10n.Account.profile, value: state.me?.displayName)
                         }
-                        .padding(16)
+                        .buttonStyle(RowPress())
+                        link(.profile, "person.text.rectangle", L10n.Account.editProfile, divider: false)
                     }
-                    .buttonStyle(RowPress())
-                    .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
-                    .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
                     .rise(0)
 
                     RowGroup {
@@ -126,6 +114,110 @@ struct AccountScreen: View {
     }
 }
 
+private struct OwnProfileSheet: View {
+    let model: Screen<AccountViewModel, AccountUiState>
+    @Environment(\.dismiss) private var dismiss
+    @State private var sheet: ReputationSheet?
+    @State private var editing = false
+
+    var body: some View {
+        let state = model.state
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    ProfileHero(
+                        name: state.me?.displayName,
+                        image: state.me?.image,
+                        place: state.municipalityName,
+                        residencyVerified: state.me?.residencyVerified == true,
+                        reputation: state.reputation,
+                        editProfile: { editing = true },
+                        explainResident: { sheet = .resident }
+                    )
+                    if let reputation = state.reputation {
+                        RankCard(reputation: reputation) { sheet = .ranks }
+                        BadgesCard(reputation: reputation) { sheet = .badge($0) }
+                        RewardsSection(reputation: reputation, invite: { sheet = .invite }, enterCode: { sheet = .redeem })
+                    }
+                }
+                .padding(.horizontal, Metrics.gutter)
+                .padding(.vertical, 16)
+                .readable()
+            }
+            .navigationTitle(L10n.Account.profile)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(L10n.Common.close, systemImage: "xmark") { dismiss() }
+                        .labelStyle(.iconOnly)
+                }
+            }
+            .navigationDestination(isPresented: $editing) { ProfilePage(model: model) }
+            .sheet(item: $sheet, onDismiss: { model.vm.redeemReset(); model.vm.refresh() }) { shown in
+                reputationSheet(shown, model)
+            }
+            .paperBackground()
+        }
+    }
+
+    @ViewBuilder
+    private func reputationSheet(_ shown: ReputationSheet, _ model: Screen<AccountViewModel, AccountUiState>) -> some View {
+        if let reputation = model.state.reputation {
+            switch shown {
+            case .ranks: RankSheet(reputation: reputation) { sheet = nil }
+            case .badge(let badge): BadgeSheet(badge: badge) { sheet = nil }
+            case .invite: InviteFlow(reputation: reputation) { sheet = nil }
+            case .resident: ResidentSheet(place: model.state.municipalityName) { sheet = nil }
+            case .redeem:
+                RedeemSheet(
+                    state: model.state.redeem,
+                    submit: { model.vm.redeemInvite(raw: $0) },
+                    reset: { model.vm.redeemReset() },
+                    close: { sheet = nil }
+                )
+            }
+        }
+    }
+}
+
+struct PublicProfileButton<Label: View>: View {
+    let name: String?
+    let image: String?
+    @ViewBuilder var label: () -> Label
+    @State private var showing = false
+
+    var body: some View {
+        if let name, !name.isEmpty {
+            Button { showing = true } label: { label() }
+                .buttonStyle(.plain)
+                .accessibilityLabel(name)
+                .accessibilityHint(L10n.Account.profile)
+                .sheet(isPresented: $showing) { PublicProfileSheet(name: name, image: image) }
+        } else {
+            label()
+        }
+    }
+}
+
+private struct PublicProfileSheet: View {
+    let name: String
+    let image: String?
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 12) {
+            SheetBar(title: L10n.Account.profile) { dismiss() }
+            ProfileHero(name: name, image: image, place: nil, residencyVerified: false, reputation: nil, explainResident: {})
+                .padding(.horizontal, Metrics.gutter)
+        }
+        .padding(.bottom, 20)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .paperBackground()
+        .presentationDetents([.medium, .large])
+        .presentationCornerRadius(Metrics.radiusPanel)
+    }
+}
+
 // MARK: - Profile
 
 private struct ProfilePage: View {
@@ -177,18 +269,20 @@ private struct ProfilePage: View {
 
 private struct SavedPage: View {
     let items: [PlacesSavedItem]
+    /// Closes the account sheet when a row sends you to the map.
+    let leave: () -> Void
     @Environment(DeepLinks.self) private var links
     @Environment(AppChrome.self) private var chrome
 
     var body: some View {
         Page(title: L10n.Account.saved) {
             if items.isEmpty {
-                StateView(symbol: "bookmark", title: L10n.Explore.savedEmpty, message: L10n.Explore.savedEmptyBody, actionTitle: L10n.Explore.savedExplore) { chrome.tab = .map }
+                StateView(symbol: "bookmark", title: L10n.Explore.savedEmpty, message: L10n.Explore.savedEmptyBody, actionTitle: L10n.Explore.savedExplore) { chrome.tab = .map; leave() }
                     .frame(height: 360)
             } else {
                 RowGroup {
                     ForEach(Array(items.enumerated()), id: \.element.id) { index, place in
-                        Button { links.open("/lugares/\(place.slug)"); if links.pending == nil { links.pending = .place(slug: place.slug) }; chrome.tab = .map } label: {
+                        Button { links.open("/lugares/\(place.slug)"); if links.pending == nil { links.pending = .place(slug: place.slug) }; chrome.tab = .map; leave() } label: {
                             HStack(spacing: 14) {
                                 GlyphDisc(icon: place.icon, tint: .neutral)
                                 VStack(alignment: .leading, spacing: 2) {
@@ -212,13 +306,14 @@ private struct SavedPage: View {
 
 private struct PassportPage: View {
     let passport: PassportListOutput?
+    let leave: () -> Void
     @Environment(AppChrome.self) private var chrome
 
     var body: some View {
         let items = passport?.items ?? []
         Page(title: L10n.Account.passport) {
             if items.isEmpty {
-                StateView(symbol: "book.closed", title: L10n.Account.passportEmpty, message: L10n.Account.passportEmptyBody, actionTitle: L10n.Explore.savedExplore) { chrome.tab = .map }
+                StateView(symbol: "book.closed", title: L10n.Account.passportEmpty, message: L10n.Account.passportEmptyBody, actionTitle: L10n.Explore.savedExplore) { chrome.tab = .map; leave() }
                     .frame(height: 360)
             } else {
                 Text(L10n.Account.passportLede(count: items.count)).type(.body, .ink2)
@@ -269,8 +364,26 @@ private struct NotificationsPage: View {
                 }
                 .buttonStyle(.pill(.outline, compact: true, fill: false))
                 .padding(.top, 6)
+            } else if model.state.loading {
+                Skeleton {
+                    RowGroup {
+                        ForEach(0..<3) { index in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    SkeletonLine(133)
+                                    SkeletonLine(205, lineHeight: 16, barHeight: 10, relativeTo: .caption)
+                                }
+                                Spacer(minLength: 12)
+                                Capsule().frame(width: 51, height: 31)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            if index < 2 { Hairline(inset: 16) }
+                        }
+                    }
+                }
             } else {
-                LoadingDots().frame(height: 200)
+                StateView(error: model.state.error ?? .unknown) { model.vm.refresh() }.frame(minHeight: 240)
             }
         }
     }
@@ -403,9 +516,9 @@ private struct AboutPage: View {
             .rise(4)
 
             RowGroup {
-                Button { open("https://rutacibao.do") } label: { RowLabel(symbol: "globe", title: "rutacibao.do", divider: true) }.buttonStyle(RowPress())
-                Button { open("https://rutacibao.do/privacy") } label: { RowLabel(symbol: "hand.raised", title: L10n.Account.privacy) }.buttonStyle(RowPress())
-                RowLabel(symbol: "map", title: L10n.About.maps, value: "Apple · OpenStreetMap", chevron: false, divider: false)
+                Button { open("https://rutacibao.app") } label: { RowLabel(symbol: "globe", title: "rutacibao.app", divider: true) }.buttonStyle(RowPress())
+                Button { open("https://rutacibao.app/privacy") } label: { RowLabel(symbol: "hand.raised", title: L10n.Account.privacy) }.buttonStyle(RowPress())
+                RowLabel(symbol: "map", title: L10n.About.maps, value: "Apple", chevron: false, divider: false)
             }
             .padding(.top, 12)
             .rise(5)
@@ -490,3 +603,20 @@ private struct DeletionPage: View {
 }
 
 extension PlacesSavedItem: @retroactive Identifiable {}
+
+/// The reputation sheets, one at a time. Moving from the invite to the contacts replaces one
+/// sheet with the next instead of stacking them.
+enum ReputationSheet: Identifiable, Hashable {
+    case ranks, invite, redeem, resident
+    case badge(BadgeProgress)
+
+    var id: String {
+        switch self {
+        case .ranks: "ranks"
+        case .invite: "invite"
+        case .resident: "resident"
+        case .redeem: "redeem"
+        case .badge(let badge): "badge-\(badge.id.name)"
+        }
+    }
+}

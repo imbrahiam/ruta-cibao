@@ -37,6 +37,7 @@ const NAMESPACES = [
   "contribute",
   "contributions",
   "directions",
+  "discover",
   "errors",
   "explore",
   "gestion",
@@ -52,6 +53,7 @@ const NAMESPACES = [
   "privacy",
   "profile",
   "reports",
+  "reputation",
   "routes",
   "safety",
   "safetyUi",
@@ -598,6 +600,7 @@ const PLIST_KEYS: Record<string, string> = {
   NSLocationWhenInUseUsageDescription: "location",
   NSCameraUsageDescription: "camera",
   NSPhotoLibraryUsageDescription: "photos",
+  NSContactsUsageDescription: "contacts",
 };
 const infoPlist = {
   sourceLanguage: "es",

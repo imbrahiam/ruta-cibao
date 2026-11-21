@@ -63,13 +63,22 @@ public class AuthRepository(
             setBody(buildJsonObject(body).toString())
         }
         if (!response.status.isSuccess()) {
-            val code = runCatching {
-                Json.parseToJsonElement(response.bodyAsText()).jsonObject["code"]?.jsonPrimitive?.content
-            }.getOrNull()
-            throw AuthError(response.status.value, code.orEmpty())
+            val body = runCatching { Json.parseToJsonElement(response.bodyAsText()).jsonObject }.getOrNull()
+            val code = runCatching { body?.get("code")?.jsonPrimitive?.content }.getOrNull()
+            // A refused code send says how long to wait (`retryAfter`, seconds).
+            val retryAfter = runCatching { body?.get("retryAfter")?.jsonPrimitive?.content?.toDouble()?.toInt() }.getOrNull()
+                ?: response.headers["Retry-After"]?.toIntOrNull()
+            throw AuthError(response.status.value, code.orEmpty(), retryAfter)
         }
     }
 }
 
-/** A Better Auth refusal: `status` plus its machine code (`INVALID_OTP`, `OTP_EXPIRED`…). */
-public class AuthError(public val status: Int, public val code: String) : Exception("auth $status $code")
+/**
+ * A Better Auth refusal: `status` plus its machine code (`INVALID_OTP`, `OTP_EXPIRED`…), and for a
+ * rate limit the seconds until another try is allowed, when the server says.
+ */
+public class AuthError(
+    public val status: Int,
+    public val code: String,
+    public val retryAfterSeconds: Int? = null,
+) : Exception("auth $status $code")

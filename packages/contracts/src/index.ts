@@ -18,6 +18,7 @@ import { offlineContract } from "./offline";
 import { passportContract } from "./passport";
 import { placesContract } from "./places";
 import { reportsContract } from "./reports";
+import { reputationContract } from "./reputation";
 import { routesContract } from "./routes";
 import { safetyContract } from "./safety";
 import { staffContract } from "./staff";
@@ -45,6 +46,7 @@ export const contract = {
   offline: offlineContract,
   places: placesContract,
   passport: passportContract,
+  reputation: reputationContract,
   traffic: trafficContract,
   consultations: consultationsContract,
   comments: commentsContract,
@@ -74,6 +76,7 @@ export * from "./offline";
 export * from "./passport";
 export * from "./places";
 export * from "./reports";
+export * from "./reputation";
 export * from "./routes";
 export * from "./safety";
 export * from "./staff";

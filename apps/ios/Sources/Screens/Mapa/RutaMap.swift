@@ -14,8 +14,6 @@ struct MapPin: Equatable {
     /// What picking it selects, when that is another pin's key (a closure's end markers pick
     /// the notice itself).
     var selects: String?
-    /// A quieter marker, as at either end of a closed stretch.
-    var small = false
     /// Keeps its full tone while something else is selected (a route's own stops).
     var prominent = false
 }
@@ -32,6 +30,9 @@ struct MapLine: Equatable {
     var casing = false
     /// Drawn as a barrier: a dark edge, white, and red bars this many metres long along it.
     var stripeMetres: Double?
+    /// Drawn as water over the road: a wide translucent band, a deep channel, and a white wave
+    /// riding along it this many metres from crest to crest.
+    var waveMetres: Double?
 }
 
 struct GeoPoint: Hashable {

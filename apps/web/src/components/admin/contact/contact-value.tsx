@@ -11,8 +11,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { useCopy } from "@/lib/web/use-copy";
 import { useOutcome } from "../outcome";
-import { useCopy } from "./use-copy";
 import { WhatsAppMark } from "./whatsapp-mark";
 
 /**

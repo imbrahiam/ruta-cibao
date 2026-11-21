@@ -73,29 +73,33 @@ private fun accountViewModel(): AccountViewModel {
 
 /** Who you are here, what you keep, and how the app behaves for you. */
 @Composable
-fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit, onOpenPlace: (String) -> Unit) {
+fun AccountScreen(onBack: () -> Unit, onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit, onOpenPlace: (String) -> Unit) {
     val vm = accountViewModel()
     val state by vm.state.collectAsStateWithLifecycle()
     var signingIn by remember { mutableStateOf(false) }
+    var sheet by remember { mutableStateOf<ReputationSheet?>(null) }
+    var badge by remember { mutableStateOf<rutacibao.presentation.account.BadgeProgress?>(null) }
     val p = Ink.colors
     LaunchedEffect(Unit) { vm.refresh() }
     Column(Modifier.fillMaxSize().background(p.paper)) {
-      RootHeader(stringResource(R.string.account_title))
-      Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 18.dp, bottom = LocalBarClearance.current + 24.dp)) {
+      // Opened from the face in every header, so it is a pushed page with its own way back.
+      TopRow(stringResource(R.string.account_title), onBack)
+      Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(top = 6.dp, bottom = LocalBarClearance.current + 24.dp)) {
         Column(Modifier.padding(horizontal = Metrics.gutter), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (state.signedIn) {
-                RowGroup(Modifier.rise(0)) {
-                    Row(Modifier.clickable { onOpen(AccountPage.Profile) }.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Avatar(state.me?.displayName, 56.dp)
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(state.me?.displayName ?: " ", style = Type.heading, color = p.ink)
-                                if (state.me?.residencyVerified == true) Icon(Icons.Filled.Verified, stringResource(R.string.account_resident_verified), Modifier.size(16.dp), tint = p.brand)
-                            }
-                            state.municipalityName?.let { Text(stringResource(R.string.account_resident, it), style = Type.callout, color = p.ink3) }
-                        }
-                        Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(18.dp), tint = p.ink4)
-                    }
+                ProfileHero(
+                    name = state.me?.displayName,
+                    place = state.municipalityName,
+                    residencyVerified = state.me?.residencyVerified == true,
+                    reputation = state.reputation,
+                    onEditProfile = { onOpen(AccountPage.Profile) },
+                    onExplainResident = { sheet = ReputationSheet.Resident },
+                    modifier = Modifier.rise(0),
+                )
+                state.reputation?.let { rep ->
+                    RankCard(rep, { sheet = ReputationSheet.Ranks }, Modifier.rise(1))
+                    BadgesCard(rep, { badge = it; sheet = ReputationSheet.Badge }, Modifier.rise(1))
+                    RewardsSection(rep, { sheet = ReputationSheet.Invite }, { sheet = ReputationSheet.Redeem }, Modifier.rise(2))
                 }
                 RowGroup(Modifier.rise(1)) {
                     RowLabel(stringResource(R.string.account_saved), icon = Icons.Outlined.BookmarkBorder, value = state.saved.size.takeIf { it > 0 }?.toString(), onClick = { onOpen(AccountPage.Saved) })
@@ -129,7 +133,20 @@ fun AccountScreen(onOpen: (AccountPage) -> Unit, onOpenGestion: () -> Unit, onOp
       }
     }
     if (signingIn && !state.signedIn) SignInDialog(onDismiss = { signingIn = false; vm.refresh() })
+    val rep = state.reputation
+    val close = { sheet = null; vm.redeemReset(); vm.refresh() }
+    if (rep != null) when (sheet) {
+        ReputationSheet.Ranks -> RankSheet(rep, close)
+        ReputationSheet.Badge -> badge?.let { BadgeSheet(it, close) }
+        ReputationSheet.Invite -> InviteFlow(rep, close)
+        ReputationSheet.Resident -> ResidentSheet(state.municipalityName, close)
+        ReputationSheet.Redeem -> RedeemSheet(state.redeem, vm::redeemInvite, vm::redeemReset, close)
+        null -> Unit
+    }
 }
+
+/** The reputation sheets, one at a time; contacts is a step inside the invite flow, not a sheet of its own. */
+private enum class ReputationSheet { Ranks, Badge, Invite, Resident, Redeem }
 
 @Composable
 fun AccountPageScreen(page: AccountPage, onBack: () -> Unit, onOpenPlace: (String) -> Unit) {
@@ -230,7 +247,21 @@ private fun NotificationsPage(state: AccountUiState, vm: AccountViewModel, onBac
     }
     Page(stringResource(R.string.notification_settings_title), onBack) {
         val prefs = state.preferences
-        if (prefs == null) LoadingDots(Modifier.height(200.dp)) else {
+        if (prefs == null) Skeleton {
+            RowGroup {
+                repeat(3) { index ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            BoneLine(133.dp)
+                            BoneLine(205.dp, lineHeight = 16.dp, barHeight = 10.dp)
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Bone(Modifier.size(52.dp, 32.dp))
+                    }
+                    if (index < 2) Hairline(inset = 16.dp)
+                }
+            }
+        } else {
             RowGroup {
                 toggle(R.string.notification_settings_case_updates, R.string.notification_settings_case_hint, prefs.caseUpdatesEnabled) { vm.setPreferences(it, prefs.trafficEnabled, prefs.emailEnabled) }
                 Hairline(inset = 16.dp)
@@ -427,7 +458,7 @@ fun GestionScreen(onBack: () -> Unit, onOpenConsultation: (String) -> Unit) {
             items(state.filters) { entry -> Chip("${stringResource(entry.kind.title)} · ${entry.count}", state.filter == entry.kind, { vm.select(entry.kind) }) }
         }
         when (state.phase) {
-            GestionUiState.Phase.Loading -> LoadingDots(Modifier.height(260.dp))
+            GestionUiState.Phase.Loading -> GestionSkeleton()
             GestionUiState.Phase.Failed -> ErrorView(state.error ?: UiError.Unknown, Modifier.height(320.dp), vm::retry)
             GestionUiState.Phase.Empty -> StateView(stringResource(R.string.gestion_empty), Modifier.height(320.dp), icon = Icons.Outlined.CheckCircle)
             GestionUiState.Phase.Ready -> state.visibleItems.forEach { item ->
@@ -557,4 +588,27 @@ private fun actionLabel(labelKey: String): Int = when (labelKey) {
     "gestion.action.hideCase" -> R.string.gestion_action_hide_case
     "gestion.action.respond" -> R.string.gestion_action_respond
     else -> R.string.gestion_action_reject
+}
+
+/** The desk's cases on their way: three cards with where and when, title, line and the action. */
+@Composable
+private fun GestionSkeleton() {
+    Skeleton {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            repeat(3) {
+                Column(Modifier.fillMaxWidth().background(Ink.colors.paper2, RoundedCornerShape(Metrics.radiusCard)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row { BoneLine(97.dp, lineHeight = 16.dp, barHeight = 10.dp); Spacer(Modifier.weight(1f)); Box(Modifier.width(34.dp)) { BoneLine(34.dp, lineHeight = 16.dp, barHeight = 10.dp) } }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        BoneLine(216.dp, lineHeight = 25.dp, barHeight = 15.dp)
+                        BoneLine(174.dp, lineHeight = 18.dp, barHeight = 11.dp)
+                    }
+                    Row(Modifier.heightIn(min = 44.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.width(86.dp)) { BoneLine(86.dp, lineHeight = 16.dp, barHeight = 10.dp) }
+                        Spacer(Modifier.weight(1f))
+                        Bone(Modifier.size(82.dp, 34.dp))
+                    }
+                }
+            }
+        }
+    }
 }

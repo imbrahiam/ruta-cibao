@@ -21,6 +21,7 @@ import { api } from "@/lib/web/api";
 import { authClient } from "@/lib/web/auth-client";
 import { failureKind, failureReason } from "@/lib/web/errors";
 import { LOCALE } from "@/lib/web/i18n";
+import { formatPhoneChange } from "@/lib/web/phone-input";
 
 const RECEIPT_STORAGE_KEY = "ruta_deletion_receipt";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -347,7 +348,7 @@ function DeleteAccountCard() {
                       autoComplete="tel-national"
                       value={phone}
                       onChange={(event) =>
-                        setPhone(formatPhoneInput(event.target.value))
+                        setPhone(formatPhoneChange(event, phone))
                       }
                     />
                   </Field>

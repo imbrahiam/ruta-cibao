@@ -10,9 +10,9 @@ import { useId, useState } from "react";
 import { useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
 import { FormField } from "@/components/admin/form-field";
-import { CATEGORY_ICONS } from "@/components/admin/map/category-glyph";
 import { useOutcome } from "@/components/admin/outcome";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
+import { CATEGORY_ICONS } from "@/components/category/category-glyph";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

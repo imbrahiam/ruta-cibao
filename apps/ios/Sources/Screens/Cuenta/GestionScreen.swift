@@ -68,7 +68,32 @@ private struct Desk: View {
             .padding(.horizontal, -Metrics.gutter)
 
             switch state.phase {
-            case .loading: LoadingDots().frame(height: 260)
+            case .loading:
+                Skeleton {
+                    VStack(spacing: 14) {
+                        ForEach(0..<3) { _ in
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack {
+                                    SkeletonLine(97, lineHeight: 16, barHeight: 10, relativeTo: .caption)
+                                    Spacer()
+                                    SkeletonLine(34, lineHeight: 16, barHeight: 10, relativeTo: .caption)
+                                }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    SkeletonLine(216, lineHeight: 25, barHeight: 15, relativeTo: .headline)
+                                    SkeletonLine(174, lineHeight: 18, barHeight: 11, relativeTo: .callout)
+                                }
+                                HStack {
+                                    SkeletonLine(86, lineHeight: 16, barHeight: 10, relativeTo: .caption)
+                                    Spacer()
+                                    Capsule().frame(width: 82, height: 34)
+                                }
+                                .frame(minHeight: 44)
+                            }
+                            .padding(16)
+                            .background(Color.paper2, in: RoundedRectangle(cornerRadius: Metrics.radiusCard))
+                        }
+                    }
+                }
             case .failed: StateView(error: state.error ?? .unknown) { vm.retry() }.frame(height: 320)
             case .empty: StateView(symbol: "checkmark.circle", title: L10n.Gestion.empty).frame(height: 320)
             case .ready:

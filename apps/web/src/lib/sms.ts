@@ -33,6 +33,16 @@ export function isVerifyConfigured(): boolean {
   );
 }
 
+export function isDemoPhoneSignInEnabled(): boolean {
+  return Boolean(
+    env.LOCAL_DEMO_OTP &&
+      env.LOCAL_DEMO_PHONES &&
+      ((env.NODE_ENV === "development" &&
+        new URL(env.APP_URL).hostname === "localhost") ||
+        env.DEMO_DEPLOYMENT),
+  );
+}
+
 /** Whether a phone sign-in code can reach the person at all. */
 export function canDeliverSms(): boolean {
   return isVerifyConfigured() || logDeliveryAllowed();

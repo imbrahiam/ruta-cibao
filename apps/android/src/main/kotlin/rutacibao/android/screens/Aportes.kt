@@ -127,7 +127,7 @@ fun ContributionsScreen(onOpenConsultation: (String) -> Unit, startOnInbox: Bool
                             action = stringResource(R.string.contributions_sign_in), prominent = true, onAction = { signingIn = true })
                     }
                 } else if (!onInbox) when (state.phase) {
-                    ContributionsUiState.Phase.Loading -> item { LoadingDots(Modifier.height(200.dp)) }
+                    ContributionsUiState.Phase.Loading -> item { ContributionSkeleton(showsStatus = true) }
                     ContributionsUiState.Phase.Failed -> item { ErrorView(state.error ?: UiError.Unknown, Modifier.height(280.dp), vm::retry) }
                     ContributionsUiState.Phase.Empty -> item {
                         StateView(stringResource(R.string.contributions_empty), Modifier.height(280.dp), message = stringResource(R.string.contributions_empty_body),
@@ -138,7 +138,7 @@ fun ContributionsScreen(onOpenConsultation: (String) -> Unit, startOnInbox: Bool
                         MineRow(item, enabled = slug != null || item.href != null) { if (slug != null) onOpenConsultation(slug) else item.href?.let(onOpenHref) }
                     }
                 } else when (inbox.phase) {
-                    InboxUiState.Phase.Loading -> item { LoadingDots(Modifier.height(200.dp)) }
+                    InboxUiState.Phase.Loading -> item { ContributionSkeleton(showsStatus = false) }
                     InboxUiState.Phase.Failed -> item { ErrorView(inbox.error ?: UiError.Unknown, Modifier.height(280.dp), inboxVm::refresh) }
                     InboxUiState.Phase.Empty -> item { StateView(stringResource(R.string.contributions_inbox_empty), Modifier.height(280.dp), icon = Icons.Outlined.Inbox, message = stringResource(R.string.contributions_inbox_empty_body)) }
                     InboxUiState.Phase.Ready -> items(inbox.items, key = { it.id }) { notice ->
@@ -345,6 +345,25 @@ fun SuggestPlaceScreen(onBack: () -> Unit, onSent: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Schedule, null, Modifier.size(15.dp), tint = Ink.colors.ink3)
             Text(stringResource(R.string.contribute_review_note), style = Type.caption, color = Ink.colors.ink3)
+        }
+    }
+}
+
+/** Rows on their way, shaped like yours and the inbox's: disc, two lines and, for yours, the state. */
+@Composable
+private fun ContributionSkeleton(showsStatus: Boolean) {
+    Skeleton {
+        Column {
+            repeat(4) {
+                Row(Modifier.fillMaxWidth().padding(horizontal = Metrics.gutter, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Bone(Modifier.size(40.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        BoneLine(if (showsStatus) 145.dp else 215.dp)
+                        BoneLine(112.dp, lineHeight = 17.dp, barHeight = 10.dp)
+                    }
+                    if (showsStatus) Bone(Modifier.size(68.dp, 22.dp))
+                }
+            }
         }
     }
 }

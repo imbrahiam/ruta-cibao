@@ -16,6 +16,7 @@
       "!apps/web/drizzle",
       "!apps/web/src/db/schema/auth.ts",
       "!**/*.xcassets",
+      "!**/*.icon",
       "!apps/ios/DerivedData",
       "!apps/ios/DerivedData-device",
       "!apps/ios/DerivedDataDevice"

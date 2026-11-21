@@ -114,7 +114,7 @@ private struct MineList: View {
 
     var body: some View {
         switch model.state.phase {
-        case .loading: LoadingDots().frame(height: 200)
+        case .loading: ContributionSkeleton(showsStatus: true)
         case .failed: StateView(error: model.state.error ?? .unknown) { model.vm.retry() }.frame(height: 280)
         case .empty:
             StateView(title: L10n.Contributions.empty, message: L10n.Contributions.emptyBody, actionTitle: L10n.Contributions.contribute) { chrome?.contributing = true }
@@ -207,7 +207,7 @@ private struct InboxList: View {
 
     var body: some View {
         switch model.state.phase {
-        case .loading: LoadingDots().frame(height: 200)
+        case .loading: ContributionSkeleton(showsStatus: false)
         case .failed: StateView(error: model.state.error ?? .unknown) { model.vm.refresh() }.frame(height: 280)
         case .empty: StateView(symbol: "tray", title: L10n.Contributions.inboxEmpty, message: L10n.Contributions.inboxEmptyBody).frame(height: 280)
         case .ready:
@@ -234,6 +234,30 @@ private struct InboxList: View {
                 }
                 .buttonStyle(RowPress())
                 .accessibilityValue(notice.unread ? L10n.Notifications.unread : "")
+            }
+        }
+    }
+}
+
+private struct ContributionSkeleton: View {
+    let showsStatus: Bool
+
+    var body: some View {
+        Skeleton {
+            VStack(spacing: 0) {
+                ForEach(0..<4) { _ in
+                    HStack(spacing: 14) {
+                        Circle().frame(width: 40, height: 40)
+                        VStack(alignment: .leading, spacing: 3) {
+                            SkeletonLine(showsStatus ? 145 : 215)
+                            SkeletonLine(112, lineHeight: 17, barHeight: 10, relativeTo: .callout)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        if showsStatus { Capsule().frame(width: 68, height: 22) }
+                    }
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.vertical, 10)
+                }
             }
         }
     }

@@ -33,6 +33,7 @@ public class ScreenScope(private val graph: AppGraph) {
     public fun account(): AccountViewModel = get { graph.viewModels.account() }
     public fun consultationDetail(): ConsultationDetailViewModel = get { graph.viewModels.consultationDetail() }
     public fun map(): MapViewModel = get { graph.viewModels.map() }
+    public fun discover(): rutacibao.presentation.discover.DiscoverViewModel = get { graph.viewModels.discover() }
     // Not `newConsultation`: ObjC reserves the `new` prefix (it would export as `doNewConsultation`).
     public fun consultationComposer(): NewConsultationViewModel = get { graph.viewModels.consultationComposer() }
 

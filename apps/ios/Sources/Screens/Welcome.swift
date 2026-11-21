@@ -7,6 +7,7 @@ import UserNotifications
 @MainActor @Observable
 final class Welcome: NSObject, CLLocationManagerDelegate {
     private static let seenKey = "ruta.welcomed"
+    private static let locationChoiceKey = "ruta.welcome.locationChoice"
     enum Step: Int, CaseIterable { case hello, location, notifications }
 
     private(set) var showing: Bool
@@ -16,23 +17,35 @@ final class Welcome: NSObject, CLLocationManagerDelegate {
     @ObservationIgnored private var waiting: CheckedContinuation<Void, Never>?
 
     override init() {
-        var show = !UserDefaults.standard.bool(forKey: Self.seenKey)
+        let defaults = UserDefaults.standard
+        let welcomed = defaults.bool(forKey: Self.seenKey)
+        let needsLocation = welcomed && !defaults.bool(forKey: Self.locationChoiceKey)
+            && CLLocationManager().authorizationStatus == .notDetermined
+        var show = !welcomed || needsLocation
+        var firstStep: Step = needsLocation ? .location : .hello
         #if DEBUG
         // Screenshot runs open a screen directly; they ask for the welcome explicitly.
-        if DebugHook.value("RUTA_DEBUG_COMPOSE") == "primer" { show = true }
+        if DebugHook.value("RUTA_DEBUG_COMPOSE") == "primer" { show = true; firstStep = .hello }
         else if DebugHook.value("RUTA_DEBUG_TAB") != nil || DebugHook.value("RUTA_DEBUG_COMPOSE") != nil { show = false }
         #endif
         showing = show
+        step = firstStep
+        super.init()
+        manager.delegate = self
     }
 
     func next() {
+        if step == .location {
+            let defaults = UserDefaults.standard
+            defaults.set(true, forKey: Self.locationChoiceKey)
+            if defaults.bool(forKey: Self.seenKey) { return finish() }
+        }
         guard let following = Step(rawValue: step.rawValue + 1) else { return finish() }
         withAnimation(Motion.settle) { step = following }
     }
 
     func allowLocation() async {
         if manager.authorizationStatus == .notDetermined {
-            manager.delegate = self
             await withCheckedContinuation { continuation in
                 waiting = continuation
                 manager.requestWhenInUseAuthorization()

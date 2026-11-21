@@ -8,6 +8,7 @@ import rutacibao.presentation.auth.SignInViewModel
 import rutacibao.presentation.comments.CommentsViewModel
 import rutacibao.presentation.consultations.ConsultationDetailViewModel
 import rutacibao.presentation.consultations.ConsultationsViewModel
+import rutacibao.presentation.discover.DiscoverViewModel
 import rutacibao.presentation.safety.SafetyViewModel
 import rutacibao.presentation.contribute.SuggestPlaceViewModel
 import rutacibao.presentation.contribute.TrafficReportViewModel
@@ -38,7 +39,9 @@ public class ViewModels(
     private val commentsProvider: Provider<CommentsViewModel>,
     private val businessFormProvider: Provider<BusinessFormViewModel>,
     private val gestionProvider: Provider<GestionViewModel>,
+    private val discoverProvider: Provider<DiscoverViewModel>,
 ) {
+    public fun discover(): DiscoverViewModel = discoverProvider()
     public fun gestion(): GestionViewModel = gestionProvider()
     public fun businessForm(): BusinessFormViewModel = businessFormProvider()
     public fun comments(): CommentsViewModel = commentsProvider()

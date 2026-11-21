@@ -75,12 +75,46 @@ private struct Feed: View {
         return state.items.filter { !shown.contains($0.id) }
     }
 
+    private var featuredSkeleton: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            SectionHeader(title: L10n.Explore.highlights)
+            ScrollView(.horizontal) {
+                Skeleton {
+                    HStack(spacing: 14) {
+                        ForEach(0..<2) { _ in
+                            RoundedRectangle(cornerRadius: FeatureCard.radius)
+                                .frame(width: FeatureCard.width, height: FeatureCard.height)
+                                .overlay(alignment: .topLeading) {
+                                    Capsule().fill(Color.paper2).frame(width: 78, height: 23).padding(12)
+                                }
+                                .overlay(alignment: .bottomLeading) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        SkeletonLine(150, lineHeight: 25, barHeight: 15, relativeTo: .headline)
+                                        SkeletonLine(96, lineHeight: 17, barHeight: 10, relativeTo: .caption)
+                                    }
+                                    .foregroundStyle(Color.paper2)
+                                    .padding(16)
+                                }
+                        }
+                    }
+                    .padding(.horizontal, Metrics.gutter)
+                }
+            }
+            .scrollIndicators(.hidden)
+        }
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 switch state.phase {
                 case .loading:
-                    LoadingDots().frame(height: 320)
+                    if state.status == nil {
+                        featuredSkeleton
+                        SectionHeader(title: L10n.Consultations.more)
+                    }
+                    ConsultationRowSkeleton(count: 4, showsStatus: state.status == nil)
+                        .padding(.top, state.status == nil ? 0 : 12)
                 case .failed:
                     StateView(error: state.error ?? .unknown) { model.vm.retry() }.frame(height: 360)
                 case .empty:
@@ -112,7 +146,7 @@ private struct Feed: View {
                             }
                             .onAppear { if index >= listed.count - 3 { model.vm.loadMore() } }
                     }
-                    if state.loadingMore { LoadingDots().frame(height: 64) }
+                    if state.loadingMore { ConsultationRowSkeleton(count: 1, showsStatus: state.status == nil) }
                 }
             }
             .padding(.bottom, 24)
@@ -130,6 +164,10 @@ extension ConsultationsBrowseOutput.Item: @retroactive Identifiable {}
 
 /// A case with a picture, as a large card in the opening carousel.
 private struct FeatureCard: View {
+    static let width: CGFloat = 264
+    static let height: CGFloat = 248
+    static let radius: CGFloat = 22
+
     let item: Consultation
     let open: () -> Void
 
@@ -138,19 +176,19 @@ private struct FeatureCard: View {
             // The picture carries the card; its words sit on a scrim at the foot so they read
             // over any photo.
             RemoteImage(url: item.photos?.first?.url ?? "")
-                .frame(width: 264, height: 248)
+                .frame(width: Self.width, height: Self.height)
                 .overlay {
                     LinearGradient(stops: [.init(color: .clear, location: 0.42), .init(color: .black.opacity(0.78), location: 1)], startPoint: .top, endPoint: .bottom)
                 }
                 .overlay(alignment: .bottomLeading) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.title).font(.system(size: 19, weight: .semibold)).tracking(-0.3).foregroundStyle(.white).lineLimit(3).multilineTextAlignment(.leading)
-                        Text("\(item.categoryName) · \(CompactTime.since(item.createdAt.date))").font(.system(size: 13.5)).foregroundStyle(.white.opacity(0.86))
+                        Text("\(item.categoryName) · \(item.createdAt.relativeText)").font(.system(size: 13.5)).foregroundStyle(.white.opacity(0.86))
                     }
                     .padding(16)
                 }
                 .overlay(alignment: .topLeading) { StatusBadge(status: item.statusValue, solid: true).padding(12) }
-                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: Self.radius, style: .continuous))
         }
         .buttonStyle(Pressable(scale: 0.98))
     }
@@ -158,7 +196,35 @@ private struct FeatureCard: View {
 
 /// A case in the list: its picture or category beside its title, where and when, and where it
 /// stands. Support is counted on the case itself, not here.
+private struct ConsultationRowSkeleton: View {
+    let count: Int
+    let showsStatus: Bool
+
+    var body: some View {
+        Skeleton {
+            VStack(spacing: 0) {
+                ForEach(0..<count, id: \.self) { _ in
+                    HStack(alignment: .top, spacing: 14) {
+                        RoundedRectangle(cornerRadius: CompactRow.imageRadius)
+                            .frame(width: CompactRow.imageSize, height: CompactRow.imageSize)
+                        VStack(alignment: .leading, spacing: 4) {
+                            SkeletonLine(178)
+                            SkeletonLine(148, lineHeight: 18, barHeight: 11, relativeTo: .callout)
+                            if showsStatus { Capsule().frame(width: 72, height: 20).padding(.top, 2) }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding(.horizontal, Metrics.gutter)
+                    .padding(.vertical, 9)
+                }
+            }
+        }
+    }
+}
+
 private struct CompactRow: View {
+    static let imageSize: CGFloat = 76
+    static let imageRadius: CGFloat = 12
     let item: Consultation
     var showsStatus = true
     let open: () -> Void
@@ -171,16 +237,16 @@ private struct CompactRow: View {
                         RemoteImage(url: url)
                     } else {
                         Color.paper2.overlay {
-                            Image(systemName: Glyph.symbol(item.categoryIcon)).font(.system(size: 24, weight: .light)).foregroundStyle(Color.ink2)
+                            CategoryArtwork(icon: item.categoryIcon, size: 34).foregroundStyle(Color.ink2)
                         }
                     }
                 }
-                .frame(width: 76, height: 76)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .frame(width: Self.imageSize, height: Self.imageSize)
+                .clipShape(RoundedRectangle(cornerRadius: Self.imageRadius, style: .continuous))
                 VStack(alignment: .leading, spacing: 4) {
                     Text(item.title).type(.bodyStrong).lineLimit(2).multilineTextAlignment(.leading)
                     // Which ayuntamiento it was raised with matters as much as the topic.
-                    Text("\(item.categoryName) · \(item.municipalityName) · \(CompactTime.since(item.createdAt.date))").type(.callout, .ink3).lineLimit(2)
+                    Text("\(item.categoryName) · \(item.municipalityName) · \(item.createdAt.relativeText)").type(.callout, .ink3).lineLimit(2)
                     if showsStatus { StatusBadge(status: item.statusValue).padding(.top, 2) }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -269,8 +335,10 @@ struct RemoteImage: View {
             AsyncImage(url: AppConfig.url(url), transaction: Transaction(animation: .easeOut(duration: 0.3))) { phase in
                 if let image = phase.image {
                     image.resizable().scaledToFill().transition(.opacity)
-                } else if phase.error != nil {
+                } else if phase.error != nil || url.isEmpty {
                     Image(systemName: "photo").font(.system(size: 20, weight: .light)).foregroundStyle(Color.ink4)
+                } else {
+                    Skeleton { Rectangle() }
                 }
             }
         }

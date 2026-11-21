@@ -58,6 +58,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -94,6 +96,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import rutacibao.android.R
 import rutacibao.presentation.UiError
+import rutacibao.core.Phone
 
 // ---------------------------------------------------------------- touch
 
@@ -134,6 +137,8 @@ fun Pill(
     enabled: Boolean = true,
     busy: Boolean = false,
     icon: ImageVector? = null,
+    /** A quiet number after the label, such as an answer's tally. */
+    trailing: String? = null,
 ) {
     val p = Ink.colors
     val fill = when (kind) { PillKind.Ink -> p.action; PillKind.Quiet, PillKind.Danger -> p.paper2; PillKind.Outline -> Color.Transparent }
@@ -158,6 +163,10 @@ fun Pill(
             Spacer(Modifier.width(8.dp))
         }
         Text(text, style = if (compact) Type.label else Type.bodyStrong, color = content, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (trailing != null) {
+            Spacer(Modifier.width(6.dp))
+            Text(trailing, style = if (compact) Type.label else Type.bodyStrong, color = if (kind == PillKind.Ink) content.copy(alpha = 0.75f) else p.ink3, maxLines = 1)
+        }
     }
 }
 
@@ -185,28 +194,31 @@ fun Chip(
     floating: Boolean = false,
     onBrand: Boolean = false,
     badge: Int? = null,
+    /** Off: still shown, dimmed and not tappable. */
+    enabled: Boolean = true,
 ) {
     val p = Ink.colors
-    // On the green header: translucent white idle, solid white picked. On paper: grey idle, the
-    // pick in the pine's soft wash with a pine ring, so it never rests on colour alone.
+    // On the green header: translucent white idle, solid white picked. On paper: the rest sit on
+    // the page with a hairline and dark ink (still clearly available); the pick takes the sage
+    // fill, dark green ink and a heavier weight. A green outline means focus (fields), never a pick.
     val fill by animateColorAsState(
         when {
             onBrand && selected -> Color.White
             onBrand -> Color.White.copy(alpha = 0.14f)
             selected -> p.brandSoft
-            else -> p.paper2
+            else -> p.paper
         },
         label = "chip",
     )
-    val content = when { onBrand && selected -> p.brandDeep; onBrand -> Color.White; selected -> p.brandDeep; else -> p.ink }
+    val content = when { !enabled -> p.ink3; onBrand && selected -> p.brandDeep; onBrand -> Color.White; selected -> p.brandDeep; else -> p.ink }
     Row(
         modifier
             .height(38.dp)
             .then(if (floating && !selected) Modifier.shadow(5.dp, CircleShape, ambientColor = Color.Black.copy(alpha = 0.08f), spotColor = Color.Black.copy(alpha = 0.1f)) else Modifier)
             .clip(CircleShape)
             .background(fill)
-            .then(if (!onBrand && selected) Modifier.border(1.5.dp, p.brand, CircleShape) else Modifier)
-            .pressable(haptic = true, role = Role.Tab, onClick = onClick)
+            .then(if (!onBrand && !selected && !floating) Modifier.border(1.dp, p.line, CircleShape) else Modifier)
+            .pressable(enabled = enabled, haptic = true, role = Role.Tab, onClick = onClick)
             .semantics { this.selected = selected }
             .padding(horizontal = 14.dp),
         horizontalArrangement = Arrangement.spacedBy(7.dp),
@@ -225,7 +237,7 @@ fun Chip(
 
 // ---------------------------------------------------------------- fields
 
-/** A text field on paper: no border until focused, the placeholder is the label. */
+/** A text field on paper: a quiet fill that turns white with a green outline while you type; the placeholder is the label. */
 @Composable
 fun Field(
     value: String,
@@ -238,19 +250,26 @@ fun Field(
     keyboard: KeyboardOptions = KeyboardOptions.Default,
     onDone: (() -> Unit)? = null,
     textStyle: TextStyle = Type.body,
+    phoneInput: Boolean = false,
 ) {
     val p = Ink.colors
     var focused by remember { mutableStateOf(false) }
     val ring by animateColorAsState(if (focused) p.brand else Color.Transparent, label = "ring")
     val shape = RoundedCornerShape(Metrics.radiusField)
-    // The text with its cursor. When the owner rewrites what was typed (a phone number gaining
-    // its dashes), the cursor goes to the end instead of staying where the old text put it, so
-    // the next digits land in order.
     var edit by remember { mutableStateOf(TextFieldValue(value, TextRange(value.length))) }
     val shown = if (edit.text == value) edit else edit.copy(text = value, selection = TextRange(value.length))
     BasicTextField(
         value = shown,
-        onValueChange = { next -> edit = next; if (next.text != value) onValueChange(next.text) },
+        onValueChange = { next ->
+            edit = if (phoneInput && next.text != shown.text) {
+                val deletion = if (shown.selection.collapsed && next.text.length < shown.text.length) {
+                    if (next.selection.end < shown.selection.end) Phone.Deletion.Backward else Phone.Deletion.Forward
+                } else null
+                val result = Phone.editInput(shown.text, next.text, next.selection.end, deletion)
+                TextFieldValue(result.value, TextRange(result.caret))
+            } else next
+            if (edit.text != value) onValueChange(edit.text)
+        },
         modifier = modifier.fillMaxWidth().onFocusChanged { focused = it.isFocused },
         textStyle = textStyle.copy(color = p.ink),
         cursorBrush = SolidColor(p.ink),
@@ -261,7 +280,8 @@ fun Field(
         keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }, onSearch = { onDone?.invoke() }, onGo = { onDone?.invoke() }),
         decorationBox = { inner ->
             Row(
-                Modifier.background(p.paper2, shape).border(1.5.dp, ring, shape).padding(horizontal = 16.dp, vertical = 15.dp).defaultMinSize(minHeight = 22.dp),
+                // Resting: the quiet fill. Typing: white with the green outline.
+                Modifier.background(if (focused) p.paper else p.paper2, shape).border(1.5.dp, ring, shape).padding(horizontal = 16.dp, vertical = 15.dp).defaultMinSize(minHeight = 22.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = if (maxLines == 1) Alignment.CenterVertically else Alignment.Top,
             ) {
@@ -351,6 +371,34 @@ fun LoadingDots(modifier: Modifier = Modifier) {
             Box(Modifier.padding(horizontal = 3.dp).size(6.dp).graphicsLayer { this.alpha = alpha }.background(Ink.colors.ink3, CircleShape))
         }
     }
+}
+
+private val LocalBone = compositionLocalOf { Color.Unspecified }
+
+/**
+ * The layout that is coming, in grey: shapes at the real rows' sizes, so nothing jumps when the
+ * content lands. They breathe slowly; with animations off they hold still. Read out as loading.
+ */
+@Composable
+fun Skeleton(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val p = Ink.colors
+    val label = stringResource(R.string.common_loading)
+    val pulse by rememberInfiniteTransition(label = "skeleton").animateFloat(0f, 1f, infiniteRepeatable(tween(950, delayMillis = 180), RepeatMode.Reverse), label = "pulse")
+    Box(modifier.clearAndSetSemantics { contentDescription = label }) {
+        CompositionLocalProvider(LocalBone provides androidx.compose.ui.graphics.lerp(p.line, p.paper, pulse * 0.42f)) { content() }
+    }
+}
+
+/** One grey shape inside a [Skeleton]. */
+@Composable
+fun Bone(modifier: Modifier = Modifier, shape: Shape = CircleShape) {
+    Box(modifier.background(LocalBone.current, shape))
+}
+
+/** A line of text that has not arrived: a bar inside the real line height. */
+@Composable
+fun BoneLine(width: Dp, lineHeight: Dp = 22.dp, barHeight: Dp = 13.dp) {
+    Box(Modifier.height(lineHeight), contentAlignment = Alignment.CenterStart) { Bone(Modifier.widthIn(max = width).fillMaxWidth().height(barHeight)) }
 }
 
 /** Empty, offline or failed: one glyph (or the mark), one line, one way forward. */

@@ -14,6 +14,7 @@ function profile(overrides: Partial<MemberProfile> = {}): MemberProfile {
     staffMunicipalityId: null,
     residencyVerifiedAt: null,
     residencyVerifiedByUserId: null,
+    inviteCode: "A1B2C3D4",
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

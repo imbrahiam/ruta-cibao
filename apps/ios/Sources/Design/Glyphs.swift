@@ -49,7 +49,38 @@ enum Glyph {
     ]
 }
 
+/// A category model or its existing SF Symbol when an admin adds an unfamiliar category.
+struct CategoryArtwork: View {
+    let model: PlaceModel?
+    let symbol: String
+    let size: CGFloat
+
+    init(model: PlaceModel?, symbol: String, size: CGFloat) {
+        self.model = model
+        self.symbol = symbol
+        self.size = size
+    }
+
+    init(icon: String, size: CGFloat) {
+        self.init(model: PlaceModel(icon: icon), symbol: Glyph.symbol(icon, filled: true), size: size)
+    }
+
+    var body: some View {
+        Group {
+            if let model {
+                Image(uiImage: model.image).resizable().scaledToFit()
+            } else {
+                Image(systemName: symbol).font(.system(size: size * 0.82, weight: .medium))
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
+    }
+}
+
 extension Color {
+    var markerTint: Color { mix(with: .white, by: 0.16) }
+
     /// `#RRGGBB` from the admin panel; nil when malformed.
     init?(hex: String) {
         var value = hex.trimmingCharacters(in: .whitespaces)

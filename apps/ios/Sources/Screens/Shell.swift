@@ -2,14 +2,14 @@ import RutaKit
 import SwiftUI
 
 enum AppTab: String, CaseIterable {
-    case map, consultations, contributions, account
+    case map, discover, consultations, contributions
 
     var title: String {
         switch self {
         case .map: L10n.Tabs.map
+        case .discover: L10n.Tabs.discover
         case .consultations: L10n.Tabs.consultations
         case .contributions: L10n.Tabs.contributions
-        case .account: L10n.Tabs.account
         }
     }
 
@@ -17,9 +17,9 @@ enum AppTab: String, CaseIterable {
     var symbol: String {
         switch self {
         case .map: "map"
+        case .discover: "safari"
         case .consultations: "bubble.left"
         case .contributions: "rectangle.stack"
-        case .account: "person.crop.circle"
         }
     }
 }
@@ -37,9 +37,16 @@ final class AppChrome {
     var sent = 0
     /// Screens on show that asked for the tab bar to step aside.
     var covers = 0
+    var accountPath: [AccountRoute] = {
+        switch DebugHook.value("RUTA_DEBUG_TAB") {
+        case "gestion": [.settings, .gestion]
+        case "account": DebugHook.value("RUTA_DEBUG_COMPOSE") == "offline" ? [.settings, .offline] : [.settings]
+        default: []
+        }
+    }()
 
     private static var startTab: AppTab {
-        DebugHook.value("RUTA_DEBUG_TAB").flatMap { AppTab(rawValue: $0 == "gestion" ? "account" : $0) } ?? .map
+        DebugHook.value("RUTA_DEBUG_TAB").flatMap { AppTab(rawValue: $0) } ?? .map
     }
 }
 
@@ -72,16 +79,33 @@ struct Shell: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(spacing: 0) {
-            // The system keeps each tab's state; its own bar stays out of sight.
-            TabView(selection: Bindable(chrome).tab) {
-                ForEach(AppTab.allCases, id: \.self) { tab in
-                    Tab(value: tab) { screen(tab).toolbarVisibility(.hidden, for: .tabBar) }
+        Host(make: { $0.account() }, flow: { $0.state }) { account in
+            content(account)
+        }
+    }
+
+    private func content(_ account: Screen<AccountViewModel, AccountUiState>) -> some View {
+        NavigationStack(path: Bindable(chrome).accountPath) {
+            VStack(spacing: 0) {
+                // The system keeps each tab's state; its own bar stays out of sight.
+                TabView(selection: Bindable(chrome).tab) {
+                    ForEach(AppTab.allCases, id: \.self) { tab in
+                        Tab(value: tab) { screen(tab).toolbarVisibility(.hidden, for: .tabBar) }
+                    }
+                }
+                if chrome.covers == 0, !typing {
+                    TabBar(tab: Bindable(chrome).tab)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            if chrome.covers == 0, !typing {
-                TabBar(tab: Bindable(chrome).tab)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            .toolbarVisibility(.hidden, for: .navigationBar)
+            .navigationDestination(for: AccountRoute.self) { route in
+                AccountDestination(
+                    model: account,
+                    route: route,
+                    close: { chrome.accountPath.removeAll() },
+                    openConsultation: { chrome.accountPath.append(.consultation($0)) }
+                )
             }
         }
         .animation(reduceMotion ? nil : Motion.quick, value: chrome.covers == 0)
@@ -92,6 +116,7 @@ struct Shell: View {
         // main action and the selected state, never for text.
         .tint(.ink)
         .environment(chrome)
+        .environment(\.account, account)
         .background(StatusBar.Anchor())
         // The choice opens once its sheet has left, so two presentations never overlap.
         .sheet(isPresented: Bindable(chrome).contributing, onDismiss: begin) {
@@ -109,6 +134,8 @@ struct Shell: View {
             }
         }
         // First run: the welcome stands in front of the app until it is done, then lifts away.
+        .allowsHitTesting(!welcome.showing)
+        .accessibilityHidden(welcome.showing)
         .overlay { if welcome.showing { Onboarding(welcome: welcome).transition(.opacity) } }
         .onChange(of: chrome.requested) { _, request in
             guard let request else { return }
@@ -121,7 +148,9 @@ struct Shell: View {
             case .consultation: chrome.tab = .consultations
             case .place, .route, .traffic: chrome.tab = .map
             case .contributions: chrome.tab = .contributions
-            case .report: chrome.tab = .account
+            case .report:
+                links.pending = nil
+                chrome.accountPath = [.settings, .gestion]
             case nil: break
             }
         }
@@ -145,8 +174,8 @@ struct Shell: View {
         switch tab {
         case .map: MapScreen()
         case .consultations: ConsultationsScreen()
+        case .discover: DiscoverScreen()
         case .contributions: ContributionsScreen()
-        case .account: AccountScreen()
         }
     }
 }
@@ -182,5 +211,17 @@ struct TabBar: View {
         .background(Color.paper.ignoresSafeArea(edges: .bottom))
         .overlay(alignment: .top) { Hairline() }
         .sensoryFeedback(.selection, trigger: tab)
+    }
+}
+
+private struct AccountModelKey: EnvironmentKey {
+    static let defaultValue: Screen<AccountViewModel, AccountUiState>? = nil
+}
+
+extension EnvironmentValues {
+    /// The one account model, shared by the header's face and the account sheet.
+    var account: Screen<AccountViewModel, AccountUiState>? {
+        get { self[AccountModelKey.self] }
+        set { self[AccountModelKey.self] = newValue }
     }
 }

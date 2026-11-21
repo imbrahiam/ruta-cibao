@@ -29,18 +29,54 @@ function nationalDigits(input: string): string {
   return withoutCountry.slice(0, NATIONAL_DIGITS);
 }
 
-/**
- * What the field shows while someone types.
- *
- * Groups of 3-3-4 with hyphens, added as the digits arrive. Anything that is
- * not a digit never appears, so a letter cannot be typed and rejected later.
- */
-export function formatPhoneInput(input: string): string {
-  const digits = nationalDigits(input);
+function inputDigits(digits: string): string {
+  return digits.replace(/^1/, "").slice(0, NATIONAL_DIGITS);
+}
 
-  return [digits.slice(0, 3), digits.slice(3, 6), digits.slice(6)]
-    .filter((group) => group.length > 0)
-    .join("-");
+/** Format a national number as the digits arrive. */
+export function formatPhoneInput(input: string): string {
+  const digits = inputDigits(input.replace(/\D/g, ""));
+  if (!digits) return "";
+  if (digits.length < 3) return `(${digits}`;
+  const area = `(${digits.slice(0, 3)})`;
+  if (digits.length === 3) return area;
+  const prefix = `${area} ${digits.slice(3, 6)}`;
+  return digits.length <= 6 ? prefix : `${prefix}-${digits.slice(6)}`;
+}
+
+export function editPhoneInput(
+  previous: string,
+  input: string,
+  caret: number,
+  deletion?: "backward" | "forward",
+): { value: string; caret: number } {
+  const rawDigits = input.replace(/\D/g, "");
+  let digits = inputDigits(rawDigits);
+  let position = input.slice(0, caret).replace(/\D/g, "").length;
+  if (rawDigits.startsWith("1")) {
+    position = Math.max(0, position - 1);
+  }
+  // If only punctuation was deleted, delete the digit on that side of the caret.
+  if (
+    deletion &&
+    input !== previous &&
+    digits === inputDigits(previous.replace(/\D/g, ""))
+  ) {
+    const index = deletion === "backward" ? position - 1 : position;
+    if (index >= 0 && index < digits.length) {
+      digits = digits.slice(0, index) + digits.slice(index + 1);
+      position = index;
+    }
+  }
+  const value = formatPhoneInput(digits);
+  if (position >= digits.length) return { value, caret: value.length };
+  let remaining = position;
+  for (let index = 0; index < value.length; index++) {
+    if (/\d/.test(value.charAt(index)) && remaining-- === 0) {
+      return { value, caret: index };
+    }
+  }
+  return { value, caret: value.length };
 }
 
 /** Whether the field holds a complete, plausible Dominican number. */
@@ -64,5 +100,8 @@ export function normalizePhone(input: string): string | null {
 
 /** `+18095551234` back to the `809-555-1234` people recognise. */
 export function formatPhone(e164: string): string {
-  return formatPhoneInput(e164);
+  const digits = nationalDigits(e164);
+  return [digits.slice(0, 3), digits.slice(3, 6), digits.slice(6)]
+    .filter(Boolean)
+    .join("-");
 }

@@ -21,6 +21,7 @@ import {
 } from "@/lib/rate-limit";
 import {
   checkPhoneVerification,
+  isDemoPhoneSignInEnabled,
   isVerifyConfigured,
   logPhoneCode,
   startPhoneVerification,
@@ -256,11 +257,7 @@ function createAuth() {
   );
   // Fictional numbers sign in with the fixed demo code on a laptop or on the
   // hosted demo (`DEMO_DEPLOYMENT`, a `demo.` host); never on the real service.
-  const demoSignIn = Boolean(
-    env.LOCAL_DEMO_OTP &&
-      ((isDevelopment && appUrl.hostname === "localhost") ||
-        env.DEMO_DEPLOYMENT),
-  );
+  const demoSignIn = isDemoPhoneSignInEnabled();
 
   return betterAuth({
     appName: "Ruta Cibao",

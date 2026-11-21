@@ -25,6 +25,7 @@ public class RutaApi(private val transport: ApiTransport) {
     public val offline: OfflineApi = OfflineApi(transport)
     public val places: PlacesApi = PlacesApi(transport)
     public val passport: PassportApi = PassportApi(transport)
+    public val reputation: ReputationApi = ReputationApi(transport)
     public val traffic: TrafficApi = TrafficApi(transport)
     public val consultations: ConsultationsApi = ConsultationsApi(transport)
     public val comments: CommentsApi = CommentsApi(transport)
@@ -524,6 +525,44 @@ public class PassportApi internal constructor(private val transport: ApiTranspor
             queryKeys = emptySet(),
             hasBody = true,
             output = serializer<PassportStampOutput>(),
+        )
+}
+
+public class ReputationApi internal constructor(private val transport: ApiTransport) {
+    /** Your points, rank, badges and invite link */
+    public suspend fun get(): ReputationGetOutput =
+        transport.call(
+            method = "GET",
+            path = "/me/reputation",
+            input = null,
+            pathKeys = emptySet(),
+            queryKeys = emptySet(),
+            hasBody = false,
+            output = serializer<ReputationGetOutput>(),
+        )
+
+    /** Name the person who invited you, once */
+    public suspend fun redeemInvite(input: ReputationRedeemInviteInput): ReputationRedeemInviteOutput =
+        transport.call(
+            method = "POST",
+            path = "/me/invite-redemptions",
+            input = transport.encode(ReputationRedeemInviteInput.serializer(), input),
+            pathKeys = emptySet(),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<ReputationRedeemInviteOutput>(),
+        )
+
+    /** Who an invite code belongs to */
+    public suspend fun invite(input: ReputationInviteInput): ReputationInviteOutput =
+        transport.call(
+            method = "GET",
+            path = "/invites/{code}",
+            input = transport.encode(ReputationInviteInput.serializer(), input),
+            pathKeys = setOf("code"),
+            queryKeys = emptySet(),
+            hasBody = false,
+            output = serializer<ReputationInviteOutput>(),
         )
 }
 
