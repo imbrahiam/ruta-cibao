@@ -7,12 +7,15 @@ struct SelectionSheet: View {
     let model: Screen<MapViewModel, MapUiState>
     let close: () -> Void
     let directions: (Destination) -> Void
+    /// Walk an eco route stop by stop.
+    var startTrail: (EcoRoute, [TrailStop]) -> Void = { _, _ in }
     @State private var detent: PresentationDetent
 
-    init(model: Screen<MapViewModel, MapUiState>, close: @escaping () -> Void, directions: @escaping (Destination) -> Void) {
+    init(model: Screen<MapViewModel, MapUiState>, close: @escaping () -> Void, directions: @escaping (Destination) -> Void, startTrail: @escaping (EcoRoute, [TrailStop]) -> Void) {
         self.model = model
         self.close = close
         self.directions = directions
+        self.startTrail = startTrail
         _detent = State(initialValue: Self.resting(for: model.state.selection))
     }
 
@@ -38,7 +41,9 @@ struct SelectionSheet: View {
             switch onEnum(of: model.state.selection) {
             case .none: Color.clear
             case .place(let place): PlacePanel(sheet: place.sheet, vm: model.vm, close: close, directions: directions)
-            case .route(let route): RoutePanel(route: route.route, close: close, directions: directions)
+            case .route(let route):
+                RoutePanel(route: route.route, stops: TrailStops.of(route.route, places: model.state.all), close: close, directions: directions,
+                           startTrail: startTrail, openPlace: { model.vm.select(placeId: $0) })
             case .traffic:
                 if let notice = model.state.selectedTraffic { TrafficPanel(notice: notice, vm: model.vm, close: close) }
             }
@@ -59,12 +64,20 @@ private struct PanelHeader: View {
     let subtitle: String
     /// Set when the place is verified: the badge sits beside the name, read out with this text.
     var verified: String?
+    /// A road notice leads with its traffic sign, as drawn on the map.
+    var sign: TrafficSignKind?
     let close: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            Image(systemName: symbol).font(.system(size: 16, weight: .medium)).foregroundStyle(.white)
-                .frame(width: 40, height: 40).background(tint, in: Circle())
+            Group {
+                if let sign {
+                    TrafficSign(kind: sign, size: 38, raised: false).frame(width: 40, height: 40)
+                } else {
+                    Image(systemName: symbol).font(.system(size: 16, weight: .medium)).foregroundStyle(.white)
+                        .frame(width: 40, height: 40).background(tint, in: Circle())
+                }
+            }
                 // Verified is a seal stuck on the disc's corner, like a stamp on a postcard.
                 .overlay(alignment: .bottomTrailing) {
                     if verified != nil {
@@ -350,8 +363,15 @@ extension PlacesReportInput.Reason {
 
 private struct RoutePanel: View {
     let route: EcoRoute
+    let stops: [TrailStop]
     let close: () -> Void
     let directions: (Destination) -> Void
+    let startTrail: (EcoRoute, [TrailStop]) -> Void
+    let openPlace: (String) -> Void
+    @State private var showingAll = false
+
+    /// The sheet shows the first stops; the route's own page has every one.
+    private var preview: [TrailStop] { stops.count <= 5 ? stops : Array(stops.prefix(3)) + [stops[stops.count - 1]] }
 
     var body: some View {
         ScrollView {
@@ -374,6 +394,41 @@ private struct RoutePanel: View {
                     }
                     .buttonStyle(.ink)
                 }
+                // At the trailhead, the walk itself: stop by stop, without leaving the app.
+                Button { startTrail(route, stops) } label: { Label(L10n.Routes.startTrail, systemImage: "figure.hiking") }
+                    .buttonStyle(.pill(.outline))
+
+                if !route.services.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L10n.Routes.services).type(.label)
+                        ScrollView(.horizontal) {
+                            HStack(spacing: 8) {
+                                ForEach(route.services.map(\.name), id: \.self) { service in
+                                    Label(RouteService.label(service), systemImage: RouteService.symbol(service)).type(.callout)
+                                        .padding(.horizontal, 12).frame(height: 34)
+                                        .background(Color.paper2, in: Capsule())
+                                }
+                            }
+                        }
+                        .scrollIndicators(.hidden)
+                        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                    }
+                }
+
+                if stops.count > 2 {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text(L10n.Routes.stops).type(.heading)
+                            Spacer()
+                            Text(L10n.Routes.stopsCount(count: stops.count - 2)).type(.callout, .ink3)
+                        }
+                        StopTimeline(stops: preview, open: { if let id = $0.placeId { openPlace(id) } })
+                        if stops.count > preview.count {
+                            Button(L10n.Routes.seeRoute) { showingAll = true }.buttonStyle(.pill(.quiet, compact: true))
+                        }
+                    }
+                }
+
                 Text(route.description_).type(.body, .ink2).lineSpacing(3)
                 Notice(symbol: "exclamationmark.shield", title: L10n.Routes.safetyTitle, message: L10n.Routes.safetyBody)
             }
@@ -382,7 +437,12 @@ private struct RoutePanel: View {
             .padding(.bottom, 28)
             .readable()
         }
+        .sheet(isPresented: $showingAll) {
+            RoutePage(route: route, stops: stops, startTrail: { startTrail(route, stops) }, openPlace: openPlace)
+        }
     }
+
+    private var durationLabel: String { duration }
 
     private var duration: String {
         let f = DateComponentsFormatter()
@@ -424,7 +484,8 @@ private struct TrafficPanel: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 PanelHeader(tint: notice.tint, symbol: Glyph.symbol(notice.icon, filled: true), title: notice.categoryName,
-                            subtitle: "\(notice.municipality) · \(CompactTime.since(notice.createdAt.date))", close: close)
+                            subtitle: "\(notice.municipality) · \(CompactTime.since(notice.createdAt.date))",
+                            sign: TrafficSignKind.of(category: notice.categoryName, icon: notice.icon), close: close)
                 if let details = notice.details, !details.isEmpty { Text(details).type(.body, .ink2) }
 
                 // What neighbours said, as sentences, right before the question; a

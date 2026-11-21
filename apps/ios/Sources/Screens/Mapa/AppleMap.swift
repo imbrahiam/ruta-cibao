@@ -11,6 +11,10 @@ struct AppleMap: View {
     var camera: CameraRequest
     var topInset: CGFloat = 0
     var bottomInset: CGFloat = 0
+    /// Tilted, with terrain and buildings in relief.
+    var threeD = false
+    /// While navigating: you are drawn as this little model instead of the blue dot.
+    var traveller: RouteNavigator.Mode?
     var onPick: (String?) -> Void
     var onMove: (Viewport) -> Void
     var onFollowing: (Bool) -> Void
@@ -20,19 +24,42 @@ struct AppleMap: View {
 
     var body: some View {
         Map(position: $position, selection: Binding(get: { selected }, set: { onPick($0) })) {
-            ForEach(pins, id: \.key) { pin in
-                Marker(pin.title, systemImage: pin.symbol, coordinate: CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude))
-                    // With one in hand, the others step back so it reads first.
-                    .tint(selected == nil || selected == pin.key ? pin.tone.color : pin.tone.color.opacity(0.45))
-                    .tag(pin.key)
-            }
+            // Lines first, so markers and signs sit on top of them.
             ForEach(lines, id: \.id) { line in
+                if line.casing {
+                    MapPolyline(coordinates: line.path.map(\.coordinate))
+                        .stroke(Color.white, style: StrokeStyle(lineWidth: line.width + 4, lineCap: .round, lineJoin: .round))
+                }
                 MapPolyline(coordinates: line.path.map(\.coordinate))
                     .stroke(Color(hex: line.color) ?? .ink, style: StrokeStyle(lineWidth: line.width, lineCap: .round, lineJoin: .round))
+                if !line.dash.isEmpty {
+                    MapPolyline(coordinates: line.path.map(\.coordinate))
+                        .stroke(Color.white.opacity(0.9), style: StrokeStyle(lineWidth: max(line.width * 0.34, 1.5), lineCap: .butt, dash: line.dash.map { CGFloat($0) }))
+                }
             }
-            UserAnnotation()
+            ForEach(pins, id: \.key) { pin in
+                let coordinate = CLLocationCoordinate2D(latitude: pin.latitude, longitude: pin.longitude)
+                if let sign = pin.sign {
+                    Annotation(pin.title, coordinate: coordinate, anchor: .center) {
+                        TrafficSign(kind: sign, size: selected == pin.key ? 42 : 32)
+                            .opacity(selected == nil || selected == pin.key ? 1 : 0.5)
+                            .animation(Motion.quick, value: selected)
+                    }
+                    .tag(pin.key)
+                } else {
+                    Marker(pin.title, systemImage: pin.symbol, coordinate: coordinate)
+                        // With one in hand, the others step back so it reads first.
+                        .tint(selected == nil || selected == pin.key ? pin.tone.color : pin.tone.color.opacity(0.45))
+                        .tag(pin.key)
+                }
+            }
+            if let traveller {
+                UserAnnotation(anchor: .center) { _ in VehiclePuck(mode: traveller) }
+            } else {
+                UserAnnotation()
+            }
         }
-        .mapStyle(.standard(elevation: .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
+        .mapStyle(.standard(elevation: threeD ? .realistic : .flat, emphasis: .muted, pointsOfInterest: .excludingAll))
         // Where you are reads in the system's blue, as in every map app, never as a black pin.
         .tint(.blue)
         .mapControls { MapCompass() }
@@ -62,7 +89,10 @@ struct AppleMap: View {
     private func target(_ move: CameraRequest.Move) -> MapCameraPosition {
         switch move {
         case .region(let center, let latitudeSpan, let longitudeSpan):
-            .region(MKCoordinateRegion(center: center.coordinate, span: MKCoordinateSpan(latitudeDelta: latitudeSpan, longitudeDelta: longitudeSpan)))
+            // In 3D the same view, seen at a slant from a little further back.
+            threeD
+                ? .camera(MapCamera(centerCoordinate: center.coordinate, distance: max(latitudeSpan, longitudeSpan) * 111_000 * 1.9, heading: 0, pitch: 55))
+                : .region(MKCoordinateRegion(center: center.coordinate, span: MKCoordinateSpan(latitudeDelta: latitudeSpan, longitudeDelta: longitudeSpan)))
         case .follow(let center, let distance, let heading):
             .camera(MapCamera(centerCoordinate: center.coordinate, distance: distance, heading: heading, pitch: 50))
         case .user:

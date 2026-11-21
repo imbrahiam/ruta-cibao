@@ -20,7 +20,12 @@ struct Destination: Equatable {
 /// spoken; leaving the route for long enough plans it again from there.
 @MainActor @Observable
 final class RouteNavigator: NSObject, CLLocationManagerDelegate {
-    enum Mode: Hashable { case drive, walk }
+    /// How you travel. A motorcycle follows the car's roads and a bicycle the walking ones
+    /// (MapKit plans no cycling routes); the map shows each as its own little model.
+    enum Mode: String, Hashable, CaseIterable {
+        case drive, moto, walk, bike
+        var onRoads: Bool { self == .drive || self == .moto }
+    }
     enum Phase: Equatable { case idle, loading, preview, navigating, arrived, failed(String) }
 
     private(set) var phase: Phase = .idle
@@ -73,7 +78,7 @@ final class RouteNavigator: NSObject, CLLocationManagerDelegate {
         let request = MKDirections.Request()
         request.source = MKMapItem(location: here, address: nil)
         request.destination = MKMapItem(location: CLLocation(latitude: destination.coordinate.latitude, longitude: destination.coordinate.longitude), address: nil)
-        request.transportType = self.mode == .drive ? .automobile : .walking
+        request.transportType = self.mode.onRoads ? .automobile : .walking
         do {
             let response = try await MKDirections(request: request).calculate()
             guard let best = response.routes.first else { phase = .failed(L10n.Directions.noRoute); return }
@@ -117,7 +122,7 @@ final class RouteNavigator: NSObject, CLLocationManagerDelegate {
         guard let destination else { return }
         let item = MKMapItem(location: CLLocation(latitude: destination.coordinate.latitude, longitude: destination.coordinate.longitude), address: nil)
         item.name = destination.name
-        item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: mode == .drive ? MKLaunchOptionsDirectionsModeDriving : MKLaunchOptionsDirectionsModeWalking])
+        item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: mode.onRoads ? MKLaunchOptionsDirectionsModeDriving : MKLaunchOptionsDirectionsModeWalking])
     }
 
     // MARK: Location
@@ -169,7 +174,7 @@ final class RouteNavigator: NSObject, CLLocationManagerDelegate {
         if let step = currentStep {
             let end = step.polyline.coordinate(at: step.polyline.pointCount - 1)
             toNextStep = here.distance(from: CLLocation(latitude: end.latitude, longitude: end.longitude))
-            if toNextStep < (mode == .drive ? 30 : 12) {
+            if toNextStep < (mode.onRoads ? 30 : 12) {
                 stepIndex += 1
                 if currentStep == nil { arrive(); return }
                 speakCurrent()
@@ -229,7 +234,7 @@ final class RouteNavigator: NSObject, CLLocationManagerDelegate {
         }
         do {
             activity = try Activity.request(
-                attributes: NavigationAttributes(destination: destination.name, walking: mode == .walk),
+                attributes: NavigationAttributes(destination: destination.name, walking: !mode.onRoads),
                 content: ActivityContent(state: activityState, staleDate: Date().addingTimeInterval(120))
             )
             Self.log.info("live activity: started")

@@ -5110,6 +5110,72 @@
         }
       }
     },
+    "map.travelAs": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cómo te mueves"
+          }
+        }
+      }
+    },
+    "map.vehicle.bicycle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bicicleta"
+          }
+        }
+      }
+    },
+    "map.vehicle.car": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Carro"
+          }
+        }
+      }
+    },
+    "map.vehicle.motorcycle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Motor"
+          }
+        }
+      }
+    },
+    "map.vehicle.walk": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A pie"
+          }
+        }
+      }
+    },
+    "map.view2d": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vista plana"
+          }
+        }
+      }
+    },
     "map.view3d": {
       "extractionState": "manual",
       "localizations": {
@@ -8697,6 +8763,17 @@
         }
       }
     },
+    "routes.arrived": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Llegaste al final de la ruta"
+          }
+        }
+      }
+    },
     "routes.difficulty": {
       "extractionState": "manual",
       "localizations": {
@@ -8730,6 +8807,39 @@
         }
       }
     },
+    "routes.end": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Final"
+          }
+        }
+      }
+    },
+    "routes.finish": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Terminar"
+          }
+        }
+      }
+    },
+    "routes.fromStart": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ desde el inicio"
+          }
+        }
+      }
+    },
     "routes.missing": {
       "extractionState": "manual",
       "localizations": {
@@ -8737,6 +8847,39 @@
           "stringUnit": {
             "state": "translated",
             "value": "No encontramos esta ruta"
+          }
+        }
+      }
+    },
+    "routes.nextStop": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próxima parada"
+          }
+        }
+      }
+    },
+    "routes.offTrail": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Te saliste de la ruta. Vuelve al camino marcado."
+          }
+        }
+      }
+    },
+    "routes.progress": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$lld de %2$lld paradas"
           }
         }
       }
@@ -8759,6 +8902,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Antes de salir"
+          }
+        }
+      }
+    },
+    "routes.seeRoute": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ver la ruta completa"
           }
         }
       }
@@ -8836,6 +8990,73 @@
           "stringUnit": {
             "state": "translated",
             "value": "Servicios en la ruta"
+          }
+        }
+      }
+    },
+    "routes.start": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inicio"
+          }
+        }
+      }
+    },
+    "routes.startTrail": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Iniciar recorrido"
+          }
+        }
+      }
+    },
+    "routes.stops": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paradas"
+          }
+        }
+      }
+    },
+    "routes.stopsCount": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld parada"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%1$lld paradas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "routes.toGo": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ por recorrer"
           }
         }
       }

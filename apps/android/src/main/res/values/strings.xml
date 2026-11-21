@@ -521,6 +521,12 @@
         <item quantity="one">%1$d ruta</item>
         <item quantity="other">%1$d rutas</item>
     </plurals>
+    <string name="map_view2d">Vista plana</string>
+    <string name="map_travel_as">Cómo te mueves</string>
+    <string name="map_vehicle_car">Carro</string>
+    <string name="map_vehicle_motorcycle">Motor</string>
+    <string name="map_vehicle_walk">A pie</string>
+    <string name="map_vehicle_bicycle">Bicicleta</string>
     <string name="map_layers_title">Capas del mapa</string>
     <string name="map_layers_basemap">Mapa base</string>
     <string name="map_layers_standard">Mapa</string>
@@ -835,6 +841,22 @@
     <string name="routes_safety_title">Antes de salir</string>
     <string name="routes_safety_body">Avisa a alguien de tu recorrido, lleva agua y revisa el clima. Las condiciones del camino pueden cambiar con la lluvia.</string>
     <string name="routes_to_start">Cómo llegar al inicio</string>
+    <string name="routes_stops">Paradas</string>
+    <plurals name="routes_stops_count">
+        <item quantity="one">%1$d parada</item>
+        <item quantity="other">%1$d paradas</item>
+    </plurals>
+    <string name="routes_start">Inicio</string>
+    <string name="routes_end">Final</string>
+    <string name="routes_from_start">%1$s desde el inicio</string>
+    <string name="routes_see_route">Ver la ruta completa</string>
+    <string name="routes_start_trail">Iniciar recorrido</string>
+    <string name="routes_next_stop">Próxima parada</string>
+    <string name="routes_to_go">%1$s por recorrer</string>
+    <string name="routes_finish">Terminar</string>
+    <string name="routes_arrived">Llegaste al final de la ruta</string>
+    <string name="routes_off_trail">Te saliste de la ruta. Vuelve al camino marcado.</string>
+    <string name="routes_progress">%1$d de %2$d paradas</string>
     <string name="safety_reasons_abuse">Insulto, acoso o contenido ofensivo</string>
     <string name="safety_reasons_personal_information">Muestra datos personales de alguien</string>
     <string name="safety_reasons_unsafe">Amenaza o pone a alguien en riesgo</string>

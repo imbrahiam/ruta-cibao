@@ -798,6 +798,15 @@ enum L10n {
                 NSLocalizedString("map.routesCount", comment: ""), count
             )
         }
+        static var view2d: String { String(localized: LocalizedStringResource("map.view2d")) }
+        static var travelAs: String { String(localized: LocalizedStringResource("map.travelAs")) }
+
+        enum Vehicle {
+            static var car: String { String(localized: LocalizedStringResource("map.vehicle.car")) }
+            static var motorcycle: String { String(localized: LocalizedStringResource("map.vehicle.motorcycle")) }
+            static var walk: String { String(localized: LocalizedStringResource("map.vehicle.walk")) }
+            static var bicycle: String { String(localized: LocalizedStringResource("map.vehicle.bicycle")) }
+        }
     }
 
     enum MapLayers {
@@ -1231,6 +1240,35 @@ enum L10n {
         static var safetyTitle: String { String(localized: LocalizedStringResource("routes.safetyTitle")) }
         static var safetyBody: String { String(localized: LocalizedStringResource("routes.safetyBody")) }
         static var toStart: String { String(localized: LocalizedStringResource("routes.toStart")) }
+        static var stops: String { String(localized: LocalizedStringResource("routes.stops")) }
+        static func stopsCount(count: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("routes.stopsCount", comment: ""), count
+            )
+        }
+        static var start: String { String(localized: LocalizedStringResource("routes.start")) }
+        static var end: String { String(localized: LocalizedStringResource("routes.end")) }
+        static func fromStart(distance: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("routes.fromStart", comment: ""), distance
+            )
+        }
+        static var seeRoute: String { String(localized: LocalizedStringResource("routes.seeRoute")) }
+        static var startTrail: String { String(localized: LocalizedStringResource("routes.startTrail")) }
+        static var nextStop: String { String(localized: LocalizedStringResource("routes.nextStop")) }
+        static func toGo(distance: String) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("routes.toGo", comment: ""), distance
+            )
+        }
+        static var finish: String { String(localized: LocalizedStringResource("routes.finish")) }
+        static var arrived: String { String(localized: LocalizedStringResource("routes.arrived")) }
+        static var offTrail: String { String(localized: LocalizedStringResource("routes.offTrail")) }
+        static func progress(done: Int, total: Int) -> String {
+            String.localizedStringWithFormat(
+                NSLocalizedString("routes.progress", comment: ""), done, total
+            )
+        }
 
         enum Service {
             static var water: String { String(localized: LocalizedStringResource("routes.service.water")) }

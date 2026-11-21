@@ -9,6 +9,8 @@ struct MapPin: Equatable {
     let title: String
     let symbol: String
     let tone: PinTone
+    /// A road notice: drawn as its traffic sign instead of a balloon.
+    var sign: TrafficSignKind?
 }
 
 /// A stroke on the map: a reported stretch, an eco route, the way you were given.
@@ -17,6 +19,10 @@ struct MapLine: Equatable {
     let path: [GeoPoint]
     let color: String
     let width: Double
+    /// Gaps along the line (a road closure's white dashes), in points.
+    var dash: [Double] = []
+    /// A white edge under the line so it reads over any street.
+    var casing = false
 }
 
 struct GeoPoint: Hashable {

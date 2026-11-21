@@ -44,10 +44,19 @@ struct RoutePreview: View {
                 .buttonStyle(.ink)
             } else {
             HStack(spacing: 8) {
-                mode(.drive, L10n.Directions.drive, "car")
-                mode(.walk, L10n.Directions.walk, "figure.walk")
-                Spacer()
-                Button(L10n.Directions.openMaps) { navigator.openInMaps() }.buttonStyle(.pill(.outline, compact: true, fill: false))
+                // How you travel: the route and the little model on the map follow it.
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) {
+                        mode(.drive, L10n.Map.Vehicle.car, "car.fill")
+                        mode(.moto, L10n.Map.Vehicle.motorcycle, "motorcycle.fill")
+                        mode(.walk, L10n.Map.Vehicle.walk, "figure.walk")
+                        mode(.bike, L10n.Map.Vehicle.bicycle, "bicycle")
+                    }
+                }
+                .scrollIndicators(.hidden)
+                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+                .edgeFade(12)
+                IconButton(symbol: "arrow.up.forward.app", label: L10n.Directions.openMaps) { navigator.openInMaps() }
             }
             }
 

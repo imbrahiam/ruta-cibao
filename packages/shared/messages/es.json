@@ -1474,7 +1474,15 @@
     "trafficGone": "Ese reporte ya no está en el mapa",
     "basemapUnavailable": "Fondo del mapa no disponible",
     "basemapUnavailableBody": "Esta versión no tiene configurado el mapa de Android. Puedes consultar los lugares y las rutas en la lista.",
-    "routesCount": "{count, plural, one {# ruta} other {# rutas}}"
+    "routesCount": "{count, plural, one {# ruta} other {# rutas}}",
+    "view2d": "Vista plana",
+    "travelAs": "Cómo te mueves",
+    "vehicle": {
+      "car": "Carro",
+      "motorcycle": "Motor",
+      "walk": "A pie",
+      "bicycle": "Bicicleta"
+    }
   },
   "routes": {
     "missing": "No encontramos esta ruta",
@@ -1492,7 +1500,20 @@
     },
     "safetyTitle": "Antes de salir",
     "safetyBody": "Avisa a alguien de tu recorrido, lleva agua y revisa el clima. Las condiciones del camino pueden cambiar con la lluvia.",
-    "toStart": "Cómo llegar al inicio"
+    "toStart": "Cómo llegar al inicio",
+    "stops": "Paradas",
+    "stopsCount": "{count, plural, one {# parada} other {# paradas}}",
+    "start": "Inicio",
+    "end": "Final",
+    "fromStart": "{distance} desde el inicio",
+    "seeRoute": "Ver la ruta completa",
+    "startTrail": "Iniciar recorrido",
+    "nextStop": "Próxima parada",
+    "toGo": "{distance} por recorrer",
+    "finish": "Terminar",
+    "arrived": "Llegaste al final de la ruta",
+    "offTrail": "Te saliste de la ruta. Vuelve al camino marcado.",
+    "progress": "{done} de {total} paradas"
   },
   "explore": {
     "title": "Explorar",
