@@ -186,7 +186,8 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
       {/* What to read on the left; where the place is, as a supporting
           preview, on the right once the pane is wide enough. */}
       <div className="@container flex flex-col gap-6">
-        <div className="grid gap-6 @lg:grid-cols-[minmax(0,1fr)_12rem] @lg:items-start">
+        {/* The statement wraps to give the map a real share of the width. */}
+        <div className="grid gap-6 @lg:grid-cols-[minmax(0,1fr)_minmax(14rem,42%)] @lg:items-start">
           <div className="flex min-w-0 flex-col gap-5">
             <ClaimSection id={`${id}-statement`} title={q("claimStatement")}>
               <div className="max-w-prose text-[15px] [overflow-wrap:anywhere] whitespace-pre-line">
@@ -315,7 +316,7 @@ function Comparison({ children }: { children: ReactNode }) {
       <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-x-6 text-sm @lg:grid-cols-[10.5rem_minmax(0,1fr)_minmax(0,1fr)]">
         <div
           aria-hidden
-          className="col-span-full grid grid-cols-subgrid pb-1.5 text-xs text-muted-foreground"
+          className="col-span-full grid grid-cols-subgrid pt-2 pb-2 text-xs font-medium text-muted-foreground"
         >
           <span className="hidden @lg:block" />
           <span>{q("published")}</span>
@@ -344,7 +345,7 @@ function Change({
   return (
     // Text cells start 6 px down, where a 32 px contact button centres its
     // own: first lines meet across the row, however many lines follow.
-    <div className="col-span-full grid grid-cols-subgrid items-start border-t border-border/70 py-1.5">
+    <div className="col-span-full grid grid-cols-subgrid items-start border-t border-border/70 py-2">
       <dt className="col-span-full py-1.5 text-muted-foreground @lg:col-span-1">
         {label}
       </dt>
@@ -393,7 +394,7 @@ function ClaimSection({
   children: ReactNode;
 }) {
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-2">
+    <section aria-labelledby={id} className="flex flex-col gap-3">
       <div className="flex flex-col gap-0.5">
         <h3 id={id} className="text-sm font-semibold">
           {title}

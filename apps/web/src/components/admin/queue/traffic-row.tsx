@@ -277,11 +277,13 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
           </span>
         )
       }
-      byline={
-        <>
-          <Reporter report={report} />
+      byline={<Reporter report={report} />}
+      // On the title's line, at its end, as in the list beside the open
+      // report; the byline below keeps its room for the decision.
+      badge={
+        <span className="ml-auto">
           <Expiry iso={report.expiresAt} />
-        </>
+        </span>
       }
       decision={decisions}
     />

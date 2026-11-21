@@ -73,7 +73,7 @@ export function QueueMapLayout({
       {/* On a desk the map fills the queue's height beside a list that
           scrolls on its own; on a phone the map sticks above the cards. */}
       <div className="grid min-h-0 flex-1 items-start gap-4 lg:h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-stretch">
-        <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-(--radius-card) bg-background pb-1 lg:static lg:min-h-0 lg:pb-0">
+        <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-(--radius-card) bg-background pb-1 lg:static lg:min-h-0 lg:pb-(--desk-bleed)">
           <AdminMap
             interactive
             items={items}

@@ -2,12 +2,27 @@
 
 import type { ApiOutputs, ModerationQueueName } from "@ruta/contracts";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Check, Clock } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Clock,
+  Copy,
+  FileWarning,
+  type LucideIcon,
+  MapPinOff,
+  MessageSquare,
+  MessageSquareWarning,
+  ShieldAlert,
+  Store,
+  TriangleAlert,
+  UserX,
+} from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useFormatter, useNow, useTranslations } from "use-intl";
 import { ModelIcon } from "@/components/category/category-model";
 import { CategoryPin } from "@/components/category/category-pin";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { orpc } from "@/lib/web/api";
@@ -194,9 +209,19 @@ function WorkCard({
           onFocus={() => prefetch(section.href)}
           className="group inline-flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-foreground"
         >
-          {rest > 0 && !peek.isPending
-            ? o("viewAllCount", { count })
-            : o("viewAllIn", { section: t(section.label) })}
+          {rest > 0 && !peek.isPending ? (
+            <>
+              {o("viewAll")}
+              <Badge
+                variant="secondary"
+                className="h-5 min-w-5 rounded-full px-1.5 tabular-nums"
+              >
+                {count}
+              </Badge>
+            </>
+          ) : (
+            o("viewAllIn", { section: t(section.label) })
+          )}
           <ArrowRight
             aria-hidden
             className="size-3.5 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
@@ -272,9 +297,15 @@ function PeekRow({
     }
     case "reports": {
       const r = item as Queue["reports"][number];
-      lead = <ModelIcon name="repair" size={28} />;
+      // The card's header already shows the model; each row says its reason.
+      lead = (
+        <ReasonGlyph
+          icon={REPORT_GLYPHS[r.reason]}
+          label={q(`reportReason.${r.reason}`)}
+        />
+      );
       title = r.placeName;
-      meta = r.details ?? r.municipalityName;
+      meta = r.details ?? q(`reportReason.${r.reason}`);
       end = ago(r.createdAt);
       break;
     }
@@ -303,7 +334,12 @@ function PeekRow({
     }
     case "contentReports": {
       const r = item as Queue["contentReports"][number];
-      lead = <ModelIcon name="flag" size={28} />;
+      lead = (
+        <ReasonGlyph
+          icon={CONTENT_GLYPHS[r.reason]}
+          label={q(`contentReason.${r.reason}`)}
+        />
+      );
       title = r.subjectTitle ?? r.municipalityName;
       meta = r.details ?? r.municipalityName;
       end = ago(r.createdAt);
@@ -353,6 +389,42 @@ function PeekRow({
         </span>
       </Link>
     </li>
+  );
+}
+
+const REPORT_GLYPHS: Record<Queue["reports"][number]["reason"], LucideIcon> = {
+  incorrect_information: FileWarning,
+  closed: Store,
+  duplicate: Copy,
+  wrong_location: MapPinOff,
+  other: MessageSquare,
+};
+
+const CONTENT_GLYPHS: Record<
+  Queue["contentReports"][number]["reason"],
+  LucideIcon
+> = {
+  abuse: MessageSquareWarning,
+  personal_information: UserX,
+  unsafe: ShieldAlert,
+  other: TriangleAlert,
+};
+
+/** Why an item was reported, as a quiet glyph; the label is for tooltips. */
+function ReasonGlyph({
+  icon: Icon,
+  label,
+}: {
+  icon: LucideIcon;
+  label: string;
+}) {
+  return (
+    <span
+      title={label}
+      className="flex size-9 items-center justify-center rounded-full bg-muted text-muted-foreground"
+    >
+      <Icon aria-hidden className="size-4" />
+    </span>
   );
 }
 

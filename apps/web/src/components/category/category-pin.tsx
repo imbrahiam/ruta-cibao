@@ -30,13 +30,16 @@ export function CategoryPin({
       )}
       // A tile is a pale wash of the colour with the glyph in it; a pin is the
       // solid colour with a white glyph, as on the map.
+      // A model stands on its own, with no wash behind it.
       style={
-        tile
-          ? {
-              backgroundColor: `color-mix(in oklab, ${color} 14%, transparent)`,
-              color,
-            }
-          : { backgroundColor: color }
+        model
+          ? undefined
+          : tile
+            ? {
+                backgroundColor: `color-mix(in oklab, ${color} 14%, transparent)`,
+                color,
+              }
+            : { backgroundColor: color }
       }
     >
       {model ? (

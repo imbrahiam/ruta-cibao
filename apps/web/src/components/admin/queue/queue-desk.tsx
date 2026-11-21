@@ -617,7 +617,7 @@ function Desk<T>({
             // the page itself stays put.
             style={fill}
             className={cn(
-              "flex flex-col gap-3 outline-none lg:h-(--desk-fill) lg:min-h-96",
+              "flex flex-col gap-3 outline-none lg:-mb-(--desk-bleed) lg:h-(--desk-fill) lg:min-h-96",
               query.isPlaceholderData &&
                 "opacity-60 transition-opacity delay-150",
             )}
@@ -641,7 +641,7 @@ function Desk<T>({
                       const listColumn = (
                         <div
                           data-scroll-root
-                          className="scroll-fade-y min-h-0 min-w-0 flex-1 lg:h-full lg:overflow-y-auto lg:pr-1"
+                          className="scroll-fade-y min-h-0 min-w-0 flex-1 lg:h-full lg:overflow-y-auto lg:pr-1 lg:pb-(--desk-bleed)"
                         >
                           {/* No frame and no rules: each item is its own soft block. */}
                           <AdminTableCard className="overflow-visible rounded-none border-0 bg-transparent">
@@ -682,9 +682,13 @@ function Desk<T>({
                             <div
                               ref={pane}
                               key={selected.key}
-                              className="scroll-fade-y min-h-0 min-w-0 animate-fade lg:h-full lg:overflow-y-auto lg:pr-1"
+                              className="scroll-fade-y min-h-0 min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1 lg:pb-(--desk-bleed)"
                             >
-                              {selected.pane}
+                              {/* The entrance runs inside: on the scroller
+                                  its animation would replace the fade's. */}
+                              <div className="animate-fade">
+                                {selected.pane}
+                              </div>
                             </div>
                           ) : null}
                         </div>

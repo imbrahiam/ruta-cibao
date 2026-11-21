@@ -610,6 +610,10 @@
 
 @utility scroll-fade-y {
   --fade-size: 2.5rem;
+  /* The containing block of what is positioned inside (screen-reader-only
+     text included): otherwise it escapes the scroll box and stretches the
+     page by however far down the list it sits. */
+  position: relative;
   scroll-padding-block: var(--fade-size);
   mask:
     linear-gradient(black, black) no-clip subtract,
@@ -617,10 +621,16 @@
     no-repeat no-clip,
     linear-gradient(to bottom, transparent, black) 0 100% / 100% var(--fade-end)
     no-repeat no-clip;
-  animation:
-    reveal-fade-start linear both,
-    hide-fade-end linear both;
+  /* Longhands, not the shorthand: the CSS build expands it with a 0s
+     duration, which on a scroll timeline leaves both fades at their end
+     (the top one showing before anything has scrolled). */
+  animation-name: reveal-fade-start, hide-fade-end;
+  animation-duration: auto;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
   animation-timeline: scroll(self block);
+  /* Each fade is as tall as what is hidden beyond its edge, up to
+     --fade-size: none at the start of the content, and none at its end. */
   animation-range:
     0 var(--fade-size),
     calc(100% - var(--fade-size)) 100%;

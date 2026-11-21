@@ -287,11 +287,11 @@ export function InboxRow({
   dense?: boolean;
 }) {
   const stretched =
-    "outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50";
+    "outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50";
   return (
     <li
       className={cn(
-        "group relative -mx-3 flex items-center gap-3 rounded-lg px-3 transition-colors hover:bg-accent/70",
+        "group relative -mx-3 flex items-center gap-3 rounded-xl px-3 transition-colors hover:bg-accent/70",
         dense ? "min-h-12 py-2" : "min-h-14 py-3",
       )}
     >
