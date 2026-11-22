@@ -768,7 +768,12 @@ export async function decidePublication(
 
         await tx
           .update(consultations)
-          .set({ publicationStatus: input.status })
+          .set({
+            publicationStatus: input.status,
+            // The contract requires a reason to hide: the author is told why.
+            reviewNote:
+              input.status === "hidden" ? (input.reason ?? null) : null,
+          })
           .where(eq(consultations.id, row.id));
         await recordAudit(
           {
@@ -777,7 +782,10 @@ export async function decidePublication(
             subjectType: "consultation",
             subjectId: row.id,
             municipalityId: row.municipalityId,
-            metadata: { from: row.publicationStatus },
+            metadata: {
+              from: row.publicationStatus,
+              reason: input.reason ?? null,
+            },
           },
           tx,
         );
@@ -831,7 +839,12 @@ export async function decidePublication(
 
       await tx
         .update(trafficReports)
-        .set({ descriptionModerationStatus: input.status })
+        .set({
+          descriptionModerationStatus: input.status,
+          ...(input.status === "hidden"
+            ? { reviewNote: input.reason ?? null }
+            : {}),
+        })
         .where(eq(trafficReports.id, row.id));
       await recordAudit(
         {
@@ -840,7 +853,7 @@ export async function decidePublication(
           subjectType: "traffic_report",
           subjectId: row.id,
           municipalityId: row.municipalityId,
-          metadata: { from: row.current },
+          metadata: { from: row.current, reason: input.reason ?? null },
         },
         tx,
       );

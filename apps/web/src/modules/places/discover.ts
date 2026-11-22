@@ -155,6 +155,7 @@ export async function listContributions(userId: string) {
           slug: consultations.slug,
           status: consultations.status,
           publication: consultations.publicationStatus,
+          note: consultations.reviewNote,
           categoryIcon: categories.icon,
           categoryColor: categories.color,
           createdAt: consultations.createdAt,
@@ -224,7 +225,6 @@ export async function listContributions(userId: string) {
     ...cases.map((item) => ({
       ...item,
       kind: "consultation" as const,
-      note: null,
       href: appTargetHref({ kind: "consultation", ref: item.slug }),
     })),
     ...claims.map((item) => ({

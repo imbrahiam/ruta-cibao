@@ -72,6 +72,8 @@ export const consultations = pgTable(
      * it, and only the author and staff see it until then.
      */
     publicationStatus: publicationStatus().notNull().default("pending"),
+    /** Why staff hid the case, shown to its author. */
+    reviewNote: text(),
     /** Null once the account is gone; the case and its answers survive it. */
     openedByUserId: text().references(() => user.id, { onDelete: "set null" }),
 
