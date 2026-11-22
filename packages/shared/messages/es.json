@@ -616,7 +616,7 @@
         "map": "Marcado en el mapa",
         "gps": "Ubicación por GPS"
       },
-      "openInMaps": "Abrir en OpenStreetMap",
+      "openInMaps": "OpenStreetMap",
       "newTab": "(se abre en una pestaña nueva)",
       "place": "Lugar",
       "details": "Detalles",
@@ -745,7 +745,7 @@
         "noKey": "Falta la clave del mapa. Usa las coordenadas.",
         "blocked": "No se pudo cargar el mapa. Usa las coordenadas.",
         "theCoordinates": "las coordenadas",
-        "openGoogle": "Abrir en Google Maps",
+        "openGoogle": "Google Maps",
         "placeAlt": "Mapa con la ubicación de {name}, en {coordinates}.",
         "pointAlt": "Mapa con el aviso de {name} en {municipality}, en {coordinates}.",
         "stretchAlt": "Mapa con el tramo de vía reportado como {name} en {municipality}: {length, plural, one {# metro} other {# metros}} de calle.",
