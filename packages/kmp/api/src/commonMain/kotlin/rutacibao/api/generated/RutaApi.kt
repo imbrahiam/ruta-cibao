@@ -74,6 +74,18 @@ public class MeApi internal constructor(private val transport: ApiTransport) {
             output = serializer<MeUpdateProfileOutput>(),
         )
 
+    /** Replace your profile photo */
+    public suspend fun updatePhoto(input: MeUpdatePhotoInput): MeUpdatePhotoOutput =
+        transport.call(
+            method = "PUT",
+            path = "/me/photo",
+            input = transport.encode(MeUpdatePhotoInput.serializer(), input),
+            pathKeys = emptySet(),
+            queryKeys = emptySet(),
+            hasBody = true,
+            output = serializer<MeUpdatePhotoOutput>(),
+        )
+
     /** Delete your account and your contributions */
     public suspend fun requestDeletion(input: MeRequestDeletionInput): MeRequestDeletionOutput =
         transport.call(

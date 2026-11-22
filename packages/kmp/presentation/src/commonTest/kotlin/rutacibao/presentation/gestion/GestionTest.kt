@@ -55,6 +55,13 @@ private class FakeStaff : StaffSource {
         consultations = if (queue == ModerationQueueInput.Queue.Consultations) cases else emptyList(),
         traffic = if (queue == ModerationQueueInput.Queue.Traffic) traffic else emptyList(),
         contentReports = emptyList(),
+        total = when (queue) {
+            ModerationQueueInput.Queue.Places -> places.size
+            ModerationQueueInput.Queue.Photos -> photos.size
+            ModerationQueueInput.Queue.Consultations -> cases.size
+            ModerationQueueInput.Queue.Traffic -> traffic.size
+            else -> 0
+        }.toLong(),
     )
 
     private suspend fun gate() {

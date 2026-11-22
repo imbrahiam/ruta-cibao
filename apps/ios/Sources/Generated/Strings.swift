@@ -477,6 +477,7 @@ enum L10n {
             static var sentBody: String { String(localized: LocalizedStringResource("contribute.traffic.sentBody")) }
             static var duplicate: String { String(localized: LocalizedStringResource("contribute.traffic.duplicate")) }
             static var duplicateBody: String { String(localized: LocalizedStringResource("contribute.traffic.duplicateBody")) }
+            static var outsideProvince: String { String(localized: LocalizedStringResource("contribute.traffic.outsideProvince")) }
         }
 
         enum Place {
@@ -1188,6 +1189,8 @@ enum L10n {
     }
 
     enum Profile {
+        static var changePhoto: String { String(localized: LocalizedStringResource("profile.changePhoto")) }
+        static var photoFailed: String { String(localized: LocalizedStringResource("profile.photoFailed")) }
         static var title: String { String(localized: LocalizedStringResource("profile.title")) }
         static var welcomeTitle: String { String(localized: LocalizedStringResource("profile.welcomeTitle")) }
         static var welcomeLede: String { String(localized: LocalizedStringResource("profile.welcomeLede")) }
@@ -1608,6 +1611,7 @@ enum L10n {
     }
 
     enum SignIn {
+        static var nameTitle: String { String(localized: LocalizedStringResource("signIn.nameTitle")) }
         static var title: String { String(localized: LocalizedStringResource("signIn.title")) }
         static var lede: String { String(localized: LocalizedStringResource("signIn.lede")) }
         static var methodLabel: String { String(localized: LocalizedStringResource("signIn.methodLabel")) }

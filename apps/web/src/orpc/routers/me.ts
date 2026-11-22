@@ -3,6 +3,7 @@ import { formatPhone } from "@ruta/shared/phone";
 import { consumeRateLimit, getRequestClientKey } from "@/lib/rate-limit";
 import { requireModerator } from "@/modules/access/permissions";
 import { updateProfile } from "@/modules/access/profile";
+import { updateProfilePhoto } from "@/modules/access/profile-photo";
 import {
   accountDeletionStatus,
   requestAccountDeletion,
@@ -71,6 +72,10 @@ export const meRouter = {
   updateProfile: impl.me.updateProfile
     .use(member)
     .handler(({ context, input }) => updateProfile(context.viewer, input)),
+
+  updatePhoto: impl.me.updatePhoto
+    .use(member)
+    .handler(({ context, input }) => updateProfilePhoto(context.viewer, input)),
 
   requestDeletion: impl.me.requestDeletion
     .use(member)

@@ -3,11 +3,16 @@ import SwiftUI
 
 /// Sign-in by one-time code, phone or email. Two steps on one sheet of paper.
 struct SignInScreen: View {
+    var finishProfile = false
+    var onFinish: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Host(make: { $0.signIn() }, flow: { $0.state }) { model in
-            SignInFlow(model: model, close: { dismiss() })
+            SignInFlow(model: model, close: {
+                if let onFinish { onFinish() } else { dismiss() }
+            })
+            .task { if finishProfile { model.vm.resumeProfile() } }
         }
         .paperBackground()
     }
@@ -19,7 +24,7 @@ private struct SignInFlow: View {
     @FocusState private var focus: Focus?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private enum Focus { case contact, code }
+    private enum Focus { case contact, code, name }
     private var state: SignInUiState { model.state }
     private var vm: SignInViewModel { model.vm }
 
@@ -29,16 +34,22 @@ private struct SignInFlow: View {
             VStack(alignment: .leading, spacing: 0) {
                 // Going back a step is at the leading edge; leaving is at the trailing one.
                 HStack {
-                    if state.step == .verify { IconButton(symbol: "chevron.left", label: L10n.SignIn.change, glass: true) { vm.editDestination() } }
+                    if state.step == .verify && !state.busy { IconButton(symbol: "chevron.left", label: L10n.SignIn.change, glass: true) { vm.editDestination() } }
                     Spacer()
-                    if state.step != .verify { IconButton(symbol: "xmark", label: L10n.Common.close, glass: true) { close() } }
+                    if state.step == .enter { IconButton(symbol: "xmark", label: L10n.Common.close, glass: true) { close() } }
                 }
                 .padding(.top, 10)
 
                 Mark(size: 44).padding(.top, 28).rise(0)
 
                 Group {
-                    if state.step == .verify { verify } else { enter }
+                    switch state.step {
+                    case .enter: enter
+                    case .verify: verify
+                    case .profileLookup: profileLookup
+                    case .name: nameEntry
+                    case .done: EmptyView()
+                    }
                 }
                 .transition(.asymmetric(
                     insertion: .opacity.combined(with: .offset(x: reduceMotion ? 0 : 24)),
@@ -56,6 +67,8 @@ private struct SignInFlow: View {
             switch step {
             case .enter: focus = .contact
             case .verify: focus = .code
+            case .profileLookup: focus = nil
+            case .name: focus = .name
             case .done: close()
             }
         }
@@ -174,6 +187,37 @@ private struct SignInFlow: View {
             }
             .padding(.top, 14)
         }
+    }
+
+    private var profileLookup: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if state.busy {
+                ProgressView().accessibilityLabel(L10n.SignIn.nameTitle)
+            } else {
+                Label(L10n.Common.errorTitle, systemImage: "exclamationmark.circle").type(.callout, .danger)
+                Button(L10n.Common.retry) { vm.resumeProfile() }.buttonStyle(.ink)
+            }
+        }
+        .padding(.top, 22)
+    }
+
+    private var nameEntry: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L10n.SignIn.nameTitle).type(.display)
+            Text(L10n.Profile.nameHelper).type(.body, .ink2)
+            Field(placeholder: L10n.Profile.name, text: Binding(get: { state.name }, set: { vm.updateName(input: $0) }))
+                .textContentType(.name)
+                .textInputAutocapitalization(.words)
+                .focused($focus, equals: .name)
+                .onSubmit { vm.saveName() }
+            if state.error != nil {
+                Label(L10n.Common.errorTitle, systemImage: "exclamationmark.circle").type(.callout, .danger)
+            }
+            Button { vm.saveName() } label: { busyLabel(L10n.Common.save) }
+                .buttonStyle(.ink)
+                .disabled(state.name.trimmingCharacters(in: .whitespacesAndNewlines).count < 2 || state.busy)
+        }
+        .padding(.top, 22)
     }
 
     @ViewBuilder private var problem: some View {

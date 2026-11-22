@@ -38,7 +38,7 @@ export type MeOutput = z.infer<typeof meOutput>;
 export const updateProfileInput = z.object({
   requestId: z.uuid(),
   displayName: z.string().trim().min(2).max(80),
-  municipalityId: z.string().min(1).max(80).nullable(),
+  municipalityId: z.string().min(1).max(80).nullable().default(null),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileInput>;
@@ -79,6 +79,22 @@ export const meContract = {
     )
     .input(updateProfileInput)
     .output(okOutput),
+
+  updatePhoto: oc
+    .meta(
+      openapi({
+        method: "PUT",
+        path: "/me/photo",
+        summary: "Replace your profile photo",
+      }),
+    )
+    .input(
+      z.object({
+        requestId: z.uuid(),
+        jpeg: z.base64().min(4).max(256_000),
+      }),
+    )
+    .output(z.object({ image: z.url() })),
 
   requestDeletion: oc
     .meta(

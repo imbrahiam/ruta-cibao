@@ -36,6 +36,8 @@ public data class AccountUiState(
     val redeem: Redeem = Redeem.Idle,
     val savingProfile: Boolean = false,
     val profileSaved: Boolean = false,
+    val savingPhoto: Boolean = false,
+    val photoError: Boolean = false,
     val deletion: Deletion = Deletion.Idle,
     /** Waiting reviews for staff; null for everyone else. */
     val staffPending: Int? = null,
@@ -88,6 +90,24 @@ public class AccountViewModel(
                     }
                 }
                 .onFailure { e -> _state.update { it.copy(savingProfile = false, error = UiError.from(e)) } }
+        }
+    }
+
+    public fun savePhoto(jpeg: String) {
+        val owner = _state.value.me?.userId ?: return
+        if (_state.value.savingPhoto) return
+        _state.update { it.copy(savingPhoto = true, photoError = false) }
+        viewModelScope.launch {
+            try {
+                val image = account.updatePhoto(owner, jpeg)
+                _state.update {
+                    if (it.me?.userId == owner) it.copy(savingPhoto = false, me = it.me?.copy(image = image)) else it
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                _state.update { if (it.me?.userId == owner) it.copy(savingPhoto = false, photoError = true) else it }
+            }
         }
     }
 

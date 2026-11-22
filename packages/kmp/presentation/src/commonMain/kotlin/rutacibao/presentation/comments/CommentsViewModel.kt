@@ -63,7 +63,7 @@ public class CommentsViewModel(
         viewModelScope.launch {
             session.isSignedIn.collect { signedIn ->
                 if (_state.value.signedIn != signedIn) {
-                    _state.update { it.copy(signedIn = signedIn, signInRequested = false) }
+                    _state.update { it.copy(signedIn = signedIn) }
                     // Refresh isMine after sign-in/sign-out without throwing away a draft.
                     refresh()
                 }

@@ -162,7 +162,7 @@ fun ContributionsScreen(onOpenConsultation: (String) -> Unit, startOnInbox: Bool
             }
         }
     }
-    if (signingIn && !state.signedIn) SignInDialog(onDismiss = { signingIn = false })
+    if (signingIn) SignInDialog(onDismiss = { signingIn = false })
 }
 
 @Composable
@@ -307,7 +307,9 @@ fun TrafficReportScreen(onBack: () -> Unit, onSent: () -> Unit) {
         }
         LocationField(state.latitude, state.longitude, stringResource(R.string.contribute_place_location), vm::setLocation)
         Field(state.description, vm::updateDescription, stringResource(R.string.contribute_traffic_description), maxLines = 4)
-        if (state.duplicate) Notice(Icons.Outlined.Group, stringResource(R.string.contribute_traffic_duplicate), stringResource(R.string.contribute_traffic_duplicate_body)) else FormError(state.error)
+        if (state.duplicate) Notice(Icons.Outlined.Group, stringResource(R.string.contribute_traffic_duplicate), stringResource(R.string.contribute_traffic_duplicate_body)) else if (state.outsideProvince) {
+            Text(stringResource(R.string.contribute_traffic_outside_province), style = Type.callout, color = Ink.colors.danger)
+        } else FormError(state.error)
     }
 }
 

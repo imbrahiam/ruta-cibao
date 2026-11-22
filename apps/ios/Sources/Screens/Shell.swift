@@ -74,6 +74,7 @@ struct Shell: View {
     @State private var action: ContributeAction? = DebugHook.value("RUTA_DEBUG_COMPOSE").flatMap(ContributeAction.init(rawValue:))
     @State private var wanted: ContributeAction?
     @State private var signingIn = false
+    @State private var completedProfile = false
     @Environment(\.graph) private var graph
     @Environment(DeepLinks.self) private var links
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -85,7 +86,8 @@ struct Shell: View {
     }
 
     private func content(_ account: Screen<AccountViewModel, AccountUiState>) -> some View {
-        NavigationStack(path: Bindable(chrome).accountPath) {
+        let needsProfile = account.state.me?.displayName == "" && !completedProfile
+        return NavigationStack(path: Bindable(chrome).accountPath) {
             VStack(spacing: 0) {
                 // The system keeps each tab's state; its own bar stays out of sight.
                 TabView(selection: Bindable(chrome).tab) {
@@ -134,8 +136,16 @@ struct Shell: View {
             }
         }
         // First run: the welcome stands in front of the app until it is done, then lifts away.
-        .allowsHitTesting(!welcome.showing)
-        .accessibilityHidden(welcome.showing)
+        .allowsHitTesting(!welcome.showing && !needsProfile)
+        .accessibilityHidden(welcome.showing || needsProfile)
+        .overlay {
+            if needsProfile {
+                SignInScreen(finishProfile: true) { completedProfile = true; account.vm.refresh() }
+            }
+        }
+        .onChange(of: account.state.signedIn) { _, signedIn in
+            if !signedIn { completedProfile = false }
+        }
         .overlay { if welcome.showing { Onboarding(welcome: welcome).transition(.opacity) } }
         .onChange(of: chrome.requested) { _, request in
             guard let request else { return }

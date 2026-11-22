@@ -3,7 +3,6 @@ import { openapi } from "@orpc/openapi";
 import { DEFAULT_STREET_EXTENT } from "@ruta/shared/road-geometry";
 import { z } from "zod";
 import { categorySummary } from "./catalog";
-import { mapPosition } from "./places";
 
 export const streetExtent = z
   .union([z.literal(150), z.literal(500), z.literal(2000)])
@@ -12,9 +11,8 @@ export const streetExtent = z
 /**
  * Reporting something on the road.
  *
- * The coordinate reuses `mapPosition` from the places contract rather than
- * redeclaring the province box: there is one answer to "which coordinates may
- * a citizen submit", and it should not be written twice.
+ * Valid coordinates outside the province reach the procedure so it can return
+ * the coverage error.
  *
  * The description is optional. The category already says "vía bloqueada", and
  * demanding a sentence from somebody standing at the edge of a flooded road is
@@ -35,7 +33,10 @@ export const reportTrafficInput = z.object({
   requestId: z.uuid(),
   categoryId: z.string().min(1).max(80),
   /** Where the crosshair was. The server snaps it onto the street it finds. */
-  location: mapPosition,
+  location: z.object({
+    lng: z.number().min(-180).max(180),
+    lat: z.number().min(-90).max(90),
+  }),
   shape: trafficShape.default("street"),
   description: z.string().trim().max(280).optional(),
 });

@@ -1,10 +1,13 @@
 package rutacibao.data
 
 import dev.zacsweers.metro.Inject
+import kotlinx.coroutines.withContext
+import rutacibao.api.ApiError
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import rutacibao.api.generated.MeGetOutput
 import rutacibao.api.generated.MeRequestDeletionInput
+import rutacibao.api.generated.MeUpdatePhotoInput
 import rutacibao.api.generated.MeUpdateProfileInput
 import rutacibao.api.generated.MunicipalitiesListItem
 import rutacibao.api.generated.NotificationsGetPreferencesOutput
@@ -35,6 +38,17 @@ public class AccountRepository(private val api: RutaApi, private val session: Se
 
     public suspend fun updateProfile(displayName: String, municipalityId: String?) {
         api.me.updateProfile(MeUpdateProfileInput(requestId = id(), displayName = displayName, municipalityId = municipalityId))
+    }
+
+    public suspend fun updatePhoto(owner: String, jpeg: String): String {
+        val token = session.identityToken()
+        val cookie = session.cookieHeader()
+        if (token == null || cookie == null || session.accountId.value != owner) {
+            throw ApiError(401, "UNAUTHORIZED", "session")
+        }
+        return withContext(BoundSession(token, cookie)) {
+            api.me.updatePhoto(MeUpdatePhotoInput(requestId = id(), jpeg = jpeg)).image
+        }
     }
 
     public suspend fun setPreferences(p: NotificationsGetPreferencesOutput) {

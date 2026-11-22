@@ -1207,7 +1207,8 @@
       "sent": "Reporte publicado",
       "sentBody": "Tus vecinos lo verán en el mapa ahora mismo.",
       "duplicate": "Ya lo reportaron",
-      "duplicateBody": "Alguien reportó lo mismo aquí cerca. Puedes confirmarlo en el mapa."
+      "duplicateBody": "Alguien reportó lo mismo aquí cerca. Puedes confirmarlo en el mapa.",
+      "outsideProvince": "Este punto está fuera de Santiago Rodríguez. Mueve el marcador a un punto dentro de la provincia."
     },
     "place": {
       "pendingTitle": "Ya tienes un lugar en revisión",
@@ -1352,6 +1353,8 @@
     "consultationDetailBody": "Selecciona una consulta para leer el caso y las respuestas sin salir de la lista."
   },
   "profile": {
+    "changePhoto": "Cambiar foto de perfil",
+    "photoFailed": "No se pudo guardar la foto. Inténtalo de nuevo.",
     "title": "Perfil",
     "welcomeTitle": "Bienvenido",
     "welcomeLede": "¿Cómo quieres que te vean tus vecinos? Puedes cambiarlo cuando quieras.",
@@ -1688,6 +1691,7 @@
     "emptyBody": "Revisa cómo está escrito o busca por categoría."
   },
   "signIn": {
+    "nameTitle": "¿Cómo te llamas?",
     "title": "Entra a Ruta Cibao",
     "lede": "Te enviamos un código para confirmar que eres tú. Sin contraseñas.",
     "methodLabel": "Cómo quieres entrar",

@@ -16,7 +16,11 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import rutacibao.core.AppConfig
 import rutacibao.core.SecureStore
+import rutacibao.data.AccountRepository
 import rutacibao.data.AuthRepository
+import rutacibao.data.createRutaApi
+import io.ktor.client.HttpClient
+import io.ktor.http.HttpMethod
 import rutacibao.data.Session
 import rutacibao.presentation.auth.SignInUiState.Step
 import kotlin.test.AfterTest
@@ -44,6 +48,17 @@ class SignInViewModelTest {
         override fun delete(key: String) { values.remove(key) }
     }
 
+    private fun signIn(client: HttpClient, session: Session): SignInViewModel {
+        val api = createRutaApi(client, config)
+        val auth = AuthRepository(client, config, session, rutacibao.data.PushRepository(api, MemoryStore(), session))
+        return SignInViewModel(auth, AccountRepository(api, session))
+    }
+
+    private fun profile(name: String) = """{
+        "kind":"member","userId":"member-1","displayName":"$name","municipalityId":null,
+        "contactVerified":true,"residencyVerified":false,"phoneVerified":false,"emailVerified":true,"staffRole":"none"
+    }"""
+
     @BeforeTest fun setUp() = Dispatchers.setMain(dispatcher)
     @AfterTest fun tearDown() = Dispatchers.resetMain()
 
@@ -56,6 +71,7 @@ class SignInViewModelTest {
             paths += request.url.encodedPath
             val json = headersOf(HttpHeaders.ContentType, "application/json")
             when {
+                request.url.encodedPath.endsWith("/me") -> respond(profile("Ana"), HttpStatusCode.OK, json)
                 request.url.encodedPath.endsWith("/sign-in/email-otp") && verifyCalls++ == 0 ->
                     respond("""{"code":"INVALID_OTP","message":"bad"}""", HttpStatusCode.BadRequest, json)
                 request.url.encodedPath.endsWith("/sign-in/email-otp") -> respond(
@@ -72,7 +88,7 @@ class SignInViewModelTest {
         val client = io.ktor.client.HttpClient(engine) {
             install(rutacibao.data.sessionPluginForTests(session, config))
         }
-        val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
+        val vm = signIn(client, session)
 
         assertEquals(SignInUiState.Method.Email, vm.state.value.method)
         vm.updateEmail(" Ana@Ejemplo.do ")
@@ -91,7 +107,7 @@ class SignInViewModelTest {
         vm.await { it.step == Step.Done }
         assertEquals(Step.Done, vm.state.value.step)
         assertTrue(session.isSignedIn.value)
-        assertEquals(listOf("/api/auth/email-otp/send-verification-otp", "/api/auth/sign-in/email-otp", "/api/auth/sign-in/email-otp"), paths)
+        assertEquals(listOf("/api/auth/email-otp/send-verification-otp", "/api/auth/sign-in/email-otp", "/api/auth/sign-in/email-otp", "/api/me"), paths)
         advanceTimeBy(61_000)
     }
 
@@ -100,7 +116,7 @@ class SignInViewModelTest {
         val engine = MockEngine { error("no request expected") }
         val session = Session(MemoryStore())
         val client = io.ktor.client.HttpClient(engine)
-        val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
+        val vm = signIn(client, session)
         assertEquals(listOf(SignInUiState.Method.Email, SignInUiState.Method.Phone), vm.state.value.methods)
         assertTrue(vm.state.value.isAvailable(SignInUiState.Method.Phone))
         vm.selectMethod(SignInUiState.Method.Phone)
@@ -109,6 +125,39 @@ class SignInViewModelTest {
         vm.submit(); runCurrent()
         assertEquals(SignInError.PhoneInvalid, vm.state.value.error)
         assertEquals(Step.Enter, vm.state.value.step)
+    }
+
+    @Test
+    fun newAccountNeedsANameAfterOtpAndOnlyFinishesWhenSaved() = runTest(dispatcher) {
+        val session = Session(MemoryStore())
+        var saves = 0
+        val engine = MockEngine { request ->
+            val json = headersOf(HttpHeaders.ContentType, "application/json")
+            when {
+                request.method == HttpMethod.Patch -> {
+                    saves++
+                    respond("""{"status":"ok"}""", HttpStatusCode.OK, json)
+                }
+                request.url.encodedPath.endsWith("/me") -> respond(profile(""), HttpStatusCode.OK, json)
+                else -> respond("""{"status":true}""", HttpStatusCode.OK, json)
+            }
+        }
+        val vm = signIn(HttpClient(engine), session)
+        vm.updateEmail("ana@example.test")
+        vm.submit()
+        vm.await { it.step == Step.Verify && !it.busy }
+        vm.updateCode("123456")
+        vm.await { it.step == Step.Name && !it.busy }
+
+        vm.updateName("  ")
+        vm.saveName()
+        assertEquals(Step.Name, vm.state.value.step)
+        assertEquals(0, saves)
+
+        vm.updateName(" Ana Peña ")
+        vm.saveName()
+        vm.await { it.step == Step.Done && !it.busy }
+        assertEquals(1, saves)
     }
 
     @Test
@@ -122,7 +171,7 @@ class SignInViewModelTest {
         }
         val session = Session(MemoryStore())
         val client = io.ktor.client.HttpClient(engine)
-        val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
+        val vm = signIn(client, session)
 
         vm.updateEmail("ana@ejemplo.do")
         vm.submit()
@@ -157,7 +206,7 @@ class SignInViewModelTest {
         }
         val session = Session(MemoryStore())
         val client = io.ktor.client.HttpClient(engine)
-        val vm = SignInViewModel(AuthRepository(client, config, session, rutacibao.data.PushRepository(rutacibao.data.createRutaApi(client, config), MemoryStore(), session)))
+        val vm = signIn(client, session)
 
         vm.updateEmail("ana@ejemplo.do")
         vm.submit()

@@ -27,8 +27,9 @@ import { drainOutbox, enqueueJob } from "@/lib/jobs/outbox";
 import { QUEUES } from "@/lib/jobs/queues";
 import { errorDetails, logError } from "@/lib/log";
 import { publishRealtimeEvent, userChannel } from "@/lib/realtime";
-import { deleteObject, putObject } from "@/lib/storage";
+import { deleteObject, listObjectKeys, putObject } from "@/lib/storage";
 import { refreshPublicCaches } from "@/lib/web-cache";
+import { profilePhotoPrefix } from "@/modules/access/profile-photo";
 import type { SessionInfo } from "@/modules/access/session";
 import type { MemberViewer } from "@/modules/access/viewer";
 import {
@@ -566,12 +567,14 @@ export async function runAccountDeletion(deletionId: string) {
     decryptSensitive(row.inventoryCiphertext),
   ) as Inventory;
   const userId = row.userId;
+  const profilePhotos = await listObjectKeys(profilePhotoPrefix(userId));
 
   let summary: Awaited<ReturnType<typeof purge>> | null = null;
   for (let pass = 0; pass < 3 && !summary; pass++) {
     // Keys captured at request time plus whatever exists now.
     const keys = new Set([
       ...inventory.objectKeys,
+      ...profilePhotos,
       ...(await collectObjectKeys(db, userId)),
     ]);
     for (const key of keys) await deleteObject(key);

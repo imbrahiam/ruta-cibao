@@ -69,7 +69,6 @@ fun ConsultationsScreen(onOpen: (String) -> Unit, onCompose: () -> Unit) {
     val signedIn by graph.session.isSignedIn.collectAsStateWithLifecycle()
     var composeAfterSignIn by remember { mutableStateOf(false) }
     var menuFor by remember { mutableStateOf<Consultation?>(null) }
-    LaunchedEffect(signedIn, composeAfterSignIn) { if (signedIn && composeAfterSignIn) { composeAfterSignIn = false; onCompose() } }
     val compose = { if (signedIn) onCompose() else composeAfterSignIn = true }
     val list = rememberLazyListState()
     val nearEnd by remember { derivedStateOf { (list.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) >= list.layoutInfo.totalItemsCount - 3 } }
@@ -121,7 +120,10 @@ fun ConsultationsScreen(onOpen: (String) -> Unit, onCompose: () -> Unit) {
     }
     menuFor?.let { item -> PostMenu(item.id, item.slug, item.title, onHidden = { vm.hiddenChanged(item.id) }, onDismiss = { menuFor = null }) }
     if (state.signInRequested) SignInDialog(onDismiss = vm::signInHandled)
-    if (composeAfterSignIn && !signedIn) SignInDialog(onDismiss = { composeAfterSignIn = false })
+    if (composeAfterSignIn) SignInDialog(
+        onDismiss = { composeAfterSignIn = false },
+        onComplete = { composeAfterSignIn = false; onCompose() },
+    )
 }
 
 @Composable

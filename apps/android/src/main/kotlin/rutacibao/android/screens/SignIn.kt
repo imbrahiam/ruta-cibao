@@ -76,22 +76,56 @@ import rutacibao.presentation.auth.SignInViewModel
 
 /** Sign-in by one-time code, phone or email, over whatever asked for it. */
 @Composable
-fun SignInDialog(onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-        val graph = LocalAppGraph.current
-        val vm: SignInViewModel = viewModel(key = "sign-in") { graph.viewModels.signIn() }
-        val state by vm.state.collectAsStateWithLifecycle()
-        LaunchedEffect(state.step) { if (state.step == SignInUiState.Step.Done) onDismiss() }
+fun SignInDialog(onDismiss: () -> Unit, onComplete: () -> Unit = onDismiss, finishProfile: Boolean = false) {
+    val graph = LocalAppGraph.current
+    val vm: SignInViewModel = viewModel(key = if (finishProfile) "finish-profile" else "sign-in") { graph.viewModels.signIn() }
+    val state by vm.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { if (finishProfile) vm.resumeProfile() }
+    LaunchedEffect(state.step) {
+        if (state.step == SignInUiState.Step.Done) {
+            onComplete()
+            vm.reset()
+        }
+    }
+    val completing = finishProfile || state.step == SignInUiState.Step.Name || state.step == SignInUiState.Step.ProfileLookup
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(
+        usePlatformDefaultWidth = false,
+        decorFitsSystemWindows = false,
+        dismissOnBackPress = !completing && !state.busy,
+        dismissOnClickOutside = false,
+    )) {
         Box(Modifier.fillMaxSize().background(Ink.colors.paper).systemBarsPadding().imePadding(), Alignment.TopCenter) {
             Column(Modifier.widthIn(max = 480.dp).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
                 val verifying = state.step == SignInUiState.Step.Verify
-                IconDisc(if (verifying) Icons.AutoMirrored.Outlined.ArrowBack else Icons.Outlined.Close, stringResource(if (verifying) R.string.sign_in_change else R.string.common_close),
+                if (!completing && !state.busy && state.step != SignInUiState.Step.Done) IconDisc(if (verifying) Icons.AutoMirrored.Outlined.ArrowBack else Icons.Outlined.Close, stringResource(if (verifying) R.string.sign_in_change else R.string.common_close),
                     { if (verifying) vm.editDestination() else onDismiss() }, Modifier.padding(top = 10.dp))
                 Mark(44.dp, Modifier.padding(top = 28.dp).rise(0))
-                AnimatedContent(verifying, transitionSpec = {
-                    (fadeIn() + slideInHorizontally { if (targetState) it / 8 else -it / 8 }) togetherWith (fadeOut() + slideOutHorizontally { if (targetState) -it / 8 else it / 8 })
-                }, label = "step") { second ->
-                    if (second) Verify(state, vm) else Enter(state, vm)
+                AnimatedContent(state.step, transitionSpec = {
+                    val forward = targetState.ordinal > initialState.ordinal
+                    (fadeIn() + slideInHorizontally { if (forward) it / 8 else -it / 8 }) togetherWith
+                        (fadeOut() + slideOutHorizontally { if (forward) -it / 8 else it / 8 })
+                }, label = "step") { step ->
+                    when (step) {
+                        SignInUiState.Step.Enter -> if (!finishProfile) Enter(state, vm)
+                        SignInUiState.Step.Verify -> Verify(state, vm)
+                        SignInUiState.Step.ProfileLookup -> {
+                            if (state.busy) {
+                                Text(stringResource(R.string.sign_in_name_title), style = Type.title)
+                            } else {
+                                Text(stringResource(R.string.common_error_title), color = Ink.colors.danger)
+                                Pill(stringResource(R.string.common_retry), vm::resumeProfile, Modifier.fillMaxWidth())
+                            }
+                        }
+                        SignInUiState.Step.Name -> {
+                            Text(stringResource(R.string.sign_in_name_title), style = Type.display, modifier = Modifier.padding(top = 22.dp))
+                            Text(stringResource(R.string.profile_name_helper), style = Type.body)
+                            Field(state.name, vm::updateName, stringResource(R.string.profile_name), Modifier.padding(top = 12.dp), onDone = vm::saveName)
+                            if (state.error != null) Text(stringResource(R.string.common_error_title), color = Ink.colors.danger)
+                            Pill(stringResource(R.string.common_save), vm::saveName, Modifier.fillMaxWidth().padding(top = 16.dp),
+                                enabled = state.name.trim().length >= 2 && !state.busy, busy = state.busy)
+                        }
+                        SignInUiState.Step.Done -> Unit
+                    }
                 }
             }
         }
