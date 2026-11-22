@@ -1,0 +1,83 @@
+name: Deploy
+
+# A commit goes live only after CI passed on main: this workflow starts from CI's success, builds
+# that commit's images for the server's architecture and asks the server to run them.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io/imbrahiam/ruta-cibao
+  SHA: ${{ github.event.workflow_run.head_sha }}
+
+jobs:
+  images:
+    name: Build ${{ matrix.image }}
+    if: github.event.workflow_run.conclusion == 'success'
+    # The server is arm64; a native runner builds without emulation.
+    runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        include:
+          - image: app
+            target: runner
+          - image: worker
+            target: worker
+          - image: migrator
+            target: migrator
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SHA }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/Dockerfile
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ matrix.image }}:${{ env.SHA }}
+          labels: org.opencontainers.image.source=https://github.com/imbrahiam/ruta-cibao
+          # Public values only: Next inlines NEXT_PUBLIC_* into the browser bundle.
+          build-args: |
+            NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
+            NEXT_PUBLIC_IOS_URL=${{ vars.NEXT_PUBLIC_IOS_URL }}
+            NEXT_PUBLIC_ANDROID_URL=${{ vars.NEXT_PUBLIC_ANDROID_URL }}
+            NEXT_PUBLIC_SOURCE_URL=${{ vars.NEXT_PUBLIC_SOURCE_URL }}
+            NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max
+
+  release:
+    name: Put it live
+    needs: images
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      # The key can run one thing on the server, scripts/ops/deploy-vps.sh, which takes the commit.
+      - name: Ask the server to run this commit
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o IdentitiesOnly=yes "$DEPLOY_USER@$DEPLOY_HOST" "$SHA"

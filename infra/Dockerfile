@@ -35,12 +35,15 @@ ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ARG NEXT_PUBLIC_IOS_URL=
 ARG NEXT_PUBLIC_ANDROID_URL=
 ARG NEXT_PUBLIC_SOURCE_URL=
+# The staff desk's browser key: public by design and restricted by referrer.
+ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL} \
     NEXT_PUBLIC_IOS_URL=${NEXT_PUBLIC_IOS_URL} \
     NEXT_PUBLIC_ANDROID_URL=${NEXT_PUBLIC_ANDROID_URL} \
-    NEXT_PUBLIC_SOURCE_URL=${NEXT_PUBLIC_SOURCE_URL}
+    NEXT_PUBLIC_SOURCE_URL=${NEXT_PUBLIC_SOURCE_URL} \
+    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
 RUN bun run build \
     && find apps/web/.next/standalone/node_modules/@img -maxdepth 1 -type d -name "*linuxmusl*" -exec rm -rf {} +
 

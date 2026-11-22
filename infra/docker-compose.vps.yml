@@ -2,6 +2,9 @@
 #
 #   docker compose -f infra/docker-compose.vps.yml --env-file .env up -d --build
 #
+# With RUTA_TAG set, `pull` fetches the images CI published for that commit instead of building
+# here (see .github/workflows/deploy.yml and scripts/ops/deploy-vps.sh).
+#
 # Differs from docker-compose.yml's `full` profile in three ways, each because of the host:
 # - no Caddy: the host's own proxy holds ports 80 and 443 and reaches `app` over EDGE_NETWORK;
 # - no SeaweedFS: S3_* in .env point at managed storage (Cloudflare R2), so nothing is published
@@ -40,6 +43,7 @@ services:
       retries: 10
 
   migrate:
+    image: ${RUTA_REGISTRY:-ruta-cibao}/migrator:${RUTA_TAG:-local}
     build:
       context: ..
       dockerfile: infra/Dockerfile
@@ -57,10 +61,12 @@ services:
         condition: service_healthy
 
   app:
+    image: ${RUTA_REGISTRY:-ruta-cibao}/app:${RUTA_TAG:-local}
     build:
       context: ..
       dockerfile: infra/Dockerfile
       args:
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?set NEXT_PUBLIC_APP_URL}
         NEXT_PUBLIC_IOS_URL: ${NEXT_PUBLIC_IOS_URL:-}
         NEXT_PUBLIC_ANDROID_URL: ${NEXT_PUBLIC_ANDROID_URL:-}
@@ -90,6 +96,7 @@ services:
     <<: *hardened
 
   worker:
+    image: ${RUTA_REGISTRY:-ruta-cibao}/worker:${RUTA_TAG:-local}
     build:
       context: ..
       dockerfile: infra/Dockerfile
