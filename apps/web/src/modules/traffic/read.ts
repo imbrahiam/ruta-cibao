@@ -149,7 +149,9 @@ export async function activeTrafficReports(
               eq(trafficReports.id, input.id),
               eq(trafficReports.status, "active"),
             )
-          : sql`ST_Intersects(${trafficReports.location}, ST_MakeEnvelope(${input.west}, ${input.south}, ${input.east}, ${input.north}, 4326))`,
+          : // A street report is on screen when any of its stretch is, not
+            // only the point the reporter tapped.
+            sql`(ST_Intersects(${trafficReports.location}, ST_MakeEnvelope(${input.west}, ${input.south}, ${input.east}, ${input.north}, 4326)) or ST_Intersects(${trafficReports.path}, ST_MakeEnvelope(${input.west}, ${input.south}, ${input.east}, ${input.north}, 4326)))`,
       ),
     )
     // Newest first: the thing that just happened is the thing nobody knows yet.
@@ -163,6 +165,7 @@ export async function activeTrafficReports(
    * answer is the same shape for all of them.
    */
   const voices = new Map<string, Voice[]>();
+  const voiceCounts = new Map<string, number>();
   const reportIds = rows.map((row) => row.id);
 
   if (reportIds.length > 0) {
@@ -208,6 +211,7 @@ export async function activeTrafficReports(
       }
 
       voices.set(row.id, list.slice(0, MAX_VOICES));
+      voiceCounts.set(row.id, list.length);
     }
   }
 
@@ -248,7 +252,7 @@ export async function activeTrafficReports(
       reporterResidentVerified: row.reporterResidentVerified,
       // The faces behind it, and the headcount they stand for.
       voices: voices.get(row.id) ?? [],
-      voiceCount: (voices.get(row.id) ?? []).length,
+      voiceCount: voiceCounts.get(row.id) ?? 0,
       createdAt: row.createdAt.toISOString(),
       expiresAt: row.expiresAt.toISOString(),
       stillCount: row.stillCount,

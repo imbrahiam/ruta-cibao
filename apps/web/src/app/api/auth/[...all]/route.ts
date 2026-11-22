@@ -16,19 +16,46 @@ function route() {
  * change roles without the application's scope checks and audit trail, so they
  * do not exist from the outside.
  */
-function isAdminPluginPath(request: Request): boolean {
+/**
+ * Endpoints Better Auth mounts that this app never calls. There are no
+ * passwords, so the reset flows only mint codes nobody asked for (by email
+ * with no rate limit); `update-user` would let anyone set an unmoderated
+ * avatar URL that every viewer's browser then fetches.
+ */
+const UNUSED_PATHS = new Set([
+  "/sign-up/email",
+  "/sign-in/email",
+  "/sign-in/phone-number",
+  "/request-password-reset",
+  "/reset-password",
+  "/change-password",
+  "/set-password",
+  "/verify-password",
+  "/forget-password/email-otp",
+  "/email-otp/request-password-reset",
+  "/email-otp/reset-password",
+  "/phone-number/request-password-reset",
+  "/phone-number/reset-password",
+  "/update-user",
+  "/change-email",
+  "/email-otp/request-email-change",
+  "/email-otp/change-email",
+]);
+
+function isRefusedPath(request: Request): boolean {
   let pathname: string;
   try {
     // Decoded and with repeated slashes collapsed, so `//admin` or `%2F`
     // spellings cannot route around the check.
-    pathname = decodeURIComponent(new URL(request.url).pathname).replace(
-      /\/+/g,
-      "/",
-    );
+    pathname = decodeURIComponent(new URL(request.url).pathname)
+      .replace(/\/+/g, "/")
+      .replace(/\/$/, "")
+      .toLowerCase();
   } catch {
     return true;
   }
-  return /^\/api\/auth\/admin(\/|$)/i.test(pathname);
+  if (/^\/api\/auth\/admin(\/|$)/.test(pathname)) return true;
+  return UNUSED_PATHS.has(pathname.replace(/^\/api\/auth/, ""));
 }
 
 const notFound = () => new Response("Not found", { status: 404 });
@@ -55,6 +82,6 @@ async function handle(request: Request, method: "GET" | "POST") {
 }
 
 export const GET = (request: Request) =>
-  isAdminPluginPath(request) ? notFound() : handle(request, "GET");
+  isRefusedPath(request) ? notFound() : handle(request, "GET");
 export const POST = (request: Request) =>
-  isAdminPluginPath(request) ? notFound() : handle(request, "POST");
+  isRefusedPath(request) ? notFound() : handle(request, "POST");

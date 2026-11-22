@@ -18,6 +18,10 @@ const SENSITIVE =
 
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
 const PHONE = /^\+?[\d\s().-]{7,}$/;
+// A phone or cédula inside running text, such as a database error's detail.
+const DIGIT_RUN = /\+?\d[\d\s().-]{8,}\d/g;
+// Drizzle appends every bound value of a failed query to its message.
+const QUERY_PARAMS = /^params: .*$/gm;
 
 const MAX_STRING = 2_000;
 const MAX_DEPTH = 4;
@@ -30,9 +34,13 @@ function scrubString(value: string): string {
   if (PHONE.test(withoutEmail) && digits.length >= 10 && digits.length <= 15) {
     return "[redacted]";
   }
-  return withoutEmail.length > MAX_STRING
-    ? `${withoutEmail.slice(0, MAX_STRING)}…`
-    : withoutEmail;
+  const scrubbed = withoutEmail.replace(DIGIT_RUN, (run) => {
+    const count = run.replace(/\D/g, "").length;
+    return count >= 10 && count <= 15 ? "[redacted]" : run;
+  });
+  return scrubbed.length > MAX_STRING
+    ? `${scrubbed.slice(0, MAX_STRING)}…`
+    : scrubbed;
 }
 
 function scrub(value: unknown, depth = 0): unknown {
@@ -89,8 +97,8 @@ export function errorDetails(error: unknown): Fields {
     const code = (error as { code?: unknown }).code;
     return {
       name: error.name,
-      message: error.message,
-      stack: error.stack,
+      message: error.message.replace(QUERY_PARAMS, "params: [redacted]"),
+      stack: error.stack?.replace(QUERY_PARAMS, "params: [redacted]"),
       ...(typeof code === "string" ? { code } : {}),
     };
   }

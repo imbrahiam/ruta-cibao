@@ -7,6 +7,8 @@ import {
   auditEvents,
   businessClaims,
   categories,
+  consultationPhotos,
+  consultationPhotoUploads,
   consultationResponses,
   consultations,
   consultationVotes,
@@ -21,6 +23,7 @@ import {
   session,
   trafficReports,
   user,
+  verification,
 } from "@/db/schema";
 import { encryptSensitive, hashLookup } from "@/lib/crypto";
 import { drainOutbox } from "@/lib/jobs/outbox";
@@ -101,6 +104,9 @@ describe.skipIf(
   afterAll(async () => {
     if (!guarded) return;
     for (const key of objectKeys) await deleteObject(key).catch(() => {});
+    await db
+      .delete(verification)
+      .where(eq(verification.id, `${prefix}-other-code`));
     const ledger = await listObjectKeys("deletion-ledger/");
     const mine = await db
       .select({ id: accountDeletions.id })
@@ -211,6 +217,7 @@ describe.skipIf(
 
     const photoKey = await object(`published-photos/${prefix}/own.webp`);
     const tempKey = await object(`photo-uploads/${prefix}/temp.bin`);
+    const keptCoverKey = await object(`places/${prefix}/kept-cover.webp`);
     const sharedPhotoKey = await object(
       `published-photos/${prefix}/on-kept-place.webp`,
     );
@@ -244,6 +251,7 @@ describe.skipIf(
         status: "published",
         createdByUserId: owner.id,
         businessDetails: { phone: "8095550000" } as never,
+        imageUrl: keptCoverKey,
       })
       .returning({ id: places.id });
     if (!lone || !shared) throw new Error("fixture places missing");
@@ -349,6 +357,41 @@ describe.skipIf(
     await db
       .insert(consultationVotes)
       .values({ consultationId: answered.id, userId: neighbour.id });
+    const casePhotoKey = await object(`consultation-photos/${prefix}/own.webp`);
+    const caseTempKey = await object(`consultations/${prefix}/temp.bin`);
+    await db.insert(consultationPhotos).values({
+      consultationId: answered.id,
+      storageKey: casePhotoKey,
+      width: 10,
+      height: 10,
+      uploadedByUserId: owner.id,
+    });
+    await db.insert(consultationPhotoUploads).values({
+      storageKey: caseTempKey,
+      userId: owner.id,
+      consultationId: answered.id,
+      requestId: crypto.randomUUID(),
+      requestHash: "synthetic",
+      sizeBytes: 9,
+      contentType: "image/webp",
+      expiresAt: new Date(Date.now() + 600_000),
+    });
+    const ownerEmail = `${owner.id}@example.invalid`;
+    const codeExpiry = new Date(Date.now() + 600_000);
+    await db.insert(verification).values([
+      {
+        id: `${prefix}-own-code`,
+        identifier: `sign-in-otp-${ownerEmail}`,
+        value: "synthetic",
+        expiresAt: codeExpiry,
+      },
+      {
+        id: `${prefix}-other-code`,
+        identifier: `sign-in-otp-x.${ownerEmail}`,
+        value: "synthetic",
+        expiresAt: codeExpiry,
+      },
+    ]);
     await db.insert(passportStamps).values({
       userId: owner.id,
       placeBlindIndex: hashLookup("passport", `${prefix}`),
@@ -480,6 +523,28 @@ describe.skipIf(
       .select()
       .from(consultations)
       .where(eq(consultations.id, answered.id));
+    expect(shell?.slug).toBe(`caso-${answered.id}`);
+    expect(
+      await db
+        .select()
+        .from(consultationPhotos)
+        .where(eq(consultationPhotos.consultationId, answered.id)),
+    ).toHaveLength(0);
+    for (const key of [casePhotoKey, caseTempKey, keptCoverKey])
+      expect(await statObject(key)).toBeNull();
+    expect(
+      (
+        await db
+          .select({ id: verification.id })
+          .from(verification)
+          .where(
+            inArray(verification.id, [
+              `${prefix}-own-code`,
+              `${prefix}-other-code`,
+            ]),
+          )
+      ).map((row) => row.id),
+    ).toEqual([`${prefix}-other-code`]);
     expect(shell).toMatchObject({
       title: "",
       body: "",

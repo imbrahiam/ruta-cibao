@@ -110,34 +110,6 @@ Sign-out removed protected navigation; the moderator session hid Categories and
 refused its direct URL without requesting catalog data. No moderation decisions
 or report generation were performed.
 
-### Public visual design
-
-
-The public site follows a photo-free product-studio direction inspired by
-[Moonjar](https://moonjar.ai/). Browser inspection measured its warm `#fafaf7`
-canvas, `#2a2a27` ink, Inter typography (52px desktop hero, 56px section headings),
-rounded black calls to action, white panels and soft layered shadows. The
-implementation adapts that visual grammar rather than copying its assets.
-
-The header stays in normal document flow. The header, footer and public pages
-share a light theme; the admin theme remains separate. Encuentro, an open C and
-meeting point on a flat iris tile (`#7860a8`), is the active web and native identity.
-Original map/product illustrations are conceptual, not geographic data or actual
-app screenshots. The landing does not use the Monción or Sabaneta
-photographs. Real screenshots appear only when supplied. Store links remain
-configuration-driven, with coming-soon states for unavailable downloads.
-The shared footer pairs the Dominican flag with the province, separates discovery
-and help links from legal utilities. Link hover reveals only a lavender brush,
-drawn left to right with clipping rather than scaling its thickness. Keyboard focus
-retains a visible outline, and motion respects reduced-motion settings.
-`/support` guides residents through the in-app support path, with a decorative
-account/help illustration and accessible, Motion-animated FAQs for access, place data,
-offline use and account deletion. Compass and waving-hand emoji accents prefer
-Apple Color Emoji, falling back to the platform's color emoji font.
-The standalone compass is the hero's main visual cue; the hand scales with the FAQ heading.
-Its links lead to real public routes; no contact form, live response promise or
-unpublished support address is invented.
-
 ### Identity
 
 Vínculo is the identity: two links of a chain on forest green (`#28594a`).

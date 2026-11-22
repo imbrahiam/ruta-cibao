@@ -54,7 +54,9 @@ export async function claimBusiness(
         .where(
           and(eq(places.id, input.placeId), eq(places.status, "published")),
         )
-        .limit(1);
+        .limit(1)
+        // Two claims arriving together would both pass the check below.
+        .for("update", { of: places });
 
       if (!place) throw new BusinessClaimError("not_found");
       // A river cannot have an owner, and the taxonomy is what says so.

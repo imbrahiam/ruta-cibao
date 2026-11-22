@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { municipalities, places } from "@/db/schema";
@@ -114,67 +114,91 @@ export function googleMatchDistance(
   );
 }
 
+/** Lookups already in flight in this process, so a burst asks Google once per place. */
+const resolving = new Map<string, Promise<string | null>>();
+
 /** Cache only the permitted place ID, including negative checks for thirty days. */
 export async function resolveGooglePlace(place: {
   id: string;
 }): Promise<string | null> {
   if (!env.GOOGLE_MAPS_SERVER_API_KEY) return null;
-  return db.transaction(async (tx) => {
-    // Serialize checks for this place, including simultaneous public image requests.
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(hashtext(${`google-place:${place.id}`}))`,
-    );
-    const [row] = await tx
-      .select({
-        id: places.id,
-        name: places.name,
-        location: places.location,
-        municipalityId: places.municipalityId,
-        municipalityName: municipalities.name,
-        googlePlaceId: places.googlePlaceId,
-        checkedAt: places.googlePlaceCheckedAt,
-        appThumbnailKey,
-      })
-      .from(places)
-      .innerJoin(municipalities, eq(municipalities.id, places.municipalityId))
-      .where(and(eq(places.id, place.id), eq(places.status, "published")))
-      .limit(1);
-    if (!row || row.appThumbnailKey) return null;
-    if (
-      row.checkedAt &&
-      Date.now() - row.checkedAt.getTime() < MAX_MATCH_AGE_MS
-    ) {
-      return row.googlePlaceId;
-    }
-    const result = searchResponse.parse(
-      await googleJson("places:searchText", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-FieldMask": "places.id,places.displayName,places.location",
-        },
-        body: JSON.stringify({
-          textQuery: `${row.name} ${row.municipalityName}`,
-          locationBias: {
-            circle: {
-              center: { latitude: row.location.y, longitude: row.location.x },
-              radius: 300,
-            },
+  const pending = resolving.get(place.id);
+  if (pending) return pending;
+  const lookup = lookUpGooglePlace(place.id).finally(() =>
+    resolving.delete(place.id),
+  );
+  resolving.set(place.id, lookup);
+  return lookup;
+}
+
+/**
+ * No transaction is open while Google answers: the public thumbnail route
+ * would otherwise hold a pooled connection per uncached place for seconds
+ * and a single map browse could take every connection the app has.
+ */
+async function lookUpGooglePlace(placeId: string): Promise<string | null> {
+  const [row] = await db
+    .select({
+      id: places.id,
+      name: places.name,
+      location: places.location,
+      municipalityId: places.municipalityId,
+      municipalityName: municipalities.name,
+      googlePlaceId: places.googlePlaceId,
+      checkedAt: places.googlePlaceCheckedAt,
+      appThumbnailKey,
+    })
+    .from(places)
+    .innerJoin(municipalities, eq(municipalities.id, places.municipalityId))
+    .where(and(eq(places.id, placeId), eq(places.status, "published")))
+    .limit(1);
+  if (!row || row.appThumbnailKey) return null;
+  if (
+    row.checkedAt &&
+    Date.now() - row.checkedAt.getTime() < MAX_MATCH_AGE_MS
+  ) {
+    return row.googlePlaceId;
+  }
+  const result = searchResponse.parse(
+    await googleJson("places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-FieldMask": "places.id,places.displayName,places.location",
+      },
+      body: JSON.stringify({
+        textQuery: `${row.name} ${row.municipalityName}`,
+        locationBias: {
+          circle: {
+            center: { latitude: row.location.y, longitude: row.location.x },
+            radius: 300,
           },
-          maxResultCount: 1,
-          languageCode: "es",
-        }),
+        },
+        maxResultCount: 1,
+        languageCode: "es",
       }),
-    );
-    const candidate = result.places?.[0];
-    const id =
-      candidate && googleMatchDistance(row.location, candidate.location) <= 250
-        ? candidate.id
-        : null;
-    await tx
+    }),
+  );
+  const candidate = result.places?.[0];
+  const id =
+    candidate && googleMatchDistance(row.location, candidate.location) <= 250
+      ? candidate.id
+      : null;
+  await db.transaction(async (tx) => {
+    // Another instance may have checked meanwhile; only the first records it.
+    const [updated] = await tx
       .update(places)
       .set({ googlePlaceId: id, googlePlaceCheckedAt: new Date() })
-      .where(eq(places.id, row.id));
+      .where(
+        and(
+          eq(places.id, row.id),
+          row.checkedAt
+            ? eq(places.googlePlaceCheckedAt, row.checkedAt)
+            : isNull(places.googlePlaceCheckedAt),
+        ),
+      )
+      .returning({ id: places.id });
+    if (!updated) return;
     await recordAudit(
       {
         action: "places.google_match_checked",
@@ -185,8 +209,8 @@ export async function resolveGooglePlace(place: {
       },
       tx,
     );
-    return id;
   });
+  return id;
 }
 
 type GooglePhoto = { uri: string; attribution: string | null };

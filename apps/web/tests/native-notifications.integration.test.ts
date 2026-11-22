@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { call } from "@orpc/server";
+import { call, ORPCError } from "@orpc/server";
 import type {
   NotificationPreferences,
   SetNotificationPreferencesInput,
@@ -441,6 +441,13 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
           trafficEnabled: false,
         }),
       ).rejects.toBeInstanceOf(IdempotencyConflictError);
+      // CONFLICT (409), not a 500, so a client does not retry it as a server error.
+      const refused = await setNotificationPreferences(owner, {
+        ...command,
+        trafficEnabled: false,
+      }).catch((error: unknown) => error);
+      expect(refused).toBeInstanceOf(ORPCError);
+      expect(refused instanceof ORPCError && refused.code).toBe("CONFLICT");
       expect(await getNotificationPreferences(owner)).toEqual(first);
       await setNotificationPreferences(other, {
         ...command,

@@ -86,11 +86,22 @@ export async function notify(
       tx,
     );
 
-    await enqueueJob(tx, QUEUES.notificationDeliver, {
-      notificationId: created.id,
-      push: input.channels?.push ?? true,
-      email: input.channels?.email ?? false,
-    });
+    // One job per channel: a retry after a push failure must not send the
+    // email again, which has no receipt to recognise a repeat by.
+    if (input.channels?.push ?? true) {
+      await enqueueJob(tx, QUEUES.notificationDeliver, {
+        notificationId: created.id,
+        push: true,
+        email: false,
+      });
+    }
+    if (input.channels?.email ?? false) {
+      await enqueueJob(tx, QUEUES.notificationDeliver, {
+        notificationId: created.id,
+        push: false,
+        email: true,
+      });
+    }
   };
   if (transaction) await run(transaction);
   else await db.transaction(run);

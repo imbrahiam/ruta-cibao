@@ -82,18 +82,23 @@ export async function GET(request: Request) {
   let cursor =
     Number.isFinite(lastEventId) && lastEventId > 0 ? lastEventId : 0;
   const seen = new Set<number>();
+  // Set once the stream is torn down, from whichever side notices first.
+  let closed = false;
+  let teardown = () => {
+    closed = true;
+    release();
+  };
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const encoder = new TextEncoder();
-      let closed = false;
 
       const write = (chunk: string) => {
         if (closed) return;
         try {
           controller.enqueue(encoder.encode(chunk));
         } catch {
-          closed = true;
+          teardown();
         }
       };
 
@@ -142,6 +147,11 @@ export async function GET(request: Request) {
       const unsubscribe = await onRealtimeNudge(() => {
         void drain();
       });
+      // Cancelled while subscribing: nothing below would ever be cleared.
+      if (closed) {
+        unsubscribe();
+        return;
+      }
 
       const heartbeat = setInterval(() => {
         // A comment keeps proxies from closing an idle connection, and the
@@ -150,8 +160,10 @@ export async function GET(request: Request) {
         void drain(true);
       }, HEARTBEAT_MS);
 
+      let finished = false;
       const close = () => {
-        if (closed) return;
+        if (finished) return;
+        finished = true;
         closed = true;
         clearInterval(heartbeat);
         unsubscribe();
@@ -162,12 +174,14 @@ export async function GET(request: Request) {
           // expected: already closed by the runtime.
         }
       };
+      teardown = close;
 
       request.signal.addEventListener("abort", close);
+      if (request.signal.aborted || closed) close();
     },
     // The consumer went away without the request signal firing first.
     cancel() {
-      release();
+      teardown();
     },
   });
 

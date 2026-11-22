@@ -410,15 +410,34 @@ export async function revokeOfflineSnapshots(
   reason: string,
   executor: Executor = db,
 ): Promise<void> {
-  const now = new Date();
-  await executor
-    .update(offlineSnapshots)
-    .set({
+  await executor.transaction(async (tx) => {
+    const now = new Date();
+    // Serialised with activation, so a build committing now is either seen
+    // here and revoked, or sees this revocation and stands down.
+    await tx.execute(sql`select pg_advisory_xact_lock(713210)`);
+    await tx
+      .update(offlineSnapshots)
+      .set({
+        isCurrent: false,
+        revokedAt: now,
+        revokedReason: reason,
+      })
+      .where(isNull(offlineSnapshots.revokedAt));
+    // A marker row records the revocation even when every version was already
+    // revoked (or none exists yet); a build that started before it checks for
+    // one and stands down instead of activating removed content.
+    const marker = crypto.randomUUID();
+    await tx.insert(offlineSnapshots).values({
+      version: `revocation-${marker}`,
+      storageKey: `revocation:${marker}`,
+      sha256: "",
+      sizeBytes: 0,
+      generatedAt: now,
       isCurrent: false,
       revokedAt: now,
       revokedReason: reason,
-    })
-    .where(isNull(offlineSnapshots.revokedAt));
+    });
+  });
 }
 
 export async function scheduleOfflineSnapshotRebuild(

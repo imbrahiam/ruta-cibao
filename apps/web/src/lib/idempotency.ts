@@ -11,6 +11,7 @@
  * it again. That makes the claim atomic — two requests racing cannot both
  * decide they are first.
  */
+import { ORPCError } from "@orpc/server";
 import { and, eq, sql } from "drizzle-orm";
 import { type DbTransaction, db } from "@/db";
 import { idempotencyKeys } from "@/db/schema";
@@ -18,10 +19,15 @@ import { hashContent } from "@/lib/crypto";
 
 const RETENTION_HOURS = 24;
 
-export class IdempotencyConflictError extends Error {
+/**
+ * An oRPC error so callers get 409 rather than 500: a client that retries on
+ * a server error would otherwise resend the same refused request forever.
+ */
+export class IdempotencyConflictError extends ORPCError<"CONFLICT", undefined> {
   constructor() {
-    super("This idempotency key was already used with different content.");
-    this.name = "IdempotencyConflictError";
+    super("CONFLICT", {
+      message: "This idempotency key was already used with different content.",
+    });
   }
 }
 

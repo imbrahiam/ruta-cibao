@@ -4,6 +4,8 @@ import { and, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { type Db, type DbTransaction, db } from "@/db";
 import {
   accountDeletions,
+  consultationPhotos,
+  consultationPhotoUploads,
   consultations,
   contentReports,
   ecoRoutes,
@@ -61,6 +63,9 @@ const LEDGER_PREFIX = "deletion-ledger/";
 export type DeletionReason =
   | "recent_authentication_required"
   | "last_administrator";
+
+/** The email OTP kinds whose identifier is `<type>-otp-<email>`. */
+const OTP_TYPES = ["sign-in", "email-verification", "forget-password"] as const;
 
 /** Storage keys that point at real objects (seeded imagery uses public paths). */
 function isObjectKey(value: string | null | undefined): value is string {
@@ -120,6 +125,35 @@ async function collectObjectKeys(
   for (const row of uploads) {
     if (isObjectKey(row.key)) keys.add(row.key);
     if (isObjectKey(row.finalKey)) keys.add(row.finalKey);
+  }
+
+  // Photographs attached to the account's cases, final and in flight.
+  const casePhotos = await executor
+    .select({ key: consultationPhotos.storageKey })
+    .from(consultationPhotos)
+    .where(eq(consultationPhotos.uploadedByUserId, userId));
+  for (const row of casePhotos) if (isObjectKey(row.key)) keys.add(row.key);
+  const caseUploads = await executor
+    .select({
+      key: consultationPhotoUploads.storageKey,
+      finalKey: consultationPhotoUploads.finalKey,
+    })
+    .from(consultationPhotoUploads)
+    .where(eq(consultationPhotoUploads.userId, userId));
+  for (const row of caseUploads) {
+    if (isObjectKey(row.key)) keys.add(row.key);
+    if (isObjectKey(row.finalKey)) keys.add(row.finalKey);
+  }
+
+  // A place someone else keeps loses this person's cover image (see purge).
+  const kept = await executor
+    .select({ imageUrl: places.imageUrl })
+    .from(places)
+    .where(
+      and(eq(places.createdByUserId, userId), isMaintainedElsewhere(userId)),
+    );
+  for (const place of kept) {
+    if (isObjectKey(place.imageUrl)) keys.add(place.imageUrl);
   }
 
   // Photographs and imagery of places that will be removed with the account.
@@ -429,12 +463,20 @@ async function purge(tx: DbTransaction, userId: string) {
   const unansweredIds = cases
     .filter((row) => !row.answered)
     .map((row) => row.id);
+  if (!institutional) {
+    // An answered case survives as a shell; the person's photographs of it do not.
+    await tx
+      .delete(consultationPhotos)
+      .where(eq(consultationPhotos.uploadedByUserId, userId));
+  }
   if (answeredIds.length > 0) {
     await tx
       .update(consultations)
       .set({
         title: "",
         body: "",
+        // The slug was made from the title.
+        slug: sql`'caso-' || ${consultations.id}::text`,
         location: null,
         openedByUserId: null,
         publicationStatus: "hidden",
@@ -461,12 +503,19 @@ async function purge(tx: DbTransaction, userId: string) {
       (value): value is string => Boolean(value),
     );
     for (const identifier of identifiers) {
+      // Exact identifiers as Better Auth writes them: a suffix match would
+      // also delete codes pending for `alice.bob@x.com` when `bob@x.com` goes.
+      const escaped = identifier.replace(/[\\%_]/g, "\\$&");
       await tx
         .delete(verification)
         .where(
           or(
-            eq(verification.identifier, identifier),
-            sql`${verification.identifier} like ${`%${identifier}`}`,
+            inArray(verification.identifier, [
+              identifier,
+              `${identifier}-request-password-reset`,
+              ...OTP_TYPES.map((type) => `${type}-otp-${identifier}`),
+            ]),
+            sql`${verification.identifier} like ${`change-email-otp-${escaped}-%`}`,
           ),
         );
     }

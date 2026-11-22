@@ -32,6 +32,7 @@ import {
   SCHEDULE_TIMEZONE,
   SCHEDULES,
 } from "@/lib/jobs/queues";
+import { errorDetails, logError, logInfo } from "@/lib/log";
 
 /**
  * One job at a time per queue.
@@ -59,7 +60,9 @@ async function main() {
     process.exit(1);
   }
 
-  boss.on("error", (error) => console.error("pg-boss error", error));
+  boss.on("error", (error) =>
+    logError("worker.queue_error", errorDetails(error)),
+  );
 
   for (const name of Object.values(QUEUES)) {
     const queue = name as QueueName;
@@ -70,7 +73,7 @@ async function main() {
         const started = Date.now();
         const result = await handlers[queue](job.data as JobPayloads[never]);
 
-        console.info("job finished", {
+        logInfo("worker.job_finished", {
           queue,
           id: job.id,
           ms: Date.now() - started,
@@ -119,7 +122,8 @@ async function main() {
         });
       await drainOutbox();
     } catch (error) {
-      console.error("outbox processing failed; pending jobs will retry", error);
+      // Pending jobs retry on the next tick.
+      logError("worker.outbox_failed", errorDetails(error));
     } finally {
       draining = false;
     }
@@ -142,6 +146,6 @@ async function main() {
 }
 
 main().catch((error: unknown) => {
-  console.error("worker failed to start", error);
+  logError("worker.start_failed", errorDetails(error));
   process.exit(1);
 });

@@ -31,6 +31,8 @@ const PERMANENT_ERRORS = [
   "FcmUNREGISTERED",
   "FcmSENDER_ID_MISMATCH",
   "FcmInvalidToken",
+  // Stored under a key that no longer decrypts it: no retry will ever send.
+  "TokenUnreadable",
 ];
 const providerErrorCodes = new Set([
   ...PERMANENT_ERRORS,
@@ -395,7 +397,19 @@ export async function sendPushToUser(
       let batchRetry = false;
       try {
         for (const device of configured) {
-          const token = decryptSensitive(device.tokenCiphertext);
+          let token: string;
+          try {
+            token = decryptSensitive(device.tokenCiphertext);
+          } catch {
+            // Thrown, it would roll back the tickets of devices already sent
+            // in this batch and the retry would push to them again.
+            const stored = await storeTicket(tx, notificationId, device, {
+              status: "error",
+              code: "TokenUnreadable",
+            });
+            batchRetry ||= stored.retry;
+            continue;
+          }
           const ticket =
             device.platform === "ios" && session
               ? await sendToApns(session, token, body)
