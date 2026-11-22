@@ -2,11 +2,14 @@
  * The basemap palettes of the staff desk's map, one per style the desk offers
  * (`MAP_STYLES` in `map-style.ts`), each in a light and a dark scheme.
  *
- * - `gris` is the phone app's palette, copied from `apps/mobile/src/ui/theme.ts`
- *   (`THEMES.clasico.map` and the ink/paper pair `palettes[scheme].pin` is built
- *   from) because the web desk cannot import from the Expo app. Keep both in
- *   step: a re-tint there is a re-tint here.
- * - `colores` uses green vegetation, blue water and warm pastel ground.
+ * - `gris` starts from the phone app's palette (`THEMES.clasico.map` in
+ *   `apps/mobile/src/ui/theme.ts`). Its light scheme is a step stronger here:
+ *   on a desk the map is evidence read at a glance on a large screen, so the
+ *   ground, the street edges, the green and the water carry more contrast than
+ *   the phone's, in the same family of tones.
+ * - `colores` is the desk's default and follows the resident app's map
+ *   (`calmMapStyle` in the Android app): paper ground, the shared vegetation
+ *   green a step stronger, soft blue water.
  *   Road fills stay pale so reported stretches and place markers stay visible.
  */
 export type Scheme = "light" | "dark";
@@ -39,18 +42,18 @@ export type ColoresPalette = MapPalette & {
 
 const GRIS: Record<Scheme, MapPalette> = {
   light: {
-    ground: "#F3F3F3",
-    park: "#E6EBE6",
-    water: "#D6DDE3",
-    waterLabel: "#8A97A1",
+    ground: "#ECEEEB",
+    park: "#D3E3D2",
+    water: "#BFD5E3",
+    waterLabel: "#5F7C8F",
     road: "#FFFFFF",
-    roadEdge: "#E3E3E3",
-    highway: "#DADADA",
-    label: "#5E5E5E",
-    labelStrong: "#2B2B2B",
-    labelMuted: "#8A8A8A",
+    roadEdge: "#CDD2CC",
+    highway: "#FFFFFF",
+    label: "#4B504B",
+    labelStrong: "#1E221E",
+    labelMuted: "#6F756F",
     labelHalo: "#FFFFFF",
-    adminLine: "#C9C9C9",
+    adminLine: "#AEB5AE",
   },
   dark: {
     ground: "#1B1B1B",
@@ -70,18 +73,18 @@ const GRIS: Record<Scheme, MapPalette> = {
 
 const COLORES: Record<Scheme, ColoresPalette> = {
   light: {
-    ground: "#F5F1DF",
-    natural: "#DDECC2",
-    building: "#EDE7D7",
-    buildingEdge: "#DCD5C4",
-    park: "#C5E3AB",
-    water: "#AED8EF",
+    ground: "#F3F2EC",
+    natural: "#DFEAD2",
+    building: "#ECEAE2",
+    buildingEdge: "#DAD7CC",
+    park: "#C9E2B4",
+    water: "#B3D6EC",
     waterLabel: "#245578",
     parkLabel: "#355C2D",
     road: "#FFFFFF",
-    roadEdge: "#DCD5C4",
-    highway: "#F8DF9E",
-    highwayEdge: "#DCD5C4",
+    roadEdge: "#D6D3C8",
+    highway: "#F7E6B0",
+    highwayEdge: "#D9C98F",
     label: "#555A55",
     labelStrong: "#262925",
     labelMuted: "#6B6F69",

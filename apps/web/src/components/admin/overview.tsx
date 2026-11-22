@@ -151,7 +151,7 @@ function WorkCard({
       <header className="flex items-center gap-3 px-4 pt-4 pb-2">
         {section.model ? <ModelIcon name={section.model} size={32} /> : null}
         <div className="flex min-w-0 flex-col">
-          <h3 id={`card-${queue}`} className="truncate text-[15px] font-medium">
+          <h3 id={`card-${queue}`} className="truncate text-base font-semibold">
             {t(section.label)}
           </h3>
           <p className="text-[13px] text-muted-foreground tabular-nums">
@@ -336,7 +336,7 @@ function PeekRow({
           {lead}
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-medium">{title}</span>
+          <span className="truncate text-sm font-semibold">{title}</span>
           <span className="truncate text-[13px] text-muted-foreground">
             {meta}
           </span>
@@ -386,7 +386,7 @@ function UpToDate({ sections }: { sections: CountedSection[] }) {
           <Check aria-hidden className="size-4" strokeWidth={3} />
         </span>
         <div className="flex flex-col">
-          <h3 id="card-up-to-date" className="text-[15px] font-medium">
+          <h3 id="card-up-to-date" className="text-base font-semibold">
             {o("upToDate")}
           </h3>
           <p className="text-[13px] text-muted-foreground">

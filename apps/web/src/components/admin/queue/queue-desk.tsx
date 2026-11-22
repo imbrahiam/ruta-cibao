@@ -41,10 +41,10 @@ import { CaseRow } from "./case-row";
 import { ClaimDetail, ClaimLine, ClaimRow } from "./claim-row";
 import { ContentReportRow } from "./content-report-row";
 import { PhotoRow } from "./photo-row";
-import { PlaceRow } from "./place-row";
+import { PlaceDetail, PlaceLine, PlaceRow } from "./place-row";
 import { QueueEmpty } from "./queue-empty";
 import { ReportRow } from "./report-row";
-import { RouteRow } from "./route-row";
+import { RouteDetail, RouteLine, RouteRow } from "./route-row";
 import { QUEUES, type QueueSlug } from "./slugs";
 import { SplitContext } from "./split";
 import { TrafficDetail, TrafficLine, TrafficRow } from "./traffic-row";
@@ -165,6 +165,8 @@ function ModerationDesk({ queue }: { queue: Exclude<QueueSlug, "routes"> }) {
             return data.places.map((place) => ({
               key: place.id,
               node: <PlaceRow place={place} />,
+              compact: <PlaceLine place={place} />,
+              pane: <PlaceDetail place={place} />,
             }));
           case "claims":
             return data.claims.map((claim) => ({
@@ -224,6 +226,8 @@ function RoutesDesk() {
         data.items.map((route) => ({
           key: route.id,
           node: <RouteRow route={route} />,
+          compact: <RouteLine route={route} />,
+          pane: <RouteDetail route={route} />,
         }))
       }
     />

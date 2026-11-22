@@ -73,7 +73,7 @@ export function AdminPageHeader({
         <div className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1">
           <h1
             id={id}
-            className="text-xl font-semibold tracking-tight text-balance"
+            className="text-[26px] leading-tight font-semibold tracking-tight text-balance"
           >
             {title}
           </h1>
@@ -301,7 +301,7 @@ export function InboxRow({
       {lead}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="min-w-0 truncate text-[15px] leading-snug font-medium">
+          <p className="min-w-0 truncate text-[15px] leading-snug font-semibold">
             {href ? (
               <Link
                 href={href}

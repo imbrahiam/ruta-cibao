@@ -13,7 +13,7 @@ import { ContactValue } from "../contact/contact-value";
 import { MapPreview } from "../map/map-preview";
 import type { MapItem } from "../map/map-types";
 import { DecisionBar } from "./decision-bar";
-import { ClampedText, LeadImage, useWhen } from "./item-parts";
+import { ClampedText, DeskLine, LeadImage, useWhen } from "./item-parts";
 import { PersonAvatar } from "./person-avatar";
 import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
@@ -23,7 +23,7 @@ export type PendingClaim = ApiOutputs["moderation"]["queue"]["claims"][number];
 /** On a phone: the whole claim as one soft block, decision at the end. */
 export function ClaimRow({ claim }: { claim: PendingClaim }) {
   return (
-    <li className="rounded-(--radius-card) bg-muted/45 p-4 sm:p-5">
+    <li className="rounded-(--radius-card) border bg-card p-4 sm:p-5">
       <ClaimDetail claim={claim} />
     </li>
   );
@@ -38,47 +38,35 @@ export function ClaimLine({ claim }: { claim: PendingClaim }) {
   const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
   const q = useTranslations("admin.queue");
-  const selected = split?.selected === claim.id;
   return (
-    <li
-      aria-current={selected ? "true" : undefined}
-      className={cn(
-        "relative flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors",
-        selected
-          ? "bg-muted shadow-[inset_3px_0_0_var(--primary)]"
-          : "hover:bg-accent/70",
-      )}
+    <DeskLine
+      selected={split?.selected === claim.id}
+      onSelect={() => split?.select(claim.id)}
+      title={claim.placeName}
+      lead={
+        // One avatar per line: the requester's photo, or their initials.
+        <PersonAvatar
+          name={claim.claimedBy}
+          image={claim.claimedByImage}
+          className="size-9"
+          verified={
+            claim.claimantResidentVerified ? q("residentBadge") : undefined
+          }
+        />
+      }
     >
-      {/* One avatar per line: the requester's photo, or their initials. */}
-      <PersonAvatar
-        name={claim.claimedBy}
-        image={claim.claimedByImage}
-        className="size-10"
-        verified={
-          claim.claimantResidentVerified ? q("residentBadge") : undefined
-        }
-      />
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <button
-          type="button"
-          onClick={() => split?.select(claim.id)}
-          className="truncate text-left text-[15px] leading-snug font-medium outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
-        >
-          {claim.placeName}
-        </button>
-        <p className="truncate text-[13px] text-muted-foreground">
-          {claim.municipalityName}
-        </p>
-        <p className="flex min-w-0 items-center gap-1.5 text-[13px] text-muted-foreground">
-          <span className="truncate text-foreground/80">
-            {claim.claimedBy ?? q("claimedByAnon")}
-          </span>
-          <time dateTime={claim.createdAt} className="shrink-0 tabular-nums">
-            {format.relativeTime(new Date(claim.createdAt), now)}
-          </time>
-        </p>
-      </div>
-    </li>
+      <p className="truncate text-[13px] text-muted-foreground">
+        {claim.municipalityName}
+      </p>
+      <p className="flex min-w-0 items-center justify-between gap-3 text-[13px] text-muted-foreground">
+        <span className="truncate">
+          {claim.claimedBy ?? q("claimedByAnon")}
+        </span>
+        <time dateTime={claim.createdAt} className="shrink-0 tabular-nums">
+          {format.relativeTime(new Date(claim.createdAt), now)}
+        </time>
+      </p>
+    </DeskLine>
   );
 }
 

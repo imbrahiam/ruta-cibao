@@ -17,7 +17,7 @@ import { trafficMapItem } from "../map/queue-items";
 import { useMapCopy } from "../map/use-map-copy";
 import { StatusIndicator } from "../status-indicator";
 import { DecisionBar } from "./decision-bar";
-import { Chip, ItemRow, useWhen } from "./item-parts";
+import { Chip, DeskLine, ItemRow, useWhen } from "./item-parts";
 import { PersonAvatar } from "./person-avatar";
 import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
@@ -289,46 +289,33 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
  */
 export function TrafficLine({ report }: { report: LiveTraffic }) {
   const split = useSplit();
-  const selected = split?.selected === report.id;
   return (
-    <li
-      aria-current={selected ? "true" : undefined}
-      className={cn(
-        "relative flex gap-3 rounded-lg px-3 py-3 transition-colors",
-        selected
-          ? "bg-muted shadow-[inset_3px_0_0_var(--primary)]"
-          : "hover:bg-accent/70",
-      )}
+    <DeskLine
+      selected={split?.selected === report.id}
+      onSelect={() => split?.select(report.id)}
+      title={report.categoryName}
+      lead={
+        <CategoryPin
+          icon={report.categoryIcon}
+          color={report.categoryColor}
+          tile
+          className="size-9 rounded-[10px] [&>svg]:size-[18px]"
+        />
+      }
     >
-      <CategoryPin
-        icon={report.categoryIcon}
-        color={report.categoryColor}
-        tile
-        className="size-9 rounded-[10px] [&>svg]:size-[18px]"
-      />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <button
-          type="button"
-          title={report.categoryName}
-          onClick={() => split?.select(report.id)}
-          className="truncate text-left text-[15px] leading-snug font-medium outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
-        >
-          {report.categoryName}
-        </button>
-        <ImpactChips report={report} />
-        <TextState report={report} />
-        {report.description ? (
-          <p className="line-clamp-2 text-sm text-pretty break-words text-foreground/80">
-            {report.description}
-          </p>
-        ) : null}
-        {/* Who and until when share the foot, whatever the row holds. */}
-        <div className="flex items-center justify-between gap-3">
-          <Reporter report={report} />
-          <Expiry iso={report.expiresAt} short />
-        </div>
+      <ImpactChips report={report} />
+      <TextState report={report} />
+      {report.description ? (
+        <p className="line-clamp-2 text-sm text-pretty break-words text-foreground/80">
+          {report.description}
+        </p>
+      ) : null}
+      {/* Who and until when share the foot, whatever the row holds. */}
+      <div className="flex items-center justify-between gap-3">
+        <Reporter report={report} />
+        <Expiry iso={report.expiresAt} short />
       </div>
-    </li>
+    </DeskLine>
   );
 }
 

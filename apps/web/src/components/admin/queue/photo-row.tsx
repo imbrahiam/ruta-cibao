@@ -36,7 +36,7 @@ export function PhotoRow({ photo }: { photo: PendingPhoto }) {
   return (
     <li
       aria-labelledby={titleId}
-      className="flex min-w-0 flex-col gap-3 rounded-(--radius-card) bg-muted/45 p-3"
+      className="flex min-w-0 flex-col gap-3 rounded-(--radius-card) border bg-card p-3"
     >
       {broken ? (
         <div className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-(--radius-field) border bg-muted p-4 text-center text-muted-foreground">
@@ -94,7 +94,7 @@ export function PhotoRow({ photo }: { photo: PendingPhoto }) {
         <h2
           id={titleId}
           title={photo.placeName}
-          className="truncate text-[15px] leading-snug font-medium"
+          className="truncate text-[15px] leading-snug font-semibold"
         >
           {photo.placeName}
         </h2>

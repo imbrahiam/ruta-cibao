@@ -199,7 +199,7 @@ export const MAP_STYLES = { colores, gris } satisfies Record<
 export type MapStyleId = keyof typeof MAP_STYLES;
 
 /** The desk's default: the recognisable coloured map. */
-export const DEFAULT_MAP_STYLE: MapStyleId = "gris";
+export const DEFAULT_MAP_STYLE: MapStyleId = "colores";
 
 export const MAP_STYLE_IDS = Object.keys(MAP_STYLES) as MapStyleId[];
 
