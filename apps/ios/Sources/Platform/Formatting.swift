@@ -20,7 +20,8 @@ enum CompactTime {
     }
 }
 
-func shareURL(_ slug: String) -> URL { URL(string: "https://rutacibao.app/consultas/\(slug)")! }
+/// The public case page; the web has no `/consultas/` route.
+func shareURL(_ slug: String) -> URL { URL(string: "https://rutacibao.app/s/consultation/\(slug)")! }
 
 extension ConsultationsBrowseInput.Status {
     var label: String {

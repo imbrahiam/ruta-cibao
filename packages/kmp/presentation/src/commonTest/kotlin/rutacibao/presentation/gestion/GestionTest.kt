@@ -82,7 +82,7 @@ private class FakeStaff : StaffSource {
         kind: ModerationDecidePublicationInput.Target.Kind, id: String, approve: Boolean, reason: String?,
     ) { gate(); decisions += "${kind.name.lowercase()}:$id:$approve"; notes += reason }
     override suspend fun removeTraffic(id: String, note: String) { gate(); decisions += "remove:$id"; notes += note }
-    override suspend fun respond(consultationId: String, body: String, statusAfter: ConsultationsRespondInput.StatusAfter) = gate()
+    override suspend fun respond(consultationId: String, requestId: String, body: String, statusAfter: ConsultationsRespondInput.StatusAfter) = gate()
     override suspend fun reports(): List<ReportsListItem> = emptyList()
     override suspend fun reportPdfUrl(reportId: String): String? = null
     override suspend fun verifyTotp(code: String) { totpFailure?.let { throw it }; verifications++ }

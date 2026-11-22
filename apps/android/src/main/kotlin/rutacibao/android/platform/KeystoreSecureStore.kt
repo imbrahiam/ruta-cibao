@@ -2,10 +2,13 @@ package rutacibao.android.platform
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.io.File
+import java.security.GeneralSecurityException
 import java.security.KeyStore
+import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
@@ -32,13 +35,17 @@ class KeystoreSecureStore(context: Context) : SecureStore {
         val stored = prefs.getString(key, null)?.let { Base64.decode(it, Base64.NO_WRAP) }
             ?: file(key).takeIf(File::exists)?.readBytes()
             ?: return null
-        return runCatching {
+        return try {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.DECRYPT_MODE, cachedKey, GCMParameterSpec(128, stored, 0, IV_SIZE))
             String(cipher.doFinal(stored, IV_SIZE, stored.size - IV_SIZE), Charsets.UTF_8)
-        }.getOrElse {
-            // Key invalidated (e.g. lock screen removed): the value is unrecoverable.
-            delete(key)
+        } catch (unrecoverable: GeneralSecurityException) {
+            // Only a value that can never decrypt is dropped: a bad tag, or a key the
+            // system invalidated. A transient Keystore failure must not sign the person
+            // out or delete a chunk of their offline queue.
+            if (unrecoverable is AEADBadTagException || unrecoverable is KeyPermanentlyInvalidatedException) delete(key)
+            null
+        } catch (_: RuntimeException) {
             null
         }
     }
