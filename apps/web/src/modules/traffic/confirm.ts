@@ -91,7 +91,11 @@ export async function confirmTraffic(
       .for("update");
 
     if (!report) throw new TrafficError("not_found");
-    if (report.status !== "active") throw new TrafficError("already_resolved");
+    // The expiry sweep runs every few minutes; a report past its date is
+    // already gone from the map and must not be revived by a late vote.
+    if (report.status !== "active" || report.expiresAt <= new Date()) {
+      throw new TrafficError("already_resolved");
+    }
     // Vouching for your own report is not evidence of anything.
     if (report.reportedByUserId === viewer.userId) {
       throw new TrafficError("own_report");
