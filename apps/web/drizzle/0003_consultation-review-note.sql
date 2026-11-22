@@ -1,0 +1,1 @@
+ALTER TABLE "consultations" ADD COLUMN "review_note" text;

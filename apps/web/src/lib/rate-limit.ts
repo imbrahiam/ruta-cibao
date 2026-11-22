@@ -35,8 +35,11 @@ export type RateLimitResult = {
  * The result is hashed, so the limiter never stores a readable IP.
  */
 export function getRequestClientKey(headers: Headers): string {
+  // The last entry is the one our proxy wrote. Caddy replaces the header, but
+  // a proxy that appends (nginx's usual setup) keeps whatever the client sent
+  // in front, so the first entry would be the client's to choose.
   const forwarded = env.TRUSTED_PROXY
-    ? headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ? headers.get("x-forwarded-for")?.split(",").at(-1)?.trim()
     : undefined;
 
   const address =

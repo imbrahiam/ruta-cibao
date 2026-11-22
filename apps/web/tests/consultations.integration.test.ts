@@ -334,6 +334,14 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")("consultations", () => {
       status: "hidden",
       reason: "El caso contiene datos personales de un vecino.",
     });
+    // The reason is kept for the author, not thrown away.
+    const [hidden] = await db
+      .select({ note: consultations.reviewNote })
+      .from(consultations)
+      .where(eq(consultations.id, created.id));
+    expect(hidden?.note).toBe(
+      "El caso contiene datos personales de un vecino.",
+    );
 
     await expect(
       respondToConsultation(staff, {
