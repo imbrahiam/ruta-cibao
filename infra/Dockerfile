@@ -55,7 +55,11 @@ COPY packages ./packages
 COPY apps/web/src ./apps/web/src
 COPY scripts ./scripts
 COPY apps/web/drizzle /migrations
-RUN bun build scripts/ops/init-storage.ts --target=bun --minify --outfile=/runtime/scripts/ops/init-storage.ts \
+# The scripts live outside the web workspace but import its dependencies. The installer keeps
+# those under apps/web when another workspace pins a different version, so the scripts are given
+# the same node_modules to resolve from.
+RUN ln -s /app/apps/web/node_modules /app/scripts/node_modules \
+    && bun build scripts/ops/init-storage.ts --target=bun --minify --outfile=/runtime/scripts/ops/init-storage.ts \
     && bun build scripts/ops/worker.ts --target=bun --minify \
       --outfile=/runtime/src/modules/jobs/worker.js --external=sharp --external=pg-native \
     && bun build apps/web/src/db/migrate.ts --target=bun --minify \
