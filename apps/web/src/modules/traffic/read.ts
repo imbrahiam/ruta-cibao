@@ -165,6 +165,7 @@ export async function activeTrafficReports(
    * answer is the same shape for all of them.
    */
   const voices = new Map<string, Voice[]>();
+  const voiceCounts = new Map<string, number>();
   const reportIds = rows.map((row) => row.id);
 
   if (reportIds.length > 0) {
@@ -210,6 +211,7 @@ export async function activeTrafficReports(
       }
 
       voices.set(row.id, list.slice(0, MAX_VOICES));
+      voiceCounts.set(row.id, list.length);
     }
   }
 
@@ -250,7 +252,7 @@ export async function activeTrafficReports(
       reporterResidentVerified: row.reporterResidentVerified,
       // The faces behind it, and the headcount they stand for.
       voices: voices.get(row.id) ?? [],
-      voiceCount: (voices.get(row.id) ?? []).length,
+      voiceCount: voiceCounts.get(row.id) ?? 0,
       createdAt: row.createdAt.toISOString(),
       expiresAt: row.expiresAt.toISOString(),
       stillCount: row.stillCount,
