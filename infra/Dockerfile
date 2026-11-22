@@ -47,7 +47,7 @@ ENV NODE_ENV=production \
     NEXT_PUBLIC_SOURCE_URL=${NEXT_PUBLIC_SOURCE_URL} \
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
 RUN bun run build \
-    && find apps/web/.next/standalone/node_modules/@img -maxdepth 1 -type d -name "*linuxmusl*" -exec rm -rf {} +
+    && find apps/web/.next/standalone -type d -name "*linuxmusl*" -prune -exec rm -rf {} +
 
 # Bundle background and maintenance entrypoints independently of Next. Native
 # packages remain external; copy their installed graph from the frozen lockfile.
