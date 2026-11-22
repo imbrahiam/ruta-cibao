@@ -19,6 +19,10 @@ git fetch --quiet origin
 git checkout --quiet --detach "$SHA"
 
 export RUTA_REGISTRY=ghcr.io/imbrahiam/ruta-cibao RUTA_TAG=$SHA
+# Kept in .env too, so a maintenance command run by hand (`compose run migrate …`) uses the
+# images that are live instead of whatever was last built on this machine.
+sed -i -e '/^RUTA_REGISTRY=/d' -e '/^RUTA_TAG=/d' .env
+printf 'RUTA_REGISTRY=%s\nRUTA_TAG=%s\n' "$RUTA_REGISTRY" "$RUTA_TAG" >> .env
 compose=(docker compose -f infra/docker-compose.vps.yml --env-file .env)
 "${compose[@]}" pull --quiet migrate app worker
 "${compose[@]}" up -d --no-build --remove-orphans
