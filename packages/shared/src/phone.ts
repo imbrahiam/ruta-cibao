@@ -19,14 +19,17 @@ const AREA_CODES = new Set(["809", "829", "849"]);
 
 const NATIONAL_DIGITS = 10;
 
-/** Digits only, with the North American country code dropped if it was typed. */
+/**
+ * Digits only, with the North American country code dropped if it was typed.
+ *
+ * Not truncated: an extra digit is a typo, and keeping the first ten would
+ * turn it into someone else's number.
+ */
 function nationalDigits(input: string): string {
   const digits = input.replace(/\D/g, "");
-  const withoutCountry =
-    digits.length > NATIONAL_DIGITS && digits.startsWith("1")
-      ? digits.slice(1)
-      : digits;
-  return withoutCountry.slice(0, NATIONAL_DIGITS);
+  return digits.length === NATIONAL_DIGITS + 1 && digits.startsWith("1")
+    ? digits.slice(1)
+    : digits;
 }
 
 function inputDigits(digits: string): string {

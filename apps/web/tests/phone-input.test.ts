@@ -21,3 +21,17 @@ test("backspacing over formatting deletes a digit at the caret", () => {
     editPhoneInput("(809) 555-1234", "(809) 5551234", 9, "backward"),
   ).toEqual({ value: "(809) 551-234", caret: 8 });
 });
+
+test("an extra digit is rejected, not truncated into another number", () => {
+  expect(normalizePhone("18095551234")).toBe("+18095551234");
+  expect(normalizePhone("+1 809 555 1234")).toBe("+18095551234");
+  for (const typo of [
+    "80955512349",
+    "8095551234 ext 22",
+    "1-809-555-1234-5",
+    "1 8095551234 1",
+    "118095551234",
+  ]) {
+    expect(normalizePhone(typo)).toBeNull();
+  }
+});
