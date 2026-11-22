@@ -81,7 +81,9 @@ targets:
         NSSupportsLiveActivities: true
         NSSupportsLiveActivitiesFrequentUpdates: true
         # Navigation keeps following you with the screen locked.
-        UIBackgroundModes: [location, remote-notification]
+        # `processing` lets the offline outbox send while the app is in the background.
+        UIBackgroundModes: [location, remote-notification, processing]
+        BGTaskSchedulerPermittedIdentifiers: [do.rutacibao.offline-sync]
     settings:
       base:
         PRODUCT_NAME: RutaCibao

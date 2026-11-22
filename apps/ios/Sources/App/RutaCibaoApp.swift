@@ -6,6 +6,7 @@ import SwiftUI
 @main
 struct RutaCibaoApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
+    @Environment(\.scenePhase) private var scenePhase
     /// Built once at launch; every screen reads it from the environment.
     private let graph: AppGraph
 
@@ -26,6 +27,10 @@ struct RutaCibaoApp: App {
         if DebugHook.value("RUTA_DEBUG_OFFLINE") == "1" { DebugNetwork.shared.offline = true }
         #endif
         graph = createAppGraph(config: AppConfig.current, secureStore: store)
+        // Sends what was queued offline: every 30 s in the foreground, on account change,
+        // and from the background task iOS schedules (registered before launch finishes).
+        graph.offline.start()
+        OfflineScheduler.shared.register(graph: graph)
         if let key = Bundle.main.object(forInfoDictionaryKey: "RutaGoogleMapsKey") as? String, !key.isEmpty { GMSServices.provideAPIKey(key) }
     }
 
@@ -53,6 +58,10 @@ struct RutaCibaoApp: App {
                     }
                     #endif
                     delegate.links.open(url.absoluteString)
+                }
+                // Coverage often returns while the app is away; send the queue on return.
+                .onChange(of: scenePhase) { _, phase in
+                    if phase == .active { graph.offline.flush() }
                 }
                 .task {
                     delegate.graph = graph
