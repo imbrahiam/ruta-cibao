@@ -178,14 +178,18 @@ public class OfflineRepository(
             MutationDelivery(false, delivered.slug)
         } catch (cancelled: CancellationException) { throw cancelled
         } catch (error: Exception) {
-            if (entry.traffic != null && (error as? ApiError)?.reason == "outside_province") {
+            if (isTransient(error) || isSignedOut(error)) {
+                failed(entry.id, owner, error)
+                if (!isTransient(error)) throw error
+                MutationDelivery(true)
+            } else {
+                // Refused outright while the person is still in the form: they see the
+                // error and may correct it. Keeping the entry would resend this payload,
+                // not the corrected one, under the same request id.
                 entries = entries.filterNot { it.id == id && it.owner == owner }
                 persist()
-            } else {
-                failed(entry.id, owner, error)
+                throw error
             }
-            if (!isTransient(error)) throw error
-            MutationDelivery(true)
         }
     }
 
@@ -267,7 +271,9 @@ public class OfflineRepository(
             if (it.id != id || it.owner != owner) it else {
                 val transient = isTransient(error)
                 val attempts = it.attempts + 1
-                it.copy(blocked = !transient, error = (error as? ApiError)?.code?.lowercase() ?: "network", attempts = attempts,
+                // An expired session is not the contribution's fault: it waits for the
+                // owner's next sign-in instead of needing a manual retry.
+                it.copy(blocked = !transient && !isSignedOut(error), error = (error as? ApiError)?.code?.lowercase() ?: "network", attempts = attempts,
                     nextAttempt = Clock.System.now().toEpochMilliseconds() + minOf(3_600_000L, 5_000L * (1L shl minOf(attempts, 9))))
             }
         }
@@ -286,6 +292,8 @@ public class OfflineRepository(
         const val MAX_SNAPSHOT_BYTES = 64L * 1024 * 1024
     }
 }
+
+internal fun isSignedOut(error: Throwable): Boolean = (error as? ApiError)?.status == 401
 
 internal fun isTransient(error: Throwable): Boolean = when (error) {
     is CancellationException -> false
