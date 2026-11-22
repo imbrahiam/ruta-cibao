@@ -13,6 +13,7 @@ import {
 } from "react";
 import { useFormatter, useTranslations } from "use-intl";
 import { MetaList, PropertyList, PropertyRow } from "@/components/admin/facts";
+import { useDay } from "@/components/admin/use-day";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,6 +73,7 @@ export function ItemRow({
   summary,
   byline,
   aside,
+  media,
   detail,
   decision,
 }: {
@@ -97,6 +99,12 @@ export function ItemRow({
   byline?: ReactNode;
   /** A way out to the subject itself (its public page), top right. */
   aside?: ReactNode;
+  /**
+   * The item's map. In a wide row it stands beside `detail`, with the
+   * decision under the facts at the map's foot, so the card is as tall as
+   * the map and no taller.
+   */
+  media?: ReactNode;
   detail?: ReactNode;
   decision: ReactNode;
 }) {
@@ -170,19 +178,33 @@ export function ItemRow({
                 <TooltipContent>{t("showOnMap")}</TooltipContent>
               </Tooltip>
             ) : null}
-            {detail ? null : (
+            {detail || media ? null : (
               <div className="ml-auto min-w-0 max-w-full">{decision}</div>
             )}
           </div>
         </div>
       </div>
-      {detail ? (
-        <div className={cn("@container/item flex min-w-0 flex-col gap-3")}>
-          {detail}
+      {media ? (
+        // By the row's own width, not the window's: beside the queue map the
+        // row is a narrow column.
+        <div className="@container/item min-w-0">
+          <div className="grid gap-x-6 gap-y-4 @2xl/item:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+            {media}
+            <div className="flex min-w-0 flex-col gap-4">
+              {detail}
+              <div className="mt-auto min-w-0">{decision}</div>
+            </div>
+          </div>
         </div>
+      ) : detail ? (
+        <>
+          <div className="@container/item flex min-w-0 flex-col gap-3">
+            {detail}
+          </div>
+          {/* After the evidence, in reading and tab order: read, then decide. */}
+          <div className="min-w-0 pt-1">{decision}</div>
+        </>
       ) : null}
-      {/* After the evidence, in reading and tab order: read, then decide. */}
-      {detail ? <div className="min-w-0 pt-1">{decision}</div> : null}
     </li>
   );
 }
@@ -288,14 +310,15 @@ export function ClampedText({ children }: { children: string }) {
   );
 }
 
-/** "Recibido el 3 oct 2026 a las 4:05 p. m." from an ISO instant. */
+/** "Recibido el 3 oct a las 4:05 p. m." from an ISO instant. */
 export function useWhen() {
   const format = useFormatter();
+  const day = useDay();
   const t = useTranslations("admin.queue");
   return (key: "receivedAt" | "expiresAt", iso: string) => {
     const date = new Date(iso);
     return t(key, {
-      date: format.dateTime(date, "short"),
+      date: day(date),
       time: format.dateTime(date, "time"),
     });
   };

@@ -47,40 +47,38 @@ export function RouteRow({ route }: { route: EcoRoute }) {
         </>
       }
       byline={when("receivedAt", route.createdAt)}
+      media={
+        start ? (
+          <MapPreview
+            className="max-w-none"
+            item={mapItem}
+            label={map.routeAlt(route)}
+            title={route.name}
+            legend={map.routeLegend()}
+            summary={`${q("distance")}: ${distance}`}
+            anchor={start}
+            anchorLabel={q("pathStart")}
+          />
+        ) : null
+      }
       detail={
-        // The map and the facts sit side by side when the row is wide enough
-        // (not the window: beside the queue map the row is a narrow column).
-        <div className="grid gap-5 @2xl/item:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] @2xl/item:items-start">
-          {start ? (
-            <MapPreview
-              className="max-w-none"
-              item={mapItem}
-              label={map.routeAlt(route)}
-              title={route.name}
-              legend={map.routeLegend()}
-              summary={`${q("distance")}: ${distance}`}
-              anchor={start}
-              anchorLabel={q("pathStart")}
-            />
-          ) : null}
-          <Facts>
-            <Fact label={q("description")} wide>
-              {route.description}
-            </Fact>
-            <Fact label={q("distance")}>{distance}</Fact>
-            <Fact label={q("duration")}>{duration}</Fact>
-            <Fact label={q("difficulty")}>
-              {q(`difficultyLevel.${route.difficulty}`)}
-            </Fact>
-            <Fact label={q("services")}>
-              {route.services.length > 0
-                ? route.services
-                    .map((service) => q(`service.${service}`))
-                    .join(", ")
-                : null}
-            </Fact>
-          </Facts>
-        </div>
+        <Facts>
+          <Fact label={q("description")} wide>
+            {route.description}
+          </Fact>
+          <Fact label={q("distance")}>{distance}</Fact>
+          <Fact label={q("duration")}>{duration}</Fact>
+          <Fact label={q("difficulty")}>
+            {q(`difficultyLevel.${route.difficulty}`)}
+          </Fact>
+          <Fact label={q("services")}>
+            {route.services.length > 0
+              ? route.services
+                  .map((service) => q(`service.${service}`))
+                  .join(", ")
+              : null}
+          </Fact>
+        </Facts>
       }
       decision={
         <DecisionBar
