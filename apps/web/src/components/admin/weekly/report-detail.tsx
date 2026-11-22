@@ -9,6 +9,7 @@ import { ErrorPanel } from "@/components/admin/error-panel";
 import { MetaList } from "@/components/admin/facts";
 import { AdminEmpty, AdminPageHeader } from "@/components/admin/page-frame";
 import { ReportDetailSkeleton } from "@/components/admin/skeletons";
+import { useDay } from "@/components/admin/use-day";
 import { orpc } from "@/lib/web/api";
 import { failureKind } from "@/lib/web/errors";
 import {
@@ -121,6 +122,7 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
   const w = useTranslations("admin.weeklyReport");
   const s = useTranslations("reports.sections");
   const format = useFormatter();
+  const day = useDay();
   const p = useTranslations("admin.weeklyReport.phrase");
   const weekLabel = useWeekLabel();
   const weekRange = useWeekRange();
@@ -272,7 +274,7 @@ export function WeeklyReportDetail({ reportId }: { reportId: string }) {
             {weekRange(report)}
             {report.generatedAt
               ? r("generatedAt", {
-                  date: format.dateTime(new Date(report.generatedAt), "long"),
+                  date: day(new Date(report.generatedAt), "long"),
                 })
               : ""}
           </MetaList>

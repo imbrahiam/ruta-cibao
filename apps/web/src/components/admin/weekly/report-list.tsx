@@ -7,7 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { ChartColumn } from "lucide-react";
-import { useFormatter, useTranslations } from "use-intl";
+import { useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
 import { weeklyReportOptions } from "@/components/admin/list-queries";
 import {
@@ -26,6 +26,7 @@ import {
 import { QueryState } from "@/components/admin/query-state";
 import { useStaff } from "@/components/admin/staff-context";
 import { useAdminPrefetch } from "@/components/admin/use-admin-prefetch";
+import { useDay } from "@/components/admin/use-day";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, orpc } from "@/lib/web/api";
@@ -128,7 +129,7 @@ export function WeeklyReportList() {
   const t = useTranslations("admin");
   const w = useTranslations("admin.weeklyReport");
   const reports = useTranslations("reports");
-  const format = useFormatter();
+  const day = useDay();
   const weekLabel = useWeekLabel();
   const weekRange = useWeekRange();
   const announce = useOutcome();
@@ -210,7 +211,7 @@ export function WeeklyReportList() {
                 <AdminSection
                   key={week}
                   title={weekRange(group[0] as Report)}
-                  count={`· ${w("reportCount", { count: group.length })}`}
+                  count={w("reportCount", { count: group.length })}
                 >
                   <InboxList>
                     {group.map((report) => {
@@ -270,10 +271,7 @@ export function WeeklyReportList() {
                               <span>
                                 {report.generatedAt
                                   ? reports("generatedAt", {
-                                      date: format.dateTime(
-                                        new Date(report.generatedAt),
-                                        "short",
-                                      ),
+                                      date: day(new Date(report.generatedAt)),
                                     })
                                   : null}
                                 {note ? ` · ${note}` : null}

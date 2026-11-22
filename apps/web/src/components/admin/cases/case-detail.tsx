@@ -17,6 +17,7 @@ import {
 import { adjustCount } from "@/components/admin/queue/optimistic";
 import { CaseDetailSkeleton } from "@/components/admin/skeletons";
 import { useStaff } from "@/components/admin/staff-context";
+import { useDay } from "@/components/admin/use-day";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,6 +64,7 @@ export function CaseDetail({ slug }: { slug: string }) {
   const c = useTranslations("admin.cases");
   const consultations = useTranslations("consultations");
   const format = useFormatter();
+  const day = useDay();
   const query = useQuery(
     orpc.consultations.detail.queryOptions({ input: { slug } }),
   );
@@ -136,10 +138,7 @@ export function CaseDetail({ slug }: { slug: string }) {
                           {response.author ?? c("officialAnonymous")}
                         </span>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                          {format.dateTime(
-                            new Date(response.createdAt),
-                            "short",
-                          )}{" "}
+                          {day(new Date(response.createdAt))}{" "}
                           {format.dateTime(
                             new Date(response.createdAt),
                             "time",
@@ -179,7 +178,7 @@ export function CaseDetail({ slug }: { slug: string }) {
             <PublicationControl consultation={item} />
             <PropertyList>
               <PropertyRow label={c("colDate")}>
-                {format.dateTime(new Date(item.createdAt), "long")}
+                {day(new Date(item.createdAt), "long")}
               </PropertyRow>
               <PropertyRow label={c("openedByLabel")}>
                 {item.openedBy}

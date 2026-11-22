@@ -8,6 +8,7 @@ import type {
 import { Clock, EyeOff, MapPin, MoveHorizontal } from "lucide-react";
 import { useId, useMemo } from "react";
 import { useFormatter, useNow, useTranslations } from "use-intl";
+import { useDay } from "@/components/admin/use-day";
 import { CategoryPin } from "@/components/category/category-pin";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/web/api";
@@ -100,6 +101,7 @@ function useExpiry() {
   const format = useFormatter();
   const now = useNow({ updateInterval: 60_000 });
   const when = useWhen();
+  const day = useDay();
   return (iso: string, short = false) => {
     const date = new Date(iso);
     const time = format.dateTime(date, "time");
@@ -109,7 +111,7 @@ function useExpiry() {
       return today
         ? time
         : q("untilDate", {
-            date: format.dateTime(date, { day: "numeric", month: "short" }),
+            date: day(date),
             time,
           });
     }
@@ -117,7 +119,7 @@ function useExpiry() {
   };
 }
 
-/** `short` where the line is narrow: the day and the hour, without the year. */
+/** `short` where the line is narrow: the day and the hour. */
 function Expiry({ iso, short }: { iso: string; short?: boolean }) {
   const q = useTranslations("admin.queue");
   const expiry = useExpiry();
