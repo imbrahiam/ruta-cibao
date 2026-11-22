@@ -2,7 +2,7 @@
 
 import type { ApiOutputs } from "@ruta/contracts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronsUpDown, Globe, LogOut } from "lucide-react";
+import { ChevronsUpDown, Globe, KeyRound, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
@@ -53,6 +53,7 @@ import { prefetchAdminRoute, QUEUE_POLL_MS } from "./list-queries";
 import { ADMIN_GROUPS, ADMIN_SECTIONS, findAdminSection } from "./nav";
 import { OfflineBanner } from "./offline-banner";
 import { useAdminPageTitle } from "./page-frame";
+import { PasskeysDialog } from "./passkeys";
 import type { Staff } from "./staff-context";
 import { ThemeChoices } from "./theme-menu";
 import { useAdminPrefetch } from "./use-admin-prefetch";
@@ -278,6 +279,7 @@ function AdminSidebar({
 }) {
   const t = useTranslations("admin");
   const { setOpenMobile } = useSidebar();
+  const [passkeysOpen, setPasskeysOpen] = useState(false);
   const role = t(
     staff.staffRole === "admin" ? "shell.roleAdmin" : "shell.roleModerator",
   );
@@ -544,6 +546,10 @@ function AdminSidebar({
                 ) : null}
                 <ThemeChoices />
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setPasskeysOpen(true)}>
+                  <KeyRound aria-hidden="true" />
+                  {t("shell.passkeys")}
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/">
                     <Globe aria-hidden="true" />
@@ -563,6 +569,10 @@ function AdminSidebar({
               </DropdownMenuContent>
             </DropdownMenu>
             <InlineError error={signOutError} />
+            <PasskeysDialog
+              open={passkeysOpen}
+              onOpenChange={setPasskeysOpen}
+            />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

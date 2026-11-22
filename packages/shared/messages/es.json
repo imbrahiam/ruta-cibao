@@ -826,7 +826,15 @@
       "signedInAs": "Sesión de {name}",
       "roleModerator": "Moderación municipal",
       "roleAdmin": "Administración provincial",
-      "backToSite": "Ir al sitio público"
+      "backToSite": "Ir al sitio público",
+      "passkeys": "Llaves de acceso",
+      "passkeysIntro": "Entra con la huella, el rostro o el PIN de este dispositivo, sin esperar un código.",
+      "passkeysNone": "Esta cuenta aún no tiene llaves de acceso.",
+      "passkeyAdd": "Agregar llave de acceso",
+      "passkeyAdded": "Agregada el {date}",
+      "passkeyRemove": "Quitar",
+      "passkeyFailed": "No se pudo completar con la llave de acceso. Inténtalo de nuevo.",
+      "passkeySignIn": "Entrar con llave de acceso"
     },
     "iconNames": {
       "map-pin": "Punto en el mapa",

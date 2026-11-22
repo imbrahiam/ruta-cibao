@@ -2,7 +2,7 @@
 
 import { formatPhoneInput, normalizePhone } from "@ruta/shared/phone";
 import { useQueryClient } from "@tanstack/react-query";
-import { Clock, Mail, MessageSquareText } from "lucide-react";
+import { Clock, KeyRound, Mail, MessageSquareText } from "lucide-react";
 import Link from "next/link";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 import { useFormatter, useTranslations } from "use-intl";
@@ -161,6 +161,20 @@ export function AdminSignIn({
     hour: "numeric",
     minute: "2-digit",
   });
+
+  const signInWithPasskey = () => {
+    startTransition(async () => {
+      setError(null);
+      try {
+        const result = await authClient.signIn.passkey();
+        if (result?.error) return setError(t("shell.passkeyFailed"));
+      } catch {
+        // Dismissing the device's prompt lands here.
+        return setError(t("shell.passkeyFailed"));
+      }
+      await queryClient.invalidateQueries();
+    });
+  };
 
   const submitCode = (event: FormEvent) => {
     event.preventDefault();
@@ -339,6 +353,16 @@ export function AdminSignIn({
                 : t("shell.waitShort")
             }
           />
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={pending}
+            className="h-10 w-full pointer-coarse:h-12"
+            onClick={signInWithPasskey}
+          >
+            <KeyRound aria-hidden="true" />
+            {t("shell.passkeySignIn")}
+          </Button>
         </form>
       ) : (
         <form
