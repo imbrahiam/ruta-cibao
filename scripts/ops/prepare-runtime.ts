@@ -1,5 +1,11 @@
 /** Copy only the installed dependency graph needed by native runtime externals. */
-import { cpSync, existsSync, mkdirSync, readFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+} from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
 
 // The web workspace is where the runtime externals are declared. The installer keeps a package
@@ -28,7 +34,10 @@ function locate(name: string, parent: string): string | undefined {
   let cursor = parent;
   while (true) {
     const candidate = join(cursor, "node_modules", name);
-    if (existsSync(join(candidate, "package.json"))) return candidate;
+    // The installer may link a package into place: its own dependencies sit beside the real
+    // directory, so the search for them has to start there.
+    if (existsSync(join(candidate, "package.json")))
+      return realpathSync(candidate);
     const next = dirname(cursor);
     if (next === cursor) return;
     cursor = next;
@@ -51,12 +60,12 @@ function copy(name: string, parent: string, optional = false) {
   )
     return;
   visited.add(source);
-  // Both the workspace's and the root's node_modules land in one tree, each package at its path
-  // below its own node_modules; the one found first (nearest the workspace) keeps the place.
+  // Every package lands in one flat tree under its own name; the one found first (nearest the
+  // workspace) keeps the place.
   const marker = `${sep}node_modules${sep}`;
   const target = join(
     destination,
-    source.slice(source.indexOf(marker) + marker.length),
+    source.slice(source.lastIndexOf(marker) + marker.length),
   );
   if (!existsSync(target)) {
     mkdirSync(dirname(target), { recursive: true });
