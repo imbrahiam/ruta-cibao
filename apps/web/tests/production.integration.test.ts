@@ -186,7 +186,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         dedupeKey: prefix,
         userId: applicantId,
         messageKey: "notifications.routeReviewed",
-        channels: { push: false, email: false },
+        channels: { push: true, email: true },
       };
       await notify(input);
       await notify(input);
@@ -195,12 +195,21 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         .from(notifications)
         .where(eq(notifications.dedupeKey, prefix));
       expect(rows).toHaveLength(1);
-      expect(await drainOutbox()).toBeGreaterThanOrEqual(1);
-      const [delivered] = await db
+      expect(await drainOutbox()).toBeGreaterThanOrEqual(2);
+      const delivered = await db
         .select()
         .from(jobOutbox)
         .where(sql`${jobOutbox.data}->>'notificationId' = ${rows[0]?.id}`);
-      expect(delivered?.processedAt).toBeInstanceOf(Date);
+      // One job per channel, so retrying a failed push never resends the email.
+      expect(
+        delivered.map((job) => [job.data.push, job.data.email]).sort(),
+      ).toEqual([
+        [false, true],
+        [true, false],
+      ]);
+      expect(delivered.every((job) => job.processedAt instanceof Date)).toBe(
+        true,
+      );
       expect(await drainOutbox()).toBe(0);
     });
     test("identical concurrent profile updates commit once", async () => {
