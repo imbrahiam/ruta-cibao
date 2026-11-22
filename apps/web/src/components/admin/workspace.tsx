@@ -311,7 +311,7 @@ function AdminSidebar({
           />
         </div>
       </SidebarHeader>
-      <SidebarContent className="scroll-fade-y">
+      <SidebarContent className="scroll-fade-y gap-0 [--fade-surface:var(--sidebar)]">
         <nav aria-label={t("shell.nav")} className="flex flex-col gap-2">
           {ADMIN_GROUPS.map((group) => {
             const sections = ADMIN_SECTIONS.filter(

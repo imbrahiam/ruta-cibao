@@ -612,22 +612,14 @@
 
 /*
  * A list that scrolls inside its own box fades out at an edge only while
- * there is more beyond it (shadcn's scroll fade), driven by its own scroll
- * position: no listeners, and no fade when everything fits. The bands are
- * cut out of an opaque mask, so focus rings inside stay visible.
+ * there is more beyond it. Each fade is a band of the surface's colour stuck
+ * to the edge and shown by a scroll-driven opacity, which the compositor runs
+ * with the scroll itself: an animated mask repaints behind a fast scroll and
+ * trails it. No listeners, and no fade when everything fits (the timeline is
+ * inactive). The bands sit in the scroller's flow, so a scroller is a plain
+ * block or a single column; put it on the element that scrolls, at the widths
+ * where it scrolls (`lg:scroll-fade-y`).
  */
-@property --fade-start {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-@property --fade-end {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
 @utility scroll-fade-y {
   --fade-size: 2.5rem;
   /* The containing block of what is positioned inside (screen-reader-only
@@ -635,39 +627,70 @@
      page by however far down the list it sits. */
   position: relative;
   scroll-padding-block: var(--fade-size);
-  mask:
-    linear-gradient(black, black) no-clip subtract,
-    linear-gradient(to bottom, black, transparent) 0 0 / 100% var(--fade-start)
-    no-repeat no-clip,
-    linear-gradient(to bottom, transparent, black) 0 100% / 100% var(--fade-end)
-    no-repeat no-clip;
-  /* Longhands, not the shorthand: the CSS build expands it with a 0s
-     duration, which on a scroll timeline leaves both fades at their end
-     (the top one showing before anything has scrolled). */
-  animation-name: reveal-fade-start, hide-fade-end;
-  animation-duration: auto;
-  animation-timing-function: linear;
-  animation-fill-mode: both;
-  animation-timeline: scroll(self block);
-  /* Each fade is as tall as what is hidden beyond its edge, up to
-     --fade-size: none at the start of the content, and none at its end.
-     `--fade-inset-end` is bottom padding with nothing in it (a scroller that
-     runs to the window's edge): reaching it counts as the end. */
-  animation-range:
-    0 var(--fade-size),
-    calc(100% - var(--fade-size) - var(--fade-inset-end, 0px))
-    calc(100% - var(--fade-inset-end, 0px));
-}
 
-@keyframes reveal-fade-start {
-  to {
-    --fade-start: var(--fade-size);
+  @supports (animation-timeline: scroll()) {
+    &::before,
+    &::after {
+      content: "";
+      display: block;
+      /* Kept whole in a flex column, or its margin would pull the first row
+         out of view. */
+      flex: none;
+      position: sticky;
+      z-index: 20;
+      block-size: var(--fade-size);
+      pointer-events: none;
+      opacity: 0;
+      animation: scroll-fade linear both;
+      animation-timeline: scroll();
+    }
+
+    &::before {
+      inset-block-start: 0;
+      margin-block-end: calc(-1 * var(--fade-size));
+      background: linear-gradient(
+        to bottom,
+        var(--fade-surface, var(--background)),
+        transparent
+      );
+      animation-range: 0 var(--fade-size);
+    }
+
+    &::after {
+      /* `--fade-inset-end` is bottom padding with nothing in it (a scroller
+         that runs to the window's edge). A sticky box stops at the padding
+         and stays inside the content box, so the offset and the margins
+         carry the band over that padding. */
+      inset-block-end: calc(-1 * var(--fade-inset-end, 0px));
+      margin-block: calc(var(--fade-inset-end, 0px) - var(--fade-size))
+        calc(-1 * var(--fade-inset-end, 0px));
+      background: linear-gradient(
+        to top,
+        var(--fade-surface, var(--background)),
+        transparent
+      );
+      animation-direction: reverse;
+      animation-range: calc(100% - var(--fade-size)) 100%;
+    }
+  }
+
+  /* A scroller that stops overflowing while scrolled (a taller window, fewer
+     rows) leaves its timeline inactive at the last opacity. */
+  @supports (container-type: scroll-state) {
+    container-type: scroll-state;
+
+    @container not scroll-state(scrollable: block) {
+      &::before,
+      &::after {
+        animation: none;
+      }
+    }
   }
 }
 
-@keyframes hide-fade-end {
-  from {
-    --fade-end: var(--fade-size);
+@keyframes scroll-fade {
+  to {
+    opacity: 1;
   }
 }
 

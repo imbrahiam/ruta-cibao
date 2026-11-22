@@ -248,7 +248,7 @@ export function CaseList() {
             )}
             <div
               data-scroll-root
-              className="scroll-fade-y min-h-0 flex-1 lg:-mx-3 lg:overflow-y-auto lg:px-3"
+              className="min-h-0 flex-1 lg:-mx-3 lg:overflow-y-auto lg:px-3 lg:scroll-fade-y"
             >
               {!list.data ? (
                 <InboxSkeleton />

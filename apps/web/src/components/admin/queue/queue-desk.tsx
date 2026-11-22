@@ -626,7 +626,7 @@ function Desk<T>({
                       const listColumn = (
                         <div
                           data-scroll-root
-                          className="scroll-fade-y min-h-0 min-w-0 flex-1 lg:h-full lg:overflow-y-auto lg:pr-1 lg:pb-(--desk-bleed) lg:[--fade-inset-end:var(--desk-bleed)]"
+                          className="min-h-0 min-w-0 flex-1 lg:h-full lg:overflow-y-auto lg:pr-1 lg:pb-(--desk-bleed) lg:scroll-fade-y lg:[--fade-inset-end:var(--desk-bleed)]"
                         >
                           {/* No frame and no rules: each item is its own soft block. */}
                           <AdminTableCard className="overflow-visible rounded-none border-0 bg-transparent">
@@ -673,7 +673,7 @@ function Desk<T>({
                             <div
                               ref={pane}
                               key={selected.key}
-                              className="scroll-fade-y min-h-0 min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1 lg:pb-(--desk-bleed) lg:[--fade-inset-end:var(--desk-bleed)]"
+                              className="min-h-0 min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1 lg:pb-(--desk-bleed) lg:scroll-fade-y lg:[--fade-inset-end:var(--desk-bleed)]"
                             >
                               {/* The entrance runs inside: on the scroller
                                   its animation would replace the fade's. */}
