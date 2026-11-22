@@ -116,3 +116,25 @@ test("errors keep a stack, and errors and warnings choose the right stream", () 
   expect(String(failure.stack)).toContain("TypeError: boom");
   expect(errorDetails("not an error")).toEqual({ message: "not an error" });
 });
+
+test("phone numbers inside error text and failed-query params are redacted", () => {
+  const failed = new Error(
+    "Failed query: insert into member_profiles values ($1, $2)\nparams: abc,Juan Pérez",
+  );
+  const output = capture(() => {
+    logError("rpc.failed", errorDetails(failed));
+    logError("db.failed", {
+      detail: "Key (phone_number)=(+18095551234) already exists.",
+      note: "the value 001-1234567-8 is taken",
+      reason: "Invalid number +1 (809) 555-1234",
+    });
+  });
+  const failure = record(output.stderr[0] ?? "");
+  expect(String(failure.message)).not.toContain("Juan");
+  expect(String(failure.stack)).not.toContain("Juan");
+  expect(String(failure.message)).toContain("Failed query: insert");
+  const row = record(output.stderr[1] ?? "");
+  expect(row.detail).toBe("Key (phone_number)=([redacted]) already exists.");
+  expect(row.note).toBe("the value [redacted] is taken");
+  expect(row.reason).toBe("Invalid number [redacted]");
+});
