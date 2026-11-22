@@ -58,6 +58,17 @@ public data class MeUpdateProfileOutput(
 )
 
 @Serializable
+public data class MeUpdatePhotoInput(
+    val requestId: String,
+    val jpeg: String,
+)
+
+@Serializable
+public data class MeUpdatePhotoOutput(
+    val image: String,
+)
+
+@Serializable
 public data class MeRequestDeletionInput(
     val requestId: String,
 )

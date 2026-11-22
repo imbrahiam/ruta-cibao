@@ -27,7 +27,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -203,12 +202,12 @@ private fun PlacePicture(place: DiscoverPlace, modifier: Modifier = Modifier, gl
     }
 }
 
-/** The kind of place on a white chip over the picture: its glyph in its colour and its name. */
+/** The kind of place beside the other place details. */
 @Composable
 private fun KindChip(place: DiscoverPlace, modifier: Modifier = Modifier) {
     val p = Ink.colors
     Row(
-        modifier.height(26.dp).shadow(2.dp, CircleShape).background(p.paper, CircleShape).padding(horizontal = 9.dp),
+        modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
@@ -223,9 +222,9 @@ private fun DiscoverCard(place: DiscoverPlace, onClick: () -> Unit) {
     Column(Modifier.width(228.dp).clip(RoundedCornerShape(Metrics.radiusCard)).pressable(scale = 0.98f, onClick = onClick).semantics(mergeDescendants = true) {}) {
         Box(Modifier.size(228.dp, 152.dp).clip(RoundedCornerShape(Metrics.radiusCard))) {
             PlacePicture(place, Modifier.matchParentSize())
-            KindChip(place, Modifier.align(Alignment.TopStart).padding(10.dp))
         }
         Text(place.name, style = Type.bodyStrong, color = p.ink, maxLines = 2, modifier = Modifier.padding(top = 10.dp))
+        KindChip(place, Modifier.padding(top = 3.dp))
         Row(Modifier.padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(Icons.Outlined.Place, null, Modifier.size(14.dp), tint = p.ink3)
             Text(place.municipalityName, style = Type.callout.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium), color = p.ink3, maxLines = 1)
@@ -350,6 +349,7 @@ fun DiscoverCategoryScreen(categoryId: String, onBack: () -> Unit, onOpenPlace: 
                         PlacePicture(place, Modifier.size(84.dp).clip(RoundedCornerShape(14.dp)), glyph = 28)
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(place.name, style = Type.bodyStrong, color = p.ink, maxLines = 2)
+                            KindChip(place)
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Icon(Icons.Outlined.Place, null, Modifier.size(14.dp), tint = p.ink3)
                                 Text(place.municipalityName, style = Type.callout.copy(fontSize = 13.sp, fontWeight = FontWeight.Medium), color = p.ink3, maxLines = 1)
@@ -407,12 +407,11 @@ private fun DiscoverSkeleton() {
                 Row(Modifier.padding(horizontal = Metrics.gutter), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     repeat(2) {
                         Column(Modifier.width(228.dp)) {
-                            Box(Modifier.size(228.dp, 152.dp)) {
-                                Bone(Modifier.matchParentSize(), RoundedCornerShape(Metrics.radiusCard))
-                                Box(Modifier.padding(10.dp).size(96.dp, 26.dp).background(Ink.colors.paper3, CircleShape))
-                            }
+                            Bone(Modifier.size(228.dp, 152.dp), RoundedCornerShape(Metrics.radiusCard))
                             Spacer(Modifier.height(10.dp))
                             BoneLine(160.dp)
+                            Spacer(Modifier.height(3.dp))
+                            BoneLine(76.dp, lineHeight = 16.dp, barHeight = 10.dp)
                             Spacer(Modifier.height(3.dp))
                             BoneLine(92.dp, lineHeight = 16.dp, barHeight = 10.dp)
                         }

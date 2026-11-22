@@ -244,7 +244,8 @@ fun AppRoot(
             ContributeAction.Place -> Route.SuggestPlace
         })
     }
-    LaunchedEffect(signedIn, wanted) { val next = wanted; if (signedIn && next != null) { wanted = null; signingIn = false; begin(next) } }
+    var checkingRestoredProfile by remember { mutableStateOf(signedIn) }
+    LaunchedEffect(signedIn) { if (!signedIn) checkingRestoredProfile = false }
 
     // Leaving a tab's root from another tab goes back to the map before leaving the app.
     BackHandler(enabled = stack.size == 1 && selected != Tab.Map) { selected = Tab.Map }
@@ -294,6 +295,7 @@ fun AppRoot(
                         }
                         entry<Route.DiscoverCategory> {
                             DiscoverCategoryScreen(it.id, onBack = ::pop, onOpenPlace = { slug ->
+                                pop()
                                 openTarget(AppTarget("place", slug), System.nanoTime())
                             })
                         }
@@ -335,7 +337,18 @@ fun AppRoot(
                 if (signedIn) begin(action) else { wanted = action; signingIn = true }
             }
         }
-        if (signingIn && !signedIn) SignInDialog(onDismiss = { signingIn = false; wanted = null })
+        if (signingIn) SignInDialog(
+            onDismiss = { signingIn = false; wanted = null },
+            onComplete = {
+                signingIn = false
+                val next = wanted
+                wanted = null
+                if (next != null) begin(next)
+                account.refresh()
+            },
+        ) else if (checkingRestoredProfile && accountState.me?.displayName == "") {
+            SignInDialog(onDismiss = {}, onComplete = { checkingRestoredProfile = false; account.refresh() }, finishProfile = true)
+        }
     }
 }
 

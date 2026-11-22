@@ -1,4 +1,5 @@
 import type { ReportTrafficInput } from "@ruta/contracts";
+import { isSubmittable } from "@ruta/shared/geo";
 import { nearestOnPath } from "@ruta/shared/road-geometry";
 import { and, eq, sql } from "drizzle-orm";
 import {
@@ -62,6 +63,8 @@ export async function reportTraffic(
   viewer: MemberViewer,
   input: ReportTrafficInput,
 ) {
+  if (!isSubmittable(input.location))
+    throw new TrafficError("outside_province");
   // Resolve the confirmed way and extent from trusted OSM geometry. A missing
   // way must be reselected explicitly, never silently turned into a point.
   const street =
@@ -86,8 +89,6 @@ export async function reportTraffic(
     userId: viewer.userId,
     request: input,
     run: async (tx) => {
-      if (input.shape === "street" && !street)
-        throw new TrafficError("invalid_street");
       const age = Date.now() - new Date(input.observedAt).getTime();
       if (age > TRAFFIC_REPORT_TTL_MINUTES * 60000 || age < -60000)
         throw new TrafficError("stale_report");
@@ -119,6 +120,8 @@ export async function reportTraffic(
 
       if (!category) throw new TrafficError("invalid_category");
       if (!municipality) throw new TrafficError("outside_province");
+      if (input.shape === "street" && !street)
+        throw new TrafficError("invalid_street");
 
       // Three people stuck behind the same landslide will all report it, which
       // is a good sign about the platform and a bad one for the map. A second

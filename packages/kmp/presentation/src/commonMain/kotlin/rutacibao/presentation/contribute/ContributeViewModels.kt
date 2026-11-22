@@ -35,6 +35,7 @@ public data class TrafficReportUiState(
     val queued: Boolean = false,
     /** Someone reported the same thing nearby (`DUPLICATE`): confirm it on the map instead. */
     val duplicate: Boolean = false,
+    val outsideProvince: Boolean = false,
     val error: UiError? = null,
 ) {
     val canSend: Boolean get() = !sending && categoryId != null && latitude != null && longitude != null
@@ -46,7 +47,7 @@ public data class TrafficReportUiState(
 public class TrafficReportViewModel(private val repository: ContributeRepository) : ViewModel() {
     private val _state = MutableStateFlow(TrafficReportUiState())
     public val state: StateFlow<TrafficReportUiState> = _state.asStateFlow()
-    private val requestId = Uuid.random().toString()
+    private var requestId = Uuid.random().toString()
 
     init {
         viewModelScope.launch {
@@ -57,13 +58,13 @@ public class TrafficReportViewModel(private val repository: ContributeRepository
     }
 
     public fun selectCategory(id: String) { _state.update { it.copy(categoryId = id, error = null) } }
-    public fun setLocation(latitude: Double, longitude: Double) { _state.update { it.copy(latitude = latitude, longitude = longitude, error = null) } }
+    public fun setLocation(latitude: Double, longitude: Double) { _state.update { it.copy(latitude = latitude, longitude = longitude, error = null, outsideProvince = false) } }
     public fun updateDescription(value: String) { _state.update { it.copy(description = value.take(280)) } }
 
     public fun send() {
         val s = _state.value
         if (!s.canSend) return
-        _state.update { it.copy(sending = true, error = null, duplicate = false) }
+        _state.update { it.copy(sending = true, error = null, duplicate = false, outsideProvince = false) }
         viewModelScope.launch {
             val input = TrafficReportInput(
                 requestId = requestId,
@@ -76,11 +77,17 @@ public class TrafficReportViewModel(private val repository: ContributeRepository
             runCatching { repository.reportTraffic(input) }
                 .onSuccess { delivery -> _state.update { it.copy(sending = false, sent = true, queued = delivery.queued) } }
                 .onFailure { e ->
+                    val error = UiError.from(e)
+                    val reason = (e as? ApiError)?.reason
+                    val duplicate = reason == "duplicate" || (e is ApiError && "DUPLICATE" in e.code)
+                    val outside = reason == "outside_province"
+                    requestId = Uuid.random().toString()
                     _state.update {
                         it.copy(
                             sending = false,
-                            duplicate = e is ApiError && "DUPLICATE" in e.code,
-                            error = if (e is ApiError && "DUPLICATE" in e.code) null else UiError.from(e),
+                            duplicate = duplicate,
+                            outsideProvince = outside,
+                            error = if (duplicate || outside) null else error,
                         )
                     }
                 }

@@ -91,14 +91,6 @@ const translate = createTranslator({
   namespace: "auth",
 });
 
-/** A neutral name for a new account: never derived from a phone or email. */
-function defaultDisplayName(): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = crypto.getRandomValues(new Uint8Array(4));
-  const suffix = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]);
-  return `${translate("defaultDisplayName")} ${suffix.join("")}`;
-}
-
 /**
  * Whether a host belongs to this machine or the network it is on.
  *
@@ -295,7 +287,7 @@ function createAuth() {
               .insert(memberProfiles)
               .values({
                 userId: created.id,
-                displayName: defaultDisplayName(),
+                displayName: "",
               })
               .onConflictDoNothing();
           },

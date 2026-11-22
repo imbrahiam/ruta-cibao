@@ -39,7 +39,6 @@ public data class DiscoverUiState(
     val categoryError: UiError? = null,
     val error: UiError? = null,
 ) {
-    val municipalityName: String? get() = municipalities.firstOrNull { it.id == municipalityId }?.name
     val isEmpty: Boolean get() = !loading && routes.isEmpty() && shelves.isEmpty()
 }
 
@@ -56,6 +55,7 @@ public class DiscoverViewModel(
     private val _state = MutableStateFlow(DiscoverUiState())
     public val state: StateFlow<DiscoverUiState> = _state.asStateFlow()
     private var categoryJob: Job? = null
+    private var feedJob: Job? = null
 
     init { load() }
 
@@ -63,14 +63,14 @@ public class DiscoverViewModel(
 
     public fun selectMunicipality(id: String?) {
         if (_state.value.municipalityId == id) return
-        _state.update { it.copy(municipalityId = id, loading = true) }
+        _state.update { it.copy(municipalityId = id, loading = true, routes = emptyList(), shelves = emptyList(), error = null) }
         load()
     }
 
     public fun openCategory(category: PlacesCategoriesItem) {
         categoryJob?.cancel()
         _state.update { it.copy(category = category, categoryPlaces = null, categoryError = null) }
-        val municipality = _state.value.municipalityName
+        val municipality = _state.value.municipalityId
         categoryJob = viewModelScope.launch {
             try {
                 val list = places.browse(category.id, municipality, 48)
@@ -89,17 +89,18 @@ public class DiscoverViewModel(
     }
 
     private fun load() {
-        viewModelScope.launch {
+        feedJob?.cancel()
+        val municipality = _state.value.municipalityId
+        feedJob = viewModelScope.launch {
             runCatching {
                 coroutineScope {
                     val municipalities = async { runCatching { consultations.municipalities() }.getOrDefault(_state.value.municipalities) }
                     val categories = async { runCatching { places.placeCategories() } }
                     val routes = async { runCatching { places.routes() }.getOrDefault(emptyList()) }
                     val towns = municipalities.await()
-                    val town = towns.firstOrNull { it.id == _state.value.municipalityId }
                     val shelves = SHELVES.map { (id, kinds) ->
                         async {
-                            val found = kinds.map { kind -> async { runCatching { places.browse(kind, town?.name, 10) }.getOrDefault(emptyList()) } }.awaitAll()
+                            val found = kinds.map { kind -> async { runCatching { places.browse(kind, municipality, 10) }.getOrDefault(emptyList()) } }.awaitAll()
                             Shelf(id, pictured(interleave(found)).take(12))
                         }
                     }.awaitAll().filter { it.places.isNotEmpty() }
@@ -111,13 +112,16 @@ public class DiscoverViewModel(
                             loading = false,
                             municipalities = towns,
                             categories = categoryResult.getOrDefault(it.categories),
-                            routes = if (town == null) allRoutes else allRoutes.filter { r -> r.municipalityId == town.id },
+                            routes = if (municipality == null) allRoutes else allRoutes.filter { r -> r.municipalityId == municipality },
                             shelves = shelves,
                             error = null,
                         )
                     }
                 }
-            }.onFailure { e -> _state.update { it.copy(loading = false, error = UiError.from(e)) } }
+            }.onFailure { e ->
+                val error = UiError.from(e)
+                _state.update { it.copy(loading = false, error = error) }
+            }
         }
     }
 

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.io.IOException
 import rutacibao.core.Phone
+import rutacibao.data.AccountRepository
 import rutacibao.data.AuthError
 import rutacibao.data.AuthRepository
 
@@ -23,6 +24,7 @@ public data class SignInUiState(
     val phone: String = "",
     val email: String = "",
     val code: String = "",
+    val name: String = "",
     val busy: Boolean = false,
     val error: SignInError? = null,
     /**
@@ -35,7 +37,7 @@ public data class SignInUiState(
     /** Bumped on each failed code so the UI can play its (reduced-motion aware) feedback once. */
     val failures: Int = 0,
 ) {
-    public enum class Step { Enter, Verify, Done }
+    public enum class Step { Enter, Verify, ProfileLookup, Name, Done }
     public enum class Method { Phone, Email }
 
     val canSubmit: Boolean
@@ -70,9 +72,10 @@ public enum class SignInError { PhoneInvalid, EmailInvalid, CodeInvalid, CodeExp
  * when complete.
  */
 @Inject
-public class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
+public class SignInViewModel(private val auth: AuthRepository, private val account: AccountRepository) : ViewModel() {
     private val _state = MutableStateFlow(SignInUiState())
     public val state: StateFlow<SignInUiState> = _state.asStateFlow()
+    private var municipalityId: String? = null
     private var countdown: Job? = null
     /** The address the running wait belongs to, and the seconds it has left. */
     private var waitTarget: String? = null
@@ -146,16 +149,54 @@ public class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
 
     public fun verify() {
         val s = _state.value
-        if (s.busy || s.code.length != CODE_LENGTH) return
+        if (s.step != SignInUiState.Step.Verify || s.busy || s.code.length != CODE_LENGTH) return
         val target = target(s) ?: return
         launchBusy(onError = { e ->
             // Spent or expired: this code is done, so the first step sends a new one.
+            if (_state.value.step != SignInUiState.Step.Verify) return@launchBusy
             if (classify(e) == SignInError.TooManyAttempts || classify(e) == SignInError.CodeExpired) codeSpent()
             _state.update { it.copy(code = "", failures = it.failures + 1) }
         }) {
             if (s.method == SignInUiState.Method.Phone) auth.verifyPhone(target, s.code) else auth.verifyEmail(target, s.code)
             countdown?.cancel()
             codeSpent()
+            _state.update { it.copy(step = SignInUiState.Step.ProfileLookup, code = "") }
+            checkProfile()
+        }
+    }
+
+    public fun reset() {
+        countdown?.cancel()
+        codeSpent()
+        waitTarget = null
+        waitLeft = 0
+        _state.value = SignInUiState()
+    }
+
+    public fun resumeProfile() {
+        if (_state.value.busy) return
+        _state.update { it.copy(step = SignInUiState.Step.ProfileLookup) }
+        launchBusy { checkProfile() }
+    }
+
+    private suspend fun checkProfile() {
+        val profile = account.me()
+        check(profile.userId != null)
+        municipalityId = profile.municipalityId
+        val next = if (profile.displayName.isNullOrBlank()) SignInUiState.Step.Name else SignInUiState.Step.Done
+        _state.update { it.copy(step = next) }
+    }
+
+    public fun updateName(input: String) {
+        _state.update { it.copy(name = input.take(80), error = null) }
+    }
+
+    public fun saveName() {
+        val s = _state.value
+        val name = s.name.trim()
+        if (s.step != SignInUiState.Step.Name || s.busy || name.length < 2) return
+        launchBusy {
+            account.updateProfile(name, municipalityId)
             _state.update { it.copy(step = SignInUiState.Step.Done) }
         }
     }

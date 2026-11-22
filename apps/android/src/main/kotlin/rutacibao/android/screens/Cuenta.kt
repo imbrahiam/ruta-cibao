@@ -132,7 +132,7 @@ fun AccountScreen(onBack: () -> Unit, onOpen: (AccountPage) -> Unit, onOpenGesti
         }
       }
     }
-    if (signingIn && !state.signedIn) SignInDialog(onDismiss = { signingIn = false; vm.refresh() })
+    if (signingIn) SignInDialog(onDismiss = { signingIn = false; vm.refresh() })
     val rep = state.reputation
     val close = { sheet = null; vm.redeemReset(); vm.refresh() }
     if (rep != null) when (sheet) {

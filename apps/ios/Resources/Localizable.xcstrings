@@ -2906,6 +2906,17 @@
         }
       }
     },
+    "contribute.traffic.outsideProvince": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Este punto está fuera de Santiago Rodríguez. Mueve el marcador a un punto dentro de la provincia."
+          }
+        }
+      }
+    },
     "contribute.traffic.point": {
       "extractionState": "manual",
       "localizations": {
@@ -8358,6 +8369,17 @@
         }
       }
     },
+    "profile.changePhoto": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cambiar foto de perfil"
+          }
+        }
+      }
+    },
     "profile.municipality": {
       "extractionState": "manual",
       "localizations": {
@@ -8409,6 +8431,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Así aparecerá en tus consultas y reportes."
+          }
+        }
+      }
+    },
+    "profile.photoFailed": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se pudo guardar la foto. Inténtalo de nuevo."
           }
         }
       }
@@ -11175,6 +11208,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Cómo quieres entrar"
+          }
+        }
+      }
+    },
+    "signIn.nameTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "¿Cómo te llamas?"
           }
         }
       }

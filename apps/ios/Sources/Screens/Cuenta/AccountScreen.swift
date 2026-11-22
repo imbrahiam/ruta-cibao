@@ -1,3 +1,4 @@
+import PhotosUI
 import RutaKit
 import SwiftUI
 
@@ -119,6 +120,11 @@ private struct OwnProfileSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var sheet: ReputationSheet?
     @State private var editing = false
+    @State private var choosingPhoto = false
+    @State private var showingLibrary = false
+    @State private var showingCamera = false
+    @State private var pickedPhoto: PhotosPickerItem?
+    @State private var photoReadFailed = false
 
     var body: some View {
         let state = model.state
@@ -132,8 +138,13 @@ private struct OwnProfileSheet: View {
                         residencyVerified: state.me?.residencyVerified == true,
                         reputation: state.reputation,
                         editProfile: { editing = true },
+                        changePhoto: { choosingPhoto = true },
+                        savingPhoto: state.savingPhoto,
                         explainResident: { sheet = .resident }
                     )
+                    if state.photoError || photoReadFailed {
+                        Label(L10n.Profile.photoFailed, systemImage: "exclamationmark.circle").type(.callout, .danger)
+                    }
                     if let reputation = state.reputation {
                         RankCard(reputation: reputation) { sheet = .ranks }
                         BadgesCard(reputation: reputation) { sheet = .badge($0) }
@@ -152,12 +163,39 @@ private struct OwnProfileSheet: View {
                         .labelStyle(.iconOnly)
                 }
             }
+            .confirmationDialog(L10n.Profile.changePhoto, isPresented: $choosingPhoto, titleVisibility: .visible) {
+                Button(L10n.Contribute.Photos.libraryShort) { showingLibrary = true }
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button(L10n.Contribute.Photos.camera) { showingCamera = true }
+                }
+            }
+            .photosPicker(isPresented: $showingLibrary, selection: $pickedPhoto, matching: .images)
+            .onChange(of: pickedPhoto) { _, item in
+                guard let item else { return }
+                pickedPhoto = nil
+                Task {
+                    let data = try? await item.loadTransferable(type: Data.self)
+                    savePhoto(data.flatMap { UIImage(data: $0) })
+                }
+            }
+            .fullScreenCover(isPresented: $showingCamera) {
+                CameraCapture { if let image = $0 { savePhoto(image) } }.ignoresSafeArea()
+            }
             .navigationDestination(isPresented: $editing) { ProfilePage(model: model) }
             .sheet(item: $sheet, onDismiss: { model.vm.redeemReset(); model.vm.refresh() }) { shown in
                 reputationSheet(shown, model)
             }
             .paperBackground()
         }
+    }
+
+    private func savePhoto(_ image: UIImage?) {
+        guard let image, let jpeg = PhotoTray.jpeg(image, maxSide: 384), jpeg.count <= 192_000 else {
+            photoReadFailed = true
+            return
+        }
+        photoReadFailed = false
+        model.vm.savePhoto(jpeg: jpeg.base64EncodedString())
     }
 
     @ViewBuilder

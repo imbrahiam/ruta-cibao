@@ -65,7 +65,10 @@ private struct DiscoverBody: View {
         }
     }
 
-    private func open(_ place: DiscoverPlace) { links.go(.place(slug: place.slug)) }
+    private func open(_ place: DiscoverPlace) {
+        path.removeAll()
+        links.go(.place(slug: place.slug))
+    }
 
     // MARK: Shortcuts
 
@@ -157,10 +160,9 @@ private struct DiscoverSkeleton: View {
                             VStack(alignment: .leading, spacing: 0) {
                                 RoundedRectangle(cornerRadius: Metrics.radiusCard)
                                     .frame(width: DiscoverCard.width, height: DiscoverCard.imageHeight)
-                                    .overlay(alignment: .topLeading) {
-                                        Capsule().fill(Color.paper3).frame(width: 96, height: 26).padding(10)
-                                    }
+
                                 SkeletonLine(160).padding(.top, 10)
+                                SkeletonLine(76, lineHeight: 16, barHeight: 10, relativeTo: .caption).padding(.top, 3)
                                 SkeletonLine(92, lineHeight: 16, barHeight: 10, relativeTo: .caption).padding(.top, 3)
                             }
                             .frame(width: DiscoverCard.width, alignment: .leading)
@@ -346,7 +348,7 @@ private struct PlacePicture: View {
     }
 }
 
-/// The category and its glyph on a tinted label over the picture.
+/// The category and its glyph beside the place details.
 private struct KindChip: View {
     let place: DiscoverPlace
 
@@ -355,10 +357,6 @@ private struct KindChip: View {
             CategoryArtwork(icon: place.categoryIcon, size: 15).foregroundStyle(PinTone.of(hex: place.categoryColor).color)
             Text(place.categoryName).font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.ink).lineLimit(1)
         }
-        .padding(.horizontal, 9)
-        .frame(height: 26)
-        .background(Color.brandSoft, in: Capsule())
-        .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
     }
 }
 
@@ -372,9 +370,9 @@ private struct DiscoverCard: View {
         VStack(alignment: .leading, spacing: 0) {
             PlacePicture(place: place)
                 .frame(width: Self.width, height: Self.imageHeight)
-                .overlay(alignment: .topLeading) { KindChip(place: place).padding(10) }
                 .clipShape(RoundedRectangle(cornerRadius: Metrics.radiusCard, style: .continuous))
             Text(place.name).type(.bodyStrong).lineLimit(2).multilineTextAlignment(.leading).padding(.top, 10)
+            KindChip(place: place).padding(.top, 3)
             Label(place.municipalityName, systemImage: "mappin.and.ellipse").font(.system(size: 13, weight: .medium)).foregroundStyle(Color.ink3).padding(.top, 3)
         }
         .frame(width: Self.width, alignment: .leading)
@@ -496,6 +494,7 @@ private struct CategoryPage: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(place.name).type(.bodyStrong).lineLimit(2).multilineTextAlignment(.leading)
+                                    KindChip(place: place)
                                     Label(place.municipalityName, systemImage: "mappin.and.ellipse").font(.system(size: 13, weight: .medium)).foregroundStyle(Color.ink3)
                                 }
                                 Spacer(minLength: 0)

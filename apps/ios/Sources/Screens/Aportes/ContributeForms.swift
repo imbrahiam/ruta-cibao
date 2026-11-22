@@ -70,6 +70,8 @@ private struct TrafficForm: View {
 
                 if state.duplicate {
                     Notice(symbol: "person.2", title: L10n.Contribute.Traffic.duplicate, message: L10n.Contribute.Traffic.duplicateBody)
+                } else if state.outsideProvince {
+                    Label(L10n.Contribute.Traffic.outsideProvince, systemImage: "exclamationmark.circle").type(.callout, .danger)
                 } else if let error = state.error {
                     Label(error == .offline ? L10n.Common.offline : L10n.Common.errorTitle, systemImage: "exclamationmark.circle").type(.callout, .danger)
                 }

@@ -285,6 +285,7 @@
     <string name="contribute_traffic_sent_body">Tus vecinos lo verán en el mapa ahora mismo.</string>
     <string name="contribute_traffic_duplicate">Ya lo reportaron</string>
     <string name="contribute_traffic_duplicate_body">Alguien reportó lo mismo aquí cerca. Puedes confirmarlo en el mapa.</string>
+    <string name="contribute_traffic_outside_province">Este punto está fuera de Santiago Rodríguez. Mueve el marcador a un punto dentro de la provincia.</string>
     <string name="contribute_place_pending_title">Ya tienes un lugar en revisión</string>
     <string name="contribute_place_pending_body">Te avisamos cuando lo aprueben. Después puedes sugerir otro.</string>
     <string name="contribute_place_title">Sugerir un lugar</string>
@@ -794,6 +795,8 @@
     <string name="privacy_providers_title">Servicios que usamos</string>
     <string name="privacy_providers_body">Mapbox dibuja el mapa, Twilio envía los mensajes de texto y Resend los correos. No vendemos ni compartimos tus datos con fines publicitarios.</string>
     <string name="privacy_providers_body_native">Mapas de Apple dibuja el mapa, Twilio envía los mensajes de texto y Resend los correos. No vendemos ni compartimos tus datos con fines publicitarios.</string>
+    <string name="profile_change_photo">Cambiar foto de perfil</string>
+    <string name="profile_photo_failed">No se pudo guardar la foto. Inténtalo de nuevo.</string>
     <string name="profile_title">Perfil</string>
     <string name="profile_welcome_title">Bienvenido</string>
     <string name="profile_welcome_lede">¿Cómo quieres que te vean tus vecinos? Puedes cambiarlo cuando quieras.</string>
@@ -1048,6 +1051,7 @@
     <string name="search_results_zero">Sin resultados</string>
     <string name="search_empty_title">No encontramos ese lugar</string>
     <string name="search_empty_body">Revisa cómo está escrito o busca por categoría.</string>
+    <string name="sign_in_name_title">¿Cómo te llamas?</string>
     <string name="sign_in_title">Entra a Ruta Cibao</string>
     <string name="sign_in_lede">Te enviamos un código para confirmar que eres tú. Sin contraseñas.</string>
     <string name="sign_in_method_label">Cómo quieres entrar</string>

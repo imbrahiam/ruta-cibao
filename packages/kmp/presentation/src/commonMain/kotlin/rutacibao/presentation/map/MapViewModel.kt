@@ -205,7 +205,8 @@ public class MapViewModel(
                     detail.location.lat, detail.location.lng, detail.photos.firstOrNull() ?: detail.imageUrl,
                 )
                 _state.update { s ->
-                    s.copy(phase = MapUiState.Phase.Ready, all = s.all.filterNot { it.id == place.id } + place)
+                    s.copy(phase = MapUiState.Phase.Ready, selectedCategories = emptySet(), routesSelected = false,
+                        all = s.all.filterNot { it.id == place.id } + place)
                         .selecting(PlaceSheet(place, detail = detail, loading = false, saved = place.id in savedIds, cached = repository.isDetailCached(slug)))
                 }
                 refreshBusiness()

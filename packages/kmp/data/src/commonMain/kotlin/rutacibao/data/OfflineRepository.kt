@@ -178,7 +178,12 @@ public class OfflineRepository(
             MutationDelivery(false, delivered.slug)
         } catch (cancelled: CancellationException) { throw cancelled
         } catch (error: Exception) {
-            failed(entry.id, owner, error)
+            if (entry.traffic != null && (error as? ApiError)?.reason == "outside_province") {
+                entries = entries.filterNot { it.id == id && it.owner == owner }
+                persist()
+            } else {
+                failed(entry.id, owner, error)
+            }
             if (!isTransient(error)) throw error
             MutationDelivery(true)
         }

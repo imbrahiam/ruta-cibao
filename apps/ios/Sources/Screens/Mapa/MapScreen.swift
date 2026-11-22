@@ -189,15 +189,8 @@ private struct MapBody: View {
                 default: vm.selectRoute(id: id)
                 }
             }
-            .onChange(of: links.requestId, initial: true) { _, _ in
-                switch links.pending {
-                case .place(let slug): vm.openPlace(slug: slug)
-                case .route(let id): vm.openRoute(id: id)
-                case .traffic(let id): vm.openTraffic(id: id)
-                default: return
-                }
-                links.pending = nil
-            }
+            .onChange(of: links.requestId, initial: true) { _, _ in openMapLink() }
+            .onChange(of: chrome?.tab) { _, _ in openMapLink() }
             .onChange(of: navigator.route) { _, route in
                 guard let route, navigator.phase != .navigating else { return }
                 // The whole way, above the trip card (the header is away while routing).
@@ -432,6 +425,26 @@ private struct MapBody: View {
         case .place(let place): "p" + place.sheet.place.id
         case .route(let route): "r" + route.route.id
         case .traffic(let traffic): "t" + traffic.id
+        }
+    }
+
+    private func openMapLink() {
+        guard chrome?.tab == .map else { return }
+        let open: () -> Void
+        switch links.pending {
+        case .place(let slug): open = { vm.openPlace(slug: slug) }
+        case .route(let id): open = { vm.openRoute(id: id) }
+        case .traffic(let id): open = { vm.openTraffic(id: id) }
+        default: return
+        }
+        links.pending = nil
+        if navigator.phase != .idle { navigator.stop() }
+        if trail.active { trail.stop() }
+        if searching {
+            afterSearch = open
+            searching = false
+        } else {
+            open()
         }
     }
 

@@ -156,6 +156,7 @@
                     "maxLength": 80
                   },
                   "municipalityId": {
+                    "default": null,
                     "anyOf": [
                       {
                         "type": "string",
@@ -168,7 +169,7 @@
                     ]
                   }
                 },
-                "required": ["requestId", "displayName", "municipalityId"]
+                "required": ["requestId", "displayName"]
               }
             }
           }
@@ -187,6 +188,58 @@
                     }
                   },
                   "required": ["status"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me/photo": {
+      "put": {
+        "operationId": "me.updatePhoto",
+        "summary": "Replace your profile photo",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requestId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "jpeg": {
+                    "type": "string",
+                    "minLength": 4,
+                    "maxLength": 256000,
+                    "format": "base64",
+                    "contentEncoding": "base64",
+                    "pattern": "^$|^(?:[0-9a-zA-Z+/]{4})*(?:(?:[0-9a-zA-Z+/]{2}==)|(?:[0-9a-zA-Z+/]{3}=))?$"
+                  }
+                },
+                "required": ["requestId", "jpeg"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "image": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": ["image"],
                   "additionalProperties": false
                 }
               }
@@ -4370,13 +4423,13 @@
                     "properties": {
                       "lng": {
                         "type": "number",
-                        "minimum": -71.5197,
-                        "maximum": -71.072
+                        "minimum": -180,
+                        "maximum": 180
                       },
                       "lat": {
                         "type": "number",
-                        "minimum": 19.1684,
-                        "maximum": 19.5699
+                        "minimum": -90,
+                        "maximum": 90
                       }
                     },
                     "required": ["lng", "lat"]

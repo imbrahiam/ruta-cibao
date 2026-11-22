@@ -329,13 +329,33 @@ struct ProfileHero: View {
     let residencyVerified: Bool
     let reputation: Reputation?
     var editProfile: (() -> Void)?
+    var changePhoto: (() -> Void)?
+    var savingPhoto = false
     let explainResident: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .bottom) {
                 band.frame(height: 84)
-                avatar.offset(y: 46)
+                Group {
+                    if let changePhoto {
+                        Button(action: changePhoto) {
+                            avatar.overlay(alignment: .bottomLeading) {
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(Color.ink)
+                                    .frame(width: 26, height: 26)
+                                    .background(Color.paper, in: Circle())
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(L10n.Profile.changePhoto)
+                        .disabled(savingPhoto)
+                    } else {
+                        avatar
+                    }
+                }
+                .offset(y: 46)
             }
             .overlay(alignment: .topTrailing) {
                 if let editProfile {
@@ -405,9 +425,12 @@ struct ProfileHero: View {
     }
 
     private var avatar: some View {
-        PersonAvatar(name: name, image: image, size: 88)
-            .padding(4)
+        PersonAvatar(name: name, image: image, size: 92)
+            .padding(2)
             .background(Color.paper, in: Circle())
+            .overlay {
+                if savingPhoto { ProgressView().padding(10).background(Color.paper, in: Circle()) }
+            }
             .overlay(alignment: .bottomTrailing) {
                 if let rank = reputation?.rank {
                     RankEmblem(rank: rank, size: 32, ring: true)

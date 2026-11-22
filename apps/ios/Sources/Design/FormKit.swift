@@ -221,9 +221,9 @@ struct PhotoTray: View {
     }
 
     /// At most 1600 px on the long side, as JPEG: what the server accepts without a slow upload.
-    static func jpeg(_ image: UIImage) -> Data? {
+    static func jpeg(_ image: UIImage, maxSide: CGFloat = 1600) -> Data? {
         let longest = Swift.max(image.size.width, image.size.height)
-        let scale = Swift.min(1, 1600 / longest)
+        let scale = Swift.min(1, maxSide / longest)
         let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
@@ -247,7 +247,7 @@ private struct PhotoTile: View {
     }
 }
 
-private struct CameraCapture: UIViewControllerRepresentable {
+struct CameraCapture: UIViewControllerRepresentable {
     let done: (UIImage?) -> Void
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
