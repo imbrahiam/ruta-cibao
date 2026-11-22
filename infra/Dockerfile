@@ -22,6 +22,8 @@ COPY --from=deps /usr/local/bin/bun /usr/local/bin/bun
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+# The workspace packages' own dependencies are linked under each package, not at the root.
+COPY --from=deps /app/packages ./packages
 COPY . .
 # No application configuration is needed to build: `@/lib/env` validates lazily,
 # so no secret is ever read at build time and none is baked into a layer.
