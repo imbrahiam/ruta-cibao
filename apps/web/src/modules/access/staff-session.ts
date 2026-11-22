@@ -246,6 +246,8 @@ export async function assertStaffSessionVerified(
     throw new ORPCError("UNAUTHORIZED");
   }
 
+  if (!env.STAFF_STEP_UP_REQUIRED) return;
+
   const now = new Date();
   const [grant] = await db
     .select({ sessionId: staffSessionVerifications.sessionId })

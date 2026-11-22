@@ -23,6 +23,7 @@ import { eq, or, sql } from "drizzle-orm";
 import { db, pool } from "@/db";
 import { memberProfiles, municipalities, twoFactor, user } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
+import { env } from "@/lib/env";
 import { revokeUserStaffSessions } from "@/modules/access/staff-session";
 
 const { positionals, values } = parseArgs({
@@ -83,7 +84,7 @@ try {
   if (!account) fail("No account matches the supplied identifier");
   if (role !== "none" && !account.emailVerified && !account.phoneNumberVerified)
     fail("The account has no verified phone or email");
-  if (role !== "none") {
+  if (role !== "none" && env.STAFF_STEP_UP_REQUIRED) {
     const [enrolled] = await db
       .select({ verified: twoFactor.verified })
       .from(twoFactor)

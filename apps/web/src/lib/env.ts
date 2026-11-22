@@ -156,6 +156,15 @@ const serverSchema = z
       .default("0")
       .transform((value) => value === "1"),
 
+    // Whether staff must also enter an authenticator code (TOTP) once per session before any
+    // staff action. Off by default: staff sign in with their one-time code and may add a
+    // passkey. A deployment that wants the second step sets 1, and its staff must enrol TOTP
+    // before they can be granted a role.
+    STAFF_STEP_UP_REQUIRED: z
+      .enum(["0", "1"])
+      .default("0")
+      .transform((value) => value === "1"),
+
     // A hosted demonstration (e.g. demo.rutacibao.com), not the real service:
     // the fictional LOCAL_DEMO_PHONES sign in with LOCAL_DEMO_OTP and seeded
     // demo staff skip TOTP, exactly as on a laptop. Real numbers and emails

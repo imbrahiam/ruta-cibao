@@ -22,6 +22,8 @@ jobs:
       BETTER_AUTH_URL: http://localhost:3000
       APP_ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
       JOBS_ENABLED: "0"
+      # The staff tests exercise the stricter mode, where staff also enter an authenticator code.
+      STAFF_STEP_UP_REQUIRED: "1"
       S3_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY_ID: ci-test
       S3_SECRET_ACCESS_KEY: ci-test-secret

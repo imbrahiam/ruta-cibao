@@ -25,7 +25,8 @@ question below must be decided.
 **Sign-in is by verified phone (Twilio Verify) or email (Resend).** No cédula
 or identity document is collected. A municipal resident badge is optional and
 granted in person by scoped staff; staff authority comes from
-`scripts/ops/grant-staff.ts` and requires TOTP enrollment. Passkeys are available
+`scripts/ops/grant-staff.ts`; an authenticator code (TOTP) is asked of staff only when
+`STAFF_STEP_UP_REQUIRED=1`, and is then enrolled before the role is granted. Passkeys are available
 for staff on the web admin.
 
 The intended public origin is `https://rutacibao.com`, subject to the domain
