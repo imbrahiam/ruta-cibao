@@ -2,6 +2,26 @@
 @import "tw-animate-css";
 
 /*
+ * `dark:` follows the theme in force: the system on the public site, and the
+ * viewer's own choice (`<html data-admin-theme>`) on the staff desk, where the
+ * system may say dark while the desk is light.
+ */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    &:where(:not(.admin, .admin *)) {
+      @slot;
+    }
+  }
+  &:where(
+    html[data-admin-theme="dark"].admin,
+    html[data-admin-theme="dark"].admin *,
+    html[data-admin-theme="dark"] .admin *
+  ) {
+    @slot;
+  }
+}
+
+/*
  * Ruta Cibao tokens: monochrome ink and warm paper, with colour reserved for
  * semantic meaning (success, traffic/warning, danger).
  *
