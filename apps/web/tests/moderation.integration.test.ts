@@ -15,7 +15,11 @@ import {
   realtimeEvents,
   user,
 } from "@/db/schema";
-import { requireModerator } from "@/modules/access/permissions";
+import { requireMember, requireModerator } from "@/modules/access/permissions";
+import {
+  BusinessClaimError,
+  claimBusiness,
+} from "@/modules/businesses/claim-business";
 import {
   decideBusinessClaim,
   decidePhoto,
@@ -49,6 +53,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
     const townA = `${prefix}-a`;
     const townB = `${prefix}-b`;
     const placeCategory = `${prefix}-place`;
+    const businessCategory = `${prefix}-business`;
     const accounts: string[] = [];
     let guarded = false;
 
@@ -139,9 +144,14 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         { id: townA, name: townA },
         { id: townB, name: townB },
       ]);
-      await db
-        .insert(categories)
-        .values({ id: placeCategory, kind: "place", name: `${prefix} place` });
+      await db.insert(categories).values([
+        { id: placeCategory, kind: "place", name: `${prefix} place` },
+        {
+          id: businessCategory,
+          kind: "business",
+          name: `${prefix} business`,
+        },
+      ]);
     });
 
     afterAll(async () => {
@@ -212,7 +222,7 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         await tx.delete(user).where(inArray(user.id, accounts));
         await tx
           .delete(categories)
-          .where(inArray(categories.id, [placeCategory]));
+          .where(inArray(categories.id, [placeCategory, businessCategory]));
         await tx
           .delete(municipalities)
           .where(inArray(municipalities.id, [townA, townB]));
@@ -403,6 +413,41 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         .where(eq(businessClaims.id, third));
       expect(rejected?.status).toBe("rejected");
       expect(rejected?.reviewNote).toContain("different business");
+    });
+
+    test("two people claiming one business at once queue a single claim", async () => {
+      const [first, second] = [await member(), await member()];
+      const target = await place(null, { status: "published" });
+      await db
+        .update(places)
+        .set({ categoryId: businessCategory })
+        .where(eq(places.id, target.id));
+      const results = await Promise.allSettled(
+        [first, second].map((claimant) =>
+          claimBusiness(requireMember(claimant.viewer), {
+            requestId: crypto.randomUUID(),
+            placeId: target.id,
+            evidence: "Synthetic RNC and the name on the sign outside.",
+            contactPhone: "",
+            whatsapp: "",
+          }),
+        ),
+      );
+      expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+      const refused = results.find((r) => r.status === "rejected");
+      expect(refused?.status === "rejected" && refused.reason).toBeInstanceOf(
+        BusinessClaimError,
+      );
+      const pending = await db
+        .select({ id: businessClaims.id })
+        .from(businessClaims)
+        .where(
+          and(
+            eq(businessClaims.placeId, target.id),
+            eq(businessClaims.status, "pending"),
+          ),
+        );
+      expect(pending).toHaveLength(1);
     });
 
     test("a report decision resolves once and replays safely", async () => {
