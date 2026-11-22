@@ -14,6 +14,7 @@ import { withIdempotency } from "@/lib/idempotency";
 import { publishRealtimeEvent } from "@/lib/realtime";
 import {
   assertModerates,
+  hasStaffAuthority,
   type ModeratorViewer,
   requireMember,
   requireModerator,
@@ -103,6 +104,25 @@ export async function submitRoute(
   return outcome.result;
 }
 
+/**
+ * The moderator's note is addressed to the submitter; on a published route it
+ * would otherwise be read by everyone.
+ */
+function visibleReviewNote(
+  viewer: Viewer,
+  route: {
+    reviewNote: string | null;
+    submittedByUserId: string | null;
+    municipalityId: string;
+  },
+): string | null {
+  if (viewer.kind === "anonymous") return null;
+  if (route.submittedByUserId === viewer.userId) return route.reviewNote;
+  return hasStaffAuthority(viewer, route.municipalityId)
+    ? route.reviewNote
+    : null;
+}
+
 export async function browseRoutes(
   executor: Db,
   viewer: Viewer,
@@ -158,6 +178,7 @@ export async function browseRoutes(
     items: rows.map(({ route, categoryName, municipalityName }) =>
       routeOutput.parse({
         ...route,
+        reviewNote: visibleReviewNote(viewer, route),
         categoryName,
         municipalityName,
         path: route.path.map(({ x, y }) => ({ lng: x, lat: y })),
@@ -209,6 +230,7 @@ export async function routeDetail(
   }
   return routeOutput.parse({
     ...row.route,
+    reviewNote: visibleReviewNote(viewer, row.route),
     categoryName: row.categoryName,
     municipalityName: row.municipalityName,
     path: row.route.path.map(({ x, y }) => ({ lng: x, lat: y })),
