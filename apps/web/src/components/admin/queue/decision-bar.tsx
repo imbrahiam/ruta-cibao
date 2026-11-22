@@ -148,7 +148,6 @@ export function DecisionBar({
               htmlFor={noteId}
               label={t("note")}
               optional={min === 0 ? common("optional") : undefined}
-              hint={hint}
               error={
                 invalid
                   ? t("queue.reasonShort", {
@@ -164,9 +163,9 @@ export function DecisionBar({
                 value={note}
                 maxLength={side.note.max}
                 aria-invalid={invalid}
-                aria-describedby={
-                  invalid ? `${noteId}-error` : `${noteId}-hint`
-                }
+                // The rule lives in the field until something is typed.
+                placeholder={hint}
+                aria-describedby={invalid ? `${noteId}-error` : undefined}
                 disabled={pending}
                 onChange={(event) => setNote(event.target.value)}
                 onBlur={() => setTouched(true)}

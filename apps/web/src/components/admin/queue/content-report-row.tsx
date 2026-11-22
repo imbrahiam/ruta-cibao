@@ -78,8 +78,7 @@ export function ContentReportRow({ report }: { report: ContentReport }) {
           </Facts>
           {report.openReportCount > 1 ? (
             <p className="text-xs text-muted-foreground">
-              {q("openReports", { count: report.openReportCount })}{" "}
-              {q("decisionClosesAll")}
+              {q("openReports", { count: report.openReportCount })}
             </p>
           ) : null}
         </>
