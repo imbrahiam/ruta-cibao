@@ -49,7 +49,7 @@ real service. Differences from section 6:
   `scripts/db/seed-demo.ts`) and `LOCAL_DEMO_OTP` are set, so the presenter signs
   in without SMS and seeded staff skip TOTP. Real numbers and emails still go
   through Twilio Verify and Resend when those are configured.
-- `APNS_*` are optional on the demo (the in-app inbox still works); required in production.
+- `APNS_*` are optional everywhere: without them iPhones get no push and the in-app inbox still works.
 - Load content with `bun run db:seed`, the OSM import
   (`bun run scripts/db/import-osm-content.ts`) and `bun run scripts/db/seed-demo.ts`.
 

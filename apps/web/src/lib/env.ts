@@ -178,21 +178,8 @@ const serverSchema = z
       });
     }
     if (value.NODE_ENV !== "production") return;
-    if (
-      !(
-        value.APNS_KEY_ID &&
-        value.APNS_TEAM_ID &&
-        value.APNS_PRIVATE_KEY &&
-        value.APNS_TOPIC
-      ) &&
-      !value.DEMO_DEPLOYMENT
-    ) {
-      context.addIssue({
-        code: "custom",
-        path: ["APNS_KEY_ID"],
-        message: "APNs credentials are required in production",
-      });
-    }
+    // APNs needs a paid Apple Developer account, which a deployment may not have yet. Without
+    // the key, iPhones get no push and the in-app inbox still works; Android is not affected.
     if (
       !(
         value.FCM_PROJECT_ID &&
