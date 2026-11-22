@@ -142,7 +142,6 @@ function WorkCard({
       : o(`work.${queue as Exclude<ModerationQueueName, typeof LIVE>}`, {
           count,
         });
-  const rest = count - items.length;
 
   return (
     <article
@@ -191,18 +190,14 @@ function WorkCard({
           onFocus={() => prefetch(section.href)}
           className="group inline-flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-foreground"
         >
-          {rest > 0 && !peek.isPending ? (
-            <>
-              {o("viewAll")}
-              <Badge
-                variant="secondary"
-                className="h-5 min-w-5 rounded-full px-1.5 tabular-nums"
-              >
-                {count}
-              </Badge>
-            </>
-          ) : (
-            o("viewAllIn", { section: t(section.label) })
+          {o("viewAll")}
+          {peek.isPending ? null : (
+            <Badge
+              variant="secondary"
+              className="h-5 min-w-5 rounded-full px-1.5 tabular-nums"
+            >
+              {count}
+            </Badge>
           )}
           <ArrowRight
             aria-hidden
