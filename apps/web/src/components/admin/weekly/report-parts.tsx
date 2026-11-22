@@ -13,6 +13,7 @@ import { useFormatter, useTranslations } from "use-intl";
 import { InlineError } from "@/components/admin/error-panel";
 import { useOutcome } from "@/components/admin/outcome";
 import { StatusIndicator } from "@/components/admin/status-indicator";
+import { useDay } from "@/components/admin/use-day";
 import { useStaffMutation } from "@/components/admin/use-staff-mutation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ export function useWeekRange() {
 export function useWeekLabel() {
   const reports = useTranslations("reports");
   const format = useFormatter();
+  const day = useDay();
   return useCallback(
     (report: { periodStart: string; periodEnd: string }) =>
       reports("week", {
@@ -54,12 +56,9 @@ export function useWeekLabel() {
         }),
         // The period ends at the next Monday's midnight: the last day shown
         // is the Sunday before it.
-        end: format.dateTime(
-          new Date(new Date(report.periodEnd).getTime() - 1),
-          "short",
-        ),
+        end: day(new Date(new Date(report.periodEnd).getTime() - 1)),
       }),
-    [format, reports],
+    [format, day, reports],
   );
 }
 
