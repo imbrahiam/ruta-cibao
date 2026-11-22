@@ -205,6 +205,23 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
       // Even with twoFactorEnabled=true on the account, a session without staff.verifyTotp is still denied.
       const { sessionRow: sessionAfterEnroll, headers: headersAfterEnroll } =
         await createRealSession(mod.id);
+      // Once enrolled, the session alone can no longer read or replace the secret.
+      for (const attempt of [
+        () => auth.api.getTOTPURI({ headers: headersAfterEnroll, body: {} }),
+        () =>
+          auth.api.enableTwoFactor({ headers: headersAfterEnroll, body: {} }),
+        () =>
+          auth.api.generateBackupCodes({
+            headers: headersAfterEnroll,
+            body: {},
+          }),
+        () =>
+          auth.api.disableTwoFactor({ headers: headersAfterEnroll, body: {} }),
+      ]) {
+        await expect(attempt()).rejects.toMatchObject({
+          body: { code: "TWO_FACTOR_ALREADY_ENROLLED" },
+        });
+      }
       const ctxAfterEnroll = realStaffContext(
         mod.viewer,
         {
@@ -427,6 +444,11 @@ describe.skipIf(process.env.RUN_DB_TESTS !== "1")(
         "http://localhost:3000/api/auth/admin/set-role",
         "http://localhost:3000/api/auth//admin/ban-user",
         "http://localhost:3000/api/auth/%2Fadmin/remove-user",
+        // Password and profile endpoints the app never uses.
+        "http://localhost:3000/api/auth/email-otp/request-password-reset",
+        "http://localhost:3000/api/auth/phone-number/request-password-reset",
+        "http://localhost:3000/api/auth/update-user",
+        "http://localhost:3000/api/auth/Update-User/",
       ]) {
         const getRes = await getAuthRoute(
           new Request(path, { headers: adminHeaders }),

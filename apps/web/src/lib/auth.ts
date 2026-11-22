@@ -3,7 +3,11 @@ import { passkey } from "@better-auth/passkey";
 import { catalogues } from "@ruta/shared/messages";
 import { normalizePhone } from "@ruta/shared/phone";
 import { type BetterAuthPlugin, betterAuth } from "better-auth";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import {
+  APIError,
+  createAuthMiddleware,
+  getSessionFromCtx,
+} from "better-auth/api";
 import { admin } from "better-auth/plugins/admin";
 import { emailOTP } from "better-auth/plugins/email-otp";
 import { phoneNumber } from "better-auth/plugins/phone-number";
@@ -150,6 +154,41 @@ async function enforce(
     },
     { "Retry-After": String(result.retryAfterSeconds) },
   );
+}
+
+/** Two-factor endpoints that read, replace or remove an enrolled secret. */
+const TWO_FACTOR_MANAGEMENT = new Set([
+  "/two-factor/enable",
+  "/two-factor/disable",
+  "/two-factor/get-totp-uri",
+  "/two-factor/generate-backup-codes",
+]);
+
+/**
+ * With no passwords, Better Auth lets any session manage two-factor. Once an
+ * account is enrolled that would let a stolen session read the secret or mint
+ * recovery codes and pass the staff step-up, so after enrolment these are
+ * refused and a reset goes through operations.
+ */
+function twoFactorLock(): BetterAuthPlugin {
+  return {
+    id: "ruta-two-factor-lock",
+    hooks: {
+      before: [
+        {
+          matcher: (context) => TWO_FACTOR_MANAGEMENT.has(context.path ?? ""),
+          handler: createAuthMiddleware(async (ctx) => {
+            const session = await getSessionFromCtx(ctx);
+            if (session?.user.twoFactorEnabled) {
+              throw new APIError("FORBIDDEN", {
+                code: "TWO_FACTOR_ALREADY_ENROLLED",
+              });
+            }
+          }),
+        },
+      ],
+    },
+  };
 }
 
 /**
@@ -305,6 +344,7 @@ function createAuth() {
 
     plugins: [
       otpGuards(),
+      twoFactorLock(),
       phoneNumber({
         otpLength: 6,
         expiresIn: 600,
