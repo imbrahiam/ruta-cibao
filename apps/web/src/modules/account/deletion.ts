@@ -144,6 +144,17 @@ async function collectObjectKeys(
     if (isObjectKey(row.finalKey)) keys.add(row.finalKey);
   }
 
+  // A place someone else keeps loses this person's cover image (see purge).
+  const kept = await executor
+    .select({ imageUrl: places.imageUrl })
+    .from(places)
+    .where(
+      and(eq(places.createdByUserId, userId), isMaintainedElsewhere(userId)),
+    );
+  for (const place of kept) {
+    if (isObjectKey(place.imageUrl)) keys.add(place.imageUrl);
+  }
+
   // Photographs and imagery of places that will be removed with the account.
   const removable = await executor
     .select({ id: places.id, imageUrl: places.imageUrl })

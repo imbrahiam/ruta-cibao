@@ -217,6 +217,7 @@ describe.skipIf(
 
     const photoKey = await object(`published-photos/${prefix}/own.webp`);
     const tempKey = await object(`photo-uploads/${prefix}/temp.bin`);
+    const keptCoverKey = await object(`places/${prefix}/kept-cover.webp`);
     const sharedPhotoKey = await object(
       `published-photos/${prefix}/on-kept-place.webp`,
     );
@@ -250,6 +251,7 @@ describe.skipIf(
         status: "published",
         createdByUserId: owner.id,
         businessDetails: { phone: "8095550000" } as never,
+        imageUrl: keptCoverKey,
       })
       .returning({ id: places.id });
     if (!lone || !shared) throw new Error("fixture places missing");
@@ -528,7 +530,7 @@ describe.skipIf(
         .from(consultationPhotos)
         .where(eq(consultationPhotos.consultationId, answered.id)),
     ).toHaveLength(0);
-    for (const key of [casePhotoKey, caseTempKey])
+    for (const key of [casePhotoKey, caseTempKey, keptCoverKey])
       expect(await statObject(key)).toBeNull();
     expect(
       (
