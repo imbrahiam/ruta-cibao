@@ -79,7 +79,8 @@ public interface StaffSource {
     /** Takes a live road report off the map. The note is required (10 characters or more). */
     public suspend fun removeTraffic(id: String, note: String)
 
-    public suspend fun respond(consultationId: String, body: String, statusAfter: ConsultationsRespondInput.StatusAfter)
+    /** [requestId] is the caller's, kept across retries of the same reply so it posts once. */
+    public suspend fun respond(consultationId: String, requestId: String, body: String, statusAfter: ConsultationsRespondInput.StatusAfter)
 
     public suspend fun reports(): List<ReportsListItem>
 
@@ -147,8 +148,8 @@ public class StaffRepository(private val api: RutaApi, private val config: AppCo
         staffCall { api.moderation.removeTraffic(ModerationRemoveTrafficInput(id, requestId(), note)) }
     }
 
-    override suspend fun respond(consultationId: String, body: String, statusAfter: ConsultationsRespondInput.StatusAfter) {
-        staffCall { api.consultations.respond(ConsultationsRespondInput(consultationId, requestId(), body, statusAfter)) }
+    override suspend fun respond(consultationId: String, requestId: String, body: String, statusAfter: ConsultationsRespondInput.StatusAfter) {
+        staffCall { api.consultations.respond(ConsultationsRespondInput(consultationId, requestId, body, statusAfter)) }
     }
 
     override suspend fun reports(): List<ReportsListItem> = staffCall { api.reports.list(ReportsListInput(limit = 8)) }

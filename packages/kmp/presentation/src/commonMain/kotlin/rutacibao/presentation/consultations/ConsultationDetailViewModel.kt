@@ -19,6 +19,8 @@ import rutacibao.presentation.gestion.GateOutcome
 import rutacibao.presentation.gestion.MIN_NOTE_LENGTH
 import rutacibao.presentation.gestion.StepUpGate
 import rutacibao.presentation.gestion.StepUpState
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 public typealias ConsultationDetail = ConsultationsDetailOutput
 public typealias ConsultationResponse = ConsultationsDetailOutput.Response
@@ -47,6 +49,7 @@ public data class ConsultationDetailUiState(
 }
 
 /** One case and the ayuntamiento's replies, oldest first, like a thread. */
+@OptIn(ExperimentalUuidApi::class)
 @Inject
 public class ConsultationDetailViewModel(
     private val repository: ConsultationsRepository,
@@ -81,7 +84,12 @@ public class ConsultationDetailViewModel(
             _state.update { it.copy(replyError = ConsultationDetailUiState.ReplyError.TooShort) }
             return
         }
-        viewModelScope.launch { send(id, text, statusAfter) }
+        // The same reply tapped again after a failure reuses its request id, so one that
+        // reached the server before the response was lost is not posted a second time.
+        val key = Triple(id, text, statusAfter)
+        val requestId = pendingReply?.takeIf { it.first == key }?.second ?: Uuid.random().toString()
+        pendingReply = key to requestId
+        viewModelScope.launch { send(id, requestId, text, statusAfter) }
     }
 
     public fun replySentHandled() {
@@ -96,11 +104,14 @@ public class ConsultationDetailViewModel(
         viewModelScope.launch { gate.verify(code) }
     }
 
-    private suspend fun send(id: String, text: String, statusAfter: ConsultationsRespondInput.StatusAfter) {
+    private var pendingReply: Pair<Triple<String, String, ConsultationsRespondInput.StatusAfter>, String>? = null
+
+    private suspend fun send(id: String, requestId: String, text: String, statusAfter: ConsultationsRespondInput.StatusAfter) {
         _state.update { it.copy(replying = true, replyError = null) }
-        val outcome = gate.run(replay = { send(id, text, statusAfter) }) { staff.respond(id, text, statusAfter) }
+        val outcome = gate.run(replay = { send(id, requestId, text, statusAfter) }) { staff.respond(id, requestId, text, statusAfter) }
         when (outcome) {
             GateOutcome.Done -> {
+                pendingReply = null
                 _state.update { it.copy(replying = false, replySent = true) }
                 fetch()
             }
