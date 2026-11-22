@@ -31,10 +31,12 @@ public data class ConsultationsUiState(
     val error: UiError? = null,
     /** A signed-out tap on "apoyar" asks the UI to present sign-in. */
     val signInRequested: Boolean = false,
+    /** Rows read from the server so far; hidden authors' cases make it larger than `items`. */
+    val loaded: Long = 0,
 ) {
     public enum class Phase { Loading, Ready, Empty, Failed }
 
-    val canLoadMore: Boolean get() = phase == Phase.Ready && items.size < total && !loadingMore
+    val canLoadMore: Boolean get() = phase == Phase.Ready && loaded < total && !loadingMore
     val filters: List<ConsultationStatus?> get() = listOf(null) + ConsultationStatus.entries
 }
 
@@ -120,14 +122,18 @@ public class ConsultationsViewModel(
                 hidden = runCatching { safety.hiddenConsultations() }.getOrDefault(hidden)
             }
             runCatching {
-                repository.browse(current.status, offset = if (reset) 0 else current.items.size, limit = PAGE)
+                // The server's offset, not what is shown: hidden cases were read too.
+                repository.browse(current.status, offset = if (reset) 0 else current.loaded.toInt(), limit = PAGE)
             }.onSuccess { page ->
                 _state.update {
                     val fresh = page.items.filterNot { item -> item.id in hidden }
-                    val items = if (reset) fresh else it.items + fresh
+                    // A case opened between pages shifts the next page onto one already
+                    // shown; a repeated id would crash a keyed list.
+                    val items = if (reset) fresh else (it.items + fresh).distinctBy { item -> item.id }
                     it.copy(
                         items = items,
                         total = page.total,
+                        loaded = (if (reset) 0L else current.loaded) + page.items.size,
                         phase = if (items.isEmpty()) ConsultationsUiState.Phase.Empty else ConsultationsUiState.Phase.Ready,
                         loadingMore = false,
                         refreshing = false,
