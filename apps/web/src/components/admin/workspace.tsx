@@ -182,7 +182,8 @@ export function AdminWorkspace({
       <SidebarInset className="min-w-0">
         <header
           className={cn(
-            "flex h-14 shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-10",
+            // The page's own column, so the trail starts where the title does.
+            "mx-auto flex h-14 w-full max-w-[1520px] shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-10",
             // On a desk with the sidebar open and no trail to show, the bar
             // would be an empty band above the title.
             open && !nested && "md:hidden",

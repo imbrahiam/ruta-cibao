@@ -137,7 +137,7 @@ export function CaseList() {
   const total = list.data?.pages.at(-1)?.total ?? 0;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-5xl flex-col gap-5">
       <AdminPageHeader
         title={c("title")}
         actions={
@@ -253,7 +253,7 @@ export function CaseList() {
               {!list.data ? (
                 <InboxSkeleton />
               ) : (
-                <div className="flex max-w-5xl flex-col gap-6">
+                <div className="flex flex-col gap-6">
                   {groupByRecency(items).map((group) => (
                     <section
                       key={group.key}

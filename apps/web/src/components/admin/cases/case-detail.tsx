@@ -102,7 +102,7 @@ export function CaseDetail({ slug }: { slug: string }) {
         }
       />
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,48rem)_19rem] lg:items-start">
         <div className="flex min-w-0 flex-col gap-8">
           <AdminSection id="case-body" title={c("caseText")}>
             <p className="text-sm leading-relaxed whitespace-pre-line">
@@ -520,7 +520,6 @@ function PublicationControl({ consultation }: { consultation: Detail }) {
           <FormField
             htmlFor="hide-reason"
             label={t("note")}
-            hint={c("hideReasonHint")}
             error={touched ? reasonError : null}
           >
             <Textarea
@@ -531,10 +530,9 @@ function PublicationControl({ consultation }: { consultation: Detail }) {
               required
               autoFocus
               aria-invalid={touched && reasonError !== null}
+              placeholder={c("hideReasonHint")}
               aria-describedby={
-                touched && reasonError
-                  ? "hide-reason-error"
-                  : "hide-reason-hint"
+                touched && reasonError ? "hide-reason-error" : undefined
               }
               disabled={decide.isPending}
               onChange={(event) => setReason(event.target.value)}

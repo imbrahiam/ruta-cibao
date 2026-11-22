@@ -171,7 +171,7 @@ export function WeeklyReportList() {
   const figuresOf = useFigures();
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-5xl flex-col gap-5">
       <AdminPageHeader
         title={w("title")}
         description={w("intro")}
@@ -205,7 +205,7 @@ export function WeeklyReportList() {
           ) : (
             // One section per week, the municipalities under it: the list
             // reads by week first instead of repeating the same dates per row.
-            <div className="flex max-w-5xl flex-col gap-6">
+            <div className="flex flex-col gap-6">
               {groupByWeek(items, weekLabel).map(([week, group]) => (
                 <AdminSection
                   key={week}

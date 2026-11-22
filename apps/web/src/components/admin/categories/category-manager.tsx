@@ -88,7 +88,7 @@ export function CategoryManager() {
 
   if (!isAdmin) {
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex max-w-5xl flex-col gap-5">
         <AdminPageHeader title={t("categories")} />
         <ErrorPanel error={REFUSED} />
       </div>
@@ -98,7 +98,7 @@ export function CategoryManager() {
   const traffic = kind === "traffic";
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-5xl flex-col gap-5">
       <AdminPageHeader
         title={t("categories")}
         actions={
@@ -135,7 +135,7 @@ export function CategoryManager() {
           categories.length === 0 ? (
             <AdminEmpty icon={FolderCog} title={c("empty")} />
           ) : (
-            <InboxList label={c("kindGroup")} className="max-w-5xl">
+            <InboxList label={c("kindGroup")}>
               {categories.map((record) => (
                 <InboxRow
                   key={record.id}
