@@ -19,6 +19,11 @@ val firebaseApplicationIdDev = providers.gradleProperty("ruta.firebaseApplicatio
 val firebaseApiKey = providers.gradleProperty("ruta.firebaseApiKey").getOrElse("")
 val firebaseProjectId = providers.gradleProperty("ruta.firebaseProjectId").getOrElse("")
 val firebaseSenderId = providers.gradleProperty("ruta.firebaseSenderId").getOrElse("")
+// Release signing: a keystore outside the repository, named by gradle properties (CI passes them
+// from its secrets). Without them the release build stays unsigned, as before.
+val releaseStoreFile = providers.gradleProperty("ruta.releaseStoreFile").orNull
+val releaseStorePassword = providers.gradleProperty("ruta.releaseStorePassword").orNull
+val releaseKeyAlias = providers.gradleProperty("ruta.releaseKeyAlias").getOrElse("ruta-cibao")
 fun quoted(value: String) = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n") + "\""
 
 android {
@@ -44,6 +49,18 @@ android {
         buildConfigField("String", "FIREBASE_SENDER_ID", quoted(firebaseSenderId))
     }
 
+    signingConfigs {
+        if (releaseStoreFile != null && releaseStorePassword != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storeType = "pkcs12"
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseStorePassword
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Side by side with the store build: its own id, scheme and session.
@@ -54,6 +71,7 @@ android {
             manifestPlaceholders["appScheme"] = "rutacibao-dev"
         }
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))

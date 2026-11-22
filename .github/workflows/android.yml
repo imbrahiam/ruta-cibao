@@ -1,0 +1,62 @@
+name: Android
+
+# Builds the signed release APK against the production API and publishes it as the download the
+# site links to. Run by hand, or by pushing a tag `android-v<version>`.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["android-v*"]
+
+concurrency:
+  group: android
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Signed release APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build
+        working-directory: native
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          MAPS_KEY: ${{ secrets.ANDROID_GOOGLE_MAPS_KEY }}
+          FIREBASE_APPLICATION_ID: ${{ secrets.ANDROID_FIREBASE_APPLICATION_ID }}
+          FIREBASE_API_KEY: ${{ secrets.ANDROID_FIREBASE_API_KEY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.ANDROID_FIREBASE_PROJECT_ID }}
+          FIREBASE_SENDER_ID: ${{ secrets.ANDROID_FIREBASE_SENDER_ID }}
+          API_ORIGIN: ${{ vars.NEXT_PUBLIC_APP_URL }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/release.p12"
+          ./gradlew :apps:android:assembleRelease \
+            -Pruta.apiOrigin="$API_ORIGIN" \
+            -Pruta.releaseStoreFile="$RUNNER_TEMP/release.p12" \
+            -Pruta.releaseStorePassword="$STORE_PASSWORD" \
+            -Pruta.googleMapsKey="$MAPS_KEY" \
+            -Pruta.firebaseApplicationId="$FIREBASE_APPLICATION_ID" \
+            -Pruta.firebaseApiKey="$FIREBASE_API_KEY" \
+            -Pruta.firebaseProjectId="$FIREBASE_PROJECT_ID" \
+            -Pruta.firebaseSenderId="$FIREBASE_SENDER_ID"
+
+      # One release holds the current APK under a fixed name, so the site's link never changes.
+      - name: Publish the download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk=$(find apps/android/build/outputs/apk/release -name "*.apk" | head -1)
+          cp "$apk" ruta-cibao.apk
+          gh release view android-latest >/dev/null 2>&1 ||
+            gh release create android-latest --title "Ruta Cibao para Android" \
+              --notes "La versión actual de la app para Android." --latest=false
+          gh release upload android-latest ruta-cibao.apk --clobber
