@@ -9,6 +9,7 @@ import {
 } from "@/db/schema";
 import { recordAudit } from "@/lib/audit";
 import { geocode, isGeocodingEnabled } from "@/lib/geocode";
+import { consumeRateLimit, getRequestClientKey } from "@/lib/rate-limit";
 import { browsePlaces, listContributions } from "@/modules/places/discover";
 import { cachedGooglePhotoAttribution } from "@/modules/places/google-photo";
 import {
@@ -46,6 +47,20 @@ function asPhotoError(error: unknown): never {
     );
   }
   throw error;
+}
+
+/**
+ * The geocoder is one upstream slot shared by everyone, so one client typing
+ * as fast as a script can must not take it; past the limit the search still
+ * answers with places, only without addresses.
+ */
+async function addressMatches(headers: Headers, term: string) {
+  const allowance = await consumeRateLimit(getRequestClientKey(headers), {
+    scope: "places-search-addresses",
+    limit: 30,
+    windowMs: 60_000,
+  });
+  return allowance.allowed ? geocode(term, 5) : [];
 }
 
 export const placesRouter = {
@@ -215,6 +230,8 @@ export const placesRouter = {
     const viewer = await context.getViewer();
     const term = input.query.trim();
     const normalised = sql`unaccent(lower(${term}))`;
+    // `%` and `_` typed into the box are text, not wildcards.
+    const prefix = sql`unaccent(lower(${term.replace(/[\\%_]/g, "\\$&")})) || '%'`;
     const target = sql`unaccent(lower(${places.name}))`;
     const categoryTarget = sql`unaccent(lower(${categories.name}))`;
 
@@ -241,18 +258,18 @@ export const placesRouter = {
             // The category too: someone looking for care types "salud"
             // or "clínica", not the hospital's name, and a resident who
             // wants lunch types "comedor".
-            sql`(${target} like ${normalised} || '%' or word_similarity(${normalised}, ${target}) > 0.45 or ${categoryTarget} like ${normalised} || '%')`,
+            sql`(${target} like ${prefix} or word_similarity(${normalised}, ${target}) > 0.45 or ${categoryTarget} like ${prefix})`,
           ),
         )
         // Name prefix first, then fuzzy name matches by closeness, then
         // places that only matched by category.
         .orderBy(
-          sql`(${target} like ${normalised} || '%') desc`,
+          sql`(${target} like ${prefix}) desc`,
           sql`word_similarity(${normalised}, ${target}) desc`,
         )
         .limit(8),
 
-      input.addresses ? geocode(term, 5) : Promise.resolve([]),
+      input.addresses ? addressMatches(context.headers, term) : [],
     ]);
 
     return {
