@@ -661,10 +661,12 @@ describe.skipIf(process.env.RUN_STORAGE_TESTS !== "1")(
       await expect(
         attachPhoto(db, author, { placeId, storageKey: reserved.storageKey }),
       ).rejects.toMatchObject({ reason: "invalid" });
+      // Renewed under a fresh key: a sweep still deleting the lapsed key's
+      // objects cannot then remove what is uploaded next.
       const renewed = await reserve(author, command);
-      expect(renewed.storageKey).toBe(reserved.storageKey);
+      expect(renewed.storageKey).not.toBe(reserved.storageKey);
       expect(
-        (await reservation(reserved.storageKey)).temporaryDeletedAt,
+        (await reservation(renewed.storageKey)).temporaryDeletedAt,
       ).toBeNull();
       await upload(renewed.uploadUrl);
       expect(

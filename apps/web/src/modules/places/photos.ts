@@ -190,9 +190,16 @@ export async function requestPhotoUpload(
         );
       if ((active?.count ?? 0) >= 3) throw new PhotoError("too_many");
     }
+    // A lapsed reservation may be mid-sweep: the cleanup deletes its objects
+    // after letting go of the row, so reusing the key would let it delete
+    // the upload (or accepted photo) that follows. A renewal gets a new key.
+    const lapsed =
+      existing &&
+      (existing.temporaryDeletedAt !== null || existing.expiresAt <= now);
     const storageKey =
-      existing?.storageKey ??
-      photoKey(input.placeId, viewer.userId, input.contentType);
+      existing && !lapsed
+        ? existing.storageKey
+        : photoKey(input.placeId, viewer.userId, input.contentType);
     // Keep the persisted window stable on fresh retries. Renew before a new
     // five-minute upload capability could outlive its reservation.
     const renew =
@@ -214,8 +221,8 @@ export async function requestPhotoUpload(
     } else if (renew) {
       await tx
         .update(photoUploads)
-        .set({ expiresAt, temporaryDeletedAt: null })
-        .where(eq(photoUploads.storageKey, storageKey));
+        .set({ storageKey, expiresAt, temporaryDeletedAt: null })
+        .where(eq(photoUploads.storageKey, existing.storageKey));
     }
     if (!existing || renew) {
       await recordAudit(
