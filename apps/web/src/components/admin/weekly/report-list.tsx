@@ -172,7 +172,7 @@ export function WeeklyReportList() {
   const figuresOf = useFigures();
 
   return (
-    <div className="flex max-w-5xl flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <AdminPageHeader
         title={w("title")}
         description={w("intro")}

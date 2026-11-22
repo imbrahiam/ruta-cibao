@@ -232,7 +232,7 @@
   --picker-label-font-weight: 400;
   --command-separator-margin-y: 0.375rem;
 
-  --background: #ffffff;
+  --background: #fcfcfa;
   --foreground: #1c1c1e;
   --card: #ffffff;
   --card-foreground: #1c1c1e;
@@ -242,7 +242,7 @@
   --primary-foreground: #ffffff;
   --secondary: oklch(0 0 0 / 4.5%);
   --secondary-foreground: #1c1c1e;
-  --muted: #f4f4f5;
+  --muted: #f3f3ef;
   --muted-foreground: color-mix(in oklab, #1c1c1e 62%, transparent);
   --accent: oklch(0 0 0 / 5.5%);
   --accent-foreground: #1c1c1e;
@@ -257,7 +257,7 @@
   --border: oklch(0 0 0 / 8%);
   --input: oklch(0 0 0 / 13%);
   --focus-ring: #28594a;
-  --sidebar: #f8f8f9;
+  --sidebar: #f5f5f1;
   --sidebar-foreground: #1c1c1e;
   --sidebar-primary: #28594a;
   --sidebar-primary-foreground: #ffffff;

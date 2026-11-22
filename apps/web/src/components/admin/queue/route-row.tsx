@@ -1,22 +1,26 @@
 "use client";
 
 import type { DecideRouteInput, EcoRoute } from "@ruta/contracts";
-import { Signpost } from "lucide-react";
+import { MapPin, Signpost } from "lucide-react";
 import { useId, useMemo } from "react";
-import { useFormatter, useNow, useTranslations } from "use-intl";
+import { useFormatter, useTranslations } from "use-intl";
+import { useDay } from "@/components/admin/use-day";
 import { api } from "@/lib/web/api";
 import { MapPreview } from "../map/map-preview";
 import { routeMapItem } from "../map/queue-items";
 import { useMapCopy } from "../map/use-map-copy";
 import { DecisionBar } from "./decision-bar";
+import { Fact, Facts, ItemRow, MunicipalityTag, useWhen } from "./item-parts";
 import {
-  DeskLine,
-  Fact,
-  Facts,
-  ItemRow,
-  MunicipalityTag,
-  useWhen,
-} from "./item-parts";
+  Ago,
+  Ficha,
+  FichaItem,
+  GlyphTile,
+  Pill,
+  Quote,
+  ReviewLine,
+  ReviewSheet,
+} from "./review-ui";
 import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
 
@@ -98,7 +102,7 @@ function RouteMap({ route, large }: { route: EcoRoute; large?: boolean }) {
   return (
     <MapPreview
       className="max-w-none"
-      {...(large ? { mapClassName: "aspect-[2/1]" } : {})}
+      {...(large ? { mapClassName: "aspect-[21/9] rounded-xl" } : {})}
       item={mapItem}
       label={map.routeAlt(route)}
       title={route.name}
@@ -132,66 +136,87 @@ export function RouteRow({ route }: { route: EcoRoute }) {
   );
 }
 
-/** The route in the list beside the selected one: its name, where, how long and since when. */
+/** The route in the list: its name and how long ago, then where and how long it is. */
 export function RouteLine({ route }: { route: EcoRoute }) {
   const split = useSplit();
-  const format = useFormatter();
-  const now = useNow({ updateInterval: 60_000 });
   const { distance, duration } = useRouteFigures(route);
   return (
-    <DeskLine
+    <ReviewLine
       selected={split?.selected === route.id}
       onSelect={() => split?.select(route.id)}
       title={route.name}
-      lead={
-        <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-muted text-muted-foreground">
-          <Signpost aria-hidden="true" className="size-[18px]" />
-        </span>
-      }
-    >
-      <p className="truncate text-[13px] text-muted-foreground">
-        {route.municipalityName} · {route.categoryName}
-      </p>
-      <p className="flex min-w-0 items-center justify-between gap-3 text-[13px] text-muted-foreground">
-        <span className="truncate tabular-nums">
-          {distance} · {duration}
-        </span>
-        <time dateTime={route.createdAt} className="shrink-0 tabular-nums">
-          {format.relativeTime(new Date(route.createdAt), now)}
-        </time>
-      </p>
-    </DeskLine>
+      end={<Ago iso={route.createdAt} />}
+      meta={`${route.municipalityName} · ${distance} · ${duration}`}
+      lead={<GlyphTile icon={Signpost} />}
+    />
   );
 }
 
-/** Everything needed to decide one route: what it is, its facts, the decision, and its line on a large map. */
+/**
+ * One route to decide: its line on a large map first, the three figures a
+ * walker asks about, then the description and the rest, and the decision
+ * pinned to the foot.
+ */
 export function RouteDetail({ route }: { route: EcoRoute }) {
   const id = useId();
-  const when = useWhen();
+  const t = useTranslations("admin");
+  const q = useTranslations("admin.queue");
+  const format = useFormatter();
+  const day = useDay();
+  const { distance, duration } = useRouteFigures(route);
+  const received = new Date(route.createdAt);
   return (
-    <article aria-labelledby={`${id}-title`} className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1.5">
-        <h2
-          id={`${id}-title`}
-          className="text-xl leading-tight font-semibold text-balance"
-        >
-          {route.name}
-        </h2>
-        <p className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          <span className="flex flex-wrap items-center gap-x-2">
-            <MunicipalityTag name={route.municipalityName} />
-            {route.categoryName}
-          </span>
-          <span className="text-[13px]">
-            {when("receivedAt", route.createdAt)}
-          </span>
-        </p>
-      </header>
-      <RouteFacts route={route} />
-      <div className="rounded-(--radius-card) bg-muted/60 p-3">
-        <RouteDecision route={route} id={id} />
-      </div>
+    <ReviewSheet
+      titleId={`${id}-title`}
+      title={route.name}
+      lead={<GlyphTile icon={Signpost} large />}
+      pills={
+        <>
+          <Pill>{route.categoryName}</Pill>
+          <Pill icon={MapPin}>
+            <span className="sr-only">{t("municipality")}: </span>
+            {route.municipalityName}
+          </Pill>
+        </>
+      }
+      footer={<RouteDecision route={route} id={id} />}
+    >
       <RouteMap route={route} large />
-    </article>
+      <dl className="grid grid-cols-3 gap-3">
+        {[
+          [q("distance"), distance],
+          [q("duration"), duration],
+          [q("difficulty"), q(`difficultyLevel.${route.difficulty}`)],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="flex flex-col gap-0.5 rounded-xl border px-4 py-3"
+          >
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="text-xl font-semibold tracking-tight tabular-nums">
+              {value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {route.description ? (
+        <Quote label={q("description")}>{route.description}</Quote>
+      ) : null}
+      <Ficha>
+        <FichaItem label={q("services")}>
+          {route.services.length > 0
+            ? route.services
+                .map((service) => q(`service.${service}`))
+                .join(", ")
+            : null}
+        </FichaItem>
+        <FichaItem label={q("sheet.received")}>
+          {q("untilDate", {
+            date: day(received),
+            time: format.dateTime(received, "time"),
+          })}
+        </FichaItem>
+      </Ficha>
+    </ReviewSheet>
   );
 }

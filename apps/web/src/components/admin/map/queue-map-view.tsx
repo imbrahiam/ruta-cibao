@@ -72,8 +72,8 @@ export function QueueMapLayout({
     <ItemFrameProvider value={frame}>
       {/* On a desk the map fills the queue's height beside a list that
           scrolls on its own; on a phone the map sticks above the cards. */}
-      <div className="grid min-h-0 flex-1 items-start gap-4 lg:h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:items-stretch">
-        <div className="sticky top-2 z-20 flex flex-col gap-2 rounded-(--radius-card) bg-background pb-1 lg:static lg:min-h-0 lg:pb-(--desk-bleed)">
+      <div className="grid min-h-0 flex-1 items-start lg:h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-stretch">
+        <div className="sticky top-0 z-20 flex flex-col gap-2 bg-card p-3 lg:static lg:min-h-0">
           <AdminMap
             interactive
             items={items}
@@ -92,7 +92,7 @@ export function QueueMapLayout({
             </span>
           ) : null}
         </div>
-        <div className="flex min-h-0 min-w-0 flex-col gap-3 lg:h-full">
+        <div className="flex min-h-0 min-w-0 flex-col lg:h-full lg:border-l">
           {children}
         </div>
       </div>

@@ -33,17 +33,21 @@ import {
   MunicipalityFilter,
   useMunicipalityFilter,
 } from "../municipality-filter";
-import { AdminPageHeader, AdminTableCard, AdminToolbar } from "../page-frame";
+import { AdminPageHeader } from "../page-frame";
 import { QueryState } from "../query-state";
 import { QueueSkeleton } from "../skeletons";
 import { useViewportFill } from "../use-viewport-fill";
-import { CaseRow } from "./case-row";
+import { CaseDetail, CaseLine, CaseRow } from "./case-row";
 import { ClaimDetail, ClaimLine, ClaimRow } from "./claim-row";
-import { ContentReportRow } from "./content-report-row";
-import { PhotoRow } from "./photo-row";
+import {
+  ContentReportDetail,
+  ContentReportLine,
+  ContentReportRow,
+} from "./content-report-row";
+import { PhotoDetail, PhotoLine, PhotoRow } from "./photo-row";
 import { PlaceDetail, PlaceLine, PlaceRow } from "./place-row";
 import { QueueEmpty } from "./queue-empty";
-import { ReportRow } from "./report-row";
+import { ReportDetail, ReportLine, ReportRow } from "./report-row";
 import { RouteDetail, RouteLine, RouteRow } from "./route-row";
 import { QUEUES, type QueueSlug } from "./slugs";
 import { SplitContext } from "./split";
@@ -179,11 +183,15 @@ function ModerationDesk({ queue }: { queue: Exclude<QueueSlug, "routes"> }) {
             return data.photos.map((photo) => ({
               key: photo.id,
               node: <PhotoRow photo={photo} />,
+              compact: <PhotoLine photo={photo} />,
+              pane: <PhotoDetail photo={photo} />,
             }));
           case "reports":
             return data.reports.map((report) => ({
               key: report.id,
               node: <ReportRow report={report} />,
+              compact: <ReportLine report={report} />,
+              pane: <ReportDetail report={report} />,
             }));
           case "traffic":
             return data.traffic.map((report) => ({
@@ -196,11 +204,15 @@ function ModerationDesk({ queue }: { queue: Exclude<QueueSlug, "routes"> }) {
             return data.contentReports.map((report) => ({
               key: report.id,
               node: <ContentReportRow report={report} />,
+              compact: <ContentReportLine report={report} />,
+              pane: <ContentReportDetail report={report} />,
             }));
           case "consultations":
             return data.consultations.map((item) => ({
               key: item.id,
               node: <CaseRow item={item} />,
+              compact: <CaseLine item={item} />,
+              pane: <CaseDetail item={item} />,
             }));
         }
       }}
@@ -575,76 +587,93 @@ function Desk<T>({
   return (
     <DeskContext.Provider value={desk}>
       <SplitContext.Provider value={splitValue}>
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-6">
           <AdminPageHeader id="queue-title" title={t(TITLE[slug])} />
 
-          {/* The filter, then the count right above the list it counts: one
-            short row before the first card. */}
-          <AdminToolbar>
-            <MunicipalityFilter />
-            {/* Nothing to list is nothing to map either: no switch then. */}
-            {map && count ? (
-              <ViewToggle value={view} onChange={setView} />
-            ) : null}
-            {/* What is being reviewed, counted in its own word, beside the
-              filter that decides it. */}
-            {count ? (
-              <p className="ml-auto text-sm text-muted-foreground tabular-nums">
-                {q(`counts.${slug}`, { count })}
-              </p>
-            ) : null}
-          </AdminToolbar>
-
+          {/* The whole desk is one card: its filter and count on top, then
+              the list (and the selected item or the map beside it). On a
+              desk-sized screen the card takes what the window has left and
+              its panes scroll inside it: the page itself stays put. */}
           <section
             ref={region}
             aria-labelledby="queue-title"
             aria-keyshortcuts="J K P R"
             tabIndex={-1}
-            inert={query.isPlaceholderData}
-            // On a desk-sized screen the queue fills what the window has left
-            // below the header, and its list, pane and map scroll inside it:
-            // the page itself stays put.
             style={fill}
+            // Beside a pane or a map the card takes the whole height; a
+            // plain list is only as tall as its rows, up to the same limit.
             className={cn(
-              "flex flex-col gap-3 outline-none lg:-mb-(--desk-bleed) lg:h-(--desk-fill) lg:min-h-96",
-              query.isPlaceholderData &&
-                "opacity-60 transition-opacity delay-150",
+              "flex flex-col overflow-hidden rounded-(--radius-card) border bg-card outline-none lg:-mb-(--desk-bleed)",
+              split || (view === "map" && map && items.length > 0)
+                ? "lg:h-[calc(var(--desk-fill)-1.5rem)] lg:min-h-96"
+                : "lg:max-h-[calc(var(--desk-fill)-1.5rem)]",
             )}
           >
-            <QueryState
-              query={query}
-              errorTitle={q(`loadFailed.${slug}`)}
-              skeleton={
-                <QueueSkeleton detail={slug === "photos" ? "image" : "facts"} />
-              }
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b px-3 py-2.5 sm:px-4">
+              <MunicipalityFilter />
+              {/* Nothing to list is nothing to map either: no switch then. */}
+              {map && count ? (
+                <ViewToggle value={view} onChange={setView} />
+              ) : null}
+              {/* What is being reviewed, counted in its own word. */}
+              {count ? (
+                <p className="ml-auto text-sm text-muted-foreground tabular-nums">
+                  {q(`counts.${slug}`, { count })}
+                </p>
+              ) : null}
+            </div>
+
+            <div
+              inert={query.isPlaceholderData}
+              className={cn(
+                "flex min-h-0 flex-1 flex-col",
+                query.isPlaceholderData &&
+                  "opacity-60 transition-opacity delay-150",
+              )}
             >
-              {() =>
-                shown.length === 0 ? (
-                  <QueueEmpty slug={slug} />
-                ) : (
-                  <ListOrMap
-                    map={view === "map" ? map : undefined}
-                    data={query.data}
-                  >
-                    {(() => {
-                      const listColumn = (
-                        <div
-                          data-scroll-root
-                          className="min-h-0 min-w-0 flex-1 lg:h-full lg:overflow-y-auto lg:pr-1 lg:pb-(--desk-bleed) lg:scroll-fade-y lg:[--fade-inset-end:var(--desk-bleed)]"
-                        >
-                          {/* No frame and no rules: each item is its own soft block. */}
-                          <AdminTableCard className="overflow-visible rounded-none border-0 bg-transparent">
+              <QueryState
+                query={query}
+                errorTitle={q(`loadFailed.${slug}`)}
+                skeleton={
+                  <div className="p-4">
+                    <QueueSkeleton
+                      detail={slug === "photos" ? "image" : "facts"}
+                    />
+                  </div>
+                }
+              >
+                {() =>
+                  shown.length === 0 ? (
+                    <QueueEmpty slug={slug} />
+                  ) : (
+                    <ListOrMap
+                      map={view === "map" ? map : undefined}
+                      data={query.data}
+                    >
+                      {(() => {
+                        const listColumn = (
+                          <div
+                            data-scroll-root
+                            className={cn(
+                              "min-h-0 min-w-0 flex-1 lg:h-full lg:overflow-y-auto lg:scroll-fade-y [--fade-surface:var(--card)]",
+                              split
+                                ? "p-2"
+                                : slug === "photos"
+                                  ? "p-3 sm:p-4"
+                                  : null,
+                            )}
+                          >
                             <ul
                               ref={list}
                               className={cn(
                                 "[&>li:focus-visible]:ring-2 [&>li:focus-visible]:ring-ring/50 [&>li:focus-visible]:outline-none [&>li:focus-visible]:ring-inset",
                                 // Photos are judged by eye: a wall of tiles,
-                                // not one full-width card per picture.
+                                // not one full-width row per picture.
                                 slug === "photos"
-                                  ? "grid grid-cols-[repeat(auto-fill,minmax(min(100%,17rem),1fr))] items-start gap-3"
-                                  : "flex flex-col",
-                                slug !== "photos" &&
-                                  (split ? "gap-1" : "gap-3"),
+                                  ? "grid grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))] items-start gap-3"
+                                  : split
+                                    ? "flex flex-col gap-0.5"
+                                    : "flex flex-col [&>li+li]:border-t",
                               )}
                               onFocus={onListFocus}
                               onBlur={onListBlur}
@@ -655,44 +684,55 @@ function Desk<T>({
                                 </Fragment>
                               ))}
                             </ul>
-                          </AdminTableCard>
-                          {more ? (
-                            <div className="pt-3">
-                              <ListMore
-                                shown={items.length}
-                                total={count ?? items.length}
-                                hasMore={more.hasMore}
-                                loading={more.loading}
-                                onMore={more.load}
-                              />
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                      if (!split) return listColumn;
-                      return (
-                        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,24rem)_minmax(0,1fr)] gap-6 lg:h-full">
-                          {listColumn}
-                          {selected ? (
-                            <div
-                              ref={pane}
-                              key={selected.key}
-                              className="min-h-0 min-w-0 lg:h-full lg:overflow-y-auto lg:pr-1 lg:pb-(--desk-bleed) lg:scroll-fade-y lg:[--fade-inset-end:var(--desk-bleed)]"
-                            >
-                              {/* The entrance runs inside: on the scroller
-                                  its animation would replace the fade's. */}
-                              <div className="animate-fade">
-                                {selected.pane}
+                            {more ? (
+                              <div
+                                className={cn(
+                                  "pt-3",
+                                  split
+                                    ? "px-3 pb-1"
+                                    : slug === "photos"
+                                      ? null
+                                      : "border-t px-4 pb-4 sm:px-5",
+                                )}
+                              >
+                                <ListMore
+                                  shown={items.length}
+                                  total={count ?? items.length}
+                                  hasMore={more.hasMore}
+                                  loading={more.loading}
+                                  onMore={more.load}
+                                />
                               </div>
+                            ) : null}
+                          </div>
+                        );
+                        if (!split) return listColumn;
+                        return (
+                          <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:h-full">
+                            <div className="flex min-h-0 flex-col border-r">
+                              {listColumn}
                             </div>
-                          ) : null}
-                        </div>
-                      );
-                    })()}
-                  </ListOrMap>
-                )
-              }
-            </QueryState>
+                            {selected ? (
+                              <div
+                                ref={pane}
+                                key={selected.key}
+                                className="min-h-0 min-w-0 lg:h-full lg:overflow-y-auto"
+                              >
+                                {/* The entrance runs inside: on the scroller
+                                    its animation would replace the fade's. */}
+                                <div className="flex min-h-full animate-fade flex-col">
+                                  {selected.pane}
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
+                    </ListOrMap>
+                  )
+                }
+              </QueryState>
+            </div>
           </section>
 
           <p role="status" className="sr-only">

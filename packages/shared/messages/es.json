@@ -547,6 +547,16 @@
         "consultations": "{count, plural, one {# consulta} other {# consultas}}"
       },
       "claimStatement": "Declaración del solicitante",
+      "sheet": {
+        "sentBy": "Enviado por",
+        "reportedBy": "Reportado por",
+        "requestedBy": "Solicitado por",
+        "received": "Recibido",
+        "expires": "Vence",
+        "stretch": "Tramo afectado",
+        "support": "Apoyos",
+        "category": "Categoría"
+      },
       "viewPlace": "Ver ficha del lugar",
       "closeReport": "Cerrar reporte",
       "claimMapAlt": "Mapa con la ubicación de {name}",
@@ -782,6 +792,15 @@
       "themeLight": "Claro",
       "themeDark": "Oscuro",
       "nav": "Secciones de la mesa",
+      "profile": "Mi perfil",
+      "profileIntro": "Así te ve el equipo en la mesa.",
+      "profileName": "Nombre",
+      "profileNameInvalid": "Escribe tu nombre, de 2 a 80 letras.",
+      "profileContact": "Acceso",
+      "profileRole": "Rol",
+      "profileSave": "Guardar",
+      "profileSaving": "Guardando…",
+      "profileFailed": "No se pudo guardar. Inténtalo de nuevo.",
       "overview": "Resumen",
       "groupWorkspace": "Tu espacio",
       "groupMap": "Mapa",
@@ -892,6 +911,18 @@
       "upToDate": "Al día",
       "upToDateBody": "Nada espera una decisión en estas secciones.",
       "viewAll": "Ver todos",
+      "open": "Abrir",
+      "captionWaiting": "por revisar",
+      "captionLive": "activos ahora",
+      "figure": {
+        "consultations": "Consultas",
+        "claims": "Titularidad",
+        "reports": "Correcciones",
+        "places": "Lugares",
+        "photos": "Fotografías",
+        "contentReports": "Reportes",
+        "traffic": "Tránsito"
+      },
       "anonymous": "Un vecino"
     }
   },

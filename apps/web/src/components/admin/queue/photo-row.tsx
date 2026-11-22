@@ -1,20 +1,169 @@
 "use client";
 
 import type { ApiOutputs, DecidePhotoInput } from "@ruta/contracts";
-import { ImageOff, Maximize2 } from "lucide-react";
+import { ImageOff, Images, MapPin, Maximize2 } from "lucide-react";
 import { useId, useState } from "react";
 import { useFormatter, useNow, useTranslations } from "use-intl";
+import { useDay } from "@/components/admin/use-day";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/web/api";
 import { MediaViewer } from "../media-viewer";
 import { DecisionBar } from "./decision-bar";
 import { MunicipalityTag, usePerson, useWhen } from "./item-parts";
+import {
+  Ago,
+  Ficha,
+  FichaItem,
+  GlyphTile,
+  Pill,
+  ReviewLine,
+  ReviewSheet,
+  Sender,
+} from "./review-ui";
+import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
 
 export type PendingPhoto = ApiOutputs["moderation"]["queue"]["photos"][number];
 
-export function PhotoRow({ photo }: { photo: PendingPhoto }) {
+/** Publish or reject one photo; the same bar wherever it is shown. */
+function PhotoDecision({ photo, id }: { photo: PendingPhoto; id: string }) {
   const t = useTranslations("admin");
+  const q = useTranslations("admin.queue");
+  const { decide, pending, error } = useDecision<Body<DecidePhotoInput>>(
+    (input) => api.moderation.decidePhoto(input),
+    { queue: "photos", id: photo.id },
+  );
+  return (
+    <DecisionBar
+      id={id}
+      subject={photo.placeName}
+      pending={pending}
+      error={error}
+      primary={{
+        label: t("publish"),
+        onConfirm: () => decide({ photoId: photo.id, decision: "publish" }),
+      }}
+      secondary={{
+        label: t("reject"),
+        destructive: true,
+        confirm: q("photoRejectConfirm"),
+        onConfirm: () => decide({ photoId: photo.id, decision: "reject" }),
+      }}
+    />
+  );
+}
+
+/** The picture as a 40 px square, or a mark when it cannot be loaded. */
+function Thumb({ src }: { src: string }) {
+  const [broken, setBroken] = useState(false);
+  if (broken) return <GlyphTile icon={ImageOff} />;
+  return (
+    // biome-ignore lint/performance/noImgElement: signed, already-sized storage URLs
+    <img
+      src={src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      onError={() => setBroken(true)}
+      className="size-10 shrink-0 rounded-[10px] bg-muted object-cover"
+    />
+  );
+}
+
+/** The photo in the list: its thumbnail, the place and how long ago, then who and where. */
+export function PhotoLine({ photo }: { photo: PendingPhoto }) {
+  const split = useSplit();
+  const q = useTranslations("admin.queue");
+  return (
+    <ReviewLine
+      selected={split?.selected === photo.id}
+      onSelect={() => split?.select(photo.id)}
+      title={photo.placeName}
+      end={<Ago iso={photo.createdAt} />}
+      meta={`${photo.uploadedBy ?? q("aNeighbour")} · ${photo.municipalityName}`}
+      lead={<Thumb src={photo.url} />}
+    />
+  );
+}
+
+/**
+ * One photo to judge: the picture itself, as large as the sheet allows (and
+ * larger still in the viewer), then the place it is for and who sent it.
+ */
+export function PhotoDetail({ photo }: { photo: PendingPhoto }) {
+  const id = useId();
+  const t = useTranslations("admin");
+  const q = useTranslations("admin.queue");
+  const format = useFormatter();
+  const day = useDay();
+  const [broken, setBroken] = useState(false);
+  const [viewing, setViewing] = useState<number | null>(null);
+  const received = new Date(photo.createdAt);
+  const alt = q("photoAlt", { place: photo.placeName });
+  return (
+    <ReviewSheet
+      titleId={`${id}-title`}
+      title={photo.placeName}
+      lead={<GlyphTile icon={Images} large />}
+      pills={
+        <Pill icon={MapPin}>
+          <span className="sr-only">{t("municipality")}: </span>
+          {photo.municipalityName}
+        </Pill>
+      }
+      footer={<PhotoDecision photo={photo} id={id} />}
+    >
+      {broken ? (
+        <div className="flex aspect-[16/9] w-full flex-col items-center justify-center gap-2 rounded-xl border bg-muted text-muted-foreground">
+          <ImageOff aria-hidden className="size-5" />
+          <p role="status" className="text-sm">
+            {q("photoUnavailable")}
+          </p>
+          <Button variant="outline" size="sm" onClick={() => setBroken(false)}>
+            {q("viewer.retry")}
+          </Button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setViewing(0)}
+          aria-label={q("photoOpen", { place: photo.placeName })}
+          className="group relative block cursor-zoom-in overflow-hidden rounded-xl border bg-muted outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          {/* biome-ignore lint/performance/noImgElement: signed, already-sized storage URLs */}
+          <img
+            src={photo.url}
+            alt={alt}
+            decoding="async"
+            onError={() => setBroken(true)}
+            className="max-h-[52vh] w-full object-contain"
+          />
+          <span className="absolute top-3 right-3 grid size-8 place-items-center rounded-full bg-card/95 opacity-0 shadow-(--shadow-elevated) transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+            <Maximize2 aria-hidden className="size-4" />
+          </span>
+        </button>
+      )}
+      <MediaViewer
+        items={[{ kind: "image", src: photo.url, alt }]}
+        index={viewing}
+        onIndexChange={setViewing}
+      />
+      <Ficha>
+        <FichaItem label={q("sheet.sentBy")}>
+          <Sender name={photo.uploadedBy} anonymous={q("aNeighbour")} />
+        </FichaItem>
+        <FichaItem label={q("sheet.received")}>
+          {q("untilDate", {
+            date: day(received),
+            time: format.dateTime(received, "time"),
+          })}
+        </FichaItem>
+      </Ficha>
+    </ReviewSheet>
+  );
+}
+
+export function PhotoRow({ photo }: { photo: PendingPhoto }) {
   const q = useTranslations("admin.queue");
   const id = useId();
   const when = useWhen();
@@ -23,11 +172,6 @@ export function PhotoRow({ photo }: { photo: PendingPhoto }) {
   const now = useNow({ updateInterval: 60_000 });
   const [broken, setBroken] = useState(false);
   const [viewing, setViewing] = useState<number | null>(null);
-  const { decide, pending, error } = useDecision<Body<DecidePhotoInput>>(
-    (input) => api.moderation.decidePhoto(input),
-    { queue: "photos", id: photo.id },
-  );
-
   const created = new Date(photo.createdAt);
   const titleId = `${id}-title`;
 
@@ -115,22 +259,7 @@ export function PhotoRow({ photo }: { photo: PendingPhoto }) {
         </p>
       </div>
       <div className="mt-auto px-1 pb-1">
-        <DecisionBar
-          id={id}
-          subject={photo.placeName}
-          pending={pending}
-          error={error}
-          primary={{
-            label: t("publish"),
-            onConfirm: () => decide({ photoId: photo.id, decision: "publish" }),
-          }}
-          secondary={{
-            label: t("reject"),
-            destructive: true,
-            confirm: q("photoRejectConfirm"),
-            onConfirm: () => decide({ photoId: photo.id, decision: "reject" }),
-          }}
-        />
+        <PhotoDecision photo={photo} id={id} />
       </div>
     </li>
   );

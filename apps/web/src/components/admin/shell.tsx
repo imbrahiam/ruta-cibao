@@ -69,7 +69,7 @@ export function AdminShell({
     return (
       <main
         id="contenido"
-        className="mx-auto w-full max-w-[1520px] px-4 py-10 sm:px-6 lg:px-10"
+        className="mx-auto w-full max-w-[1240px] px-4 py-10 sm:px-6 lg:px-10"
       >
         <ErrorPanel error={me.error} onRetry={() => me.refetch()} />
       </main>

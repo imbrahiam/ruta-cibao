@@ -137,7 +137,7 @@ export function CaseList() {
   const total = list.data?.pages.at(-1)?.total ?? 0;
 
   return (
-    <div className="flex max-w-5xl flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <AdminPageHeader
         title={c("title")}
         actions={

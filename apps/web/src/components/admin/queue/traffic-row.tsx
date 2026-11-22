@@ -17,8 +17,17 @@ import { trafficMapItem } from "../map/queue-items";
 import { useMapCopy } from "../map/use-map-copy";
 import { StatusIndicator } from "../status-indicator";
 import { DecisionBar } from "./decision-bar";
-import { Chip, DeskLine, ItemRow, useWhen } from "./item-parts";
+import { Chip, ItemRow, useWhen } from "./item-parts";
 import { PersonAvatar } from "./person-avatar";
+import {
+  Ficha,
+  FichaItem,
+  Pill,
+  Quote,
+  ReviewLine,
+  ReviewSheet,
+  Sender,
+} from "./review-ui";
 import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
 
@@ -283,91 +292,89 @@ export function TrafficRow({ report }: { report: LiveTraffic }) {
   );
 }
 
-/**
- * The report as one line of the list beside the open one, as it reads in the
- * queue: what and where, the words, then who and until when.
- */
+const SEVERITY_PILL = {
+  blocking: "red",
+  partial: "amber",
+  minor: "blue",
+} as const;
+
+/** The report in the list: what happened and until when, then where and how bad. */
 export function TrafficLine({ report }: { report: LiveTraffic }) {
   const split = useSplit();
+  const a = useTranslations("admin");
+  const severity = report.severity ? a(report.severity) : null;
   return (
-    <DeskLine
+    <ReviewLine
       selected={split?.selected === report.id}
       onSelect={() => split?.select(report.id)}
+      title={report.categoryName}
+      end={<Expiry iso={report.expiresAt} short />}
+      meta={report.description ?? report.municipalityName}
+      flag={
+        report.severity && severity !== report.categoryName ? (
+          <Pill tone={SEVERITY_PILL[report.severity]}>{severity}</Pill>
+        ) : null
+      }
+      lead={
+        <CategoryPin
+          icon={report.categoryIcon}
+          color={report.categoryColor}
+          tile
+          className="size-10 rounded-[10px] [&>svg]:size-5"
+        />
+      }
+    />
+  );
+}
+
+/**
+ * One live report: how bad and where on top, the stretch on a large map, the
+ * reporter's words, then who, since when and until when, and what can be done
+ * about it pinned to the foot.
+ */
+export function TrafficDetail({ report }: { report: LiveTraffic }) {
+  const id = useId();
+  const a = useTranslations("admin");
+  const q = useTranslations("admin.queue");
+  const format = useFormatter();
+  const day = useDay();
+  const expiry = useExpiry();
+  const impactText = useImpactText();
+  const map = useMapCopy();
+  const mapItem = useMemo(() => trafficMapItem(report), [report]);
+  const decisions = useTrafficDecisions(report);
+  const severity = report.severity ? a(report.severity) : null;
+  const received = new Date(report.createdAt);
+
+  return (
+    <ReviewSheet
+      titleId={`${id}-title`}
       title={report.categoryName}
       lead={
         <CategoryPin
           icon={report.categoryIcon}
           color={report.categoryColor}
           tile
-          className="size-9 rounded-[10px] [&>svg]:size-[18px]"
+          className="size-12 rounded-xl [&>svg]:size-6"
         />
       }
+      pills={
+        <>
+          {report.severity && severity !== report.categoryName ? (
+            <Pill tone={SEVERITY_PILL[report.severity]}>{severity}</Pill>
+          ) : null}
+          <Pill icon={MapPin}>
+            <span className="sr-only">{a("municipality")}: </span>
+            {report.municipalityName}
+          </Pill>
+          <Pill icon={Clock}>{expiry(report.expiresAt)}</Pill>
+        </>
+      }
+      footer={decisions}
     >
-      <ImpactChips report={report} />
-      <TextState report={report} />
-      {report.description ? (
-        <p className="line-clamp-2 text-sm text-pretty break-words text-foreground/80">
-          {report.description}
-        </p>
-      ) : null}
-      {/* Who and until when share the foot, whatever the row holds. */}
-      <div className="flex items-center justify-between gap-3">
-        <Reporter report={report} />
-        <Expiry iso={report.expiresAt} short />
-      </div>
-    </DeskLine>
-  );
-}
-
-/**
- * Everything needed to decide one report, beside the list that already shows
- * its chips: the title and when it leaves, who reported it, their words, the
- * decision while it is still in view, and the stretch on the map last, as
- * support (with its coordinates and a way out to Google Maps).
- */
-export function TrafficDetail({ report }: { report: LiveTraffic }) {
-  const id = useId();
-  const when = useWhen();
-  const impactText = useImpactText();
-  const map = useMapCopy();
-  const mapItem = useMemo(() => trafficMapItem(report), [report]);
-  const decisions = useTrafficDecisions(report);
-
-  return (
-    <article aria-labelledby={`${id}-title`} className="flex flex-col gap-4">
-      <header className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2
-            id={`${id}-title`}
-            className="text-xl leading-tight font-semibold"
-          >
-            {report.categoryName}
-          </h2>
-          <Expiry iso={report.expiresAt} />
-        </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <Reporter report={report} size="md" />
-          <span className="ml-auto text-[13px] text-muted-foreground">
-            {when("receivedAt", report.createdAt)}
-          </span>
-        </div>
-      </header>
-
-      {report.description ? (
-        <div className="flex max-w-prose flex-col items-start gap-1.5">
-          <TextState report={report} />
-          <p className="text-[15px] leading-relaxed text-pretty [overflow-wrap:anywhere]">
-            {report.description}
-          </p>
-        </div>
-      ) : null}
-
-      {/* The decision sits before the map, so it is on screen with the report. */}
-      <div className="rounded-(--radius-card) bg-muted/60 p-3">{decisions}</div>
-
       <MapPreview
         className="max-w-none"
-        mapClassName="aspect-[2/1]"
+        mapClassName="aspect-[21/9] rounded-xl"
         item={mapItem}
         label={map.trafficAlt(report)}
         title={report.categoryName}
@@ -375,6 +382,38 @@ export function TrafficDetail({ report }: { report: LiveTraffic }) {
         legend={map.trafficLegend([report])}
         anchor={report}
       />
-    </article>
+      {report.description ? (
+        <Quote label={q("trafficText")} state={<TextState report={report} />}>
+          {report.description}
+        </Quote>
+      ) : null}
+      <Ficha>
+        <FichaItem label={q("sheet.reportedBy")}>
+          <Sender
+            name={report.reportedBy}
+            image={report.reportedByImage}
+            anonymous={q("aNeighbour")}
+            verified={
+              report.reporterResidentVerified ? q("residentBadge") : undefined
+            }
+          />
+        </FichaItem>
+        <FichaItem label={q("sheet.received")}>
+          {q("untilDate", {
+            date: day(received),
+            time: format.dateTime(received, "time"),
+          })}
+        </FichaItem>
+        <FichaItem label={q("sheet.stretch")}>
+          {report.lengthMeters === null
+            ? null
+            : format.number(report.lengthMeters, {
+                style: "unit",
+                unit: "meter",
+                maximumFractionDigits: 0,
+              })}
+        </FichaItem>
+      </Ficha>
+    </ReviewSheet>
   );
 }

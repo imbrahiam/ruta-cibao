@@ -7,13 +7,13 @@ import Link from "next/link";
 import { type ReactNode, useState } from "react";
 import { useFormatter, useNow, useTranslations } from "use-intl";
 import { ModelIcon } from "@/components/category/category-model";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { orpc } from "@/lib/web/api";
 import { ErrorPanel } from "./error-panel";
 import { ADMIN_SECTIONS, type AdminSection as NavSection } from "./nav";
-import { AdminPageHeader, AdminSection } from "./page-frame";
+import { AdminPageHeader } from "./page-frame";
 import { PersonAvatar } from "./queue/person-avatar";
 import { useStaff } from "./staff-context";
 import { useAdminPrefetch } from "./use-admin-prefetch";
@@ -23,103 +23,120 @@ type CountedSection = NavSection & {
 };
 type Queue = ApiOutputs["moderation"]["queue"];
 
-/**
- * Traffic counts notices live on the map, not work waiting for a decision:
- * it is said apart and left out of the "Pendiente" total.
- */
+/** Traffic counts notices live on the map, not work waiting for a decision. */
 const LIVE = "traffic";
-/** How many of a section's items its card shows. */
-const PEEK = 3;
+/** How many of the chosen section's items the card shows. */
+const PEEK = 8;
 
 /**
- * Where to start: a card for each section with work waiting, heaviest first,
- * showing the next few items so the desk reads what is there before opening
- * it; what is live on the map now; and the sections that are up to date.
+ * Where to start: one figure per section, always in the menu's order so each
+ * keeps its place, and under them the next items of the section that is
+ * picked. It opens on the first section with something waiting.
  */
 export function AdminOverview() {
   const t = useTranslations("admin");
-  const o = useTranslations("admin.overview");
   const staff = useStaff();
   const counts = useQuery(orpc.moderation.counts.queryOptions());
   const data = counts.data;
+  const [picked, setPicked] = useState<string | null>(null);
 
   const sections = ADMIN_SECTIONS.filter(
     (section): section is CountedSection =>
       section.countKey !== undefined &&
       (!section.adminOnly || staff.staffRole === "admin"),
   );
-  const work = sections.filter((section) => section.countKey !== LIVE);
-  const live = sections.find((section) => section.countKey === LIVE);
-  const waiting = data
-    ? work
-        .filter((section) => data[section.countKey] > 0)
-        .sort((a, b) => data[b.countKey] - data[a.countKey])
-    : [];
-  const clear = data
-    ? work.filter((section) => data[section.countKey] === 0)
-    : [];
-  const total = waiting.reduce(
-    (sum, section) => sum + (data?.[section.countKey] ?? 0),
-    0,
-  );
-  const activeNotices = data?.[LIVE] ?? 0;
+  const chosen =
+    sections.find((section) => section.countKey === picked) ??
+    sections.find((section) => (data?.[section.countKey] ?? 0) > 0) ??
+    sections[0];
 
   return (
     <>
       <AdminPageHeader title={t("shell.overview")} />
       {counts.isError && !data ? (
         <ErrorPanel error={counts.error} onRetry={() => counts.refetch()} />
-      ) : !data ? (
-        <div
-          role="status"
-          aria-busy="true"
-          className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3"
-        >
-          <span className="sr-only">{t("loading")}</span>
-          {Array.from({ length: 4 }, (_, index) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
-            <CardSkeleton key={index} />
-          ))}
-        </div>
       ) : (
-        <div aria-busy={counts.isFetching} className="flex flex-col gap-8">
-          {waiting.length > 0 ? (
-            <AdminSection
-              id="overview-waiting"
-              title={t("pending")}
-              count={total}
-            >
-              <div className="grid items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-                {waiting.map((section) => (
-                  <WorkCard
-                    key={section.href}
-                    section={section}
-                    count={data[section.countKey]}
-                  />
-                ))}
-              </div>
-            </AdminSection>
-          ) : null}
-          {live && activeNotices > 0 ? (
-            <AdminSection id="overview-live" title={o("live")}>
-              <div className="grid items-start gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-                <WorkCard section={live} count={activeNotices} />
-                {clear.length > 0 ? <UpToDate sections={clear} /> : null}
-              </div>
-            </AdminSection>
-          ) : clear.length > 0 ? (
-            <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-3">
-              <UpToDate sections={clear} />
-            </div>
-          ) : null}
+        <div aria-busy={counts.isFetching} className="flex flex-col gap-4">
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fit,minmax(9.5rem,1fr))]">
+            {sections.map((section) => (
+              <li key={section.href} className="min-w-0">
+                <Figure
+                  section={section}
+                  count={data?.[section.countKey]}
+                  selected={section === chosen}
+                  onSelect={() => setPicked(section.countKey)}
+                />
+              </li>
+            ))}
+          </ul>
+          {chosen && data ? (
+            <Waiting
+              key={chosen.countKey}
+              section={chosen}
+              count={data[chosen.countKey]}
+            />
+          ) : (
+            <Skeleton className="h-80 rounded-(--radius-card)" />
+          )}
         </div>
       )}
     </>
   );
 }
 
-/** One section with work waiting: what it is, how much, and the next items. */
-function WorkCard({
+/** One section's figure: its name, how much waits, and what that number is. */
+function Figure({
+  section,
+  count,
+  selected,
+  onSelect,
+}: {
+  section: CountedSection;
+  count: number | undefined;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const o = useTranslations("admin.overview");
+  const Icon = section.icon;
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex w-full flex-col gap-0.5 rounded-(--radius-card) border bg-card px-4 py-3.5 text-left outline-none transition-colors focus-visible:ring-[3px] focus-visible:ring-ring/50",
+        selected
+          ? "border-foreground/70 shadow-[0_0_0_1px_color-mix(in_oklab,var(--foreground)_70%,transparent)]"
+          : "hover:bg-accent/60",
+      )}
+    >
+      <span className="flex items-center justify-between gap-2 text-[13px] text-muted-foreground">
+        <span className="truncate">{o(`figure.${section.countKey}`)}</span>
+        <Icon aria-hidden className="size-4 shrink-0" />
+      </span>
+      {count === undefined ? (
+        <Skeleton className="my-1.5 h-7 w-10" />
+      ) : (
+        <span
+          className={cn(
+            "text-[28px] leading-9 font-semibold tracking-tight tabular-nums",
+            count === 0 && "text-muted-foreground/70",
+          )}
+        >
+          {count}
+        </span>
+      )}
+      <span className="truncate text-[13px] text-muted-foreground">
+        {count === 0
+          ? o("upToDate")
+          : o(section.countKey === LIVE ? "captionLive" : "captionWaiting")}
+      </span>
+    </button>
+  );
+}
+
+/** The picked section: what it is, its next items, and the way into it. */
+function Waiting({
   section,
   count,
 }: {
@@ -130,11 +147,10 @@ function WorkCard({
   const o = useTranslations("admin.overview");
   const prefetch = useAdminPrefetch(useStaff());
   const queue = section.countKey as ModerationQueueName;
-  const peek = useQuery(
-    orpc.moderation.queue.queryOptions({
-      input: { queue, limit: PEEK },
-    }),
-  );
+  const peek = useQuery({
+    ...orpc.moderation.queue.queryOptions({ input: { queue, limit: PEEK } }),
+    enabled: count > 0,
+  });
   const items = (peek.data?.[queue] ?? []) as AnyItem[];
   const figure =
     queue === LIVE
@@ -146,65 +162,65 @@ function WorkCard({
   return (
     <article
       aria-labelledby={`card-${queue}`}
-      className="flex min-w-0 flex-col rounded-(--radius-card) border bg-card shadow-(--shadow-control)"
+      className="flex min-w-0 flex-col rounded-(--radius-card) border bg-card"
     >
-      <header className="flex items-center gap-3 px-4 pt-4 pb-2">
+      <header className="flex items-center gap-3 px-5 pt-4 pb-3">
         {section.model ? <ModelIcon name={section.model} size={32} /> : null}
-        <div className="flex min-w-0 flex-col">
-          <h3 id={`card-${queue}`} className="truncate text-base font-semibold">
-            {t(section.label)}
-          </h3>
-          <p className="text-[13px] text-muted-foreground tabular-nums">
+        <h2
+          id={`card-${queue}`}
+          className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-tight"
+        >
+          {t(section.label)}
+        </h2>
+        {count > 0 ? (
+          <p className="hidden text-sm text-muted-foreground tabular-nums sm:block">
             {figure}
           </p>
-        </div>
+        ) : null}
+        <Button variant="outline" size="sm" asChild>
+          <Link
+            href={section.href}
+            onPointerEnter={() => prefetch(section.href)}
+            onFocus={() => prefetch(section.href)}
+          >
+            {o(count > 0 ? "viewAll" : "open")}
+            <ArrowRight aria-hidden />
+          </Link>
+        </Button>
       </header>
 
-      <ul className="flex flex-col px-2">
-        {peek.isPending
-          ? Array.from({ length: Math.min(count, PEEK) }, (_, index) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
-              <li key={index} className="flex items-center gap-3 px-2 py-2.5">
-                <Skeleton className="size-9 shrink-0 rounded-lg" />
-                <span className="flex flex-1 flex-col gap-1.5">
-                  <Skeleton className="h-3.5 w-2/3" />
-                  <Skeleton className="h-3 w-1/3" />
-                </span>
-              </li>
-            ))
-          : items.map((item) => (
-              <PeekRow
-                key={item.id}
-                href={section.href}
-                queue={queue}
-                item={item}
-                onPrefetch={() => prefetch(section.href)}
-              />
-            ))}
-      </ul>
-
-      <footer className="mt-2 border-t px-4 py-2.5">
-        <Link
-          href={section.href}
-          onPointerEnter={() => prefetch(section.href)}
-          onFocus={() => prefetch(section.href)}
-          className="group inline-flex items-center gap-1.5 text-sm font-medium text-foreground/80 hover:text-foreground"
-        >
-          {o("viewAll")}
-          {peek.isPending ? null : (
-            <Badge
-              variant="secondary"
-              className="h-5 min-w-5 rounded-full px-1.5 tabular-nums"
-            >
-              {count}
-            </Badge>
-          )}
-          <ArrowRight
-            aria-hidden
-            className="size-3.5 transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none"
-          />
-        </Link>
-      </footer>
+      {count === 0 ? (
+        <div className="flex flex-col items-center gap-2 px-5 pt-8 pb-12 text-center">
+          <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Check aria-hidden className="size-4" strokeWidth={3} />
+          </span>
+          <p className="font-semibold">{o("upToDate")}</p>
+          <p className="text-sm text-muted-foreground">{o("upToDateBody")}</p>
+        </div>
+      ) : (
+        <ul className="grid gap-x-6 px-3 pb-3 lg:grid-cols-2">
+          {peek.isPending
+            ? Array.from({ length: Math.min(count, PEEK) }, (_, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
+                <li key={index} className="flex items-center gap-3 px-2 py-2.5">
+                  <Skeleton className="size-9 shrink-0 rounded-lg" />
+                  <span className="flex flex-1 flex-col gap-1.5">
+                    <Skeleton className="h-3.5 w-2/3" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </span>
+                </li>
+              ))
+            : items.map((item) => (
+                <PeekRow
+                  key={item.id}
+                  href={section.href}
+                  queue={queue}
+                  item={item}
+                  onPrefetch={() => prefetch(section.href)}
+                />
+              ))}
+        </ul>
+      )}
     </article>
   );
 }
@@ -336,7 +352,7 @@ function PeekRow({
           {lead}
         </span>
         <span className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate text-sm font-semibold">{title}</span>
+          <span className="truncate text-[15px] font-semibold">{title}</span>
           <span className="truncate text-[13px] text-muted-foreground">
             {meta}
           </span>
@@ -368,76 +384,5 @@ function Thumb({ src }: { src: string }) {
       onError={() => setBroken(true)}
       className="size-9 rounded-lg bg-muted object-cover"
     />
-  );
-}
-
-/** The sections with nothing waiting, each still a way in. */
-function UpToDate({ sections }: { sections: CountedSection[] }) {
-  const t = useTranslations("admin");
-  const o = useTranslations("admin.overview");
-  const prefetch = useAdminPrefetch(useStaff());
-  return (
-    <article
-      aria-labelledby="card-up-to-date"
-      className="flex flex-col gap-3 rounded-(--radius-card) border border-dashed p-4"
-    >
-      <header className="flex items-center gap-3">
-        <span className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <Check aria-hidden className="size-4" strokeWidth={3} />
-        </span>
-        <div className="flex flex-col">
-          <h3 id="card-up-to-date" className="text-base font-semibold">
-            {o("upToDate")}
-          </h3>
-          <p className="text-[13px] text-muted-foreground">
-            {o("upToDateBody")}
-          </p>
-        </div>
-      </header>
-      <ul className="flex flex-wrap gap-2">
-        {sections.map((section) => (
-          <li key={section.href}>
-            <Link
-              href={section.href}
-              onPointerEnter={() => prefetch(section.href)}
-              onFocus={() => prefetch(section.href)}
-              className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-full border bg-card pr-3 pl-1.5 text-sm",
-                "outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-ring/50",
-              )}
-            >
-              {section.model ? (
-                <ModelIcon name={section.model} size={20} />
-              ) : null}
-              {t(section.label)}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </article>
-  );
-}
-
-function CardSkeleton() {
-  return (
-    <div className="flex flex-col gap-3 rounded-(--radius-card) border p-4">
-      <div className="flex items-center gap-3">
-        <Skeleton className="size-8 rounded-lg" />
-        <span className="flex flex-1 flex-col gap-1.5">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-3 w-40" />
-        </span>
-      </div>
-      {Array.from({ length: PEEK }, (_, index) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: static placeholders
-        <div key={index} className="flex items-center gap-3">
-          <Skeleton className="size-9 rounded-lg" />
-          <span className="flex flex-1 flex-col gap-1.5">
-            <Skeleton className="h-3.5 w-2/3" />
-            <Skeleton className="h-3 w-1/3" />
-          </span>
-        </div>
-      ))}
-    </div>
   );
 }

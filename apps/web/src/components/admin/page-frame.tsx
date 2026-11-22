@@ -73,7 +73,7 @@ export function AdminPageHeader({
         <div className="flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1">
           <h1
             id={id}
-            className="text-[26px] leading-tight font-semibold tracking-tight text-balance"
+            className="text-[30px] leading-tight font-semibold tracking-tight text-balance"
           >
             {title}
           </h1>

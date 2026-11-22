@@ -121,9 +121,8 @@ export function ItemRow({
       aria-current={selected ? "true" : undefined}
       onClick={linked ? () => frame.onSelect(itemId) : undefined}
       className={cn(
-        "grid gap-4 rounded-(--radius-card) border bg-card p-4 sm:p-5",
-        selected &&
-          "border-primary/50 bg-primary/[0.05] shadow-[inset_3px_0_0_var(--primary)]",
+        "grid gap-4 px-4 py-5 sm:px-5",
+        selected && "bg-primary/[0.06] shadow-[inset_3px_0_0_var(--primary)]",
       )}
     >
       <div className="flex min-w-0 gap-3">
@@ -403,53 +402,5 @@ export function LeadImage({
         <UserRound className="size-5" />
       </AvatarFallback>
     </Avatar>
-  );
-}
-
-/**
- * One line of a desk's list beside the selected item: a bordered tile, so each
- * item reads as its own thing, with the chosen one marked by the brand's edge.
- * The title is the one strong thing in it; whatever follows is quieter.
- */
-export function DeskLine({
-  selected,
-  onSelect,
-  lead,
-  title,
-  titleHint,
-  children,
-}: {
-  selected: boolean;
-  onSelect: () => void;
-  /** The picture or pin that names the kind of item. */
-  lead?: ReactNode;
-  title: string;
-  /** The whole title, for a hover when the line cuts it. */
-  titleHint?: string;
-  children?: ReactNode;
-}) {
-  return (
-    <li
-      aria-current={selected ? "true" : undefined}
-      className={cn(
-        "relative flex gap-3 rounded-xl border bg-card px-3.5 py-3 transition-colors",
-        selected
-          ? "border-primary/50 bg-primary/[0.05] shadow-[inset_3px_0_0_var(--primary)]"
-          : "border-border hover:bg-accent/60",
-      )}
-    >
-      {lead}
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <button
-          type="button"
-          title={titleHint ?? title}
-          onClick={onSelect}
-          className="truncate text-left text-[15px] leading-snug font-semibold outline-none after:absolute after:inset-0 after:rounded-xl focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50"
-        >
-          {title}
-        </button>
-        {children}
-      </div>
-    </li>
   );
 }

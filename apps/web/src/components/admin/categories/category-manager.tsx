@@ -88,7 +88,7 @@ export function CategoryManager() {
 
   if (!isAdmin) {
     return (
-      <div className="flex max-w-5xl flex-col gap-5">
+      <div className="flex flex-col gap-5">
         <AdminPageHeader title={t("categories")} />
         <ErrorPanel error={REFUSED} />
       </div>
@@ -98,7 +98,7 @@ export function CategoryManager() {
   const traffic = kind === "traffic";
 
   return (
-    <div className="flex max-w-5xl flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <AdminPageHeader
         title={t("categories")}
         actions={

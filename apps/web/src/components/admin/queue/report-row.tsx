@@ -1,18 +1,69 @@
 "use client";
 
 import type { ApiOutputs, DecideReportInput } from "@ruta/contracts";
-import { ExternalLink, MapPin } from "lucide-react";
+import { ExternalLink, MapPin, SquarePen } from "lucide-react";
 import { useId } from "react";
 import { useFormatter, useNow, useTranslations } from "use-intl";
+import { useDay } from "@/components/admin/use-day";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/web/api";
 import { DecisionBar } from "./decision-bar";
 import { Chip, ItemRow, useWhen } from "./item-parts";
 import { PersonAvatar } from "./person-avatar";
+import {
+  Ago,
+  Ficha,
+  FichaItem,
+  GlyphTile,
+  Pill,
+  Quote,
+  ReviewLine,
+  ReviewSheet,
+  Sender,
+} from "./review-ui";
+import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
 
 export type PlaceCorrection =
   ApiOutputs["moderation"]["queue"]["reports"][number];
+
+/** Close or discard one correction; the same bar wherever it is shown. */
+function ReportDecision({
+  report,
+  id,
+}: {
+  report: PlaceCorrection;
+  id: string;
+}) {
+  const t = useTranslations("admin");
+  const q = useTranslations("admin.queue");
+  const { decide, pending, error } = useDecision<Body<DecideReportInput>>(
+    (input) => api.moderation.decideReport(input),
+    { queue: "reports", id: report.id },
+  );
+  return (
+    <DecisionBar
+      id={id}
+      subject={report.placeName}
+      pending={pending}
+      error={error}
+      primary={{
+        label: q("closeReport"),
+        onConfirm: () => decide({ reportId: report.id, decision: "resolved" }),
+      }}
+      secondary={{
+        label: t("dismiss"),
+        note: { min: 0, max: 500 },
+        onConfirm: (note) =>
+          decide({
+            reportId: report.id,
+            decision: "dismissed",
+            ...(note ? { note } : {}),
+          }),
+      }}
+    />
+  );
+}
 
 /**
  * A correction a resident asked for on a published place. Read at a glance:
@@ -32,10 +83,6 @@ export function ReportRow({ report }: { report: PlaceCorrection }) {
   const format = useFormatter();
   // "hace 2 días" stays true while the desk is open.
   const now = useNow({ updateInterval: 60_000 });
-  const { decide, pending, error } = useDecision<Body<DecideReportInput>>(
-    (input) => api.moderation.decideReport(input),
-    { queue: "reports", id: report.id },
-  );
 
   return (
     <ItemRow
@@ -92,29 +139,99 @@ export function ReportRow({ report }: { report: PlaceCorrection }) {
           </a>
         </Button>
       }
-      decision={
-        <DecisionBar
-          id={id}
-          subject={report.placeName}
-          pending={pending}
-          error={error}
-          primary={{
-            label: q("closeReport"),
-            onConfirm: () =>
-              decide({ reportId: report.id, decision: "resolved" }),
-          }}
-          secondary={{
-            label: t("dismiss"),
-            note: { min: 0, max: 500 },
-            onConfirm: (note) =>
-              decide({
-                reportId: report.id,
-                decision: "dismissed",
-                ...(note ? { note } : {}),
-              }),
-          }}
+      decision={<ReportDecision report={report} id={id} />}
+    />
+  );
+}
+
+/** The correction in the list: the place and how long ago, then what is wrong with it. */
+export function ReportLine({ report }: { report: PlaceCorrection }) {
+  const split = useSplit();
+  const q = useTranslations("admin.queue");
+  return (
+    <ReviewLine
+      selected={split?.selected === report.id}
+      onSelect={() => split?.select(report.id)}
+      title={report.placeName}
+      end={<Ago iso={report.createdAt} />}
+      meta={`${q(`reportReason.${report.reason}`)} · ${report.municipalityName}`}
+      lead={
+        <PersonAvatar
+          name={report.reportedBy}
+          image={report.reportedByImage}
+          className="size-10"
+          verified={
+            report.reporterResidentVerified ? q("residentBadge") : undefined
+          }
         />
       }
     />
+  );
+}
+
+/**
+ * One correction: which place and what is said to be wrong on top, the
+ * resident's words, who and when, and the way to the place's public page to
+ * check it. Deciding only closes the report; the place is not changed by it.
+ */
+export function ReportDetail({ report }: { report: PlaceCorrection }) {
+  const id = useId();
+  const t = useTranslations("admin");
+  const q = useTranslations("admin.queue");
+  const contact = useTranslations("admin.contactActions");
+  const format = useFormatter();
+  const day = useDay();
+  const received = new Date(report.createdAt);
+  return (
+    <ReviewSheet
+      titleId={`${id}-title`}
+      title={report.placeName}
+      lead={<GlyphTile icon={SquarePen} large />}
+      pills={
+        <>
+          <Pill tone="amber">{q(`reportReason.${report.reason}`)}</Pill>
+          <Pill icon={MapPin}>
+            <span className="sr-only">{t("municipality")}: </span>
+            {report.municipalityName}
+          </Pill>
+        </>
+      }
+      actions={
+        <Button variant="outline" size="sm" asChild>
+          <a
+            href={`/s/place/${report.placeSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {q("viewPlace")}
+            <ExternalLink aria-hidden />
+            <span className="sr-only">{contact("newTab")}</span>
+          </a>
+        </Button>
+      }
+      footer={<ReportDecision report={report} id={id} />}
+    >
+      {report.details ? (
+        <Quote label={q("details")}>{report.details}</Quote>
+      ) : null}
+      <Ficha>
+        <FichaItem label={q("sheet.reportedBy")}>
+          <Sender
+            name={report.reportedBy}
+            image={report.reportedByImage}
+            anonymous={q("aNeighbour")}
+            verified={
+              report.reporterResidentVerified ? q("residentBadge") : undefined
+            }
+          />
+        </FichaItem>
+        <FichaItem label={q("sheet.received")}>
+          {q("untilDate", {
+            date: day(received),
+            time: format.dateTime(received, "time"),
+          })}
+        </FichaItem>
+      </Ficha>
+    </ReviewSheet>
   );
 }

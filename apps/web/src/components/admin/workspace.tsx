@@ -2,7 +2,13 @@
 
 import type { ApiOutputs } from "@ruta/contracts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronsUpDown, Globe, KeyRound, LogOut } from "lucide-react";
+import {
+  ChevronsUpDown,
+  Globe,
+  KeyRound,
+  LogOut,
+  UserRound,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Fragment, type ReactNode, useEffect, useRef, useState } from "react";
@@ -54,6 +60,7 @@ import { ADMIN_GROUPS, ADMIN_SECTIONS, findAdminSection } from "./nav";
 import { OfflineBanner } from "./offline-banner";
 import { useAdminPageTitle } from "./page-frame";
 import { PasskeysDialog } from "./passkeys";
+import { ProfileDialog } from "./profile";
 import type { Staff } from "./staff-context";
 import { ThemeChoices } from "./theme-menu";
 import { useAdminPrefetch } from "./use-admin-prefetch";
@@ -184,7 +191,7 @@ export function AdminWorkspace({
         <header
           className={cn(
             // The page's own column, so the trail starts where the title does.
-            "mx-auto flex h-14 w-full max-w-[1520px] shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-10",
+            "mx-auto flex h-14 w-full max-w-[1240px] shrink-0 items-center justify-between gap-3 px-4 sm:px-6 lg:px-10",
             // On a desk with the sidebar open and no trail to show, the bar
             // would be an empty band above the title.
             open && !nested && "md:hidden",
@@ -222,8 +229,8 @@ export function AdminWorkspace({
         <main
           id="contenido"
           className={cn(
-            "@container/main mx-auto flex w-full max-w-[1520px] min-w-0 flex-1 flex-col gap-5 px-4 pt-2 pb-10 sm:px-6 lg:px-10",
-            open && !nested && "md:pt-7",
+            "@container/main mx-auto flex w-full max-w-[1240px] min-w-0 flex-1 flex-col gap-6 px-4 pt-2 pb-10 sm:px-6 lg:px-10",
+            open && !nested && "md:pt-11",
           )}
         >
           {children}
@@ -280,6 +287,7 @@ function AdminSidebar({
   const t = useTranslations("admin");
   const { setOpenMobile } = useSidebar();
   const [passkeysOpen, setPasskeysOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const role = t(
     staff.staffRole === "admin" ? "shell.roleAdmin" : "shell.roleModerator",
   );
@@ -546,6 +554,10 @@ function AdminSidebar({
                 ) : null}
                 <ThemeChoices />
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setProfileOpen(true)}>
+                  <UserRound aria-hidden="true" />
+                  {t("shell.profile")}
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => setPasskeysOpen(true)}>
                   <KeyRound aria-hidden="true" />
                   {t("shell.passkeys")}
@@ -572,6 +584,13 @@ function AdminSidebar({
             <PasskeysDialog
               open={passkeysOpen}
               onOpenChange={setPasskeysOpen}
+            />
+            <ProfileDialog
+              staff={staff}
+              role={role}
+              scope={scope}
+              open={profileOpen}
+              onOpenChange={setProfileOpen}
             />
           </SidebarMenuItem>
         </SidebarMenu>

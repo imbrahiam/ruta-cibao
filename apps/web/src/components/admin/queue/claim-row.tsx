@@ -3,9 +3,10 @@
 import type { ApiOutputs, DecideClaimInput } from "@ruta/contracts";
 import { normalizePhone } from "@ruta/shared/phone";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, MapPin, Store } from "lucide-react";
 import { type ReactNode, useId, useMemo } from "react";
-import { useFormatter, useNow, useTranslations } from "use-intl";
+import { useFormatter, useTranslations } from "use-intl";
+import { useDay } from "@/components/admin/use-day";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { api, orpc } from "@/lib/web/api";
@@ -13,8 +14,19 @@ import { ContactValue } from "../contact/contact-value";
 import { MapPreview } from "../map/map-preview";
 import type { MapItem } from "../map/map-types";
 import { DecisionBar } from "./decision-bar";
-import { ClampedText, DeskLine, LeadImage, useWhen } from "./item-parts";
+import { LeadImage } from "./item-parts";
 import { PersonAvatar } from "./person-avatar";
+import {
+  Ago,
+  Ficha,
+  FichaItem,
+  GlyphTile,
+  Pill,
+  Quote,
+  ReviewLine,
+  ReviewSheet,
+  Sender,
+} from "./review-ui";
 import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
 
@@ -23,50 +35,34 @@ export type PendingClaim = ApiOutputs["moderation"]["queue"]["claims"][number];
 /** On a phone: the whole claim as one soft block, decision at the end. */
 export function ClaimRow({ claim }: { claim: PendingClaim }) {
   return (
-    <li className="rounded-(--radius-card) border bg-card p-4 sm:p-5">
+    <li className="px-4 py-5 sm:px-5">
       <ClaimDetail claim={claim} />
     </li>
   );
 }
 
-/**
- * The claim as a line of the list beside the open one: business, town, who
- * asks and when. Choosing it opens it on the right.
- */
+/** The claim in the list: the business and how long ago, then who asks and where. */
 export function ClaimLine({ claim }: { claim: PendingClaim }) {
   const split = useSplit();
-  const format = useFormatter();
-  const now = useNow({ updateInterval: 60_000 });
   const q = useTranslations("admin.queue");
   return (
-    <DeskLine
+    <ReviewLine
       selected={split?.selected === claim.id}
       onSelect={() => split?.select(claim.id)}
       title={claim.placeName}
+      end={<Ago iso={claim.createdAt} />}
+      meta={`${claim.claimedBy ?? q("aNeighbour")} · ${claim.municipalityName}`}
       lead={
-        // One avatar per line: the requester's photo, or their initials.
         <PersonAvatar
           name={claim.claimedBy}
           image={claim.claimedByImage}
-          className="size-9"
+          className="size-10"
           verified={
             claim.claimantResidentVerified ? q("residentBadge") : undefined
           }
         />
       }
-    >
-      <p className="truncate text-[13px] text-muted-foreground">
-        {claim.municipalityName}
-      </p>
-      <p className="flex min-w-0 items-center justify-between gap-3 text-[13px] text-muted-foreground">
-        <span className="truncate">
-          {claim.claimedBy ?? q("claimedByAnon")}
-        </span>
-        <time dateTime={claim.createdAt} className="shrink-0 tabular-nums">
-          {format.relativeTime(new Date(claim.createdAt), now)}
-        </time>
-      </p>
-    </DeskLine>
+    />
   );
 }
 
@@ -83,7 +79,9 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
   const q = useTranslations("admin.queue");
   const contact = useTranslations("admin.contactActions");
   const id = useId();
-  const when = useWhen();
+  const format = useFormatter();
+  const day = useDay();
+  const received = new Date(claim.createdAt);
   const { decide, pending, error } = useDecision<Body<DecideClaimInput>>(
     (input) => api.moderation.decideClaim(input),
     { queue: "claims", id: claim.id },
@@ -124,52 +122,70 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
     normalizePhone(claim.whatsapp) === phone;
 
   return (
-    <article aria-labelledby={`${id}-title`} className="flex flex-col gap-5">
-      <header className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-1">
-            <h2
-              id={`${id}-title`}
-              className="text-xl leading-tight font-semibold"
-            >
-              {claim.placeName}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {claim.municipalityName} · {claim.categoryName}
-            </p>
-          </div>
-          <Button variant="outline" size="sm" asChild>
-            <a
-              href={`/s/place/${claim.placeSlug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {q("viewPlace")}
-              <ExternalLink aria-hidden />
-              <span className="sr-only">{contact("newTab")}</span>
-            </a>
-          </Button>
-        </div>
-
-        {/* Who asks, as a person: their face, their name, the verification
-            that belongs to them; when, quietly at the end. */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <PersonAvatar
+    <ReviewSheet
+      titleId={`${id}-title`}
+      title={claim.placeName}
+      lead={<GlyphTile icon={Store} large />}
+      pills={
+        <>
+          <Pill>{claim.categoryName}</Pill>
+          <Pill icon={MapPin}>
+            <span className="sr-only">{t("municipality")}: </span>
+            {claim.municipalityName}
+          </Pill>
+        </>
+      }
+      actions={
+        <Button variant="outline" size="sm" asChild>
+          <a
+            href={`/s/place/${claim.placeSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {q("viewPlace")}
+            <ExternalLink aria-hidden />
+            <span className="sr-only">{contact("newTab")}</span>
+          </a>
+        </Button>
+      }
+      footer={
+        <DecisionBar
+          id={id}
+          subject={claim.placeName}
+          pending={pending}
+          error={error}
+          primary={{
+            label: t("approve"),
+            onConfirm: () => decide({ claimId: claim.id, decision: "approve" }),
+          }}
+          secondary={{
+            label: t("reject"),
+            destructive: true,
+            note: { min: 10, max: 500 },
+            onConfirm: (note) =>
+              decide({ claimId: claim.id, decision: "reject", note }),
+          }}
+        />
+      }
+    >
+      <Ficha>
+        <FichaItem label={q("sheet.requestedBy")}>
+          <Sender
             name={claim.claimedBy}
             image={claim.claimedByImage}
-            className="size-8"
+            anonymous={q("aNeighbour")}
             verified={
               claim.claimantResidentVerified ? q("residentBadge") : undefined
             }
           />
-          <span className="font-medium">
-            {claim.claimedBy ?? q("claimedByAnon")}
-          </span>
-          <span className="ml-auto text-[13px] text-muted-foreground">
-            {when("receivedAt", claim.createdAt)}
-          </span>
-        </div>
-      </header>
+        </FichaItem>
+        <FichaItem label={q("sheet.received")}>
+          {q("untilDate", {
+            date: day(received),
+            time: format.dateTime(received, "time"),
+          })}
+        </FichaItem>
+      </Ficha>
 
       {/* What to read on the left; where the place is, as a supporting
           preview, on the right once the pane is wide enough. */}
@@ -178,11 +194,7 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
             is a short strip: the whole claim fits the pane without scrolling. */}
         <div className="grid gap-6 @lg:grid-cols-[minmax(0,1fr)_minmax(14rem,38%)] @lg:items-start @lg:gap-x-12">
           <div className="flex min-w-0 flex-col gap-5">
-            <ClaimSection id={`${id}-statement`} title={q("claimStatement")}>
-              <div className="max-w-prose text-[15px] [overflow-wrap:anywhere] whitespace-pre-line">
-                <ClampedText>{claim.evidence}</ClampedText>
-              </div>
-            </ClaimSection>
+            <Quote label={q("claimStatement")}>{claim.evidence}</Quote>
           </div>
 
           {mapItem || claim.placeImage ? (
@@ -266,29 +278,7 @@ export function ClaimDetail({ claim }: { claim: PendingClaim }) {
           </ClaimSection>
         ) : null}
       </div>
-
-      {/* The end of the review: its own band, after everything to read. A
-          decision announces its outcome and the next claim opens. */}
-      <footer className="rounded-(--radius-card) bg-muted/60 p-4">
-        <DecisionBar
-          id={id}
-          subject={claim.placeName}
-          pending={pending}
-          error={error}
-          primary={{
-            label: t("approve"),
-            onConfirm: () => decide({ claimId: claim.id, decision: "approve" }),
-          }}
-          secondary={{
-            label: t("reject"),
-            destructive: true,
-            note: { min: 10, max: 500 },
-            onConfirm: (note) =>
-              decide({ claimId: claim.id, decision: "reject", note }),
-          }}
-        />
-      </footer>
-    </article>
+    </ReviewSheet>
   );
 }
 

@@ -1,8 +1,10 @@
 "use client";
 
 import type { ApiOutputs, DecidePlaceInput } from "@ruta/contracts";
+import { BadgeCheck, MapPin } from "lucide-react";
 import { useId, useMemo } from "react";
-import { useFormatter, useNow, useTranslations } from "use-intl";
+import { useFormatter, useTranslations } from "use-intl";
+import { useDay } from "@/components/admin/use-day";
 import { CategoryPin } from "@/components/category/category-pin";
 import { api } from "@/lib/web/api";
 import { MapPreview } from "../map/map-preview";
@@ -10,7 +12,6 @@ import { placeMapItem } from "../map/queue-items";
 import { useMapCopy } from "../map/use-map-copy";
 import { DecisionBar } from "./decision-bar";
 import {
-  DeskLine,
   Fact,
   Facts,
   ItemRow,
@@ -19,6 +20,16 @@ import {
   usePerson,
   useWhen,
 } from "./item-parts";
+import {
+  Ago,
+  Ficha,
+  FichaItem,
+  Pill,
+  Quote,
+  ReviewLine,
+  ReviewSheet,
+  Sender,
+} from "./review-ui";
 import { useSplit } from "./split";
 import { type Body, useDecision } from "./use-decision";
 
@@ -108,85 +119,108 @@ export function PlaceRow({ place }: { place: PendingPlace }) {
   );
 }
 
-/** The place in the list beside the selected one: what it is, where, who sent it and when. */
+/** The place in the list: its name and how long ago, then where and what kind. */
 export function PlaceLine({ place }: { place: PendingPlace }) {
   const split = useSplit();
-  const format = useFormatter();
-  const now = useNow({ updateInterval: 60_000 });
   const q = useTranslations("admin.queue");
   return (
-    <DeskLine
+    <ReviewLine
       selected={split?.selected === place.id}
       onSelect={() => split?.select(place.id)}
+      title={place.name}
+      end={<Ago iso={place.createdAt} />}
+      meta={`${place.municipalityName} · ${place.categoryName}`}
+      flag={
+        place.submitterResidentVerified ? (
+          <BadgeCheck
+            role="img"
+            aria-label={q("residentBadge")}
+            className="size-4 shrink-0 text-primary"
+          />
+        ) : null
+      }
+      lead={
+        <CategoryPin
+          icon={place.categoryIcon}
+          color={place.categoryColor}
+          tile
+          className="size-10 rounded-[10px] [&>svg]:size-5"
+        />
+      }
+    />
+  );
+}
+
+/**
+ * One place to decide: what it is on top, where it is on the map (the
+ * evidence, so it comes first and large), then what the sender said about it
+ * and who they are, and the decision pinned to the foot.
+ */
+export function PlaceDetail({ place }: { place: PendingPlace }) {
+  const id = useId();
+  const t = useTranslations("admin");
+  const q = useTranslations("admin.queue");
+  const format = useFormatter();
+  const day = useDay();
+  const map = useMapCopy();
+  const mapItem = useMemo(() => placeMapItem(place), [place]);
+  const received = new Date(place.createdAt);
+  return (
+    <ReviewSheet
+      titleId={`${id}-title`}
       title={place.name}
       lead={
         <CategoryPin
           icon={place.categoryIcon}
           color={place.categoryColor}
           tile
-          className="size-9 rounded-[10px] [&>svg]:size-[18px]"
+          className="size-12 rounded-xl [&>svg]:size-6"
         />
       }
+      pills={
+        <>
+          <Pill>{place.categoryName}</Pill>
+          <Pill icon={MapPin}>
+            <span className="sr-only">{t("municipality")}: </span>
+            {place.municipalityName}
+          </Pill>
+        </>
+      }
+      footer={<PlaceDecision place={place} id={id} />}
     >
-      <p className="truncate text-[13px] text-muted-foreground">
-        {place.municipalityName} · {place.categoryName}
-      </p>
-      {/* Who and when share the foot, whatever the line holds. */}
-      <p className="flex min-w-0 items-center justify-between gap-3 text-[13px] text-muted-foreground">
-        <span className="truncate">
-          {place.submittedBy ?? q("submittedByAnon")}
-        </span>
-        <time dateTime={place.createdAt} className="shrink-0 tabular-nums">
-          {format.relativeTime(new Date(place.createdAt), now)}
-        </time>
-      </p>
-    </DeskLine>
-  );
-}
-
-/**
- * Everything needed to decide one place, in reading order: what and where it
- * is, who sent it, the facts, the decision while they are in view, and the
- * map last and large, as the evidence it is.
- */
-export function PlaceDetail({ place }: { place: PendingPlace }) {
-  const id = useId();
-  const when = useWhen();
-  const person = usePerson();
-  const map = useMapCopy();
-  const mapItem = useMemo(() => placeMapItem(place), [place]);
-  return (
-    <article aria-labelledby={`${id}-title`} className="flex flex-col gap-4">
-      <header className="flex flex-col gap-1.5">
-        <h2
-          id={`${id}-title`}
-          className="text-xl leading-tight font-semibold text-balance"
-        >
-          {place.name}
-        </h2>
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
-          <MunicipalityTag name={place.municipalityName} />
-          {place.categoryName}
-          {place.submitterResidentVerified ? <ResidentBadge /> : null}
-        </p>
-        <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-[13px] text-muted-foreground">
-          <span>{person("submittedBy", place.submittedBy)}</span>
-          <span>{when("receivedAt", place.createdAt)}</span>
-        </p>
-      </header>
-      <PlaceFacts place={place} />
-      <div className="rounded-(--radius-card) bg-muted/60 p-3">
-        <PlaceDecision place={place} id={id} />
-      </div>
       <MapPreview
         className="max-w-none"
-        mapClassName="aspect-[2/1]"
+        mapClassName="aspect-[21/9] rounded-xl"
         item={mapItem}
         label={map.placeAlt(place)}
         title={place.name}
         legend={map.placesLegend([place])}
         anchor={place}
       />
-    </article>
+      {place.description ? (
+        <Quote label={q("description")}>{place.description}</Quote>
+      ) : null}
+      <Ficha>
+        <FichaItem label={q("address")}>{place.address}</FichaItem>
+        <FichaItem label={q("location")}>
+          {q(`locationSource.${place.locationSource}`)}
+        </FichaItem>
+        <FichaItem label={q("sheet.sentBy")}>
+          <Sender
+            name={place.submittedBy}
+            anonymous={q("aNeighbour")}
+            verified={
+              place.submitterResidentVerified ? q("residentBadge") : undefined
+            }
+          />
+        </FichaItem>
+        <FichaItem label={q("sheet.received")}>
+          {q("untilDate", {
+            date: day(received),
+            time: format.dateTime(received, "time"),
+          })}
+        </FichaItem>
+      </Ficha>
+    </ReviewSheet>
   );
 }
