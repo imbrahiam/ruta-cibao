@@ -5,7 +5,7 @@ package rutacibao.core
  * it is secret; each install variant (dev, preview, production) has its own.
  */
 public data class AppConfig(
-    /** Origin of the web app, e.g. `https://rutacibao.do`. No trailing slash. */
+    /** Origin of the web app, e.g. `https://rutacibao.app`. No trailing slash. */
     val apiOrigin: String,
     /** URL scheme of this variant (`rutacibao-dev`). Better Auth trusts `<scheme>://`. */
     val appScheme: String,

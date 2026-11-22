@@ -231,7 +231,7 @@ in a job. The receipt stays queryable until the job finishes. Failed deletions
 are retried by the hourly cleanup. Encrypted backups may retain earlier data
 until their own retention expires.
 
-The intended domain is `rutacibao.com`. Domain purchase, DNS, private VPS,
+The production domain is `rutacibao.app`. Domain purchase, DNS, private VPS,
 production providers, encrypted disk volumes, off-host backups and monitoring
 are the recipient’s resources. Rehearse the supplied Compose stack and restore
 procedure on an isolated server before accepting real personal data.

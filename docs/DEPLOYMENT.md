@@ -29,8 +29,7 @@ granted in person by scoped staff; staff authority comes from
 `STAFF_STEP_UP_REQUIRED=1`, and is then enrolled before the role is granted. Passkeys are available
 for staff on the web admin.
 
-The intended public origin is `https://rutacibao.com`, subject to the domain
-being purchased. Deliver the Docker images and Compose stack; deployment on the
+The public origin is `https://rutacibao.app`. Deliver the Docker images and Compose stack; deployment on the
 recipient's private VPS does not require a hosted account owned by the developer.
 Use a staging origin and an isolated database before the final launch.
 
@@ -125,7 +124,7 @@ These are hard to change later. Decide them before you install anything.
 
 1. **The permanent domain.** Passkeys (fingerprint/face sign-in) are tied to
    the exact hostname. Changing it later signs every passkey user out for
-   good. Recommended: `rutacibao.do` or `app.rutacibao.do`, plus a separate
+   good. Use `rutacibao.app` in production and a separate
    `staging.` subdomain for testing.
 2. **Where photos are stored.**
    - **A — managed S3-compatible storage (recommended).** Cloudflare R2, AWS
@@ -149,7 +148,7 @@ platform.
 
 | Service | Needed for | Required? |
 | --- | --- | --- |
-| Domain registrar (NIC.DO for `.do`) | The address | Yes |
+| Domain registrar | The address | Yes |
 | **Twilio** | Sign-in codes by SMS (the main way in) | **Yes** |
 | **Resend** | Sign-in links and notifications by email | **Yes** |
 | Object storage provider | Photos (option A only) | Option A |
@@ -237,7 +236,7 @@ From here on, `rc` means that full command.
    ```json
    [
      {
-       "AllowedOrigins": ["https://app.example.do"],
+       "AllowedOrigins": ["https://app.example.app"],
        "AllowedMethods": ["PUT", "GET"],
        "AllowedHeaders": ["*"],
        "MaxAgeSeconds": 3600
@@ -282,20 +281,20 @@ openssl rand -hex 24        # S3_SECRET_ACCESS_KEY (option B)
 ### 6.2 Values for production
 
 Edit `.env`. Every variable is checked at startup, and a wrong value stops the
-app with a message naming the variable. Example for `app.example.do`:
+app with a message naming the variable. Example for `app.example.app`:
 
 ```bash
 # --- Core: these three must be the same https origin ---------------------
 NODE_ENV=production                     # the containers force this anyway
-APP_URL=https://app.example.do
-NEXT_PUBLIC_APP_URL=https://app.example.do
-BETTER_AUTH_URL=https://app.example.do
+APP_URL=https://app.example.app
+NEXT_PUBLIC_APP_URL=https://app.example.app
+BETTER_AUTH_URL=https://app.example.app
 BETTER_AUTH_SECRET=$(openssl rand -base64 32)
 TRUSTED_PROXY=1                         # Caddy sets X-Forwarded-For
 
 # --- Read by docker compose, not by the app ------------------------------
-SITE_ADDRESS=app.example.do             # Caddy requests the certificate for this
-ACME_EMAIL=ops@example.do               # expiry warnings from Let's Encrypt
+SITE_ADDRESS=app.example.app             # Caddy requests the certificate for this
+ACME_EMAIL=ops@example.app               # expiry warnings from Let's Encrypt
 POSTGRES_USER=ruta
 POSTGRES_PASSWORD=$(openssl rand -hex 24)
 POSTGRES_DB=ruta_cibao
@@ -312,7 +311,7 @@ TWILIO_ACCOUNT_SID=REPLACE_ME
 TWILIO_AUTH_TOKEN=REPLACE_ME
 TWILIO_VERIFY_SERVICE_SID=REPLACE_ME
 RESEND_API_KEY=REPLACE_ME
-EMAIL_FROM="Ruta Cibao <no-responder@example.do>"   # on the domain verified in Resend
+EMAIL_FROM="Ruta Cibao <no-responder@example.app>"   # on the domain verified in Resend
 
 # --- Push notifications --------------------------------------------------
 APNS_KEY_ID=REPLACE_ME
@@ -330,9 +329,9 @@ S3_SECRET_ACCESS_KEY=REPLACE_ME
 S3_FORCE_PATH_STYLE=0
 
 # --- Storage, option B (SeaweedFS) — instead of the block above --------------
-# STORAGE_ADDRESS=storage.example.do
-# STORAGE_CORS_ORIGIN=https://app.example.do  # the only origin allowed to upload
-# S3_ENDPOINT=https://storage.example.do
+# STORAGE_ADDRESS=storage.example.app
+# STORAGE_CORS_ORIGIN=https://app.example.app  # the only origin allowed to upload
+# S3_ENDPOINT=https://storage.example.app
 # S3_REGION=us-east-1
 # S3_BUCKET=ruta-cibao
 # S3_ACCESS_KEY_ID=ruta-storage
@@ -419,7 +418,7 @@ institution, done from the server.
    ```bash
    rc run --rm migrate bun run scripts/ops/grant-staff.ts +18095551234 admin --approved-in-person
    # A moderator is confined to one municipality:
-   rc run --rm migrate bun run scripts/ops/grant-staff.ts staff@example.do moderator --municipality REPLACE_ME
+   rc run --rm migrate bun run scripts/ops/grant-staff.ts staff@example.app moderator --municipality REPLACE_ME
    # roles: moderator | admin | none     (none removes the role)
    ```
 
@@ -459,8 +458,8 @@ devices. Changing it is not "rotating a password".
 
 | Check | How | Expected |
 | --- | --- | --- |
-| Server responds | `curl -fsS https://app.example.do/api/health` | `{"status":"ok"}` |
-| Dependencies | `curl -fsS https://app.example.do/api/ready` | `{"status":"ok",...}` |
+| Server responds | `curl -fsS https://app.example.app/api/health` | `{"status":"ok"}` |
+| Dependencies | `curl -fsS https://app.example.app/api/ready` | `{"status":"ok",...}` |
 | Production mode | `rc exec app printenv NODE_ENV` | `production` |
 | Containers | `rc ps` | app healthy; worker, postgres, storage, caddy up |
 | Worker | `rc logs --tail 50 worker` | Started, schedules registered, no errors |
@@ -512,7 +511,7 @@ A backup on the same server dies with the server. `infra/backup/backup-offsite.s
 copies the local snapshots to a machine you name, with `rsync` over SSH:
 
 ```bash
-export BACKUP_REMOTE=backup@files.example.do:/srv/ruta-cibao
+export BACKUP_REMOTE=backup@files.example.app:/srv/ruta-cibao
 /opt/ruta-cibao/infra/backup-offsite.sh
 ```
 
@@ -556,7 +555,7 @@ cd /opt/ruta-cibao
 infra/backup/backup.sh                      # always first: migrations are one-way
 git fetch --tags && git checkout v0.2.0
 rc up -d --build                     # migrations run before the app starts
-rc ps && curl -fsS https://app.example.do/api/ready
+rc ps && curl -fsS https://app.example.app/api/ready
 ```
 
 Read the release notes for new `.env` variables first. To compare:

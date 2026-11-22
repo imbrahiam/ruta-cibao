@@ -797,7 +797,7 @@ struct InviteFlow: View {
                 .navigationDestination(for: InviteStep.self) { _ in
                     ContactsInviteView(
                         message: L10n.Reputation.message(code: reputation.inviteCode, url: reputation.inviteUrl),
-                        shareURL: URL(string: reputation.inviteUrl) ?? URL(string: "https://rutacibao.do")!,
+                        shareURL: URL(string: reputation.inviteUrl) ?? URL(string: "https://rutacibao.app")!,
                         back: { path.removeLast() },
                         close: close
                     )
@@ -844,7 +844,7 @@ private struct InviteHome: View {
                 .padding(.top, 20)
 
                 VStack(spacing: 10) {
-                    ShareLink(item: URL(string: reputation.inviteUrl) ?? URL(string: "https://rutacibao.do")!, message: Text(message)) {
+                    ShareLink(item: URL(string: reputation.inviteUrl) ?? URL(string: "https://rutacibao.app")!, message: Text(message)) {
                         Label(L10n.Reputation.shareLink, systemImage: "square.and.arrow.up")
                     }
                     .buttonStyle(.ink)

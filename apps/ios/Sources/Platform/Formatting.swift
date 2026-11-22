@@ -20,7 +20,7 @@ enum CompactTime {
     }
 }
 
-func shareURL(_ slug: String) -> URL { URL(string: "https://rutacibao.do/consultas/\(slug)")! }
+func shareURL(_ slug: String) -> URL { URL(string: "https://rutacibao.app/consultas/\(slug)")! }
 
 extension ConsultationsBrowseInput.Status {
     var label: String {

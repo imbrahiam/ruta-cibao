@@ -102,7 +102,7 @@ targets:
         Release:
           PRODUCT_BUNDLE_IDENTIFIER: do.rutacibao.app
           APS_ENVIRONMENT: production
-          RUTA_API_ORIGIN: https://rutacibao.do
+          RUTA_API_ORIGIN: https://rutacibao.app
           RUTA_APP_SCHEME: rutacibao
           RUTA_VARIANT: Production
     preBuildScripts:

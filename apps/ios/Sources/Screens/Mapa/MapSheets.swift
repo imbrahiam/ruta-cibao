@@ -163,7 +163,7 @@ private struct PlacePanel: View {
                     IconButton(symbol: sheet.saved ? "bookmark.fill" : "bookmark", label: sheet.saved ? L10n.Place.savedLabel : L10n.Place.save) { vm.toggleSaved() }
                         .symbolEffect(.bounce, value: sheet.saved)
                         .sensoryFeedback(.impact(weight: .light), trigger: sheet.saved)
-                    ShareLink(item: URL(string: "https://rutacibao.do/lugares/\(place.slug)")!, subject: Text(place.name)) {
+                    ShareLink(item: URL(string: "https://rutacibao.app/lugares/\(place.slug)")!, subject: Text(place.name)) {
                         Image(systemName: "square.and.arrow.up").font(.system(size: 17)).foregroundStyle(Color.ink)
                             .frame(width: 44, height: 44).background(Color.paper2, in: Circle())
                     }

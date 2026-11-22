@@ -27,7 +27,7 @@ import kotlinx.serialization.json.JsonPrimitive
  */
 public class ApiTransport(
     private val client: HttpClient,
-    /** Base URL of the REST surface, e.g. `https://rutacibao.do/api`. */
+    /** Base URL of the REST surface, e.g. `https://rutacibao.app/api`. */
     private val baseUrl: String,
     public val json: Json = DefaultJson,
 ) {

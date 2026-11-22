@@ -129,7 +129,7 @@ fun StatusBadge(status: ConsultationStatus, solid: Boolean = false) {
 fun shareConsultation(context: Context, title: String, slug: String, label: String) {
     val send = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
-        putExtra(Intent.EXTRA_TEXT, "$title\nhttps://rutacibao.do/consultas/$slug")
+        putExtra(Intent.EXTRA_TEXT, "$title\nhttps://rutacibao.app/consultas/$slug")
     }
     context.startActivity(Intent.createChooser(send, label))
 }

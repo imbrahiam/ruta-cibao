@@ -453,7 +453,7 @@ private fun PlacePanel(sheet: PlaceSheet, vm: MapViewModel) {
         }, Modifier.weight(1f), icon = Icons.Outlined.Directions)
         IconDisc(if (sheet.saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, stringResource(if (sheet.saved) R.string.place_saved_label else R.string.place_save), vm::toggleSaved)
         IconDisc(Icons.Outlined.IosShare, shareLabel, {
-            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "${place.name}\nhttps://rutacibao.do/lugares/${place.slug}") }, shareLabel))
+            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, "${place.name}\nhttps://rutacibao.app/lugares/${place.slug}") }, shareLabel))
         })
     }
     // Where it is comes first, then what it looks like.
