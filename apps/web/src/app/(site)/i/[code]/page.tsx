@@ -1,6 +1,7 @@
 import { inviteCode } from "@ruta/contracts";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { StoreButtons } from "@/components/landing/store-buttons";
 import { CopyLink } from "@/components/share/copy-link";
 import { getT } from "@/lib/web/i18n";
@@ -40,7 +41,16 @@ export async function generateMetadata({
 }
 
 /** Where a shared invite link lands: who invited you, and the code to type. */
-export default async function InvitePage({ params }: { params: Params }) {
+export default function InvitePage({ params }: { params: Params }) {
+  // The code arrives with the request; the page's frame is ready before it.
+  return (
+    <Suspense fallback={<div className="container-page min-h-[60vh]" />}>
+      <Invite params={params} />
+    </Suspense>
+  );
+}
+
+async function Invite({ params }: { params: Params }) {
   const found = await inviter((await params).code);
   if (!found) notFound();
   const t = getT("share");

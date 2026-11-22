@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { AdminProviders } from "@/components/admin/providers";
 import { AdminShell } from "@/components/admin/shell";
@@ -36,6 +37,22 @@ export const instant = false;
  * The staff area. Everything beneath is client-rendered behind the session
  * gate; the catalogue slice below is all the browser downloads of the text.
  */
+/**
+ * Which sign-in methods work is the server's configuration, known when a request arrives and not
+ * when the image is built: the build has no configuration, and what it read would be frozen
+ * into the page.
+ */
+async function Desk({ children }: { children: React.ReactNode }) {
+  await connection();
+  return (
+    <AdminShell
+      phoneSignInEnabled={canDeliverSms() || isDemoPhoneSignInEnabled()}
+    >
+      {children}
+    </AdminShell>
+  );
+}
+
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <AdminProviders
@@ -54,11 +71,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
       />
       <AdminThemeScope>
         <Suspense>
-          <AdminShell
-            phoneSignInEnabled={canDeliverSms() || isDemoPhoneSignInEnabled()}
-          >
-            {children}
-          </AdminShell>
+          <Desk>{children}</Desk>
         </Suspense>
       </AdminThemeScope>
     </AdminProviders>
